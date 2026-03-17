@@ -13,8 +13,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]" 2>/dev/null || pip install -e .
-      - run: pip install pytest ruff
+      - run: pip install pytest ruff pyright
       - run: ruff check .
+      - run: pyright src/
       - run: pytest -v
 
   publish:

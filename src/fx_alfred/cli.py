@@ -9,7 +9,7 @@ from fx_alfred.commands.status_cmd import status_cmd
 
 
 @click.group()
-@click.version_option(package_name="fx-alfred")
+@click.version_option(package_name="fx-alfred")  # type: ignore[call-overload]
 def cli():
     """Alfred document system CLI."""
 
