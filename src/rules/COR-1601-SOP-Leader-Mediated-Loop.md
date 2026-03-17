@@ -27,25 +27,32 @@ Roles are not bound to specific models. Assign at invocation time.
 ## Flow
 
 ```
-        ┌─────────────────────────────────┐
-        │            Leader               │
-        │  (sees everything, arbitrates)  │
-        └──┬──────────────────────────┬───┘
-           │                          ▲
-     assign task              feedback + scores
-     + instructions                   │
-           │                          │
-           ▼                          │
-        Worker ── produces output ── Reviewer(s)
-           ▲                          │
-           │                          ▼
-           └── Leader's decision: ── Approved?
-               - revise (with guidance)    │
-               - change direction         Yes
-               - accept as-is              │
-                                           ▼
-                                     Task complete
+        ┌──────────────────────────────────┐
+        │           Leader                 │
+        │   ALL communication goes         │
+        │   through Leader only            │
+        └──┬────────────┬─────────────┬────┘
+           │            │             │
+     assign│     forward│      forward│
+      task │     output │      output │
+           │            │             │
+           ▼            ▼             ▼
+        Worker      Reviewer A    Reviewer B
+           │            │             │
+     output│      score │       score │
+   to Leader│   to Leader│    to Leader│
+           │            │             │
+           ▼            ▼             ▼
+        ┌──────────────────────────────────┐
+        │   Leader decides next action:    │
+        │   - revise (instruct Worker)     │
+        │   - redirect (change approach)   │
+        │   - arbitrate (resolve conflict) │
+        │   - accept (task complete)       │
+        └──────────────────────────────────┘
 ```
+
+**Key rule**: Worker and Reviewer(s) never communicate directly. All output and feedback flows through Leader.
 
 ---
 
@@ -99,12 +106,26 @@ Worker: GLM
 Reviewers: Codex, Gemini
 Criteria: Both reviewers must approve
 
-Round 1: GLM proposes scheme → Codex likes it, Gemini says "areas overlap"
-Leader: agrees with Gemini, tells GLM to reorganize areas
-Round 2: GLM revises → Codex 9/10, Gemini 8/10 "needs examples"
-Leader: tells GLM to add examples only, rest is good
-Round 3: GLM adds examples → Codex 10/10, Gemini 10/10 ✓
-Task complete
+Round 1:
+  GLM produces scheme → submits to Leader
+  Leader forwards to Codex and Gemini
+  Codex tells Leader: "looks good"
+  Gemini tells Leader: "areas overlap"
+  Leader agrees with Gemini, instructs GLM to reorganize areas
+
+Round 2:
+  GLM revises → submits to Leader
+  Leader forwards to Codex and Gemini
+  Codex tells Leader: 9/10
+  Gemini tells Leader: 8/10 "needs examples"
+  Leader instructs GLM to add examples only
+
+Round 3:
+  GLM adds examples → submits to Leader
+  Leader forwards to Codex and Gemini
+  Codex tells Leader: 10/10
+  Gemini tells Leader: 10/10
+  Leader: both approved ✓ → task complete
 ```
 
 ---
@@ -114,3 +135,4 @@ Task complete
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-15 | Initial version | Claude Code |
+| 2026-03-17 | Fixed flow diagram and example to enforce Leader-only communication; added key rule | Claude Code |
