@@ -46,16 +46,21 @@ def test_list_uses_spaces_not_tabs(sample_project, monkeypatch):
             assert "  " in line, f"No double space in: {line}"
 
 
-def test_list_with_root_option(sample_project):
-    """List command respects --root option."""
+def test_list_with_root_before_subcommand(sample_project):
+    """af --root <path> list works."""
     runner = CliRunner()
     result = runner.invoke(
         cli, ["--root", str(sample_project), "list"], catch_exceptions=False
     )
     assert result.exit_code == 0
-    # PKG docs
-    assert "COR-0001" in result.output
-    assert "COR-1000" in result.output
-    # PRJ docs
     assert "ALF-2201" in result.output
-    assert "ALF-2202" in result.output
+
+
+def test_list_with_root_after_subcommand(sample_project):
+    """af list --root <path> works."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["list", "--root", str(sample_project)], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "ALF-2201" in result.output

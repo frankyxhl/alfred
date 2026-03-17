@@ -2,7 +2,7 @@ from itertools import groupby
 
 import click
 
-from fx_alfred.context import get_root
+from fx_alfred.context import get_root, root_option
 from fx_alfred.core.document import Document
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
@@ -18,6 +18,7 @@ def _build_index(title: str, docs: list[Document]) -> str:
 
 
 @click.command("index")
+@root_option
 @click.pass_context
 def index_cmd(ctx: click.Context):
     """Regenerate document index files for PRJ layer only."""

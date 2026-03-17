@@ -55,3 +55,12 @@ def test_status_with_root_option(sample_project):
     )
     assert result.exit_code == 0
     assert "PRJ" in result.output
+
+
+def test_status_with_root_after_subcommand(sample_project):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["status", "--root", str(sample_project)], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "PRJ" in result.output

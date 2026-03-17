@@ -1,12 +1,13 @@
 import click
 
-from fx_alfred.context import get_root
+from fx_alfred.context import get_root, root_option
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 SOURCE_LABELS = {"pkg": "PKG", "usr": "USR", "prj": "PRJ"}
 
 
 @click.command("list")
+@root_option
 @click.pass_context
 def list_cmd(ctx: click.Context):
     """List all documents."""

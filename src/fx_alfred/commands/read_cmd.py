@@ -1,10 +1,11 @@
 import click
 
-from fx_alfred.context import get_root
+from fx_alfred.context import get_root, root_option
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 
 @click.command("read")
+@root_option
 @click.argument("acid")
 @click.pass_context
 def read_cmd(ctx: click.Context, acid: str):

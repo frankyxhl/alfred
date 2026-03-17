@@ -4,7 +4,7 @@ from importlib import resources
 
 import click
 
-from fx_alfred.context import get_root
+from fx_alfred.context import get_root, root_option
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 VALID_TYPES = {"sop", "adr", "prp"}
@@ -25,6 +25,7 @@ def validate_acid(ctx, param, value):
 
 
 @click.command("create")
+@root_option
 @click.argument("doc_type", type=click.Choice(sorted(VALID_TYPES)))
 @click.option(
     "--prefix",

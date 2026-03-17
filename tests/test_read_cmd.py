@@ -30,11 +30,23 @@ def test_read_not_found(sample_project, monkeypatch):
 
 
 def test_read_with_root_option(sample_project):
-    """Read command respects --root option."""
+    """Read command respects --root before subcommand."""
     runner = CliRunner()
     result = runner.invoke(
         cli,
         ["--root", str(sample_project), "read", "2201"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "# AF CLI" in result.output
+
+
+def test_read_with_root_after_subcommand(sample_project):
+    """Read command respects --root after subcommand."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["read", "--root", str(sample_project), "2201"],
         catch_exceptions=False,
     )
     assert result.exit_code == 0

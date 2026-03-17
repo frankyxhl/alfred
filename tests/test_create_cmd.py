@@ -81,16 +81,22 @@ def test_create_with_root_option(tmp_path):
     result = runner.invoke(
         cli,
         [
-            "--root",
-            str(tmp_path),
-            "create",
-            "sop",
-            "--prefix",
-            "TST",
-            "--acid",
-            "2100",
-            "--title",
-            "Root Test",
+            "--root", str(tmp_path),
+            "create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Root Test",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (tmp_path / "rules" / "TST-2100-SOP-Root-Test.md").exists()
+
+
+def test_create_with_root_after_subcommand(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create", "--root", str(tmp_path),
+            "sop", "--prefix", "TST", "--acid", "2100", "--title", "Root Test",
         ],
         catch_exceptions=False,
     )
