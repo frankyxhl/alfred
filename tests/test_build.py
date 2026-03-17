@@ -12,6 +12,7 @@ import pytest
 def _has_build_module():
     try:
         import build  # noqa: F401
+
         return True
     except ImportError:
         return False

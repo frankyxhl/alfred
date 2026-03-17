@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import click
 
 from fx_alfred.commands.create_cmd import create_cmd
@@ -9,9 +11,18 @@ from fx_alfred.commands.status_cmd import status_cmd
 
 
 @click.group()
+@click.option(
+    "--root",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),  # type: ignore[type-var]
+    default=".",
+    help="Project root directory (default: current directory)",
+)
 @click.version_option(package_name="fx-alfred")  # type: ignore[call-overload]
-def cli():
+@click.pass_context
+def cli(ctx: click.Context, root: Path):
     """Alfred document system CLI."""
+    ctx.ensure_object(dict)
+    ctx.obj["root"] = root.resolve()
 
 
 cli.add_command(create_cmd)

@@ -27,3 +27,15 @@ def test_read_not_found(sample_project, monkeypatch):
     result = runner.invoke(cli, ["read", "9999"], catch_exceptions=False)
     assert result.exit_code != 0
     assert "9999" in result.output
+
+
+def test_read_with_root_option(sample_project):
+    """Read command respects --root option."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--root", str(sample_project), "read", "2201"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "# AF CLI" in result.output

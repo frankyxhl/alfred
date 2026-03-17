@@ -1,16 +1,17 @@
-from pathlib import Path
-
 import click
 
+from fx_alfred.context import get_root
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 
 @click.command("read")
 @click.argument("acid")
-def read_cmd(acid: str):
+@click.pass_context
+def read_cmd(ctx: click.Context, acid: str):
     """Read a document by ACID number."""
+    root = get_root(ctx)
     try:
-        docs = scan_documents(Path.cwd())
+        docs = scan_documents(root)
     except LayerValidationError as e:
         raise click.ClickException(str(e)) from e
 

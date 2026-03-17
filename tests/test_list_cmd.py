@@ -30,3 +30,32 @@ def test_list_shows_source_labels(sample_project, monkeypatch):
     result = runner.invoke(cli, ["list"], catch_exceptions=False)
     assert "PKG" in result.output
     assert "PRJ" in result.output
+
+
+def test_list_uses_spaces_not_tabs(sample_project, monkeypatch):
+    """List output uses space alignment, not tabs."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0
+    lines = result.output.strip().split("\n")
+    # Each line should have double spaces between columns
+    for line in lines:
+        if "COR-" in line or "ALF-" in line:
+            assert "\t" not in line, f"Found tab in: {line}"
+            assert "  " in line, f"No double space in: {line}"
+
+
+def test_list_with_root_option(sample_project):
+    """List command respects --root option."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--root", str(sample_project), "list"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # PKG docs
+    assert "COR-0001" in result.output
+    assert "COR-1000" in result.output
+    # PRJ docs
+    assert "ALF-2201" in result.output
+    assert "ALF-2202" in result.output

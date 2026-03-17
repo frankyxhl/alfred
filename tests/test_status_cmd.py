@@ -46,3 +46,12 @@ def test_status_shows_by_source(sample_project, monkeypatch):
     assert total_count == pkg_count + prj_count, (
         f"Total {total_count} != PKG {pkg_count} + PRJ {prj_count}"
     )
+
+
+def test_status_with_root_option(sample_project):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--root", str(sample_project), "status"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "PRJ" in result.output

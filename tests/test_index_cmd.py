@@ -40,3 +40,15 @@ def test_index_empty_project(tmp_path, monkeypatch):
     result = runner.invoke(cli, ["index"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "No PRJ documents" in result.output
+
+
+def test_index_with_root_option(tmp_path):
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    (rules_dir / "TST-2100-SOP-Something.md").write_text("# test")
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--root", str(tmp_path), "index"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert (rules_dir / "TST-0000-REF-Document-Index.md").exists()

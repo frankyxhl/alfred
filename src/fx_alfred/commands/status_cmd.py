@@ -1,18 +1,20 @@
 from collections import Counter
-from pathlib import Path
 
 import click
 
+from fx_alfred.context import get_root
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 SOURCE_LABELS = {"pkg": "PKG", "usr": "USR", "prj": "PRJ"}
 
 
 @click.command("status")
-def status_cmd():
+@click.pass_context
+def status_cmd(ctx: click.Context):
     """Show document summary."""
+    root = get_root(ctx)
     try:
-        docs = scan_documents(Path.cwd())
+        docs = scan_documents(root)
     except LayerValidationError as e:
         raise click.ClickException(str(e)) from e
 

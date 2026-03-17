@@ -1,10 +1,10 @@
 import re
 from datetime import date
 from importlib import resources
-from pathlib import Path
 
 import click
 
+from fx_alfred.context import get_root
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 VALID_TYPES = {"sop", "adr", "prp"}
@@ -36,10 +36,12 @@ def validate_acid(ctx, param, value):
     "--acid", required=True, callback=validate_acid, help="4-digit ACID number"
 )
 @click.option("--title", required=True, help="Document title")
-def create_cmd(doc_type: str, prefix: str, acid: str, title: str):
+@click.pass_context
+def create_cmd(ctx: click.Context, doc_type: str, prefix: str, acid: str, title: str):
     """Create a new document from template."""
+    root = get_root(ctx)
     try:
-        docs = scan_documents(Path.cwd())
+        docs = scan_documents(root)
     except LayerValidationError as e:
         raise click.ClickException(str(e)) from e
 
@@ -48,7 +50,7 @@ def create_cmd(doc_type: str, prefix: str, acid: str, title: str):
             raise click.ClickException(f"ACID {acid} already exists: {doc.filename}")
 
     filename = f"{prefix}-{acid}-{doc_type.upper()}-{title.replace(' ', '-')}.md"
-    output_path = Path.cwd() / "rules" / filename
+    output_path = root / "rules" / filename
 
     template_file = resources.files("fx_alfred.templates").joinpath(f"{doc_type}.md")
     template = template_file.read_text()

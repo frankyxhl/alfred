@@ -1,8 +1,8 @@
 from itertools import groupby
-from pathlib import Path
 
 import click
 
+from fx_alfred.context import get_root
 from fx_alfred.core.document import Document
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
@@ -18,10 +18,12 @@ def _build_index(title: str, docs: list[Document]) -> str:
 
 
 @click.command("index")
-def index_cmd():
+@click.pass_context
+def index_cmd(ctx: click.Context):
     """Regenerate document index files for PRJ layer only."""
+    root = get_root(ctx)
     try:
-        docs = scan_documents(Path.cwd())
+        docs = scan_documents(root)
     except LayerValidationError as e:
         raise click.ClickException(str(e)) from e
 
@@ -33,7 +35,7 @@ def index_cmd():
         return
 
     prj_docs.sort(key=lambda d: d.prefix)
-    rules_dir = Path.cwd() / "rules"
+    rules_dir = root / "rules"
     rules_dir.mkdir(parents=True, exist_ok=True)
 
     for prefix, group in groupby(prj_docs, key=lambda d: d.prefix):

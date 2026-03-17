@@ -74,3 +74,25 @@ def test_create_refuses_duplicate(tmp_path, monkeypatch):
         catch_exceptions=False,
     )
     assert result.exit_code != 0
+
+
+def test_create_with_root_option(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--root",
+            str(tmp_path),
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "2100",
+            "--title",
+            "Root Test",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (tmp_path / "rules" / "TST-2100-SOP-Root-Test.md").exists()
