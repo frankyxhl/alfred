@@ -15,6 +15,9 @@
 | 1400 | SOP | Atomic SOP Principle |
 | 1401 | SOP | Documentation Language Policy |
 | 1402 | SOP | Declare Active Process |
+| 1403 | SOP | Interactive Question Principle |
+| 1404 | SOP | Interactive Question — Claude Code Implementation |
+| 1405 | SOP | Interactive Question — GitHub Copilot Implementation |
 | 1500 | SOP | TDD Development Workflow |
 | 1501 | SOP | Create GitHub Issue |
 | 1502 | SOP | Git Branch Naming |

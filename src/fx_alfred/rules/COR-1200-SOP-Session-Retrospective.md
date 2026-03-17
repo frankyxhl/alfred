@@ -1,7 +1,7 @@
 # SOP-1200: Session Retrospective
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-08
+**Last updated:** 2026-03-17
 **Last executed:** —
 
 ---
@@ -58,10 +58,18 @@ Ask yourself:
 
 ### 5. Record findings
 
-Create a brief summary with three sections:
+Save the retrospective as a REF document using af:
+
+```bash
+af create ref --prefix <PREFIX> --area <RETRO_AREA> --title "Session Retrospective YYYY-MM-DD-DN"
+```
+
+Where `<RETRO_AREA>` is your project's retrospective area (e.g., 12 for COR Check phase, or whichever area your project assigns to retrospectives), and DN is the day sequence number (D1 for first session of the day, D2 for second, etc.).
+
+Fill in the template with the sections below. The document is automatically indexed.
 
 ```markdown
-## Session Retrospective — YYYY-MM-DD
+## Session Retrospective — YYYY-MM-DD-DN
 
 ### Actions Taken
 - <bullet list of what was done>
@@ -80,6 +88,9 @@ Create a brief summary with three sections:
 | SOP | What to Change |
 |-----|---------------|
 | COR-NNNN or ALF-NNNN | <description> |
+
+### Key Learnings
+- <numbered list of insights worth remembering for future sessions>
 ```
 
 ### 6. Execute improvements
@@ -100,6 +111,12 @@ After today's session, a retrospective might find:
 | Codex relay needed separate launchd plist | Add to SOP-1001 or create SOP for launchd setup |
 | Kept editing relay-config.json by hand | Consider a `make add-channel` command |
 
+Example save command:
+
+```bash
+af create ref --prefix ALF --area 12 --title "Session Retrospective 2026-03-17-D2"
+```
+
 ---
 
 ## Safety Notes
@@ -116,3 +133,4 @@ After today's session, a retrospective might find:
 |------|--------|----|
 | 2026-03-08 | Initial version | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1002 to COR-1200 | Claude Code |
+| 2026-03-17 | Step 5: add explicit af create ref command, add Key Learnings section, add example save command, use YYYY-MM-DD-DN title format for multiple sessions per day | Claude Code |
