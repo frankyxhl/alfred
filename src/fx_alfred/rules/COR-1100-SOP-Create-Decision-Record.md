@@ -109,7 +109,7 @@ Why this option was selected over the alternatives.
 To create a new ADR, just say **"new D"** (or "新建一个 D"). The agent will:
 
 1. Check today's date
-2. Find the last Dn for today (`ls docs/*-ADR-<today>*`)
+2. Find the last Dn for today (`af list` and filter by today's date in ADR names)
 3. Assign the next sequential number (e.g., if D3 exists, the new one is D4; if it's a new day, start at D1)
 4. Ask for the topic or create it directly if context is clear
 
@@ -117,11 +117,11 @@ To create a new ADR, just say **"new D"** (or "新建一个 D"). The agent will:
 
 ## Steps (Manual)
 
-1. **Determine the next number** — `ls docs/*-ADR-*` to find the next available number
-2. **Determine today's sequence** — check how many ADRs already exist for today's date (`ls docs/*-ADR-<today>*`), use the next Dn
-3. **Create the file** — use the naming convention and template above
+1. **Determine the next number** — run `af list` to find the next available ADR ACID
+2. **Determine today's sequence** — check how many ADRs already exist for today's date via `af list`, use the next Dn
+3. **Create the file** — use `af create adr` with the naming convention and template above
 4. **Fill in all sections** — keep it concise; a good ADR can be as short as 10 lines
-5. **Save to `docs/`** — place the file in the project's `docs/` directory
+5. **Save** — `af create adr` places the file in the correct layer automatically
 
 ---
 

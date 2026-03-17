@@ -14,28 +14,25 @@ A standard process for finding and reading existing documents in the system. Ens
 
 ## Steps
 
-1. **By number** — if you know the ACID number, list files matching the prefix:
+1. **By number** — if you know the ACID number, read it directly:
    ```bash
-   ls docs/COR-11*    # all "Do" phase docs
-   ls docs/ALF-21*    # all "Development" category docs
+   af read COR-1001    # read a specific document by PREFIX-ACID
+   af read ALF-2100
    ```
 
-2. **By type** — filter by the 3-letter type code:
+2. **By type** — list all documents and filter visually or by type:
    ```bash
-   ls docs/*-SOP-*    # all SOPs
-   ls docs/*-PLN-*    # all plans
-   ls docs/*-ADR-*    # all decision records
+   af list             # shows all documents across all layers with type codes
    ```
 
-3. **By keyword** — search document contents:
+3. **By keyword** — list and scan titles, or read relevant documents:
    ```bash
-   grep -rl "keyword" docs/
+   af list             # scan titles for relevant documents
    ```
 
-4. **By prefix** — distinguish meta vs business layer:
+4. **By prefix** — list shows prefix and layer for each document:
    ```bash
-   ls docs/COR-*      # universal/meta documents
-   ls docs/ALF-*      # project-specific documents
+   af list             # PKG layer shows COR docs; PRJ/USR show project-specific docs
    ```
 
 ---

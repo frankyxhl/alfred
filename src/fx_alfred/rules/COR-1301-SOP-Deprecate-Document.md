@@ -22,7 +22,7 @@ A standard process for retiring a document that is no longer needed. Documents a
    ```
 3. **Update the Change History** — add an entry noting the deprecation and reason
 4. **Update referencing documents** — any document that links to this one should be updated to point to the replacement (if any)
-5. **Do not delete the file** — deprecated documents stay in `docs/` for historical reference
+5. **Do not delete the file** — deprecated documents stay in their layer for historical reference
 
 ---
 

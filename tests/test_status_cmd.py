@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
@@ -39,13 +40,36 @@ def test_status_shows_by_source(sample_project, monkeypatch):
     prj_count = int(prj_match.group(1))
     assert prj_count == 3, f"Expected 3 PRJ docs, got {prj_count}"
 
-    # Total should be PKG + PRJ
+    # USR may or may not be present; include it in the sum if shown
+    usr_match = re.search(r"USR:\s*(\d+)", result.output)
+    usr_count = int(usr_match.group(1)) if usr_match else 0
+
+    # Total should be PKG + USR + PRJ
     total_match = re.search(r"Total:\s*(\d+)\s*documents", result.output)
     assert total_match, "Total count not found in output"
     total_count = int(total_match.group(1))
-    assert total_count == pkg_count + prj_count, (
-        f"Total {total_count} != PKG {pkg_count} + PRJ {prj_count}"
+    assert total_count == pkg_count + usr_count + prj_count, (
+        f"Total {total_count} != PKG {pkg_count} + USR {usr_count} + PRJ {prj_count}"
     )
+
+
+def test_status_shows_usr_layer(tmp_path, monkeypatch):
+    """Status command counts docs in the USR layer (~/.alfred/)."""
+    # isolate_home autouse fixture already patched Path.home() to tmp_path/fake_home
+    # We need to use that same fake home — reach it via Path.home()
+    user_alfred = Path.home() / ".alfred"
+    user_alfred.mkdir(parents=True)
+    (user_alfred / "TST-3000-SOP-Test.md").write_text("# Test SOP")
+
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    usr_match = re.search(r"USR:\s*(\d+)", result.output)
+    assert usr_match, "USR count not found in output"
+    usr_count = int(usr_match.group(1))
+    assert usr_count >= 1, f"Expected at least 1 USR doc, got {usr_count}"
 
 
 def test_status_with_root_option(sample_project):

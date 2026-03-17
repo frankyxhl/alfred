@@ -1,4 +1,18 @@
+from pathlib import Path
+
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def isolate_home(tmp_path, monkeypatch):
+    """Patch Path.home() to return a fresh tmp directory for every test.
+
+    This ensures scanner.py:123 (Path.home() / ".alfred") hits an empty
+    tmp dir rather than the real ~/.alfred/.
+    """
+    fake_home = tmp_path / "fake_home"
+    fake_home.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
 
 
 @pytest.fixture

@@ -4,13 +4,15 @@ You are working in a project that uses the Alfred document system. Follow these 
 
 ## Step 1: Learn the language
 
-Read `.alfred/COR-0001-REF-Glossary.md` — defines all terms, type codes, and numbering conventions.
+Run `af read COR-0001` — defines all terms, type codes, and numbering conventions.
 
 ## Step 2: Know what exists
 
-Read `.alfred/COR-0000-REF-Document-Index.md` — index of all universal documents.
+Run `af list` — shows all documents across PKG, USR, and PRJ layers.
 
-If a `docs/*-0000-REF-*.md` file exists, read it too — that's the project-specific index.
+Run `af read COR-0000` — index of all universal COR documents.
+
+If a `*-0000-REF-*.md` file appears in the PRJ layer, read it too — that's the project-specific index.
 
 ## Step 3: Follow the rules
 
@@ -22,7 +24,7 @@ If a `docs/*-0000-REF-*.md` file exists, read it too — that's the project-spec
 
 Do NOT read all SOPs upfront. Read them by ACID number only when needed.
 
-Example: if you need to create a new SOP, read `COR-1000` and `COR-1001` at that point.
+Example: if you need to create a new SOP, run `af read COR-1000` and `af read COR-1001` at that point.
 
 ## Quick Reference
 

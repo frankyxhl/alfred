@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
@@ -333,14 +335,401 @@ def test_create_area_fills_gap(tmp_path, monkeypatch):
 
 def test_create_auto_index_warning_on_failure(tmp_path, monkeypatch):
     """Create succeeds even if auto-index fails, with warning."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
     monkeypatch.chdir(tmp_path)
-    # Don't create rules/ dir - create_cmd will mkdir it, but index_cmd
-    # should handle gracefully or warn
+
+    # Monkeypatch index_cmd in the index_cmd module so the lazy import picks it up
+    import fx_alfred.commands.index_cmd as idx_mod
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("index generation failed")
+
+    monkeypatch.setattr(idx_mod, "index_cmd", _boom)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Test"],
+    )
+    # File must be created even though index failed
+    assert result.exit_code == 0
+    assert (rules / "TST-2100-SOP-Test.md").exists()
+    # Warning should appear in combined output (click sends err=True to output in CliRunner)
+    assert "Warning: Failed to update index: index generation failed" in result.output
+
+
+# ── v0.4.1 tests ────────────────────────────────────────────────────────────
+
+
+def test_create_layer_user_writes_to_user_dir(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "User Doc",
+            "--layer",
+            "user",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (user_alfred / "USR-3000-SOP-User-Doc.md").exists()
+
+
+def test_create_layer_user_with_subdir(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "Sub Doc",
+            "--layer",
+            "user",
+            "--subdir",
+            "my-project",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (user_alfred / "my-project" / "USR-3000-SOP-Sub-Doc.md").exists()
+
+
+def test_create_subdir_nested(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "Nested",
+            "--layer",
+            "user",
+            "--subdir",
+            "team/foo",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (user_alfred / "team" / "foo" / "USR-3000-SOP-Nested.md").exists()
+
+
+def test_create_subdir_dot_writes_to_user_root(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "Dot",
+            "--layer",
+            "user",
+            "--subdir",
+            ".",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (user_alfred / "USR-3000-SOP-Dot.md").exists()
+
+
+def test_create_subdir_without_layer_user_errors(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "2100",
+            "--title",
+            "Bad",
+            "--subdir",
+            "foo",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "--subdir is only valid" in result.output
+
+
+def test_create_subdir_absolute_path_errors(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    (fake_home / ".alfred").mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "Bad",
+            "--layer",
+            "user",
+            "--subdir",
+            "/etc",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "safe relative path" in result.output
+
+
+def test_create_subdir_dotdot_errors(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    (fake_home / ".alfred").mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "Bad",
+            "--layer",
+            "user",
+            "--subdir",
+            "../escape",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "safe relative path" in result.output
+
+
+def test_create_layer_user_with_root_errors(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--root",
+            str(tmp_path),
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "Bad",
+            "--layer",
+            "user",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "Cannot use --root" in result.output
+
+
+def test_create_cwd_alfred_no_layer_errors(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(user_alfred)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Bad"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "Refusing" in result.output
+
+
+def test_create_root_alfred_layer_project_errors(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--root",
+            str(user_alfred),
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "2100",
+            "--title",
+            "Bad",
+            "--layer",
+            "project",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "Refusing" in result.output
+
+
+def test_create_layer_user_no_auto_index(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "No Index",
+            "--layer",
+            "user",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # No index file should be created in user layer
+    assert not (user_alfred / "USR-0000-REF-Document-Index.md").exists()
+
+
+def test_create_acid_collision_suggests_area(tmp_path, monkeypatch):
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-2100-SOP-Existing.md").write_text("# existing")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Dup"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "--area" in result.output
+
+
+def test_create_user_doc_found_by_list(tmp_path, monkeypatch):
+    """End-to-end: user-layer doc discovered by af list as USR."""
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    # Create in user layer
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "USR",
+            "--acid",
+            "3000",
+            "--title",
+            "User Doc",
+            "--layer",
+            "user",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Now list and verify it shows as USR
+    result = runner.invoke(cli, ["list"], catch_exceptions=False)
+    assert "USR" in result.output
+    assert "USR-3000" in result.output
+
+
+# ── v0.4.2 tests ────────────────────────────────────────────────────────────
+
+
+def test_create_warns_on_index_failure(sample_project, monkeypatch):
+    """Create succeeds even when index_cmd raises, and emits a warning."""
+    import fx_alfred.commands.index_cmd as index_module
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("simulated index failure")
+
+    monkeypatch.setattr(index_module, "index_cmd", boom)
+    monkeypatch.chdir(sample_project)
     runner = CliRunner()
     result = runner.invoke(
         cli,
         ["create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Test"],
         catch_exceptions=False,
     )
+    # File must be created and command must succeed
     assert result.exit_code == 0
-    assert (tmp_path / "rules" / "TST-2100-SOP-Test.md").exists()
+    assert (sample_project / "rules" / "TST-2100-SOP-Test.md").exists()
+    # Warning must appear in output (stderr is mixed in by CliRunner by default)
+    combined = result.output + (result.stderr if hasattr(result, "stderr") and result.stderr else "")
+    assert "Warning" in combined or "index" in combined.lower()

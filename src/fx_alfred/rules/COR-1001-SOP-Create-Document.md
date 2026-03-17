@@ -15,7 +15,7 @@ The generic process for creating any new document in the system. This SOP covers
 ## Steps
 
 1. **Determine the prefix** — `COR` for universal meta-layer docs, or project code (`ALF`, `BLA`, `CLR`) for business-layer docs
-2. **Determine the ACID number** — check existing files in `docs/` to find the next available number in the correct category
+2. **Determine the ACID number** — run `af list` to find the next available ACID in the correct category, or use `af create --area` to auto-assign
 3. **Determine the type code** — SOP, PLN, INC, CHG, ADR, or REF
 4. **Create the file** — use the naming convention below
 5. **Use the correct template** — refer to the type-specific SOP for the template

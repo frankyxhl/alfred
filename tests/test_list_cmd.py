@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from click.testing import CliRunner
 from fx_alfred.cli import cli
 
@@ -64,3 +66,18 @@ def test_list_with_root_after_subcommand(sample_project):
     )
     assert result.exit_code == 0
     assert "ALF-2201" in result.output
+
+
+def test_list_shows_usr_documents(tmp_path, monkeypatch):
+    """af list shows documents from the USR layer (~/.alfred/)."""
+    # isolate_home autouse fixture already patched Path.home() to tmp_path/fake_home
+    user_alfred = Path.home() / ".alfred"
+    user_alfred.mkdir(parents=True)
+    (user_alfred / "TST-3000-SOP-Test.md").write_text("# Test SOP")
+
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "TST-3000" in result.output
+    assert "USR" in result.output

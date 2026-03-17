@@ -5,24 +5,29 @@ A minimal, self-consistent document management system built on PDCA + Johnny Dec
 ## Quick Start
 
 ```bash
-git clone git@github.com:frankyxhl/alfred.git
-cd alfred
+pip install fx-alfred
+cd my-project
+af guide
 ```
 
-## Structure
+## Layer System
 
-```
-.alfred/          ← COR (Core) meta-layer documents (universal, apply to all projects)
-docs/             ← ALF (Alfred) business-layer documents (project-specific)
-```
+Alfred uses a 3-layer document model:
+
+| Layer | Location | Description |
+|-------|----------|-------------|
+| **PKG** | Bundled with fx-alfred | COR reference documents — read-only, always available |
+| **USR** | `~/.alfred/` | Your personal documents, shared across all projects |
+| **PRJ** | `./rules/` | Project-specific documents |
 
 ## For LLMs: How This System Works
 
 ### 1. Read these files first
 
-- `.alfred/COR-0001-REF-Glossary.md` — all terms and abbreviations
-- `.alfred/COR-0000-REF-Document-Index.md` — index of all meta-layer documents
-- `docs/ALF-0000-REF-Document-Index.md` — index of all business-layer documents
+```bash
+af read COR-0001    # glossary — all terms and abbreviations
+af list             # index of all available documents across all layers
+```
 
 ### 2. File naming format
 
@@ -55,7 +60,7 @@ docs/             ← ALF (Alfred) business-layer documents (project-specific)
 
 Follow `COR-1001` (Create Document) for naming and numbering, then the type-specific SOP.
 
-Supported types: `adr`, `chg`, `inc`, `pln`, `prp`, `ref`, `sop`
+Supported types: `sop`, `adr`, `chg`, `inc`, `pln`, `prp`, `ref`
 
 ```bash
 # Specify an exact ACID
@@ -63,26 +68,31 @@ af create sop --prefix ALF --acid 2100 --title "My SOP"
 
 # Auto-assign the next available ACID in an area
 af create adr --prefix ALF --area 21 --title "Use PostgreSQL"
+
+# Write to user layer (~/.alfred/)
+af create sop --prefix USR --acid 3000 --title "My Rule" --layer user
+
+# Write to a subdirectory of the user layer
+af create sop --prefix USR --acid 3000 --title "My Rule" --layer user --subdir my-project
 ```
 
-The index is updated automatically after each create. To update it manually, run `af index`.
+The index is updated automatically after each create (project layer only). To update it manually, run `af index`.
 
 ## Installing into another project
 
-Copy `.alfred/` into the target project:
-
 ```bash
-cp -r .alfred/ /path/to/other-project/.alfred/
+pip install fx-alfred
+af guide
 ```
 
-The target project keeps its own `docs/` for business-layer documents.
+Then create project documents with `af create` and view them with `af list`.
 
 ## Version control
 
-This project uses [jj](https://martinvonz.github.io/jj/) (Jujutsu) colocated with git.
+This project uses git.
 
 ```bash
-jj log              # view history
-jj status           # current changes
-jj git push         # push to GitHub
+git log             # view history
+git status          # current changes
+git push            # push to GitHub
 ```

@@ -8,61 +8,32 @@
 
 ## What Is It?
 
-The process for onboarding a new project into the Alfred document system. After initialization, the project's LLM can read `.alfred/INIT.md` and operate autonomously within the system.
+The process for onboarding a new project into the Alfred document system. After initialization, the project's LLM can run `af list` and `af read` to operate autonomously within the system.
 
 ---
 
 ## Steps
 
 1. **Choose a 3-letter prefix** — must be unique across all projects (e.g., TCY for tracy)
-2. **Copy `.alfred/` into the project** — this gives the project all COR meta-layer documents
+2. **Install fx-alfred into the project**
    ```bash
-   cp -r /path/to/alfred/.alfred/ /path/to/new-project/.alfred/
+   pip install fx-alfred
    ```
-3. **Create `docs/` directory** — for business-layer documents
+3. **Read the quick start guide**
    ```bash
-   mkdir -p docs
+   af guide
    ```
-4. **Create the project index** — `<PREFIX>-0000-REF-Document-Index.md` in `docs/`
-   ```markdown
-   # REF-0000: Document Index (<PREFIX> Business Layer)
-
-   **Applies to:** <project name>
-   **Last updated:** YYYY-MM-DD
-
-   ---
-
-   ## Category Structure
-
-   | Area | Category | Description |
-   |------|----------|-------------|
-   | 20xx | (define per project) | ... |
-
-   ---
-
-   ## Document List
-
-   (empty — add documents as they are created)
-
-   ---
-
-   ## See Also
-
-   - .alfred/COR-0000-REF-Document-Index.md — Meta layer documents
-
-   ---
-
-   ## Change History
-
-   | Date | Change | By |
-   |------|--------|----|
-   | YYYY-MM-DD | Initial version | Author |
+4. **Create your first document and generate the index**
+   ```bash
+   af create sop --prefix <PREFIX> --area 20 --title "My First SOP"
+   af index
    ```
+   The `af index` command generates the `<PREFIX>-0000-REF-Document-Index.md` automatically.
 5. **Add INIT reference to project config** — in `CLAUDE.md` or equivalent:
    ```markdown
-   Read .alfred/INIT.md before starting any task.
+   Run `af list` and `af read COR-0001` before starting any task.
    ```
-6. **Verify** — ask the LLM to read `.alfred/INIT.md` and confirm it understands the system
+6. **Verify** — ask the LLM to run `af list` and confirm it understands the system
 
 ---
 
@@ -71,3 +42,4 @@ The process for onboarding a new project into the Alfred document system. After 
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-15 | Initial version | Claude Code |
+| 2026-03-17 | Replace cp-based setup with pip install fx-alfred + af create workflow | Claude Code |

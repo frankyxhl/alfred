@@ -24,7 +24,7 @@ A policy that standardizes the language used in all project documentation. This 
 
 This policy applies to:
 
-- All files in `docs/` across every project (ALF, BLA, CLR, and any future projects)
+- All documents across all layers (PKG, USR, PRJ) in every project (ALF, BLA, CLR, and any future projects)
 - All document types in the numbering system (SOP, INC, PLN, CHG, REF, ADR)
 - Code comments and commit messages (recommended but not enforced)
 

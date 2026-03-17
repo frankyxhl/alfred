@@ -1,6 +1,7 @@
 import re
 from datetime import date
 from importlib import resources
+from pathlib import Path
 
 import click
 
@@ -47,6 +48,46 @@ def _next_acid_in_area(docs: list, prefix: str, area: str) -> str:
     )
 
 
+def _resolve_write_base(
+    ctx: click.Context, layer: str | None, subdir: str | None
+) -> Path:
+    root = get_root(ctx)
+    user_root = Path.home() / ".alfred"
+
+    # Safety: reject project-layer writes when root is ~/.alfred
+    if root.resolve() == user_root.resolve() and layer != "user":
+        raise click.ClickException(
+            "Refusing to write to project layer inside ~/.alfred. "
+            "Use --layer user or set --root to a project directory."
+        )
+
+    # Default layer
+    if layer is None:
+        layer = "project"
+
+    # Validate option combinations
+    root_ctx = ctx.find_root()
+    root_was_explicit = bool(root_ctx.obj and "root" in root_ctx.obj)
+    if layer == "user" and root_was_explicit:
+        raise click.ClickException("Cannot use --root with --layer user")
+    if layer == "project" and subdir is not None:
+        raise click.ClickException("--subdir is only valid with --layer user")
+
+    if layer == "project":
+        return root / "rules"
+
+    # User layer
+    if subdir is None or subdir == ".":
+        return user_root
+
+    rel = Path(subdir)
+    if rel.is_absolute() or ".." in rel.parts:
+        raise click.ClickException(
+            "--subdir must be a safe relative path (no absolute paths or '..')"
+        )
+    return user_root / rel
+
+
 _EPILOG = """\
 Examples:
 
@@ -55,6 +96,10 @@ Examples:
   af create adr --prefix ALF --area 21 --title "Use PostgreSQL"
 
   af create ref --prefix ALF --acid 2200 --title "API Reference"
+
+  af create sop --prefix USR --acid 3000 --title "My Rule" --layer user
+
+  af create sop --prefix USR --acid 3000 --title "My Rule" --layer user --subdir my-project
 """
 
 
@@ -81,6 +126,17 @@ Examples:
     help="2-digit area code; auto-assigns next available ACID (mutually exclusive with --acid)",
 )
 @click.option("--title", required=True, help="Document title")
+@click.option(
+    "--layer",
+    type=click.Choice(["project", "user"], case_sensitive=False),
+    default=None,
+    help="Write layer: project (./rules/) or user (~/.alfred/).",
+)
+@click.option(
+    "--subdir",
+    default=None,
+    help="Subdirectory under ~/.alfred/ (only with --layer user).",
+)
 @click.pass_context
 def create_cmd(
     ctx: click.Context,
@@ -89,6 +145,8 @@ def create_cmd(
     acid: str | None,
     area: str | None,
     title: str,
+    layer: str | None,
+    subdir: str | None,
 ):
     """Create a new document from template."""
     if acid and area:
@@ -98,6 +156,9 @@ def create_cmd(
 
     if acid == "0000":
         raise click.ClickException("ACID 0000 is reserved for generated index files")
+
+    # Resolve write base early so --root + --layer user conflict is caught first
+    write_base = _resolve_write_base(ctx, layer, subdir)
 
     root = get_root(ctx)
     try:
@@ -119,11 +180,11 @@ def create_cmd(
         if doc.prefix == prefix and doc.acid == acid:
             raise click.ClickException(
                 f"{prefix}-{acid} already exists in {doc.source.upper()} layer: "
-                f"{doc.filename}. Use a different ACID or prefix."
+                f"{doc.filename}. "
+                "Try --area to auto-assign the next available ACID."
             )
-
     filename = f"{prefix}-{acid}-{doc_type_lower.upper()}-{title.replace(' ', '-')}.md"
-    output_path = root / "rules" / filename
+    output_path = write_base / filename
 
     template_file = resources.files("fx_alfred.templates").joinpath(
         f"{doc_type_lower}.md"
@@ -141,9 +202,10 @@ def create_cmd(
     output_path.write_text(content)
     click.echo(f"Created {output_path}")
 
-    try:
-        from fx_alfred.commands.index_cmd import index_cmd
+    if layer != "user":
+        try:
+            from fx_alfred.commands.index_cmd import index_cmd
 
-        ctx.invoke(index_cmd)
-    except Exception as e:
-        click.echo(f"Warning: Failed to update index: {e}", err=True)
+            ctx.invoke(index_cmd)
+        except Exception as e:
+            click.echo(f"Warning: Failed to update index: {e}", err=True)
