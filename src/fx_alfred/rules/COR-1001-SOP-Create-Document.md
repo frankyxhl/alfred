@@ -72,14 +72,17 @@ Business layer categories can be extended per project as needed.
 
 | Code | Type |
 |------|------|
-| SOP | Standard Operating Procedure |
-| PLN | Plan or roadmap |
-| INC | Incident record |
-| CHG | Change request |
 | ADR | Architecture / Any Decision Record |
+| CHG | Change request |
+| INC | Incident record |
+| PLN | Plan or roadmap |
+| PRP | Proposal |
 | REF | Reference document |
+| SOP | Standard Operating Procedure |
 
 Type codes are always three letters.
+
+**Note:** Area selection is user-chosen and is not bound to any specific type. COR-1001 is the sole authority for numbering rules.
 
 ---
 

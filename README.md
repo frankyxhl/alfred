@@ -53,15 +53,19 @@ docs/             ← ALF (Alfred) business-layer documents (project-specific)
 
 ### 5. To create a new document
 
-Follow `COR-1001` (Create Document) for naming and numbering, then the type-specific SOP:
+Follow `COR-1001` (Create Document) for naming and numbering, then the type-specific SOP.
 
-| Type | Template SOP |
-|------|-------------|
-| SOP | COR-1000 |
-| ADR | COR-1100 |
-| CHG | COR-1101 |
+Supported types: `adr`, `chg`, `inc`, `pln`, `prp`, `ref`, `sop`
 
-After creation, update the index per `COR-1302`.
+```bash
+# Specify an exact ACID
+af create sop --prefix ALF --acid 2100 --title "My SOP"
+
+# Auto-assign the next available ACID in an area
+af create adr --prefix ALF --area 21 --title "Use PostgreSQL"
+```
+
+The index is updated automatically after each create. To update it manually, run `af index`.
 
 ## Installing into another project
 

@@ -55,6 +55,8 @@ Examples:
 - `ALF-4001-CHG-Add-File-Upload-To-Relay.md`
 - `ALF-4002-CHG-Upgrade-Python-To-3.14.md`
 
+**Note:** Area is user-chosen and is not bound to any specific type. See COR-1001 for authoritative numbering rules.
+
 ---
 
 ## CHG Template

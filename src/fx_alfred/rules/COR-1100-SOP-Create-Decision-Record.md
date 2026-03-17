@@ -46,6 +46,8 @@ Examples:
 - `ALF-6002-ADR-20260312D2-Fix-Bella-1004-Conflict.md`
 - `ALF-6003-ADR-20260312D3-Introduce-ADR-Document-Type.md`
 
+**Note:** Area is user-chosen and is not bound to any specific type. See COR-1001 for authoritative numbering rules.
+
 ---
 
 ## ADR Template
