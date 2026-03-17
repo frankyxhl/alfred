@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from fx_alfred.core.scanner import scan_documents
+from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 VALID_TYPES = {"sop", "adr", "prp"}
 
@@ -13,6 +13,8 @@ VALID_TYPES = {"sop", "adr", "prp"}
 def validate_prefix(ctx, param, value):
     if not re.match(r"^[A-Z]{3}$", value):
         raise click.BadParameter("must be exactly 3 uppercase letters (e.g., ALF)")
+    if value == "COR":
+        raise click.BadParameter("COR prefix is reserved for PKG layer")
     return value
 
 
@@ -36,13 +38,17 @@ def validate_acid(ctx, param, value):
 @click.option("--title", required=True, help="Document title")
 def create_cmd(doc_type: str, prefix: str, acid: str, title: str):
     """Create a new document from template."""
-    docs = scan_documents(Path.cwd())
+    try:
+        docs = scan_documents(Path.cwd())
+    except LayerValidationError as e:
+        raise click.ClickException(str(e)) from e
+
     for doc in docs:
         if doc.acid == acid:
-            raise click.ClickException(f"ACID {acid} already exists: {doc.filepath}")
+            raise click.ClickException(f"ACID {acid} already exists: {doc.filename}")
 
     filename = f"{prefix}-{acid}-{doc_type.upper()}-{title.replace(' ', '-')}.md"
-    output_path = Path.cwd() / "docs" / filename
+    output_path = Path.cwd() / "rules" / filename
 
     template_file = resources.files("fx_alfred.templates").joinpath(f"{doc_type}.md")
     template = template_file.read_text()

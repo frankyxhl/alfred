@@ -2,8 +2,20 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from importlib import resources
+from pathlib import Path
+from typing import Protocol, runtime_checkable
 
 FILENAME_PATTERN = re.compile(r"^([A-Z]{3})-(\d{4})-([A-Z]{3})-(.+)\.md$")
+
+
+@runtime_checkable
+class Resource(Protocol):
+    """Protocol for objects that support read_text()."""
+
+    def read_text(self) -> str:
+        """Read and return the content as text."""
+        ...
 
 
 @dataclass
@@ -13,9 +25,17 @@ class Document:
     type_code: str
     title: str
     directory: str
+    source: str = "prj"
+    base_path: Path | None = None
 
     @classmethod
-    def from_filename(cls, filename: str, directory: str) -> Document | None:
+    def from_filename(
+        cls,
+        filename: str,
+        directory: str,
+        source: str = "prj",
+        base_path: Path | None = None,
+    ) -> Document | None:
         match = FILENAME_PATTERN.match(filename)
         if not match:
             return None
@@ -27,12 +47,26 @@ class Document:
             type_code=type_code,
             title=title,
             directory=directory,
+            source=source,
+            base_path=base_path,
         )
-
-    @property
-    def filepath(self) -> str:
-        return f"{self.directory}/{self.filename}"
 
     @property
     def filename(self) -> str:
         return f"{self.prefix}-{self.acid}-{self.type_code}-{self.title.replace(' ', '-')}.md"
+
+    def resolve_resource(self) -> Resource:
+        """Return a resource that supports read_text().
+
+        For PKG layer: returns Traversable from importlib.resources.
+        For USR/PRJ layers: returns Path object.
+        """
+        if self.source == "pkg":
+            return (
+                resources.files("fx_alfred").joinpath("rules").joinpath(self.filename)
+            )
+        if self.base_path:
+            return self.base_path / self.filename
+        raise ValueError(
+            f"Cannot resolve resource for document without base_path: {self.filename}"
+        )

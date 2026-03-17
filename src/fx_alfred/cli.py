@@ -1,6 +1,7 @@
 import click
 
 from fx_alfred.commands.create_cmd import create_cmd
+from fx_alfred.commands.guide_cmd import guide_cmd
 from fx_alfred.commands.index_cmd import index_cmd
 from fx_alfred.commands.list_cmd import list_cmd
 from fx_alfred.commands.read_cmd import read_cmd
@@ -14,6 +15,7 @@ def cli():
 
 
 cli.add_command(create_cmd)
+cli.add_command(guide_cmd)
 cli.add_command(index_cmd)
 cli.add_command(list_cmd)
 cli.add_command(read_cmd)
