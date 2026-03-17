@@ -44,19 +44,33 @@ def _scan_pkg_dir(traversable: Traversable) -> list[Document]:
     return docs
 
 
-def _scan_path_dir(directory: Path, source: str) -> list[Document]:
-    """Scan USR/PRJ layer using Path."""
+def _scan_path_dir(
+    directory: Path, source: str, recursive: bool = False
+) -> list[Document]:
+    """Scan USR/PRJ layer using Path.
+
+    Args:
+        directory: Path to scan
+        source: Source label ('usr' or 'prj')
+        recursive: If True, scan subdirectories recursively
+    """
     if not directory.is_dir():
         return []
     docs = []
-    for f in directory.iterdir():
+
+    if recursive:
+        files = directory.rglob("*.md")
+    else:
+        files = directory.iterdir()
+
+    for f in files:
         if not f.is_file():
             continue
         doc = Document.from_filename(
             f.name,
             directory=str(directory.name),
             source=source,
-            base_path=directory,
+            base_path=f.parent,
         )
         if doc is not None:
             docs.append(doc)
@@ -105,9 +119,9 @@ def scan_documents(project_root: Path) -> list[Document]:
     pkg_rules = resources.files("fx_alfred").joinpath("rules")
     docs.extend(_scan_pkg_dir(pkg_rules))  # type: ignore
 
-    # Layer 2: USR - ~/.alfred/
+    # Layer 2: USR - ~/.alfred/ (recursive)
     user_alfred = Path.home() / ".alfred"
-    docs.extend(_scan_path_dir(user_alfred, source="usr"))
+    docs.extend(_scan_path_dir(user_alfred, source="usr", recursive=True))
 
     # Layer 3: PRJ - rules/ in project (no .alfred/)
     rules_path = project_root / "rules"

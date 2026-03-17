@@ -143,3 +143,49 @@ def test_different_prefix_same_acid_is_ok(tmp_path, monkeypatch):
     docs = scan_documents(project)
     acids_0000 = [d for d in docs if d.acid == "0000"]
     assert len(acids_0000) >= 2  # COR-0000 from PKG + ALF-0000 from PRJ
+
+
+def test_scan_usr_recursive(tmp_path, monkeypatch):
+    """USR layer scans subdirectories recursively."""
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    user_alfred = fake_home / ".alfred"
+    user_alfred.mkdir()
+    # Create subdirectory with document
+    sub_dir = user_alfred / "sub_a"
+    sub_dir.mkdir()
+    (sub_dir / "TST-3000-SOP-Sub.md").write_text("# Sub doc")
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+
+    project = tmp_path / "project"
+    project.mkdir()
+    docs = scan_documents(project)
+    usr_docs = [d for d in docs if d.source == "usr"]
+    assert len(usr_docs) == 1
+    assert usr_docs[0].acid == "3000"
+    assert usr_docs[0].prefix == "TST"
+    # Verify resolve_resource works for nested USR docs
+    resource = usr_docs[0].resolve_resource()
+    content = resource.read_text()
+    assert "# Sub doc" in content
+
+
+def test_scan_prj_not_recursive(tmp_path):
+    """PRJ layer does NOT scan subdirectories recursively."""
+    project = tmp_path / "project"
+    project.mkdir()
+    rules = project / "rules"
+    rules.mkdir()
+    # Create subdirectory with document
+    sub_dir = rules / "sub"
+    sub_dir.mkdir()
+    (sub_dir / "TST-4000-SOP-Sub.md").write_text("# Sub doc")
+    # Create a valid doc in rules/ to ensure scanning works
+    (rules / "ALF-5000-SOP-Top.md").write_text("# Top doc")
+
+    docs = scan_documents(project)
+    prj_docs = [d for d in docs if d.source == "prj"]
+    # Should find ALF-5000 but NOT TST-4000 (in subdirectory)
+    assert len(prj_docs) == 1
+    assert prj_docs[0].acid == "5000"
+    assert not any(d.acid == "4000" for d in prj_docs)

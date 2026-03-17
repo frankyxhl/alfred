@@ -81,8 +81,16 @@ def test_create_with_root_option(tmp_path):
     result = runner.invoke(
         cli,
         [
-            "--root", str(tmp_path),
-            "create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Root Test",
+            "--root",
+            str(tmp_path),
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "2100",
+            "--title",
+            "Root Test",
         ],
         catch_exceptions=False,
     )
@@ -95,8 +103,16 @@ def test_create_with_root_after_subcommand(tmp_path):
     result = runner.invoke(
         cli,
         [
-            "create", "--root", str(tmp_path),
-            "sop", "--prefix", "TST", "--acid", "2100", "--title", "Root Test",
+            "create",
+            "--root",
+            str(tmp_path),
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "2100",
+            "--title",
+            "Root Test",
         ],
         catch_exceptions=False,
     )
