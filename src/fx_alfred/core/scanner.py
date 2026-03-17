@@ -78,16 +78,17 @@ def _validate_layers(docs: list[Document]) -> None:
                 f"COR document found in {doc.source.upper()} layer: {doc.filename}"
             )
 
-    # Check for duplicate ACIDs
-    acid_sources: dict[str, list[str]] = {}
+    # Check for duplicate prefix+ACID combinations
+    doc_keys: dict[str, list[str]] = {}
     for doc in docs:
-        if doc.acid not in acid_sources:
-            acid_sources[doc.acid] = []
-        acid_sources[doc.acid].append(f"{doc.source}:{doc.filename}")
+        key = f"{doc.prefix}-{doc.acid}"
+        if key not in doc_keys:
+            doc_keys[key] = []
+        doc_keys[key].append(f"{doc.source}:{doc.filename}")
 
-    for acid, sources in acid_sources.items():
+    for key, sources in doc_keys.items():
         if len(sources) > 1:
-            errors.append(f"Duplicate ACID {acid} found in: {', '.join(sources)}")
+            errors.append(f"Duplicate {key} found in: {', '.join(sources)}")
 
     if errors:
         raise LayerValidationError(errors)

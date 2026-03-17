@@ -106,20 +106,40 @@ def test_cor_in_prj_is_error(tmp_path):
         assert "COR document found in PRJ layer" in str(e)
 
 
-def test_duplicate_acid_is_error(tmp_path, monkeypatch):
-    """Duplicate ACID across layers is a hard error."""
-    # Create USR doc with ACID 1000 (PKG has COR-1000)
+def test_duplicate_prefix_acid_is_error(tmp_path, monkeypatch):
+    """Duplicate prefix+ACID across layers is a hard error."""
+    # Create PRJ doc with same prefix+ACID as USR
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     user_alfred = fake_home / ".alfred"
     user_alfred.mkdir()
-    (user_alfred / "USR-1000-SOP-Duplicate.md").write_text("# Duplicate")
+    (user_alfred / "TST-2100-SOP-UserDoc.md").write_text("# User")
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
 
     project = tmp_path / "project"
     project.mkdir()
+    rules = project / "rules"
+    rules.mkdir()
+    (rules / "TST-2100-SOP-ProjectDoc.md").write_text("# Project")
     try:
         scan_documents(project)
         assert False, "Expected LayerValidationError"
     except LayerValidationError as e:
-        assert "Duplicate ACID 1000" in str(e)
+        assert "Duplicate TST-2100" in str(e)
+
+
+def test_different_prefix_same_acid_is_ok(tmp_path, monkeypatch):
+    """Different prefixes with same ACID number should NOT conflict."""
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+
+    project = tmp_path / "project"
+    project.mkdir()
+    rules = project / "rules"
+    rules.mkdir()
+    (rules / "ALF-0000-REF-Document-Index.md").write_text("# ALF index")
+    # PKG has COR-0000 - different prefix, same ACID - should be fine
+    docs = scan_documents(project)
+    acids_0000 = [d for d in docs if d.acid == "0000"]
+    assert len(acids_0000) >= 2  # COR-0000 from PKG + ALF-0000 from PRJ
