@@ -1,0 +1,20 @@
+import click
+
+from fx_alfred.commands.create_cmd import create_cmd
+from fx_alfred.commands.index_cmd import index_cmd
+from fx_alfred.commands.list_cmd import list_cmd
+from fx_alfred.commands.read_cmd import read_cmd
+from fx_alfred.commands.status_cmd import status_cmd
+
+
+@click.group()
+@click.version_option(package_name="fx-alfred")
+def cli():
+    """Alfred document system CLI."""
+
+
+cli.add_command(create_cmd)
+cli.add_command(index_cmd)
+cli.add_command(list_cmd)
+cli.add_command(read_cmd)
+cli.add_command(status_cmd)
