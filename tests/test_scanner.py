@@ -6,9 +6,9 @@ from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 def test_scan_finds_all_documents(sample_project):
     docs = scan_documents(sample_project)
-    # PKG docs + 2 from rules/
+    # PKG docs + 3 from rules/ (ALF-0000, ALF-2201, ALF-2202)
     prj_docs = [d for d in docs if d.source == "prj"]
-    assert len(prj_docs) == 2
+    assert len(prj_docs) == 3
 
 
 def test_scan_ignores_non_document_files(sample_project):
@@ -65,7 +65,7 @@ def test_scan_prj_documents(sample_project):
     """PRJ layer: rules/ in project only."""
     docs = scan_documents(sample_project)
     prj_docs = [d for d in docs if d.source == "prj"]
-    assert len(prj_docs) == 2  # 2 from rules/
+    assert len(prj_docs) == 3  # ALF-0000, ALF-2201, ALF-2202 from rules/
 
 
 def test_scan_source_labels(sample_project):

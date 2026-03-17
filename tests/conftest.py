@@ -10,6 +10,7 @@ def sample_project(tmp_path):
     """
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
+    (rules_dir / "ALF-0000-REF-Document-Index.md").write_text("# ALF Index")
     (rules_dir / "ALF-2201-PRP-AF-CLI-Tool.md").write_text("# AF CLI")
     (rules_dir / "ALF-2202-SOP-Another-Doc.md").write_text("# Another Doc")
     (rules_dir / "README.md").write_text("# Readme")  # should be ignored

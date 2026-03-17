@@ -37,7 +37,7 @@ def test_status_shows_by_source(sample_project, monkeypatch):
     prj_match = re.search(r"PRJ:\s*(\d+)", result.output)
     assert prj_match, "PRJ count not found in output"
     prj_count = int(prj_match.group(1))
-    assert prj_count == 2, f"Expected 2 PRJ docs, got {prj_count}"
+    assert prj_count == 3, f"Expected 3 PRJ docs, got {prj_count}"
 
     # Total should be PKG + PRJ
     total_match = re.search(r"Total:\s*(\d+)\s*documents", result.output)
