@@ -2,8 +2,7 @@ import click
 
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
-
-SOURCE_LABELS = {"pkg": "PKG", "usr": "USR", "prj": "PRJ"}
+from fx_alfred.core.source import SOURCE_LABELS
 
 
 @click.command("list")

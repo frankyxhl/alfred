@@ -4,8 +4,7 @@ import click
 
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
-
-SOURCE_LABELS = {"pkg": "PKG", "usr": "USR", "prj": "PRJ"}
+from fx_alfred.core.source import SOURCE_LABELS, SOURCE_ORDER
 
 
 @click.command("status")
@@ -29,7 +28,7 @@ def status_cmd(ctx: click.Context):
 
     click.echo(f"Total: {len(docs)} documents\n")
     click.echo("By source:")
-    for source in ("pkg", "usr", "prj"):
+    for source in SOURCE_ORDER:
         if source in by_source:
             label = SOURCE_LABELS.get(source, source.upper())
             click.echo(f"  {label}: {by_source[source]}")

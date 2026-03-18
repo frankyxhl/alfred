@@ -1,19 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from importlib import resources
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from fx_alfred.core.document import Document
+from fx_alfred.core.source import source_sort_key
 
 
 @runtime_checkable
 class Traversable(Protocol):
     @property
     def name(self) -> str: ...
-    def iterdir(self) -> list[Traversable]: ...
+    def iterdir(self) -> Iterator[Traversable]: ...
     def is_file(self) -> bool: ...
-    def read_text(self) -> str: ...
 
 
 class LayerValidationError(Exception):
@@ -22,6 +23,27 @@ class LayerValidationError(Exception):
     def __init__(self, errors: list[str]):
         self.errors = errors
         super().__init__("\n".join(errors))
+
+
+class DocumentNotFoundError(Exception):
+    """Raised when no document matches the given identifier."""
+
+    def __init__(self, identifier: str):
+        self.identifier = identifier
+        super().__init__(f"No document found: {identifier}")
+
+
+class AmbiguousDocumentError(Exception):
+    """Raised when multiple documents match the given identifier."""
+
+    def __init__(self, identifier: str, matches: list[Document]):
+        self.identifier = identifier
+        self.matches = matches
+        options = ", ".join(f"{d.prefix}-{d.acid}" for d in matches)
+        super().__init__(
+            f"Ambiguous ACID {identifier}. Multiple matches: {options}. "
+            "Use PREFIX-ACID to be precise."
+        )
 
 
 def _scan_pkg_dir(traversable: Traversable) -> list[Document]:
@@ -81,7 +103,7 @@ def _validate_layers(docs: list[Document]) -> None:
     """Validate layer invariants.
 
     - COR-* documents may ONLY exist in PKG layer
-    - Duplicate ACID across any layers is an error
+    - Duplicate prefix+ACID across any layers is an error
     """
     errors = []
 
@@ -117,7 +139,7 @@ def scan_documents(project_root: Path) -> list[Document]:
 
     # Layer 1: PKG - bundled rules inside the package
     pkg_rules = resources.files("fx_alfred").joinpath("rules")
-    docs.extend(_scan_pkg_dir(pkg_rules))  # type: ignore
+    docs.extend(_scan_pkg_dir(pkg_rules))
 
     # Layer 2: USR - ~/.alfred/ (recursive)
     user_alfred = Path.home() / ".alfred"
@@ -131,6 +153,25 @@ def scan_documents(project_root: Path) -> list[Document]:
     _validate_layers(docs)
 
     # Sort: PKG first, then USR, then PRJ; each group sorted by ACID
-    source_order = {"pkg": 0, "usr": 1, "prj": 2}
-    docs.sort(key=lambda d: (source_order.get(d.source, 3), d.acid))
+    docs.sort(key=lambda d: (source_sort_key(d.source), d.acid))
     return docs
+
+
+def find_document(docs: list[Document], identifier: str) -> Document:
+    """Find document by PREFIX-ACID or ACID only.
+
+    Raises:
+        DocumentNotFoundError: if no match found
+        AmbiguousDocumentError: if multiple matches found
+    """
+    if "-" in identifier:
+        prefix, acid = identifier.split("-", 1)
+        matches = [d for d in docs if d.prefix == prefix and d.acid == acid]
+    else:
+        matches = [d for d in docs if d.acid == identifier]
+
+    if not matches:
+        raise DocumentNotFoundError(identifier)
+    if len(matches) > 1:
+        raise AmbiguousDocumentError(identifier, matches)
+    return matches[0]

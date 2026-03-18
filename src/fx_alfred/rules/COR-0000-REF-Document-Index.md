@@ -21,8 +21,13 @@
 | 1500 | SOP | TDD Development Workflow |
 | 1501 | SOP | Create GitHub Issue |
 | 1502 | SOP | Git Branch Naming |
-| 1600 | SOP | Direct Review Loop |
-| 1601 | SOP | Leader Mediated Loop |
+| 1600 | SOP | Workflow — Direct Review Loop |
+| 1601 | SOP | Workflow — Leader Mediated Review Loop |
+| 1602 | SOP | Workflow — Multi Model Parallel Review |
+| 1603 | SOP | Workflow — Parallel Module Implementation |
+| 1604 | SOP | Workflow — Competitive Parallel Exploration |
+| 1605 | SOP | Workflow — Sequential Pipeline |
+| 1606 | SOP | Workflow — Selection |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
