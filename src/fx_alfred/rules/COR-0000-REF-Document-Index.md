@@ -8,6 +8,7 @@
 | 1002 | SOP | Read Document |
 | 1100 | SOP | Create Decision Record |
 | 1101 | SOP | Submit Change Request |
+| 1102 | SOP | Create Proposal |
 | 1200 | SOP | Session Retrospective |
 | 1201 | SOP | Discussion Tracking |
 | 1300 | SOP | Update Document |
