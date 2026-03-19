@@ -16,6 +16,7 @@ from fx_alfred.lazy import LazyGroup
         "search": "fx_alfred.commands.search_cmd:search_cmd",
         "status": "fx_alfred.commands.status_cmd:status_cmd",
         "update": "fx_alfred.commands.update_cmd:update_cmd",
+        "validate": "fx_alfred.commands.validate_cmd:validate_cmd",
     },
 )
 @root_option
