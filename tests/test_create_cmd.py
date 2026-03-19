@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
@@ -735,3 +736,212 @@ def test_create_warns_on_index_failure(sample_project, monkeypatch):
         result.stderr if hasattr(result, "stderr") and result.stderr else ""
     )
     assert "Warning" in combined or "index" in combined.lower()
+
+
+# ── CHG-2121: Document Format Contract compliance ──────────────────────────
+
+
+# Expected required fields for all types + type-specific optional fields
+_FORMAT_CONTRACT_EXPECTATIONS = {
+    "sop": {
+        "status": "Active",
+        "optional_fields": [],
+    },
+    "prp": {
+        "status": "Draft",
+        "optional_fields": [],
+    },
+    "chg": {
+        "status": "Proposed",
+        "optional_fields": ["Date", "Requested by", "Priority", "Change Type"],
+    },
+    "adr": {
+        "status": "Proposed",
+        "optional_fields": [],
+    },
+    "ref": {
+        "status": "Active",
+        "optional_fields": [],
+    },
+    "pln": {
+        "status": "Draft",
+        "optional_fields": [],
+    },
+    "inc": {
+        "status": "Open",
+        "optional_fields": ["Date", "Severity"],
+    },
+}
+
+
+def _create_and_read(tmp_path, monkeypatch, doc_type, acid):
+    """Helper: create a document and return its content."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            doc_type,
+            "--prefix",
+            "TST",
+            "--acid",
+            acid,
+            "--title",
+            f"Contract {doc_type.upper()}",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, f"create failed for {doc_type}: {result.output}"
+    filename = f"TST-{acid}-{doc_type.upper()}-Contract-{doc_type.upper()}.md"
+    path = tmp_path / "rules" / filename
+    assert path.exists(), f"File not found: {path}"
+    return path.read_text()
+
+
+@pytest.mark.parametrize(
+    "doc_type,acid",
+    [
+        ("sop", "3001"),
+        ("prp", "3002"),
+        ("chg", "3003"),
+        ("adr", "3004"),
+        ("ref", "3005"),
+        ("pln", "3006"),
+        ("inc", "3007"),
+    ],
+)
+def test_template_has_required_fields(tmp_path, monkeypatch, doc_type, acid):
+    """COR-0002: All templates must include Applies to, Last updated, Last reviewed, Status."""
+    content = _create_and_read(tmp_path, monkeypatch, doc_type, acid)
+    for field in ["Applies to", "Last updated", "Last reviewed", "Status"]:
+        assert f"**{field}:**" in content, (
+            f"{doc_type} template missing required field: {field}"
+        )
+
+
+@pytest.mark.parametrize(
+    "doc_type,acid",
+    [
+        ("sop", "3011"),
+        ("prp", "3012"),
+        ("chg", "3013"),
+        ("adr", "3014"),
+        ("ref", "3015"),
+        ("pln", "3016"),
+        ("inc", "3017"),
+    ],
+)
+def test_template_field_format_no_list_prefix(tmp_path, monkeypatch, doc_type, acid):
+    """COR-0002: Fields use **Key:** Value format, not - **Key:** Value."""
+    content = _create_and_read(tmp_path, monkeypatch, doc_type, acid)
+    lines = content.splitlines()
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("- **") and ":**" in stripped:
+            # Allow list items inside body sections (e.g., Impact Analysis)
+            # Only flag metadata lines that look like fields
+            field_name = stripped.split(":**")[0].replace("- **", "")
+            if field_name in (
+                "Applies to",
+                "Last updated",
+                "Last reviewed",
+                "Status",
+                "Date",
+                "Requested by",
+                "Priority",
+                "Change Type",
+                "Severity",
+            ):
+                pytest.fail(
+                    f"{doc_type}: metadata field '{field_name}' uses list prefix '- '"
+                )
+
+
+@pytest.mark.parametrize(
+    "doc_type,acid",
+    [
+        ("sop", "3021"),
+        ("prp", "3022"),
+        ("chg", "3023"),
+        ("adr", "3024"),
+        ("ref", "3025"),
+        ("pln", "3026"),
+        ("inc", "3027"),
+    ],
+)
+def test_template_correct_default_status(tmp_path, monkeypatch, doc_type, acid):
+    """COR-0002: Each type has a specific default status value."""
+    content = _create_and_read(tmp_path, monkeypatch, doc_type, acid)
+    expected_status = _FORMAT_CONTRACT_EXPECTATIONS[doc_type]["status"]
+    assert f"**Status:** {expected_status}" in content, (
+        f"{doc_type} should have Status: {expected_status}"
+    )
+
+
+def test_chg_template_retains_optional_fields(tmp_path, monkeypatch):
+    """CHG-2121: CHG template must have Date, Requested by, Priority, Change Type."""
+    content = _create_and_read(tmp_path, monkeypatch, "chg", "3030")
+    for field in ["Date", "Requested by", "Priority", "Change Type"]:
+        assert f"**{field}:**" in content, (
+            f"CHG template missing optional field: {field}"
+        )
+
+
+def test_inc_template_retains_optional_fields(tmp_path, monkeypatch):
+    """CHG-2121: INC template must have Date and Severity."""
+    content = _create_and_read(tmp_path, monkeypatch, "inc", "3031")
+    for field in ["Date", "Severity"]:
+        assert f"**{field}:**" in content, (
+            f"INC template missing optional field: {field}"
+        )
+
+
+@pytest.mark.parametrize(
+    "doc_type,acid",
+    [
+        ("sop", "3041"),
+        ("prp", "3042"),
+        ("chg", "3043"),
+        ("adr", "3044"),
+        ("ref", "3045"),
+        ("pln", "3046"),
+        ("inc", "3047"),
+    ],
+)
+def test_template_field_order(tmp_path, monkeypatch, doc_type, acid):
+    """COR-0002: Required fields appear before --- separator in correct order."""
+    content = _create_and_read(tmp_path, monkeypatch, doc_type, acid)
+    lines = content.splitlines()
+
+    # Find positions of required fields (before first ---)
+    field_positions = {}
+    separator_pos = None
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == "---" and separator_pos is None and i > 0:
+            separator_pos = i
+            break
+        for field in ["Applies to", "Last updated", "Last reviewed", "Status"]:
+            if stripped.startswith(f"**{field}:**"):
+                field_positions[field] = i
+
+    # All required fields must appear before the separator
+    for field in ["Applies to", "Last updated", "Last reviewed", "Status"]:
+        assert field in field_positions, (
+            f"{doc_type}: required field '{field}' not found before first ---"
+        )
+        assert field_positions[field] < separator_pos, (
+            f"{doc_type}: field '{field}' appears after --- separator"
+        )
+
+    # Check order: Applies to < Last updated < Last reviewed < Status
+    assert field_positions["Applies to"] < field_positions["Last updated"], (
+        f"{doc_type}: 'Applies to' must come before 'Last updated'"
+    )
+    assert field_positions["Last updated"] < field_positions["Last reviewed"], (
+        f"{doc_type}: 'Last updated' must come before 'Last reviewed'"
+    )
+    assert field_positions["Last reviewed"] < field_positions["Status"], (
+        f"{doc_type}: 'Last reviewed' must come before 'Status'"
+    )

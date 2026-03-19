@@ -1,8 +1,11 @@
 # CHG-{{ACID}}: {{TITLE}}
 
+**Applies to:** {{PREFIX}} project
+**Last updated:** {{DATE}}
+**Last reviewed:** {{DATE}}
+**Status:** Proposed
 **Date:** {{DATE}}
 **Requested by:** —
-**Status:** Proposed
 **Priority:** Medium
 **Change Type:** Normal
 

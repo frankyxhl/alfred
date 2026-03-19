@@ -1,8 +1,11 @@
 # INC-{{ACID}}: {{TITLE}}
 
+**Applies to:** {{PREFIX}} project
+**Last updated:** {{DATE}}
+**Last reviewed:** {{DATE}}
+**Status:** Open
 **Date:** {{DATE}}
 **Severity:** Medium
-**Status:** Open
 
 ---
 
