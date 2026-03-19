@@ -78,6 +78,29 @@ af create sop --prefix USR --acid 3000 --title "My Rule" --layer user --subdir m
 
 The index is updated automatically after each create (project layer only). To update it manually, run `af index`.
 
+### 6. To update an existing document
+
+Use `af update` to modify metadata fields, append Change History, or rename documents.
+
+```bash
+# Update a field
+af update FXA-2107 --status "Completed"
+
+# Append a Change History entry
+af update FXA-2107 --history "Implementation done" --by "Claude"
+
+# Rename a document (changes filename + H1 + index)
+af update COR-1600 --title "Workflow Direct Review Loop" -y
+
+# Preview changes without writing
+af update FXA-2107 --status "Done" --dry-run
+
+# Combine multiple updates
+af update FXA-2107 --status "Completed" --history "All steps done" --field "Priority" "High"
+```
+
+Only PRJ and USR layer documents are writable. PKG layer documents are read-only.
+
 ## Installing into another project
 
 ```bash
