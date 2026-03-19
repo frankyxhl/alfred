@@ -1,13 +1,7 @@
 import click
 
-from fx_alfred.context import get_root, root_option
-from fx_alfred.core.scanner import (
-    AmbiguousDocumentError,
-    DocumentNotFoundError,
-    LayerValidationError,
-    find_document,
-    scan_documents,
-)
+from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.context import root_option
 
 
 @click.command("read")
@@ -16,16 +10,8 @@ from fx_alfred.core.scanner import (
 @click.pass_context
 def read_cmd(ctx: click.Context, identifier: str):
     """Read a document by PREFIX-ACID (e.g., COR-1000) or ACID only (e.g., 1000)."""
-    root = get_root(ctx)
-    try:
-        docs = scan_documents(root)
-    except LayerValidationError as e:
-        raise click.ClickException(str(e)) from e
-
-    try:
-        doc = find_document(docs, identifier)
-    except (DocumentNotFoundError, AmbiguousDocumentError) as e:
-        raise click.ClickException(str(e)) from e
+    docs = scan_or_fail(ctx)
+    doc = find_or_fail(docs, identifier)
 
     try:
         content = doc.resolve_resource().read_text()

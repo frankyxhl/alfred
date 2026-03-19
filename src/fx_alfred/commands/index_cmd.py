@@ -2,9 +2,9 @@ from itertools import groupby
 
 import click
 
+from fx_alfred.commands._helpers import scan_or_fail
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.document import Document
-from fx_alfred.core.scanner import LayerValidationError, scan_documents
 
 
 def _build_index(title: str, docs: list[Document]) -> str:
@@ -22,13 +22,8 @@ def _build_index(title: str, docs: list[Document]) -> str:
 @click.pass_context
 def index_cmd(ctx: click.Context):
     """Regenerate document index files for PRJ layer only."""
-    root = get_root(ctx)
-    try:
-        docs = scan_documents(root)
-    except LayerValidationError as e:
-        raise click.ClickException(str(e)) from e
+    docs = scan_or_fail(ctx)
 
-    # Only index PRJ layer documents
     prj_docs = [d for d in docs if d.source == "prj" and d.acid != "0000"]
 
     if not prj_docs:
@@ -36,6 +31,7 @@ def index_cmd(ctx: click.Context):
         return
 
     prj_docs.sort(key=lambda d: d.prefix)
+    root = get_root(ctx)
     rules_dir = root / "rules"
     rules_dir.mkdir(parents=True, exist_ok=True)
 

@@ -731,5 +731,7 @@ def test_create_warns_on_index_failure(sample_project, monkeypatch):
     assert result.exit_code == 0
     assert (sample_project / "rules" / "TST-2100-SOP-Test.md").exists()
     # Warning must appear in output (stderr is mixed in by CliRunner by default)
-    combined = result.output + (result.stderr if hasattr(result, "stderr") and result.stderr else "")
+    combined = result.output + (
+        result.stderr if hasattr(result, "stderr") and result.stderr else ""
+    )
     assert "Warning" in combined or "index" in combined.lower()

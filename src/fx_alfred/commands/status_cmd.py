@@ -2,8 +2,8 @@ from collections import Counter
 
 import click
 
-from fx_alfred.context import get_root, root_option
-from fx_alfred.core.scanner import LayerValidationError, scan_documents
+from fx_alfred.commands._helpers import scan_or_fail
+from fx_alfred.context import root_option
 from fx_alfred.core.source import SOURCE_LABELS, SOURCE_ORDER
 
 
@@ -12,11 +12,7 @@ from fx_alfred.core.source import SOURCE_LABELS, SOURCE_ORDER
 @click.pass_context
 def status_cmd(ctx: click.Context):
     """Show document summary."""
-    root = get_root(ctx)
-    try:
-        docs = scan_documents(root)
-    except LayerValidationError as e:
-        raise click.ClickException(str(e)) from e
+    docs = scan_or_fail(ctx)
 
     if not docs:
         click.echo("No documents found.")

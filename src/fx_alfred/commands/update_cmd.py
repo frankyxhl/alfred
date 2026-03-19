@@ -11,19 +11,13 @@ from pathlib import Path
 
 import click
 
-from fx_alfred.context import get_root, root_option
+from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.context import root_option
 from fx_alfred.core.document import FILENAME_PATTERN
 from fx_alfred.core.parser import (
     MalformedDocumentError,
     parse_metadata,
     render_document,
-)
-from fx_alfred.core.scanner import (
-    AmbiguousDocumentError,
-    DocumentNotFoundError,
-    LayerValidationError,
-    find_document,
-    scan_documents,
 )
 
 
@@ -108,18 +102,8 @@ def update_cmd(
             "--title, --history, --status, --field"
         )
 
-    root = get_root(ctx)
-    try:
-        docs = scan_documents(root)
-    except LayerValidationError as e:
-        raise click.ClickException(str(e)) from e
-
-    try:
-        doc = find_document(docs, identifier)
-    except DocumentNotFoundError as e:
-        raise click.ClickException(str(e)) from e
-    except AmbiguousDocumentError as e:
-        raise click.ClickException(str(e)) from e
+    docs = scan_or_fail(ctx)
+    doc = find_or_fail(docs, identifier)
 
     # PKG layer is read-only
     if doc.source == "pkg":

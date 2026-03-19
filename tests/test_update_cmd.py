@@ -102,9 +102,7 @@ def _make_project(tmp_path: Path, content: str = SAMPLE_DOC) -> Path:
     return tmp_path
 
 
-def _make_usr_project(
-    tmp_path: Path, content: str = SAMPLE_DOC
-) -> tuple[Path, Path]:
+def _make_usr_project(tmp_path: Path, content: str = SAMPLE_DOC) -> tuple[Path, Path]:
     """Create a project + user-layer doc. Returns (project_root, user_alfred).
 
     Uses fake_home created by conftest's isolate_home fixture.
@@ -723,9 +721,7 @@ def test_update_rename_with_confirmation(tmp_path, monkeypatch):
     monkeypatch.chdir(project)
     # Patch the module-level _is_interactive to return True so the
     # confirmation prompt is shown instead of erroring for non-interactive.
-    monkeypatch.setattr(
-        "fx_alfred.commands.update_cmd._is_interactive", lambda: True
-    )
+    monkeypatch.setattr("fx_alfred.commands.update_cmd._is_interactive", lambda: True)
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -741,9 +737,7 @@ def test_update_rename_cancelled(tmp_path, monkeypatch):
     """Interactive rename cancelled by user."""
     project = _make_project(tmp_path)
     monkeypatch.chdir(project)
-    monkeypatch.setattr(
-        "fx_alfred.commands.update_cmd._is_interactive", lambda: True
-    )
+    monkeypatch.setattr("fx_alfred.commands.update_cmd._is_interactive", lambda: True)
     runner = CliRunner()
     result = runner.invoke(
         cli,
