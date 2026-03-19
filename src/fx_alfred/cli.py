@@ -13,6 +13,7 @@ from fx_alfred.lazy import LazyGroup
         "index": "fx_alfred.commands.index_cmd:index_cmd",
         "list": "fx_alfred.commands.list_cmd:list_cmd",
         "read": "fx_alfred.commands.read_cmd:read_cmd",
+        "search": "fx_alfred.commands.search_cmd:search_cmd",
         "status": "fx_alfred.commands.status_cmd:status_cmd",
         "update": "fx_alfred.commands.update_cmd:update_cmd",
     },
