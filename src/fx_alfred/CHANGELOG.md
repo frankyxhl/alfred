@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.0 (2026-03-19)
+
+### Internal Improvements
+- **DRY scan boilerplate (CHG-1)** — Extracted `scan_or_fail()` and `find_or_fail()` helpers to `commands/_helpers.py`, eliminating 6x repeated try/except blocks across command files
+- **Lazy command loading (CHG-2)** — `LazyGroup` subclass loads command modules on demand via `importlib`, removing all eager imports from `cli.py`
+
+### New Features
+- **`af list` filtering (CHG-3)** — `--type`, `--prefix`, `--source` options with exact case-insensitive matching and AND logic
+- **`--json` output (CHG-4)** — Machine-readable JSON output for `af list`, `af status`, and `af read` commands; combinable with filters
+- **`af search` (CHG-5)** — Search document contents with case-insensitive substring matching, shows up to 3 matching lines with line numbers
+- **`af validate` (CHG-6)** — Structural health check: validates H1 format, required metadata fields, Change History table, and COR/PKG layer invariant
+
+### Stats
+- 179 tests (45 new), all passing
+- 0 breaking changes
+
 ## v0.5.0 (2026-03-19)
 
 ### New Commands
