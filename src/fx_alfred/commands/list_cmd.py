@@ -1,3 +1,5 @@
+import json
+
 import click
 
 from fx_alfred.commands._helpers import scan_or_fail
@@ -12,12 +14,14 @@ from fx_alfred.core.source import SOURCE_LABELS
 @click.option(
     "--source", "source_filter", default=None, help="Filter by layer: pkg, usr, prj."
 )
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def list_cmd(
     ctx: click.Context,
     type_code: str | None,
     prefix: str | None,
     source_filter: str | None,
+    json_output: bool,
 ):
     """List all documents."""
     docs = scan_or_fail(ctx)
@@ -31,10 +35,28 @@ def list_cmd(
         docs = [d for d in docs if d.source.lower() == source_filter.lower()]
 
     if not docs:
-        click.echo("No documents found.")
+        if json_output:
+            click.echo("[]")
+        else:
+            click.echo("No documents found.")
         return
-    for doc in docs:
-        label = SOURCE_LABELS.get(doc.source, "???")
-        click.echo(
-            f"{label:<3}  {doc.prefix}-{doc.acid}  {doc.type_code:<3}  {doc.title}"
-        )
+
+    if json_output:
+        output = [
+            {
+                "prefix": doc.prefix,
+                "acid": doc.acid,
+                "type_code": doc.type_code,
+                "title": doc.title,
+                "source": doc.source,
+                "directory": doc.directory,
+            }
+            for doc in docs
+        ]
+        click.echo(json.dumps(output))
+    else:
+        for doc in docs:
+            label = SOURCE_LABELS.get(doc.source, "???")
+            click.echo(
+                f"{label:<3}  {doc.prefix}-{doc.acid}  {doc.type_code:<3}  {doc.title}"
+            )

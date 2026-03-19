@@ -94,3 +94,25 @@ def test_read_failure_shows_friendly_error(sample_project, monkeypatch):
         assert "Failed to read" in result.output
     finally:
         os.chmod(doc_path, 0o644)
+
+
+def test_read_json(sample_project, monkeypatch):
+    """--json outputs JSON object with document metadata and content."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["read", "ALF-2201", "--json"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert isinstance(data, dict)
+
+    # Check required fields
+    assert data["prefix"] == "ALF"
+    assert data["acid"] == "2201"
+    assert data["type_code"] == "PRP"
+    assert data["title"] == "AF CLI Tool"
+    assert data["source"] == "prj"
+    assert "content" in data
+    assert "# AF CLI" in data["content"]

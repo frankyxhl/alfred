@@ -153,3 +153,49 @@ def test_list_filter_exact_match(sample_project, monkeypatch):
     result = runner.invoke(cli, ["list", "--type", "SO"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "No documents found." in result.output
+
+
+def test_list_json(sample_project, monkeypatch):
+    """--json outputs JSON array with document fields."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--json"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert isinstance(data, list)
+
+    # Find ALF-2201 in the output
+    alf_2201 = next(
+        (d for d in data if d["prefix"] == "ALF" and d["acid"] == "2201"), None
+    )
+    assert alf_2201 is not None
+    assert alf_2201["type_code"] == "PRP"
+    assert alf_2201["title"] == "AF CLI Tool"
+    assert alf_2201["source"] == "prj"
+    assert alf_2201["directory"] == "rules"
+
+
+def test_list_json_with_type_filter(sample_project, monkeypatch):
+    """--json combined with --type filter outputs filtered JSON array."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["list", "--json", "--type", "SOP"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert isinstance(data, list)
+
+    # All returned docs should be SOP type
+    for doc in data:
+        assert doc["type_code"] == "SOP"
+
+    # Should include ALF-2202 (SOP doc)
+    acids = [d["acid"] for d in data]
+    assert "2202" in acids

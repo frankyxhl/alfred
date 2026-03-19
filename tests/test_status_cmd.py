@@ -88,3 +88,36 @@ def test_status_with_root_after_subcommand(sample_project):
     )
     assert result.exit_code == 0
     assert "PRJ" in result.output
+
+
+def test_status_json(sample_project, monkeypatch):
+    """--json outputs JSON object with summary stats."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status", "--json"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert isinstance(data, dict)
+
+    # Check required fields
+    assert "total" in data
+    assert "by_source" in data
+    assert "by_type" in data
+    assert "by_prefix" in data
+
+    # Check types
+    assert isinstance(data["total"], int)
+    assert isinstance(data["by_source"], dict)
+    assert isinstance(data["by_type"], dict)
+    assert isinstance(data["by_prefix"], dict)
+
+    # Check counts match
+    assert data["total"] == sum(data["by_source"].values())
+    assert data["total"] == sum(data["by_type"].values())
+    assert data["total"] == sum(data["by_prefix"].values())
+
+    # PRJ should have 3 documents (ALF-0000, ALF-2201, ALF-2202)
+    assert data["by_source"].get("prj") == 3
