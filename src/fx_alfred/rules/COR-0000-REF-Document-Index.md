@@ -1,4 +1,16 @@
-# Document Index (Meta Layer)
+# REF-0000: Document Index
+
+**Applies to:** All projects using the COR document system
+**Last updated:** 2026-03-19
+**Last reviewed:** 2026-03-19
+
+---
+
+## What Is It?
+
+A reference index of all documents in the COR system.
+
+---
 
 | ACID | Type | Title |
 |------|------|-------|
@@ -34,3 +46,11 @@
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
 | 1703 | SOP | Fork Project |
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-19 | Initial version with proper structure | Frank |
