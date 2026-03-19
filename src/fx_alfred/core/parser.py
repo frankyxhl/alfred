@@ -41,8 +41,12 @@ class ParsedDocument:
     h1_line: str  # full H1 line, e.g. "# SOP-1300: Update Document"
     metadata_fields: list[MetadataField] = field(default_factory=list)
     blank_after_h1: int = 0  # number of blank lines between H1 and first metadata field
-    blank_after_metadata: int = 0  # number of blank lines between last field and first ---
-    body: str = ""  # everything between first --- and Change History (inclusive of separators)
+    blank_after_metadata: int = (
+        0  # number of blank lines between last field and first ---
+    )
+    body: str = (
+        ""  # everything between first --- and Change History (inclusive of separators)
+    )
     history_header: str = ""  # the "## Change History" line + table header rows
     history_rows: list[HistoryRow] = field(default_factory=list)
     trailing: str = ""  # anything after the last history row
@@ -211,7 +215,7 @@ def parse_metadata(content: str) -> ParsedDocument:
         if not data_done and stripped.startswith("|") and stripped.endswith("|"):
             # Strip leading/trailing pipes, then split on unescaped pipes
             inner = stripped[1:-1]
-            cells = [c.strip() for c in re.split(r'(?<!\\)\|', inner)]
+            cells = [c.strip() for c in re.split(r"(?<!\\)\|", inner)]
             if len(cells) >= 3:
                 rows.append(HistoryRow(date=cells[0], change=cells[1], by=cells[2]))
             else:

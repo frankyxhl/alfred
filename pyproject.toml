@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fx-alfred"
-version = "0.4.3"
+version = "0.5.0"
 description = "CLI for the Alfred document management system"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,10 +16,10 @@ af = "fx_alfred.cli:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fx_alfred"]
-artifacts = ["src/fx_alfred/rules/*.md", "src/fx_alfred/templates/*.md"]
+artifacts = ["src/fx_alfred/rules/*.md", "src/fx_alfred/templates/*.md", "src/fx_alfred/CHANGELOG.md"]
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["src/fx_alfred/rules/*.md", "src/fx_alfred/templates/*.md"]
+artifacts = ["src/fx_alfred/rules/*.md", "src/fx_alfred/templates/*.md", "src/fx_alfred/CHANGELOG.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

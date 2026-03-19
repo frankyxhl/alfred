@@ -1,5 +1,6 @@
 import click
 
+from fx_alfred.commands.changelog_cmd import changelog_cmd
 from fx_alfred.commands.create_cmd import create_cmd
 from fx_alfred.commands.guide_cmd import guide_cmd
 from fx_alfred.commands.index_cmd import index_cmd
@@ -19,6 +20,7 @@ def cli(ctx: click.Context):
     ctx.ensure_object(dict)
 
 
+cli.add_command(changelog_cmd)
 cli.add_command(create_cmd)
 cli.add_command(guide_cmd)
 cli.add_command(index_cmd)

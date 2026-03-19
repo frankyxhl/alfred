@@ -12,8 +12,12 @@ from pathlib import Path
 import click
 
 from fx_alfred.context import get_root, root_option
-from fx_alfred.core.document import FILENAME_PATTERN, Document
-from fx_alfred.core.parser import MalformedDocumentError, parse_metadata, render_document
+from fx_alfred.core.document import FILENAME_PATTERN
+from fx_alfred.core.parser import (
+    MalformedDocumentError,
+    parse_metadata,
+    render_document,
+)
 from fx_alfred.core.scanner import (
     AmbiguousDocumentError,
     DocumentNotFoundError,
@@ -49,13 +53,41 @@ Examples:
 @click.command("update", epilog=_EPILOG)
 @root_option
 @click.argument("identifier")
-@click.option("--title", "new_title", default=None, help="Rename: update filename, H1, and auto-run index (PRJ only)")
-@click.option("--history", default=None, help="Append row to Change History table (date=today)")
-@click.option("--by", default="\u2014", help="Author name for history entry (default: \u2014)")
-@click.option("--status", default=None, help="Update Status field (only if field already exists)")
-@click.option("--field", nargs=2, multiple=True, metavar="KEY VALUE", help="Update any metadata field (only if field already exists)")
-@click.option("--dry-run", is_flag=True, default=False, help="Preview changes without writing to disk")
-@click.option("-y", "--yes", is_flag=True, default=False, help="Skip interactive confirmation for destructive operations (rename)")
+@click.option(
+    "--title",
+    "new_title",
+    default=None,
+    help="Rename: update filename, H1, and auto-run index (PRJ only)",
+)
+@click.option(
+    "--history", default=None, help="Append row to Change History table (date=today)"
+)
+@click.option(
+    "--by", default="\u2014", help="Author name for history entry (default: \u2014)"
+)
+@click.option(
+    "--status", default=None, help="Update Status field (only if field already exists)"
+)
+@click.option(
+    "--field",
+    nargs=2,
+    multiple=True,
+    metavar="KEY VALUE",
+    help="Update any metadata field (only if field already exists)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Preview changes without writing to disk",
+)
+@click.option(
+    "-y",
+    "--yes",
+    is_flag=True,
+    default=False,
+    help="Skip interactive confirmation for destructive operations (rename)",
+)
 @click.pass_context
 def update_cmd(
     ctx: click.Context,
@@ -114,7 +146,9 @@ def update_cmd(
         h1_typ, h1_acid = h1_match_sem.group(1), h1_match_sem.group(2)
         mismatches: list[str] = []
         if h1_typ != doc.type_code:
-            mismatches.append(f"type '{h1_typ}' vs filename type_code '{doc.type_code}'")
+            mismatches.append(
+                f"type '{h1_typ}' vs filename type_code '{doc.type_code}'"
+            )
         if h1_acid != doc.acid:
             mismatches.append(f"ACID '{h1_acid}' vs filename ACID '{doc.acid}'")
         if mismatches:
@@ -153,12 +187,18 @@ def update_cmd(
         if not stripped_title:
             raise click.ClickException("Title cannot be empty")
         if stripped_title != new_title:
-            raise click.ClickException("Title must not have leading/trailing whitespace")
+            raise click.ClickException(
+                "Title must not have leading/trailing whitespace"
+            )
         if "/" in new_title or "\\" in new_title:
-            raise click.ClickException("Title must not contain path separators (/ or \\)")
+            raise click.ClickException(
+                "Title must not contain path separators (/ or \\)"
+            )
 
         # Build new filename
-        new_filename = f"{doc.prefix}-{doc.acid}-{doc.type_code}-{new_title.replace(' ', '-')}.md"
+        new_filename = (
+            f"{doc.prefix}-{doc.acid}-{doc.type_code}-{new_title.replace(' ', '-')}.md"
+        )
         if not FILENAME_PATTERN.match(new_filename):
             raise click.ClickException(
                 f"Generated filename '{new_filename}' does not match required pattern "
@@ -167,9 +207,7 @@ def update_cmd(
 
         new_file_path = file_path.parent / new_filename
         if new_file_path.exists() and new_file_path != file_path:
-            raise click.ClickException(
-                f"Target path already exists: {new_file_path}"
-            )
+            raise click.ClickException(f"Target path already exists: {new_file_path}")
 
         # Interactive confirmation (skip for dry-run)
         if not yes and not dry_run:
@@ -243,9 +281,7 @@ def update_cmd(
         return
 
     # Atomic write: temp file -> rename
-    fd, tmp_path_str = tempfile.mkstemp(
-        dir=str(file_path.parent), suffix=".md.tmp"
-    )
+    fd, tmp_path_str = tempfile.mkstemp(dir=str(file_path.parent), suffix=".md.tmp")
     try:
         with os.fdopen(fd, "w") as f:
             f.write(new_content)
@@ -260,7 +296,11 @@ def update_cmd(
 
     # ── Step 7: Post-write — rename file and auto-index ─────────────────────
 
-    if new_title is not None and new_file_path is not None and new_file_path != file_path:
+    if (
+        new_title is not None
+        and new_file_path is not None
+        and new_file_path != file_path
+    ):
         file_path.rename(new_file_path)
         click.echo(f"Renamed {file_path.name} -> {new_file_path.name}")
 
