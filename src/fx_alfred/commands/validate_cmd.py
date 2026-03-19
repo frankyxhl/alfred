@@ -72,7 +72,23 @@ def _validate_history_header(header: str) -> list[str]:
     return issues
 
 
-@click.command("validate")
+_EPILOG = """\
+Examples:
+
+  af validate                      # check all documents
+  af validate --root myproj        # check specific project
+
+Checks:
+  - H1 format matches filename (type, ACID, title)
+  - Required metadata: Applies to, Last updated, Last reviewed
+  - Change History table has Date, Change, By columns
+  - COR-* documents only in PKG layer
+
+Exit code 0 if clean, 1 if issues found.
+"""
+
+
+@click.command("validate", epilog=_EPILOG)
 @root_option
 @click.pass_context
 def validate_cmd(ctx: click.Context):

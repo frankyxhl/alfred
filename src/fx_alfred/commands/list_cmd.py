@@ -7,14 +7,30 @@ from fx_alfred.context import root_option
 from fx_alfred.core.source import SOURCE_LABELS
 
 
-@click.command("list")
+_EPILOG = """\
+Examples:
+
+  af list                          # all documents
+  af list --type SOP               # only SOPs
+  af list --prefix FXA --type PRP  # FXA proposals only
+  af list --source prj             # project-layer only
+  af list --json                   # JSON array output
+  af list --type SOP --json        # filtered JSON
+
+Types: SOP, ADR, PRP, REF, CHG, PLN, INC
+Sources: pkg (bundled), usr (~/.alfred/), prj (./rules/)
+Filters use exact case-insensitive matching (AND logic).
+"""
+
+
+@click.command("list", epilog=_EPILOG)
 @root_option
-@click.option("--type", "type_code", default=None, help="Filter by document type code.")
-@click.option("--prefix", default=None, help="Filter by project prefix.")
+@click.option("--type", "type_code", default=None, help="Filter by type (SOP, PRP, CHG, ADR, REF, PLN, INC).")
+@click.option("--prefix", default=None, help="Filter by prefix (e.g. FXA, COR, ALF).")
 @click.option(
-    "--source", "source_filter", default=None, help="Filter by layer: pkg, usr, prj."
+    "--source", "source_filter", default=None, help="Filter by layer (pkg, usr, prj)."
 )
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON array.")
 @click.pass_context
 def list_cmd(
     ctx: click.Context,
@@ -23,7 +39,7 @@ def list_cmd(
     source_filter: str | None,
     json_output: bool,
 ):
-    """List all documents."""
+    """List all documents across PKG, USR, and PRJ layers."""
     docs = scan_or_fail(ctx)
 
     # Apply filters (AND logic)

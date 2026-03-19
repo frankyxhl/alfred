@@ -7,12 +7,23 @@ from fx_alfred.context import root_option
 from fx_alfred.core.source import SOURCE_LABELS
 
 
-@click.command("search")
+_EPILOG = """\
+Examples:
+
+  af search TDD                    # find docs mentioning TDD
+  af search "Change History"       # quote multi-word patterns
+  af search workflow --root myproj # search in specific project
+
+Shows up to 3 matching lines per document with line numbers.
+"""
+
+
+@click.command("search", epilog=_EPILOG)
 @root_option
 @click.argument("pattern")
 @click.pass_context
 def search_cmd(ctx: click.Context, pattern: str):
-    """Search document contents for PATTERN (case-insensitive substring match)."""
+    """Search document contents for PATTERN (case-insensitive substring)."""
     docs = scan_or_fail(ctx)
     pattern_lower = pattern.lower()
 

@@ -10,10 +10,10 @@ from fx_alfred.core.source import SOURCE_LABELS, SOURCE_ORDER
 
 @click.command("status")
 @root_option
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON object with counts.")
 @click.pass_context
 def status_cmd(ctx: click.Context, json_output: bool):
-    """Show document summary."""
+    """Show document counts by source, type, and prefix."""
     docs = scan_or_fail(ctx)
 
     if not docs:
