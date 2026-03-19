@@ -81,3 +81,75 @@ def test_list_shows_usr_documents(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert "TST-3000" in result.output
     assert "USR" in result.output
+
+
+def test_list_filter_type(sample_project, monkeypatch):
+    """--type SOP shows only SOP documents (case-insensitive exact match)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--type", "SOP"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "ALF-2202" in result.output  # SOP document
+    assert "ALF-2201" not in result.output  # PRP document
+    assert "ALF-0000" not in result.output  # REF document
+
+
+def test_list_filter_type_case_insensitive(sample_project, monkeypatch):
+    """--type sop (lowercase) matches SOP documents."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--type", "sop"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "ALF-2202" in result.output  # SOP document
+
+
+def test_list_filter_prefix(sample_project, monkeypatch):
+    """--prefix ALF shows only ALF documents."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--prefix", "ALF"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # ALF docs should be shown
+    assert "ALF-2201" in result.output
+    assert "ALF-2202" in result.output
+    assert "ALF-0000" in result.output
+    # COR docs should NOT be shown
+    assert "COR-0001" not in result.output
+    assert "COR-1000" not in result.output
+
+
+def test_list_filter_source(sample_project, monkeypatch):
+    """--source prj shows only PRJ layer documents."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--source", "prj"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # PRJ docs (ALF-*) should be shown
+    assert "ALF-2201" in result.output
+    assert "ALF-2202" in result.output
+    assert "PRJ" in result.output
+    # PKG docs should NOT be shown
+    assert "COR-0001" not in result.output
+    assert "PKG" not in result.output
+
+
+def test_list_filter_combined(sample_project, monkeypatch):
+    """--type SOP --prefix ALF shows only ALF SOPs (AND logic)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["list", "--type", "SOP", "--prefix", "ALF"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "ALF-2202" in result.output  # ALF SOP
+    assert "ALF-2201" not in result.output  # ALF PRP (wrong type)
+    assert "ALF-0000" not in result.output  # ALF REF (wrong type)
+
+
+def test_list_filter_exact_match(sample_project, monkeypatch):
+    """--type SO does NOT match SOP (exact match required)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--type", "SO"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "No documents found." in result.output
