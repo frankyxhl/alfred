@@ -106,6 +106,23 @@ def update_cmd(
     except MalformedDocumentError as e:
         raise click.ClickException(str(e)) from e
 
+    # ── Step 0.5: Semantic H1 validation (non-blocking) ────────────────────
+    # The parser checks H1 syntax (# TYP-ACID: Title) but not whether TYP/ACID
+    # match the document's type_code and acid from the filename.  Warn on mismatch.
+    h1_match_sem = re.match(r"^# ([A-Z]{3})-(\d{4}): ", parsed.h1_line)
+    if h1_match_sem:
+        h1_typ, h1_acid = h1_match_sem.group(1), h1_match_sem.group(2)
+        mismatches: list[str] = []
+        if h1_typ != doc.type_code:
+            mismatches.append(f"type '{h1_typ}' vs filename type_code '{doc.type_code}'")
+        if h1_acid != doc.acid:
+            mismatches.append(f"ACID '{h1_acid}' vs filename ACID '{doc.acid}'")
+        if mismatches:
+            click.echo(
+                f"Warning: H1 mismatch in {doc.filename}: {'; '.join(mismatches)}",
+                err=True,
+            )
+
     # ── Step 1: Validate all options ────────────────────────────────────────
 
     # Collect all field updates to validate

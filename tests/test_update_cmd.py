@@ -912,13 +912,16 @@ A test document body.
 
 
 def test_update_rename_h1_uses_type_code(tmp_path, monkeypatch):
-    """Rename fallback H1 must use type_code (SOP), not prefix (TST).
+    """Rename H1 preserves original type_code (SOP), not prefix (TST).
 
     The filename pattern is PREFIX-ACID-TYPECODE-Title.md, so for
     TST-2100-SOP-Test-Document.md, prefix=TST and type_code=SOP.
-    The H1 in existing documents follows '# TYPE_CODE-ACID: Title' format.
+    When H1 says '# SOP-2100: ...', rename must keep 'SOP-2100', not
+    replace it with the prefix form 'TST-2100'.
     """
-    project = _make_project(tmp_path)
+    # Use SAMPLE_DOC_TYPE_CODE whose H1 is '# SOP-2100: Test Document'
+    # while filename prefix is TST (prefix != type_code).
+    project = _make_project(tmp_path, SAMPLE_DOC_TYPE_CODE)
     monkeypatch.chdir(project)
     runner = CliRunner()
     result = runner.invoke(
@@ -930,10 +933,9 @@ def test_update_rename_h1_uses_type_code(tmp_path, monkeypatch):
     new_path = project / "rules" / "TST-2100-SOP-New-Name.md"
     assert new_path.exists()
     content = new_path.read_text()
-    # H1 should use the original type_code pattern, not prefix
-    # For this doc, the H1 regex match succeeds (# TST-2100: ...) so it
-    # replaces the title portion. Verify the result is correct.
-    assert "# TST-2100: New Name" in content
+    # H1 must use type_code form (SOP-2100), NOT prefix form (TST-2100)
+    assert "# SOP-2100: New Name" in content
+    assert "# TST-2100: New Name" not in content
 
 
 def test_update_rename_h1_fallback_uses_type_code(tmp_path, monkeypatch):
@@ -970,6 +972,52 @@ A test document body.
     )
     assert result.exit_code != 0
     assert "H1 does not match expected format" in result.output
+
+
+# ── Fix 1 (Round 3): H1 semantic validation ──────────────────────────────────
+
+
+SAMPLE_DOC_MISMATCHED_H1 = """\
+# ADR-9999: Wrong Title
+
+**Applies to:** All projects
+**Status:** Draft
+**Last updated:** 2026-01-01
+
+---
+
+## What Is It?
+
+A test document body.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+"""
+
+
+def test_update_h1_semantic_mismatch_warns(tmp_path, monkeypatch):
+    """H1 TYP/ACID mismatch with filename emits warning but update proceeds."""
+    project = _make_project(tmp_path, SAMPLE_DOC_MISMATCHED_H1)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "Active"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # click.echo(err=True) is captured in result.stderr by CliRunner
+    assert "Warning: H1 mismatch" in result.stderr
+    assert "ADR" in result.stderr
+    assert "9999" in result.stderr
+    # Update still proceeds
+    content = (project / "rules" / "TST-2100-SOP-Test-Document.md").read_text()
+    assert "**Status:** Active" in content
 
 
 # ── Fix 2 (Round 2): Malformed H1 without colon ─────────────────────────────
