@@ -22,6 +22,16 @@ A self-review process executed at the end of every session. Its purpose is to ex
 
 ## Steps
 
+### 0. Close all discussion items
+
+Before starting the retrospective, ensure all D items are resolved:
+
+1. Run `D list open`
+2. For each Open/WIP item: `D done`, `D defer`, or continue working
+3. No Open/WIP items should remain
+
+See COR-1201 (Discussion Tracking) for the full D item protocol.
+
 ### 1. List all actions taken this session
 
 Review the conversation and list every meaningful action:
@@ -134,3 +144,4 @@ af create ref --prefix ALF --area 12 --title "Session Retrospective 2026-03-17-D
 | 2026-03-08 | Initial version | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1002 to COR-1200 | Claude Code |
 | 2026-03-17 | Step 5: add explicit af create ref command, add Key Learnings section, add example save command, use YYYY-MM-DD-DN title format for multiple sessions per day | Claude Code |
+| 2026-03-19 | Added Step 0: close all D items before retrospective (references COR-1201) | Claude Code |
