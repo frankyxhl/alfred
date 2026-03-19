@@ -47,6 +47,8 @@ def test_wheel_contains_rules(tmp_path):
         assert len(rules_files) > 0, "No rules/*.md files found in wheel"
         assert any("COR-" in n for n in rules_files), "No COR documents in wheel"
 
+        assert "fx_alfred/CHANGELOG.md" in names, "CHANGELOG.md not found in wheel"
+
 
 @needs_build
 def test_sdist_contains_rules(tmp_path):
