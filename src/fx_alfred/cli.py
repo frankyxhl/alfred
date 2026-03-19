@@ -6,6 +6,7 @@ from fx_alfred.commands.index_cmd import index_cmd
 from fx_alfred.commands.list_cmd import list_cmd
 from fx_alfred.commands.read_cmd import read_cmd
 from fx_alfred.commands.status_cmd import status_cmd
+from fx_alfred.commands.update_cmd import update_cmd
 from fx_alfred.context import root_option
 
 
@@ -24,3 +25,4 @@ cli.add_command(index_cmd)
 cli.add_command(list_cmd)
 cli.add_command(read_cmd)
 cli.add_command(status_cmd)
+cli.add_command(update_cmd)
