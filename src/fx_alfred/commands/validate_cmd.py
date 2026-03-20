@@ -215,6 +215,38 @@ def validate_cmd(ctx: click.Context):
                 issues.extend(history_issues)
             else:
                 issues.append("Missing Change History table")
+
+            # Check 6: SOP required sections (skip PKG layer COR-* docs)
+            if doc.type_code == "SOP" and doc.source != "pkg" and parsed.body:
+                body_text = parsed.body
+                required_sections = [
+                    "## What Is It?",
+                    "## Why",
+                    "## When to Use",
+                    "## When NOT to Use",
+                    "## Steps",
+                ]
+                for section in required_sections:
+                    if section not in body_text:
+                        issues.append(f"SOP missing required section: '{section}'")
+
+                # Conditional: Examples required if Prerequisites or > 5 Steps
+                has_prerequisites = "## Prerequisites" in body_text
+                steps_section = (
+                    body_text.split("## Steps")[-1] if "## Steps" in body_text else ""
+                )
+                next_heading = steps_section.find("\n## ")
+                if next_heading > 0:
+                    steps_section = steps_section[:next_heading]
+                step_count = len(re.findall(r"^\d+\.", steps_section, re.MULTILINE))
+
+                if (
+                    has_prerequisites or step_count > 5
+                ) and "## Examples" not in body_text:
+                    issues.append(
+                        "SOP missing required section: '## Examples' "
+                        "(has Prerequisites or > 5 Steps)"
+                    )
         except MalformedDocumentError as e:
             # Report parsing error as an issue, don't crash
             issues.append(f"Malformed document: {e}")

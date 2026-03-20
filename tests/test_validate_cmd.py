@@ -20,6 +20,23 @@ def _write_valid_document(path, prefix, acid, type_code, title, status="Active")
 
 This is a valid document.
 
+## Why
+
+This section explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two.
+
 ---
 
 ## Change History
@@ -89,6 +106,23 @@ def test_validate_h1_type_code_mismatch(tmp_path):
 ## What Is It?
 
 This document has mismatched H1.
+
+## Why
+
+This section explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two.
 
 ---
 
@@ -518,6 +552,23 @@ def test_validate_sop_missing_status_reports_issue(tmp_path):
 
 A SOP missing the Status field.
 
+## Why
+
+This section explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two.
+
 ---
 
 ## Change History
@@ -597,3 +648,286 @@ This index is missing Last reviewed.
     # Metadata should still be validated even for ACID=0000
     assert result.exit_code == 1
     assert "Last reviewed" in result.output
+
+
+# -- CHG-2132 tests: SOP required section checking --
+
+
+def _write_sop_with_body(path, acid, body_text, status="Active"):
+    """Write a SOP document with custom body text for section testing."""
+    content = f"""# SOP-{acid}: Test SOP
+
+**Applies to:** All projects
+**Last updated:** 2026-03-14
+**Last reviewed:** 2026-03-14
+**Status:** {status}
+
+---
+
+{body_text}
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-14 | Initial version | Frank |
+"""
+    path.write_text(content)
+
+
+def test_validate_sop_all_sections_present_no_issue(tmp_path):
+    """SOP with all 5 required sections in body should pass."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A complete SOP.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Complete.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+def test_validate_sop_missing_why_reports_issue(tmp_path):
+    """SOP missing '## Why' section should report issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP without Why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Missing-Why.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Why'" in result.output
+
+
+def test_validate_sop_missing_when_to_use_reports_issue(tmp_path):
+    """SOP missing '## When to Use' section should report issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP without When to Use.
+
+## Why
+
+This explains why.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(
+        rules_dir / "SOP-1000-SOP-Missing-When-To-Use.md", "1000", body
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## When to Use'" in result.output
+
+
+def test_validate_sop_missing_when_not_to_use_reports_issue(tmp_path):
+    """SOP missing '## When NOT to Use' section should report issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP without When NOT to Use.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(
+        rules_dir / "SOP-1000-SOP-Missing-When-Not-To-Use.md", "1000", body
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## When NOT to Use'" in result.output
+
+
+def test_validate_sop_with_prerequisites_no_examples_reports_issue(tmp_path):
+    """SOP with Prerequisites section but no Examples should report issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP with Prerequisites.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Prerequisites
+
+- Item one
+- Item two
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(
+        rules_dir / "SOP-1000-SOP-Prerequisites-No-Examples.md", "1000", body
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Examples'" in result.output
+
+
+def test_validate_sop_with_many_steps_no_examples_reports_issue(tmp_path):
+    """SOP with more than 5 steps but no Examples should report issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP with many steps.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two.
+3. Step three.
+4. Step four.
+5. Step five.
+6. Step six."""
+    _write_sop_with_body(
+        rules_dir / "SOP-1000-SOP-Many-Steps-No-Examples.md", "1000", body
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Examples'" in result.output
+
+
+def test_validate_sop_few_steps_no_examples_no_issue(tmp_path):
+    """SOP with 5 or fewer steps and no Examples should pass."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A simple SOP.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two.
+3. Step three."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Few-Steps.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+def test_validate_non_sop_skips_section_check(tmp_path):
+    """Non-SOP document should skip section checking."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    # PRP document with only one section (no SOP sections)
+    content = """# PRP-2000: Minimal PRP
+
+**Applies to:** All projects
+**Last updated:** 2026-03-14
+**Last reviewed:** 2026-03-14
+**Status:** Draft
+
+---
+
+## What Is It?
+
+This is a PRP with no SOP sections.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-14 | Initial version | Frank |
+"""
+    (rules_dir / "PRP-2000-PRP-Minimal.md").write_text(content)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "SOP missing" not in result.output
