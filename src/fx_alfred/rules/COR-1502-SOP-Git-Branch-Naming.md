@@ -13,6 +13,26 @@ A standardized naming convention for git branches. Ensures every branch is trace
 
 ---
 
+## Why
+
+Consistent branch names make it easy to trace work back to issues, understand branch purpose at a glance, and keep the repository navigable as the team scales.
+
+---
+
+## When to Use
+
+- Creating any new branch in a project that uses the COR document system
+- Naming branches for features, fixes, chores, docs, refactors, tests, or hotfixes
+
+---
+
+## When NOT to Use
+
+- Repositories that have their own established branch naming convention outside the COR system
+- Temporary local-only branches that will never be pushed to a remote
+
+---
+
 ## Branch Name Format
 
 ```
@@ -98,3 +118,4 @@ gh pr create --title "[enhancement] Add pyproject.toml and CalVer" --body "Close
 |------|--------|----|
 | 2026-03-12 | Initial version, synced from BLA-1008 | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1008 to ALF-2401 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

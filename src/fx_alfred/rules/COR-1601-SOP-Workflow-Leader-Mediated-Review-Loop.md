@@ -13,6 +13,12 @@ A collaboration pattern where the Leader mediates every round between Worker and
 
 ---
 
+## Why
+
+Keeps the Leader in the loop on every iteration so they can redirect strategy, resolve conflicting feedback, and maintain control over high-stakes or ambiguous deliverables.
+
+---
+
 ## Roles
 
 | Role | Responsibility | Count |
@@ -173,3 +179,4 @@ Round 3:
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-17 | Fixed flow diagram and example to enforce Leader-only communication; added key rule | Claude Code |
 | 2026-03-19 | Added sequence diagram (D4), iteration mode (D3), review scoring (D9), renamed with Workflow prefix (D5) | Claude Code |
+| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |

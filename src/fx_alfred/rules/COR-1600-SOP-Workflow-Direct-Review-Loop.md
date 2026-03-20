@@ -13,6 +13,12 @@ A collaboration pattern where the Worker iterates directly with Reviewers until 
 
 ---
 
+## Why
+
+Reduces Leader bottleneck on straightforward tasks by letting Workers and Reviewers iterate directly, freeing the Leader to focus on higher-level coordination.
+
+---
+
 ## Roles
 
 | Role | Responsibility | Count |
@@ -153,3 +159,4 @@ Final result → Claude Code
 |------|--------|----|
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-19 | Added sequence diagram (D4), iteration mode (D3), review scoring (D9), Lead Reviewer rule (D10), renamed with Workflow prefix (D5) | Claude Code |
+| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |

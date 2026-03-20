@@ -17,6 +17,12 @@ Also known as: Multi-Module Development, Divide and Conquer.
 
 ---
 
+## Why
+
+Reduces wall-clock time by running independent modules in parallel, then validating the combined result in a single review pass.
+
+---
+
 ## Roles
 
 | Role | Responsibility | Count |
@@ -168,3 +174,4 @@ Phase 3 (review):
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), output_retention: composable (D6), Workflow prefix (D5) | Claude Code |
+| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |

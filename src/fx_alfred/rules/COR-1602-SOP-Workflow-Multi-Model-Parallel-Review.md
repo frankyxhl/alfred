@@ -15,6 +15,12 @@ Also known as: Second Opinion, Multi-Model Review.
 
 ---
 
+## Why
+
+Leverages diverse model perspectives to catch blind spots, reduce bias, and produce higher-confidence decisions on existing artifacts before committing to implementation.
+
+---
+
 ## Roles
 
 | Role | Responsibility | Count |
@@ -150,3 +156,4 @@ Round 1 (iterate: false, single-pass):
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), Workflow prefix (D5) | Claude Code |
+| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
