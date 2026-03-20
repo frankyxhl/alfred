@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.9.1 (2026-03-20)
+
+### Docs
+- **COR-1103** — Added USR/PRJ routing doc creation guide
+
 ## v0.9.0 (2026-03-20)
 
 ### Layered Workflow Routing (ALF-2206)
