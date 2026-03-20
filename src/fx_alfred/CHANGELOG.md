@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.7.0 (2026-03-20)
+
+### Document Format Contract (FXA-2116)
+- **COR-0002 Reference** — New document defining mandatory metadata format for all Alfred documents: required fields per type, allowed Status values, optional fields, H1 rules, section rules
+- **COR-1607 SOP** — Workflow Routing SOP mapping work types to required SOP sequences
+- **Template compliance** — All 7 `af create` templates now emit required fields (Applies to, Last updated, Last reviewed, Status) with correct defaults per type
+- **`af validate` enhancements** — Per-type required field checks, Status value validation (rejects invalid values and annotations), ACID=0000 Index document H1 exemption
+- **`af index` compliance** — Generated Index documents now include H1, metadata block, and Change History section per contract
+- **PKG layer migration** — All 33 COR documents updated with Status field
+
+### Stats
+- 228 tests (49 new), all passing
+- 0 breaking changes
+
 ## v0.6.0 (2026-03-19)
 
 ### Internal Improvements
