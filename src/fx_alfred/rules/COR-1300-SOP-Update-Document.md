@@ -13,6 +13,28 @@ A standard process for modifying an existing document. Ensures all changes are t
 
 ---
 
+## Why
+
+Consistent update procedures keep the document system auditable and prevent silent changes that break cross-references.
+
+---
+
+## When to Use
+
+- When editing any existing document (SOP, PRP, CHG, ADR, REF, etc.)
+- When updating metadata fields (status, dates, related documents)
+- When adding or correcting content in an existing document
+
+---
+
+## When NOT to Use
+
+- When creating a new document from scratch — use COR-1000 (SOP) or COR-1001 (other types)
+- When deprecating a document — use COR-1301 instead
+- When the document does not yet exist
+
+---
+
 ## Steps
 
 1. **Read the current version** — understand the existing content before making changes (see COR-1101)
@@ -37,3 +59,4 @@ A standard process for modifying an existing document. Ensures all changes are t
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-14 | Initial version | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

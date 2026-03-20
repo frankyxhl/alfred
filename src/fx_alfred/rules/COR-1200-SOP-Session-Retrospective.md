@@ -14,11 +14,24 @@ A self-review process executed at the end of every session. Its purpose is to ex
 
 ---
 
-## When to Run
+## Why
+
+Retrospectives turn ad-hoc improvements into durable automation and SOPs, compounding efficiency gains across sessions.
+
+---
+
+## When to Use
 
 - Before ending a session
 - After completing a significant task or milestone
 - When context is about to be compacted
+
+---
+
+## When NOT to Use
+
+- During a session that made no meaningful changes (e.g., read-only exploration)
+- When the session was trivially short with nothing to reflect on
 
 ---
 
@@ -147,3 +160,4 @@ af create ref --prefix ALF --area 12 --title "Session Retrospective 2026-03-17-D
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1002 to COR-1200 | Claude Code |
 | 2026-03-17 | Step 5: add explicit af create ref command, add Key Learnings section, add example save command, use YYYY-MM-DD-DN title format for multiple sessions per day | Claude Code |
 | 2026-03-19 | Added Step 0: close all D items before retrospective (references COR-1201) | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

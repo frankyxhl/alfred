@@ -13,6 +13,28 @@ A lightweight protocol for tracking discussion items (D items) within a session.
 
 ---
 
+## Why
+
+Prevents discussion points from being lost during long sessions by giving each item a trackable identifier and persistent state.
+
+---
+
+## When to Use
+
+- When a session involves multiple discussion points that need individual tracking
+- When a topic comes up that cannot be resolved immediately and needs to be deferred
+- When you need to reference a specific discussion point later in the session
+
+---
+
+## When NOT to Use
+
+- For single-topic sessions where there is nothing to track separately
+- For formal decisions — use ADR (COR-1100) instead
+- For bug reports or incidents — use INC instead
+
+---
+
 ## Concepts
 
 - **D item**: A numbered discussion point within a day's session (D1, D2, D3, ...)
@@ -159,3 +181,4 @@ Before running COR-1200 (Session Retrospective):
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version | Frank + Claude |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

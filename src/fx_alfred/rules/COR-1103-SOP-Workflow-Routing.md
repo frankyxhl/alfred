@@ -14,11 +14,24 @@ The session-start routing SOP. Read this at the beginning of every task to deter
 
 ---
 
+## Why
+
+Ensures every task follows the correct SOP from the start, preventing wasted effort from following the wrong workflow.
+
+---
+
 ## When to Use
 
 - At the start of any new task or session
 - When unsure which SOP or document type applies to the work at hand
 - Before creating any document (PRP, CHG, ADR, INC, PLN)
+
+---
+
+## When NOT to Use
+
+- Mid-task when you have already routed and are following a specific SOP
+- For tasks that have an explicit SOP reference provided by the caller
 
 ---
 
@@ -142,3 +155,4 @@ Run `af guide --root <project-root>` to verify all layers appear.
 |------|--------|----|
 | 2026-03-20 | Initial version, replaces COR-1607. Intent-based router + golden rules per ALF-2205 PRP | Frank + Claude Code |
 | 2026-03-20 | Added USR/PRJ routing doc creation guide | Frank + Claude Code |
+| 2026-03-20 | Added Why/When NOT to Use sections per ALF-2210 | Claude Code |

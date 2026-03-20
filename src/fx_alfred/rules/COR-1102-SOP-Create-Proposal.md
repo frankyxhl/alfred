@@ -13,6 +13,12 @@ The process for creating and reviewing a Proposal (PRP) document. A PRP captures
 
 ---
 
+## Why
+
+Proposals prevent wasted implementation effort by requiring upfront design review before any code is written.
+
+---
+
 ## When to Use — Document Type Decision Table
 
 | Question | Yes → | No → |
@@ -27,6 +33,15 @@ The process for creating and reviewing a Proposal (PRP) document. A PRP captures
 **PRP vs CHG:** PRP is for designing something that doesn't exist yet. CHG is for modifying something that already exists. If the change requires significant upfront design, start with PRP; the CHG can be filed during implementation.
 
 **PRP vs PLN:** PRP defines *what* to build and *why*. PLN defines *how* to execute (schedule, phases, milestones). A PRP may contain an Implementation Plan section, but a standalone PLN is for coordinating execution of already-approved work.
+
+---
+
+## When NOT to Use
+
+- Bug fixes or incidents — use INC instead
+- Changes to existing system/config/architecture that do not require upfront design — use CHG (COR-1101)
+- Recording a decision already made — use ADR (COR-1100)
+- Trivial documentation updates — use COR-1300
 
 ---
 
@@ -234,3 +249,4 @@ Prefix: FXA, Area: 21
 | 2026-03-19 | Initial version, based on FXA-2104/2105 PRP experience | Frank + Claude |
 | 2026-03-19 | Round 1 revision: added document type decision table, naming convention, full template, strict approval rules, COR-1606 reference | Frank + Claude |
 | 2026-03-19 | Round 2 revision: fixed strict-mode contradiction (Leader cannot approve-override), unified status to Implemented, fixed naming terminology | Frank + Claude |
+| 2026-03-20 | Added Why/When NOT to Use sections per ALF-2210 | Claude Code |
