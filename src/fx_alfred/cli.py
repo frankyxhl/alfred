@@ -3,6 +3,29 @@ import click
 from fx_alfred.context import root_option
 from fx_alfred.lazy import LazyGroup
 
+_EPILOG = """\
+Document Naming Convention:
+
+  PREFIX-ACID-TYPE-TITLE.md
+  PREFIX: 3-letter project code (ALF, FXA, COR, USR)
+  ACID:   4-digit unique identifier (e.g. 1001)
+  TYPE:   SOP, ADR, PRP, REF, CHG, PLN, INC
+  TITLE:  Human-readable title with dashes
+
+Layer System:
+
+  PKG: Bundled COR documents (read-only, included with fx-alfred)
+  USR: Your personal documents in ~/.alfred/
+  PRJ: Project documents in ./rules/
+
+Quick Start:
+
+  af create sop --prefix ALF --area 21 --title "My SOP"
+  af list
+  af read COR-1000
+  af guide          Show workflow routing for current session
+"""
+
 
 @click.group(
     cls=LazyGroup,
@@ -18,6 +41,8 @@ from fx_alfred.lazy import LazyGroup
         "update": "fx_alfred.commands.update_cmd:update_cmd",
         "validate": "fx_alfred.commands.validate_cmd:validate_cmd",
     },
+    epilog=_EPILOG,
+    context_settings={"max_content_width": 120},
 )
 @root_option
 @click.version_option(package_name="fx-alfred")  # type: ignore[call-overload]
