@@ -94,20 +94,19 @@ When off: Reviewers analyze once, Leader synthesizes and decides. No re-review r
 
 ## Review Scoring
 
-**Pass threshold: >= 9/10.** Scores below 9 require revision.
+**Pass threshold: >= 9.0/10.** Scores below 9.0 require revision.
 
-Reviewers must provide a decision matrix with per-dimension scores:
+Before scoring, select the appropriate rubric based on artifact type:
+- PRP (Proposal) → COR-1608
+- CHG (Change Request) → COR-1609
+- Code → COR-1610
+- Other (PLN, ADR, design, etc.) → use COR-1609 (CHG rubric) as fallback
 
-| Dimension | Score (1-10) | Deductions |
-|-----------|-------------|------------|
-| Correctness | | e.g., logic error in step 3 |
-| Completeness | | e.g., missing edge case handling |
-| Clarity | | e.g., ambiguous variable naming |
-| Consistency | | e.g., inconsistent with existing patterns |
-| **Overall** | | **>= 9 = PASS, < 9 = FIX** |
+All reviewers must follow COR-1611 (Reviewer Calibration Guide).
 
-- **PASS** (>= 9): no revision needed, approved
-- **FIX** (< 9): Leader revises artifact based on deduction reasons
+Score = weighted average of the rubric's dimensions, rounded to one decimal.
+- **PASS** (>= 9.0): approved
+- **FIX** (< 9.0): Leader revises based on deduction reasons
 
 ---
 

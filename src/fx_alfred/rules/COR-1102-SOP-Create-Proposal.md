@@ -170,8 +170,8 @@ Submit the PRP to at least 2 reviewers using COR-1602.
 
 **PRP review is a strict subset of COR-1602:** the Leader CANNOT use COR-1602's "Leader accepts the synthesis" or "max rounds reached, Leader makes final call" escape hatches. For PRP approval, the ONLY valid path is:
 
-- **Both reviewers score >= 9/10** using the standard decision matrix
-- **All Open Questions must be resolved** (answered in the PRP)
+- **Hard gate:** All Open Questions must be resolved before review begins. Reviewers check this first — if any OQ is unresolved, return FIX without scoring dimensions.
+- **Both reviewers score >= 9.0/10** using COR-1608 (PRP Review Scoring rubric) and COR-1611 (Reviewer Calibration Guide)
 
 **If FIX:** revise based on deductions, resubmit for re-review.
 

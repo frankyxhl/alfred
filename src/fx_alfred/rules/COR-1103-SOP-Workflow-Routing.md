@@ -60,7 +60,12 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-5.
 5. Record a durable decision already made?
    └── ADR (COR-1100)
 
-6. None of the above?
+6. Track/discuss a topic within this session?
+   └── COR-1201 (Discussion Tracking)
+       D new <topic> → create new D item
+       D list → show all D items
+
+7. None of the above?
    └── Ask one clarifying question, or flag ⚠️ no matching SOP
 
 ═══ OVERLAYS (apply after primary route) ═══
@@ -70,6 +75,8 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-5.
 • Choose review workflow    → COR-1606
 • Compound task (A AND B)   → Split into sub-routes, COR-1402 each transition
 • Confidence < 90%          → Ask one clarifying question before proceeding
+• Background agents running → Proactively report progress on every user message (check output file sizes, show line counts)
+• Review scoring rubric    → COR-1608 (PRP) / COR-1609 (CHG) / COR-1610 (Code) + COR-1611 (calibration)
 ```
 
 ---
