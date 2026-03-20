@@ -1,7 +1,7 @@
 # SOP-1400: Atomic SOP Principle
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-14
+**Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-14
 **Status:** Active
 
@@ -10,6 +10,27 @@
 ## What Is It?
 
 A fundamental design principle: every SOP must do exactly one thing. If an SOP covers more than one responsibility, it should be split into separate documents.
+
+---
+
+## Why
+
+Multi-responsibility SOPs become hard to reference, hard to update, and create ambiguity about when they apply.
+
+---
+
+## When to Use
+
+- When creating a new SOP — verify it covers exactly one responsibility
+- When reviewing an existing SOP — check for scope creep
+- When a single SOP keeps growing with unrelated steps
+
+---
+
+## When NOT to Use
+
+- When two steps are genuinely inseparable parts of one atomic operation
+- When splitting would create SOPs too trivial to stand alone
 
 ---
 
@@ -45,3 +66,4 @@ If the answer to #1 is no, or #2 is yes — split it.
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-14 | Initial version | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

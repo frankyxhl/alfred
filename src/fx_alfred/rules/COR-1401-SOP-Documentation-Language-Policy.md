@@ -1,7 +1,7 @@
 # SOP-1401: Documentation Language Policy
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-12
+**Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-12
 **Status:** Active
 
@@ -10,6 +10,27 @@
 ## What Is It?
 
 A policy that standardizes the language used in all project documentation. This ensures consistency, searchability, and readability across all documents regardless of the team's spoken language.
+
+---
+
+## Why
+
+A single documentation language eliminates ambiguity, enables full-text search across all documents, and ensures every contributor can read every document.
+
+---
+
+## When to Use
+
+- When writing any formal document (SOP, INC, PLN, CHG, ADR, REF)
+- When recording decisions or outcomes from discussions into documents
+- When creating code comments or commit messages (recommended)
+
+---
+
+## When NOT to Use
+
+- Verbal or chat discussions between team members — any spoken language is fine
+- Inline examples or quotes that only make sense in the original language (keep as-is with English translation)
 
 ---
 
@@ -44,3 +65,4 @@ This policy applies to:
 |------|--------|----|
 | 2026-03-12 | Initial version | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1006 to ALF-2400 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

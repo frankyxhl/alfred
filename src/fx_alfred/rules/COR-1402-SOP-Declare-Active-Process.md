@@ -1,7 +1,7 @@
 # SOP-1402: Declare Active Process
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-15
+**Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-15
 **Status:** Active
 
@@ -10,6 +10,29 @@
 ## What Is It?
 
 A rule requiring the agent to explicitly declare which SOP is being followed at every step of a task. This ensures traceability, helps the user understand what process is driving the work, and surfaces gaps where no SOP exists.
+
+---
+
+## Why
+
+- The user always knows which process is being followed
+- Gaps in the SOP system become visible immediately
+- Repeated "no matching SOP" flags feed into COR-1200 (Session Retrospective) as improvement candidates
+
+---
+
+## When to Use
+
+- At the start of every task that follows a documented SOP
+- When switching from one SOP to another mid-task
+- When executing a plan-driven workflow (SOP + PLN + Phase)
+
+---
+
+## When NOT to Use
+
+- For trivial actions that do not follow any formal process (e.g., answering a quick question)
+- When the user explicitly asks to skip process declarations
 
 ---
 
@@ -56,17 +79,10 @@ The declaration must include all applicable dimensions:
 
 ---
 
-## Why
-
-- The user always knows which process is being followed
-- Gaps in the SOP system become visible immediately
-- Repeated "no matching SOP" flags feed into COR-1200 (Session Retrospective) as improvement candidates
-
----
-
 ## Change History
 
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-16 | Added plan-driven declaration format (SOP + PLN + Phase) based on field usage | Claude Code |
+| 2026-03-20 | Added When to Use/When NOT to Use sections, reordered Why section per ALF-2210 | Claude Code |
