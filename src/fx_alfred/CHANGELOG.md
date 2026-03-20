@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.8.0 (2026-03-20)
+
+### Workflow Routing (ALF-2205)
+- **COR-1103 SOP** — New session-start routing SOP with intent-based router (ALWAYS → PRIMARY ROUTE → OVERLAYS) and golden rules. Replaces COR-1607.
+- **COR-1607 deprecated** — Replaced by COR-1103 in the 11xx area
+- **COR-1101 fix** — Corrected "use PLN" to "use PRP per COR-1102" in When NOT to Use section
+
+### Stats
+- 228 tests, all passing
+- 0 breaking changes
+
 ## v0.7.0 (2026-03-20)
 
 ### Document Format Contract (FXA-2116)
