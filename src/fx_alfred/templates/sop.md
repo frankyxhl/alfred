@@ -9,9 +9,21 @@
 
 ## What Is It?
 
-<description>
+<one-paragraph summary of what this SOP covers>
+
+## Why
+
+<why this SOP exists, what problem it solves>
 
 ---
+
+## When to Use
+
+- <trigger condition>
+
+## When NOT to Use
+
+- <exclusion condition>
 
 ## Steps
 

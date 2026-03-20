@@ -77,6 +77,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-5.
 • Confidence < 90%          → Ask one clarifying question before proceeding
 • Background agents running → Proactively report progress on every user message (check output file sizes, show line counts)
 • Review scoring rubric    → COR-1608 (PRP) / COR-1609 (CHG) / COR-1610 (Code) + COR-1611 (calibration)
+• SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
 ```
 
 ---
@@ -96,6 +97,7 @@ COR-1000/1001: New SOP → COR-1000; new document → af create (COR-1001) with 
 COR-1201: Track discussion items with D new/list/show/start/done/defer/archive
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
+Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
 ```
 
 ---
