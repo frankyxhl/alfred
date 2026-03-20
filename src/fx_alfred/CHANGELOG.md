@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.11.1 (2026-03-21)
+
+### Bugfix
+- **`af validate`** — Fixed SOP section detection to use exact heading match (`^## Section\s*$`). Prevents false passes on prefix headings like `## Why This Matters`.
+- 6 new false-positive regression tests (252 total)
+
 ## v0.11.0 (2026-03-20)
 
 ### Standardized SOP Section Structure (ALF-2210)
