@@ -13,6 +13,27 @@ A constraint requiring agents to use the platform's interactive selection tool i
 
 ---
 
+## Why
+
+Interactive selection tools reduce user friction and eliminate ambiguity compared to plain-text option lists.
+
+---
+
+## When to Use
+
+- Choosing between approaches or architectures
+- Selecting a configuration or parameter
+- Deciding next steps or priorities
+- Any multiple-choice situation
+
+## When NOT to Use
+
+- Open-ended questions with no predefined options ("What do you want to build?")
+- Yes/no confirmations where the context is obvious
+- Follow-up clarifications within an ongoing discussion
+
+---
+
 ## Rule
 
 When asking the user a question that involves choosing between options:
@@ -25,21 +46,6 @@ When asking the user a question that involves choosing between options:
 See platform-specific SOPs for the exact tool to use:
 - Claude Code: COR-1404
 - GitHub Copilot: COR-1405
-
----
-
-## When It Applies
-
-- Choosing between approaches or architectures
-- Selecting a configuration or parameter
-- Deciding next steps or priorities
-- Any multiple-choice situation
-
-## When It Does NOT Apply
-
-- Open-ended questions with no predefined options ("What do you want to build?")
-- Yes/no confirmations where the context is obvious
-- Follow-up clarifications within an ongoing discussion
 
 ---
 
@@ -69,3 +75,4 @@ If both are yes → use the interactive selection tool.
 |------|--------|----|
 | 2026-03-17 | Initial version | Claude Code |
 | 2026-03-17 | Generalized to platform-agnostic principle, moved Claude Code specifics to COR-1404 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

@@ -14,6 +14,26 @@ A standardized process for creating GitHub issues as task tickets. Ensures every
 
 ---
 
+## Why
+
+Consistent issue structure makes triage faster, reduces back-and-forth clarification, and ensures traceability from requirement to implementation.
+
+---
+
+## When to Use
+
+- Creating a new task, bug report, or enhancement request
+- Tracking SOP-driven work items
+- Recording follow-ups from session retrospectives
+
+## When NOT to Use
+
+- Trivial fixes that can be done in the current session without tracking
+- Discussion-only topics better suited for GitHub Discussions or comments
+- Work already captured in an existing open issue
+
+---
+
 ## Prerequisites
 
 - GitHub repo with remote configured
@@ -129,3 +149,4 @@ gh issue list
 |------|--------|----|
 | 2026-03-08 | Initial version | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1003 to ALF-2101 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

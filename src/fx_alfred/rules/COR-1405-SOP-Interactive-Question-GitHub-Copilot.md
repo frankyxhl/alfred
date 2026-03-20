@@ -13,6 +13,25 @@ The GitHub Copilot implementation of COR-1403 (Interactive Question Principle). 
 
 ---
 
+## Why
+
+Standardizes how GitHub Copilot agents present choices to users across VS Code and CLI environments.
+
+---
+
+## When to Use
+
+- Any GitHub Copilot session (VS Code or CLI) where the agent needs user input on 2+ options
+- Architecture, configuration, or priority decisions during Copilot workflows
+
+## When NOT to Use
+
+- Non-Copilot environments (see COR-1404 for Claude Code)
+- Open-ended questions with no predefined options
+- Yes/no confirmations where context is obvious
+
+---
+
 ## VS Code — Prompt Files
 
 In VS Code prompt files (`.github/copilot-instructions.md` or `.prompt.md`), reference the built-in tool:
@@ -72,3 +91,4 @@ Reply with the number.
 |------|--------|----|
 | 2026-03-17 | Initial version, split from COR-1403 | Claude Code |
 | 2026-03-17 | Corrected: distinguish documented prompt-file tooling from open feature requests; clarify CLI behavior is environment-dependent | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

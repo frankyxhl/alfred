@@ -13,6 +13,25 @@ The Claude Code implementation of COR-1403 (Interactive Question Principle). Spe
 
 ---
 
+## Why
+
+Standardizes how Claude Code agents present choices to users, ensuring consistent UX via the `AskUserQuestion` tool.
+
+---
+
+## When to Use
+
+- Any Claude Code session where the agent needs user input on 2+ options
+- Architecture, configuration, or priority decisions during Claude Code workflows
+
+## When NOT to Use
+
+- Non-Claude Code environments (see COR-1405 for GitHub Copilot)
+- Open-ended questions with no predefined options
+- Yes/no confirmations where context is obvious
+
+---
+
 ## Tool
 
 **AskUserQuestion** — Claude Code's built-in interactive selection tool.
@@ -61,3 +80,4 @@ AskUserQuestion(questions=[{
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-17 | Initial version, split from COR-1403 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
