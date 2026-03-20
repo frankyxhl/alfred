@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.10.0 (2026-03-20)
+
+### Review Scoring Framework (ALF-2208)
+- **COR-1608** — PRP Review Scoring rubric (6 weighted dimensions + OQ hard gate)
+- **COR-1609** — CHG Review Scoring rubric (5 dimensions, fallback for PLN/ADR)
+- **COR-1610** — Code Review Scoring rubric (5 dimensions)
+- **COR-1611** — Shared Reviewer Calibration Guide (symmetric rules for all models)
+- **COR-1602 updated** — Generic 4-dimension matrix replaced with artifact-specific rubric references
+- **COR-1102 updated** — OQ hard gate + stale matrix reference fixed
+- **COR-1103 updated** — Scoring rubric added to OVERLAYS
+
+### Stats
+- 238 tests, all passing
+- 0 breaking changes
+
 ## v0.9.1 (2026-03-20)
 
 ### Docs
