@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.10.1 (2026-03-20)
+
+### Docs
+- **COR-1103** — Added golden rules for COR-1201, COR-1608~1611
+
 ## v0.10.0 (2026-03-20)
 
 ### Review Scoring Framework (ALF-2208)
