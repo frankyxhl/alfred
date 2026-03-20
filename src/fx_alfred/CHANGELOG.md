@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.11.0 (2026-03-20)
+
+### Standardized SOP Section Structure (ALF-2210)
+- **SOP template updated** — 5W1H pattern: What Is It?, Why, When to Use, When NOT to Use, Steps
+- **`af validate` SOP section checking** — Validates required sections for SOP documents (USR/PRJ layers)
+- **COR-1103 updated** — "How to Read an SOP" golden rule + SOP section compliance overlay
+- **40 SOPs migrated** — All PKG, USR, PRJ SOPs now have Why, When to Use, When NOT to Use
+
+### Stats
+- 246 tests (8 new), all passing
+- 86 documents validated, 0 issues
+
 ## v0.10.1 (2026-03-20)
 
 ### Docs
