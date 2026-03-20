@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.12.0 (2026-03-21)
+
+### New Command: `af plan` (FXA-2134)
+- **`af plan SOP_ID [...]`** — LLM-optimized workflow checklist with phases, hard stops, and RULES
+- **`af plan --human`** — Human-readable format
+- **`af plan --init`** — Suggested prompts for agent configuration
+- **`extract_section()`** — New parser utility for section extraction
+- **`af guide`** — Appends `af plan --init` tip
+
+### Stats
+- 262 tests (10 new), all passing
+
 ## v0.11.1 (2026-03-21)
 
 ### Bugfix
