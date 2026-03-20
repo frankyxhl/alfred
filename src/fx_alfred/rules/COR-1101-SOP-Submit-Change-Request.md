@@ -24,7 +24,7 @@ A Change Request (CHG) documents a proposed change to a system, configuration, o
 
 - Routine operations covered by an existing SOP
 - Bug fixes (use INC instead; if the fix requires a system or configuration change, also file a CHG)
-- New feature planning (use PLN instead)
+- New feature planning (use PRP per COR-1102; PLN is for execution coordination of approved work)
 
 ---
 
