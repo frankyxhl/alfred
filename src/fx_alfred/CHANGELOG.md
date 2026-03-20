@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.9.0 (2026-03-20)
+
+### Layered Workflow Routing (ALF-2206)
+- **`af guide` enhanced** — Dynamically scans PKG → USR → PRJ for routing documents (`*-SOP-Workflow-Routing*.md`), filters by `Status: Active`, outputs full content per layer with separator headers
+- **Quick-start moved** — Document naming, layer system, and create examples now in `af --help` epilog
+- **Failure handling** — Graceful handling of missing layers, deprecated docs, malformed docs, and multiple active docs per layer
+
+### Stats
+- 238 tests (10 new), all passing
+- 0 breaking changes
+
 ## v0.8.0 (2026-03-20)
 
 ### Workflow Routing (ALF-2205)
