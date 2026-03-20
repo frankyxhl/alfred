@@ -227,22 +227,25 @@ def validate_cmd(ctx: click.Context):
                     "## Steps",
                 ]
                 for section in required_sections:
-                    if section not in body_text:
+                    if not re.search(
+                        rf"^{re.escape(section)}\s*$", body_text, re.MULTILINE
+                    ):
                         issues.append(f"SOP missing required section: '{section}'")
 
                 # Conditional: Examples required if Prerequisites or > 5 Steps
-                has_prerequisites = "## Prerequisites" in body_text
-                steps_section = (
-                    body_text.split("## Steps")[-1] if "## Steps" in body_text else ""
+                has_prerequisites = bool(
+                    re.search(r"^## Prerequisites\s*$", body_text, re.MULTILINE)
                 )
+                has_steps = bool(re.search(r"^## Steps", body_text, re.MULTILINE))
+                steps_section = body_text.split("## Steps")[-1] if has_steps else ""
                 next_heading = steps_section.find("\n## ")
                 if next_heading > 0:
                     steps_section = steps_section[:next_heading]
                 step_count = len(re.findall(r"^\d+\.", steps_section, re.MULTILINE))
 
-                if (
-                    has_prerequisites or step_count > 5
-                ) and "## Examples" not in body_text:
+                if (has_prerequisites or step_count > 5) and not re.search(
+                    r"^## Examples\s*$", body_text, re.MULTILINE
+                ):
                     issues.append(
                         "SOP missing required section: '## Examples' "
                         "(has Prerequisites or > 5 Steps)"

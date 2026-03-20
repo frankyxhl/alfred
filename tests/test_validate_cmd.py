@@ -931,3 +931,219 @@ This is a PRP with no SOP sections.
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "SOP missing" not in result.output
+
+
+# -- FXA-2132 code review: substring match false positive --
+
+
+def test_validate_sop_section_in_prose_not_heading(tmp_path):
+    """## Why appearing in prose (not as heading) should still report missing."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    # Body has "## Why" embedded in a paragraph (not at line start) but NOT as
+    # an actual markdown heading on its own line.  The validator must detect
+    # that the real heading is absent.
+    body = """## What Is It?
+
+A SOP that mentions ## Why in the middle of a sentence but does not
+have it as a real heading.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Prose-Why.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Why'" in result.output
+
+
+def test_validate_sop_section_in_prose_prerequisites(tmp_path):
+    """## Prerequisites in prose should not count as having that section."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    # Body mentions "## Prerequisites" inside prose, but has no real heading.
+    # Since there's no real ## Prerequisites heading, ## Examples should NOT
+    # be required by the conditional logic.
+    body = """## What Is It?
+
+A SOP that talks about ## Prerequisites in a paragraph.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Prose-Prereq.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    # No ## Examples should be required because ## Prerequisites is NOT a real heading
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+def test_validate_sop_section_in_prose_examples(tmp_path):
+    """## Examples in prose should not satisfy the Examples requirement."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    # Has real ## Prerequisites heading -> ## Examples required.
+    # But ## Examples only appears in prose, not as a heading.
+    body = """## What Is It?
+
+A SOP that mentions ## Examples in a sentence but not as heading.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Prerequisites
+
+- Item one
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Prose-Examples.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Examples'" in result.output
+
+
+# -- FXA-2132 code review: end-of-line anchor fix for prefix matches --
+
+
+def test_validate_sop_prefix_heading_why_this_matters(tmp_path):
+    """## Why This Matters should NOT satisfy ## Why requirement."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP with wrong heading.
+
+## Why This Matters
+
+This is not the same as ## Why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Why-This-Matters.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Why'" in result.output
+
+
+def test_validate_sop_prefix_heading_prerequisites_setup(tmp_path):
+    """## Prerequisites Setup should NOT trigger Examples requirement."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP with Prerequisites Setup (not Prerequisites).
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Prerequisites Setup
+
+This is not the same as ## Prerequisites.
+
+## Steps
+
+1. Step one.
+2. Step two."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Prereq-Setup.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    # ## Prerequisites Setup should NOT be treated as ## Prerequisites
+    # So ## Examples should NOT be required
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+def test_validate_sop_prefix_heading_examples_notes(tmp_path):
+    """## Examples Notes should NOT satisfy Examples requirement."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP with Examples Notes heading but not Examples.
+
+## Why
+
+This explains why.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Prerequisites
+
+- Item one
+
+## Steps
+
+1. Step one.
+2. Step two.
+
+## Examples Notes
+
+This is not the same as ## Examples."""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Examples-Notes.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Examples'" in result.output
