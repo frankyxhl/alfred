@@ -104,8 +104,29 @@ When a step says "COR-1606 to select workflow", read COR-1606 and choose based o
 
 ---
 
+## Creating Routing Documents for USR / PRJ Layers
+
+`af guide` scans three layers for documents matching `*-SOP-Workflow-Routing*.md`. PKG is bundled. To add USR or PRJ routing:
+
+```bash
+# PRJ layer (project-specific)
+af create sop --prefix FXA --area 21 --title "Workflow Routing PRJ"
+
+# USR layer (cross-project, personal)
+af create sop --prefix ALF --area 22 --title "Workflow Routing USR" --layer user
+```
+
+Then edit the created file to add:
+- **PRJ:** Project Decision Tree, Project Context, Project Golden Rules
+- **USR:** User Context, User Golden Rules
+
+Run `af guide --root <project-root>` to verify all layers appear.
+
+---
+
 ## Change History
 
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-20 | Initial version, replaces COR-1607. Intent-based router + golden rules per ALF-2205 PRP | Frank + Claude Code |
+| 2026-03-20 | Added USR/PRJ routing doc creation guide | Frank + Claude Code |
