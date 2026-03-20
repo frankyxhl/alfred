@@ -13,6 +13,12 @@ The process for creating a new project based on an existing project's document s
 
 ---
 
+## Why
+
+Starting from scratch wastes time when a similar project already has well-structured documents. Forking lets you reuse proven SOPs, PRPs, and guides while adapting them to the new context, giving the new project a head start without inheriting irrelevant content.
+
+---
+
 ## Steps
 
 1. **Initialize the new project** — follow COR-1700 (Initialize Project) first
@@ -51,3 +57,4 @@ The process for creating a new project based on an existing project's document s
 |------|--------|----|
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-17 | Replace cp docs/*.md with af create workflow | Claude Code |
+| 2026-03-20 | Migrate to standard 5W1H section structure (FXA-2133) | Claude Code |
