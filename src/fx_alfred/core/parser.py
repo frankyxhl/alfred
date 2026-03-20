@@ -290,3 +290,30 @@ def render_document(parsed: ParsedDocument) -> str:
     if parsed.has_trailing_newline and not result.endswith("\n"):
         result += "\n"
     return result
+
+
+def extract_section(body: str, heading: str) -> str | None:
+    """Extract a section from document body by heading name.
+
+    Searches for ``## {heading}`` or ``### {heading}`` (line-start anchored).
+    Returns text from after the heading until the next heading of same or higher
+    level, or end of body.  Returns ``None`` if no matching heading is found.
+    """
+    # Try ## first, then ###
+    for prefix in ("##", "###"):
+        pattern = rf"^{re.escape(prefix)}\s+{re.escape(heading)}\s*$"
+        match = re.search(pattern, body, re.MULTILINE)
+        if match:
+            # Determine heading level (number of '#')
+            level = len(prefix)
+            start = match.end()
+            # Find next heading of same or higher level
+            next_heading = re.search(
+                rf"^#{{{1},{level}}}\s+", body[start:], re.MULTILINE
+            )
+            if next_heading:
+                section = body[start : start + next_heading.start()]
+            else:
+                section = body[start:]
+            return section.strip()
+    return None

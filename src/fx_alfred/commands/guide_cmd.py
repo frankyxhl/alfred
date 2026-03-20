@@ -65,3 +65,8 @@ def guide_cmd(ctx: click.Context):
         click.echo()
         click.echo(content)
         click.echo()
+
+    click.echo(
+        "Tip: First time? Run `af plan --init` to see suggested prompts"
+        " for your agent config."
+    )
