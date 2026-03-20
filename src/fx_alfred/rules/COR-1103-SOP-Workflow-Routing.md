@@ -93,6 +93,9 @@ COR-1500: Any code behavior change → failing test first, then green, then refa
 COR-1100: Durable decision already made → ADR, write immediately
 COR-1300: Existing document edit → af update, update Last updated + Change History; never delete, deprecate instead (COR-1301)
 COR-1000/1001: New SOP → COR-1000; new document → af create (COR-1001) with correct prefix, ACID, type, template
+COR-1201: Track discussion items with D new/list/show/start/done/defer/archive
+COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
+COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 ```
 
 ---
