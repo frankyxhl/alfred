@@ -1,7 +1,7 @@
 # SOP-1606: Workflow — Selection
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
+**Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-19
 **Status:** Active
 
@@ -10,6 +10,38 @@
 ## What Is It?
 
 A decision process for choosing the right collaboration workflow (COR-1600 through COR-1605) based on task characteristics. Use this SOP before starting any multi-agent task to select the appropriate pattern.
+
+---
+
+## Why
+
+Picking the wrong collaboration workflow wastes time (wrong parallelism, unnecessary mediation, missing review). A structured decision process ensures the team uses the pattern that best fits the task characteristics.
+
+---
+
+## When to Use
+
+- Before starting any multi-agent task that involves Workers, Reviewers, or pipelines
+- When unsure which COR-16xx workflow fits a new task
+- When onboarding team members who need to choose workflows independently
+
+---
+
+## When NOT to Use
+
+- Task is a single-person, single-step action with no review needed
+- Workflow has already been decided by a prior planning step
+- Retrospective analysis (this SOP is for forward-looking selection)
+
+---
+
+## Steps
+
+1. **Identify task characteristics** — artifact exists? how many workers? same or different tasks? dependencies?
+2. **Walk the decision tree** — follow the branches to reach a recommended SOP
+3. **Validate with quick reference table** — confirm the key signal matches your task
+4. **Check escalation rules** — know when to switch workflows mid-execution
+5. **Begin** — invoke the selected workflow SOP
 
 ---
 
@@ -104,18 +136,9 @@ Example: FXA-2107 used COR-1602 (plan review) → COR-1603 (parallel implementat
 
 ---
 
-## Steps
-
-1. **Identify task characteristics** — artifact exists? how many workers? same or different tasks? dependencies?
-2. **Walk the decision tree** — follow the branches to reach a recommended SOP
-3. **Validate with quick reference table** — confirm the key signal matches your task
-4. **Check escalation rules** — know when to switch workflows mid-execution
-5. **Begin** — invoke the selected workflow SOP
-
----
-
 ## Change History
 
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version, based on Codex decision tree proposal | Claude Code |
+| 2026-03-20 | Migrate to standard 5W1H section structure (FXA-2133 batch 6): add Why / When to Use / When NOT to Use, move Steps before custom sections | Claude Code |

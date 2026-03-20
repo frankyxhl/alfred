@@ -1,7 +1,7 @@
 # SOP-1700: Initialize Project
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-15
+**Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-15
 **Status:** Active
 
@@ -10,6 +10,27 @@
 ## What Is It?
 
 The process for onboarding a new project into the Alfred document system. After initialization, the project's LLM can run `af list` and `af read` to operate autonomously within the system.
+
+---
+
+## Why
+
+Without initialization, a project's LLM has no way to discover or navigate the document system. This SOP ensures every new project gets the minimal scaffolding (`af list`, `af read`, document index) needed for autonomous operation from day one.
+
+---
+
+## When to Use
+
+- Starting a brand-new project that will use the Alfred document system
+- Onboarding an existing project into the COR document system for the first time
+
+---
+
+## When NOT to Use
+
+- Project already has a working `af list` / `af read` setup (already initialized)
+- Project will not use the Alfred document system at all
+- Re-initializing after a reset -- use manual recovery instead
 
 ---
 
@@ -44,3 +65,4 @@ The process for onboarding a new project into the Alfred document system. After 
 |------|--------|----|
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-17 | Replace cp-based setup with pip install fx-alfred + af create workflow | Claude Code |
+| 2026-03-20 | Migrate to standard 5W1H section structure (FXA-2133 batch 6): add Why / When to Use / When NOT to Use | Claude Code |

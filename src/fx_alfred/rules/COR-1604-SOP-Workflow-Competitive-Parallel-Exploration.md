@@ -1,7 +1,7 @@
 # SOP-1604: Workflow — Competitive Parallel Exploration
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
+**Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-19
 **Status:** Active
 
@@ -14,6 +14,43 @@ A collaboration pattern where the same task is given to multiple Workers with di
 Also known as: Competitive Implementation, A/B Exploration, Spike.
 
 **Output retention: competitive** — only the winning Worker's output is kept; others are discarded. Compare with COR-1603 (composable — all outputs are kept and integrated).
+
+---
+
+## Why
+
+Choosing the wrong approach early wastes more time than exploring several approaches in parallel. This workflow front-loads discovery so the Leader can make an evidence-based decision rather than guessing.
+
+---
+
+## When to Use
+
+- Optimal approach is unknown and multiple viable paths exist
+- Cost of parallel exploration is lower than cost of choosing wrong approach
+- Comparing implementations (performance, readability, maintainability)
+- Spiking / prototyping before committing to an approach
+
+---
+
+## When NOT to Use
+
+- Approach is already decided (use COR-1600 or COR-1603)
+- All outputs need to be integrated together (use COR-1603 Parallel Module Implementation instead)
+- Task is too large to implement multiple times
+- Only one reasonable approach exists
+
+---
+
+## Steps
+
+1. **Leader defines task and approach variants** — same goal, different methods or constraints
+2. **Leader assigns Workers** — each Worker gets one approach variant
+3. **Workers execute in parallel** — each produces their result independently
+4. **Leader collects all results** — compares approaches
+5. **(Optional) Reviewer evaluates** — ranks or scores each variant
+6. **Leader selects winner** — based on quality, performance, simplicity, or other criteria
+7. **If iteration is on** — Leader sends refinement instructions to the winning Worker, optionally re-reviewed
+8. **Done** — Leader adopts the winning approach
 
 ---
 
@@ -53,19 +90,6 @@ Leader      Worker A    Worker B    Worker C    Reviewer
   │  ✓ winner selected and refined                 │
   │            │           │           │           │
 ```
-
----
-
-## Steps
-
-1. **Leader defines task and approach variants** — same goal, different methods or constraints
-2. **Leader assigns Workers** — each Worker gets one approach variant
-3. **Workers execute in parallel** — each produces their result independently
-4. **Leader collects all results** — compares approaches
-5. **(Optional) Reviewer evaluates** — ranks or scores each variant
-6. **Leader selects winner** — based on quality, performance, simplicity, or other criteria
-7. **If iteration is on** — Leader sends refinement instructions to the winning Worker, optionally re-reviewed
-8. **Done** — Leader adopts the winning approach
 
 ---
 
@@ -117,24 +141,6 @@ Reviewers must provide a decision matrix with per-dimension scores for each vari
 
 ---
 
-## When to Use
-
-- Optimal approach is unknown and multiple viable paths exist
-- Cost of parallel exploration is lower than cost of choosing wrong approach
-- Comparing implementations (performance, readability, maintainability)
-- Spiking / prototyping before committing to an approach
-
----
-
-## When NOT to Use
-
-- Approach is already decided (use COR-1600 or COR-1603)
-- All outputs need to be integrated together (use COR-1603 Parallel Module Implementation instead)
-- Task is too large to implement multiple times
-- Only one reasonable approach exists
-
----
-
 ## Example
 
 ```
@@ -167,3 +173,4 @@ Phase 3 (refine):
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), output_retention: competitive (D6), Workflow prefix (D5) | Claude Code |
+| 2026-03-20 | Migrate to standard 5W1H section structure (FXA-2133 batch 6): add Why, move When to Use / When NOT to Use after What Is It | Claude Code |

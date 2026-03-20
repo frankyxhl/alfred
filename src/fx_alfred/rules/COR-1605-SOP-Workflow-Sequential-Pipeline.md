@@ -1,7 +1,7 @@
 # SOP-1605: Workflow — Sequential Pipeline
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
+**Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-19
 **Status:** Active
 
@@ -12,6 +12,42 @@
 A collaboration pattern where Workers are chained in sequence — each Worker's output becomes the next Worker's input. The Leader defines the pipeline stages and monitors handoffs. An optional Reviewer validates the final output or individual stage outputs.
 
 Also known as: Pipeline, Cascade, Stage-by-Stage Handoff.
+
+---
+
+## Why
+
+Some tasks have natural stage boundaries where each stage's output feeds the next. This workflow makes handoff contracts explicit and enables targeted re-runs from the failing stage instead of restarting the entire task.
+
+---
+
+## When to Use
+
+- Tasks with natural sequential dependencies (each stage needs the previous output)
+- Multi-step transformations (requirements -> design -> code -> tests)
+- When different specialists handle different stages
+
+---
+
+## When NOT to Use
+
+- Stages are independent and can run in parallel (use COR-1603 instead)
+- Single-stage task (use COR-1600 or COR-1601)
+- When backtracking to earlier stages is expected (consider COR-1601 for more flexibility)
+
+---
+
+## Steps
+
+1. **Leader defines pipeline** — ordered list of stages, each with input/output contract
+2. **Leader assigns Workers** — one Worker per stage (or one Worker for multiple stages)
+3. **Stage 1 Worker executes** — produces output
+4. **Leader hands off** — passes Stage 1 output as input to Stage 2 Worker
+5. **Repeat** — each stage receives the previous stage's output and produces its own
+6. **Final output** — last stage's output is the deliverable
+7. **(Optional) Reviewer reviews** — evaluates the final output (or per-stage checkpoints)
+8. **If iteration is on and issues found** — Leader identifies which stage needs fixing, re-runs from that stage forward
+9. **If approved** — pipeline complete
 
 ---
 
@@ -50,20 +86,6 @@ Leader      Worker A    Worker B    Worker C    Reviewer
   │  ✓ pipeline complete                           │
   │            │           │           │           │
 ```
-
----
-
-## Steps
-
-1. **Leader defines pipeline** — ordered list of stages, each with input/output contract
-2. **Leader assigns Workers** — one Worker per stage (or one Worker for multiple stages)
-3. **Stage 1 Worker executes** — produces output
-4. **Leader hands off** — passes Stage 1 output as input to Stage 2 Worker
-5. **Repeat** — each stage receives the previous stage's output and produces its own
-6. **Final output** — last stage's output is the deliverable
-7. **(Optional) Reviewer reviews** — evaluates the final output (or per-stage checkpoints)
-8. **If iteration is on and issues found** — Leader identifies which stage needs fixing, re-runs from that stage forward
-9. **If approved** — pipeline complete
 
 ---
 
@@ -115,22 +137,6 @@ Reviewers must provide a decision matrix with per-dimension scores:
 
 ---
 
-## When to Use
-
-- Tasks with natural sequential dependencies (each stage needs the previous output)
-- Multi-step transformations (requirements → design → code → tests)
-- When different specialists handle different stages
-
----
-
-## When NOT to Use
-
-- Stages are independent and can run in parallel (use COR-1603 instead)
-- Single-stage task (use COR-1600 or COR-1601)
-- When backtracking to earlier stages is expected (consider COR-1601 for more flexibility)
-
----
-
 ## Example
 
 ```
@@ -157,3 +163,4 @@ Review:
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), and review scoring (D9) | Claude Code |
+| 2026-03-20 | Migrate to standard 5W1H section structure (FXA-2133 batch 6): add Why, move When to Use / When NOT to Use after What Is It | Claude Code |
