@@ -13,6 +13,12 @@ A Change Request (CHG) documents a proposed change to a system, configuration, o
 
 ---
 
+## Why
+
+Unplanned or undocumented changes are the leading cause of outages and confusion. A formal change request process ensures changes are reviewed, approved, and traceable, reducing risk and enabling rollback when things go wrong.
+
+---
+
 ## When to Use
 
 - Configuration changes to shared systems (relay, launchd, Discord bot)
@@ -153,3 +159,4 @@ Examples:
 | 2026-03-12 | Added approval flow clarification, Standard vs SOP boundary, emergency denial handling (per GPT-5.2 second review) | Claude Code |
 | 2026-03-12 | Added per-type approval flows, INC+CHG dual-filing guidance, softened emergency rollback language (per GPT-5.2 third review) | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-4000 to COR-1001 | Claude Code |
+| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |

@@ -13,6 +13,29 @@ A standard process for finding and reading existing documents in the system. Ens
 
 ---
 
+## Why
+
+Without a standard lookup process, team members waste time guessing file paths or searching manually. This SOP provides consistent methods for finding any document by number, type, keyword, or prefix.
+
+---
+
+## When to Use
+
+- Looking up a specific document by its ACID number
+- Browsing available documents by type or prefix
+- Finding a document when you only know the topic or keyword
+- Orienting yourself in the document system for the first time
+
+---
+
+## When NOT to Use
+
+- Creating a new document (use COR-1001 instead)
+- Updating or modifying an existing document (use `af update`)
+- Searching for content across multiple documents (use `af search`)
+
+---
+
 ## Steps
 
 1. **By number** — if you know the ACID number, read it directly:
@@ -57,3 +80,4 @@ Read the **What Is It?** section first for a quick summary, then drill into spec
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-14 | Initial version | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

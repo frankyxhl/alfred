@@ -13,6 +13,28 @@ The generic process for creating any new document in the system. This SOP covers
 
 ---
 
+## Why
+
+A consistent naming and numbering system is essential for documents to be findable, sortable, and unambiguous. This SOP is the single source of truth for how any document gets created in the system.
+
+---
+
+## When to Use
+
+- Creating any new document in the COR or project-specific document system
+- Determining the correct ACID number, prefix, or type code for a new document
+- Setting up a new document with proper naming convention and placement
+
+---
+
+## When NOT to Use
+
+- Reading or searching for existing documents (use COR-1002 instead)
+- Updating an existing document's metadata or content (use `af update`)
+- Creating documents outside the COR document system
+
+---
+
 ## Steps
 
 1. **Determine the prefix** — `COR` for universal meta-layer docs, or project code (`ALF`, `BLA`, `CLR`) for business-layer docs
@@ -99,3 +121,4 @@ All documents must be written in English. Discussions may happen in any language
 |------|--------|----|
 | 2026-03-08 | Initial version, converted from TEMPLATE-SOP.md | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1000 to COR-1001, removed template (moved to COR-1000), updated numbering system | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |

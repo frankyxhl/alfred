@@ -13,6 +13,12 @@ An Architecture / Any Decision Record (ADR) captures a decision made during a se
 
 ---
 
+## Why
+
+Decisions without recorded context become mysterious over time. ADRs preserve the reasoning behind choices so future team members (or your future self) can understand why things are the way they are without re-debating settled questions.
+
+---
+
 ## When to Use
 
 - A design or architecture choice is made
@@ -147,3 +153,4 @@ All ADR documents must be written in English. Team discussions may happen in any
 | 2026-03-12 | Initial version | Claude Code |
 | 2026-03-12 | Added quick create shortcut convention | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1005 to COR-1000 | Claude Code |
+| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
