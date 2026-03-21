@@ -9,7 +9,12 @@ from fx_alfred.context import root_option
 @click.command("read")
 @root_option
 @click.argument("identifier")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON object with document metadata and content.")
+@click.option(
+    "--json",
+    "json_output",
+    is_flag=True,
+    help="Output as JSON object with document metadata and content.",
+)
 @click.pass_context
 def read_cmd(ctx: click.Context, identifier: str, json_output: bool):
     """Read a document by PREFIX-ACID (e.g., COR-1000) or ACID only (e.g., 1000)."""

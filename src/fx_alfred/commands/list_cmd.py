@@ -25,7 +25,12 @@ Filters use exact case-insensitive matching (AND logic).
 
 @click.command("list", epilog=_EPILOG)
 @root_option
-@click.option("--type", "type_code", default=None, help="Filter by type (SOP, PRP, CHG, ADR, REF, PLN, INC).")
+@click.option(
+    "--type",
+    "type_code",
+    default=None,
+    help="Filter by type (SOP, PRP, CHG, ADR, REF, PLN, INC).",
+)
 @click.option("--prefix", default=None, help="Filter by prefix (e.g. FXA, COR, ALF).")
 @click.option(
     "--source", "source_filter", default=None, help="Filter by layer (pkg, usr, prj)."
