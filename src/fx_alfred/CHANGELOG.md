@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.5 (2026-03-22)
+
+### Improvements
+
+- `af setup` — All options now say "every time you are about to do a task" (not just session start)
+- `af guide` — Tip updated: "Run this before EVERY task to route correctly"
+- `ruff format` — Applied to list_cmd, read_cmd, status_cmd (previously uncommitted)
+
 ## v1.0.4 (2026-03-21)
 
 ### Improvements
