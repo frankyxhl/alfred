@@ -137,17 +137,36 @@ af changelog                        # view version history
 
 ## Three-Layer Document Model
 
-```
-┌─────────────────────────────────────────────┐
-│  PKG (read-only, bundled with fx-alfred)    │
-│  └── COR-* documents: universal SOPs        │
-├─────────────────────────────────────────────┤
-│  USR (~/.alfred/, cross-project)            │
-│  └── Personal preferences & rules           │
-├─────────────────────────────────────────────┤
-│  PRJ (./rules/, project-specific)           │
-│  └── Project SOPs, CHGs, PRPs, ADRs         │
-└─────────────────────────────────────────────┘
+```mermaid
+graph TD
+    AF["af CLI"] --> PKG
+    AF --> USR
+    AF --> PRJ
+
+    subgraph PKG ["📦 PKG (read-only)"]
+        direction LR
+        P1["COR-* SOPs"]
+        P2["Templates"]
+        P3["Bundled with fx-alfred"]
+    end
+
+    subgraph USR ["👤 USR (~/.alfred/)"]
+        direction LR
+        U1["Personal preferences"]
+        U2["Cross-project rules"]
+        U3["Routing: ALF-2207"]
+    end
+
+    subgraph PRJ ["📁 PRJ (./rules/)"]
+        direction LR
+        R1["Project SOPs & CHGs"]
+        R2["PRPs & ADRs"]
+        R3["Routing: FXA-2125"]
+    end
+
+    style PKG fill:#1a1a2e,stroke:#e94560,color:#fff
+    style USR fill:#1a1a2e,stroke:#0f3460,color:#fff
+    style PRJ fill:#1a1a2e,stroke:#16213e,color:#fff
 ```
 
 | Layer | Location | Writable | Scope |
@@ -190,6 +209,42 @@ af plan COR-1102 COR-1602 COR-1500 # 2. Generate workflow checklist
 
 ```bash
 af plan --init                      # See suggested prompts for your agent config
+```
+
+### Decision Tree (COR-1103)
+
+```mermaid
+graph TD
+    START["What are you doing?"] --> Q1{"Pure document\nmanagement?"}
+    START --> Q2{"Something\nbroken?"}
+    START --> Q3{"New capability\nthat doesn't exist?"}
+    START --> Q4{"Change existing\nsystem?"}
+    START --> Q5{"Record a\ndecision?"}
+    START --> Q6{"Track/discuss\na topic?"}
+
+    Q1 -->|New SOP| COR1000["COR-1000"]
+    Q1 -->|New doc| COR1001["COR-1001"]
+    Q1 -->|Update| COR1300["COR-1300"]
+
+    Q2 -->|Bug| INC["INC"]
+    Q2 -->|Fix + change| INC2["INC + CHG"]
+
+    Q3 --> PRP["PRP (COR-1102)"]
+    PRP --> REV["Review (COR-1602)"]
+    REV --> CHG1["CHG (COR-1101)"]
+    CHG1 --> TDD1["TDD (COR-1500)"]
+
+    Q4 -->|Standard| CHG2["CHG, no review"]
+    Q4 -->|Normal| CHG3["CHG → Review → TDD"]
+    Q4 -->|Emergency| CHG4["CHG → Execute → Post-approval"]
+
+    Q5 --> ADR["ADR (COR-1100)"]
+    Q6 --> DT["COR-1201\nD new / D list"]
+
+    style START fill:#0f3460,stroke:#e94560,color:#fff
+    style PRP fill:#16213e,stroke:#0f3460,color:#fff
+    style REV fill:#1a1a2e,stroke:#e94560,color:#fff
+    style TDD1 fill:#16213e,stroke:#0f3460,color:#fff
 ```
 
 ### Key SOPs
