@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.1 (2026-03-21)
+
+### Improvements
+
+- `af setup` — New standalone command for agent configuration prompts (replaces `af plan --init`)
+- `af guide` tip updated to reference `af setup`
+
 ## v1.0.0 (2026-03-21)
 
 ### First Stable Release
