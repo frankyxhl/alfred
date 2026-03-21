@@ -76,7 +76,7 @@ Leader      Reviewer A    Reviewer B
 **To disable** (single-pass mode): set `iterate: false` when invoking the SOP.
 
 ```
-/team plan --sop 1602 --no-iterate "review this plan"
+/trinity codex "review this plan" gemini "review this plan"  # parallel dispatch, single pass
 ```
 
 When off: Reviewers analyze once, Leader synthesizes and decides. No re-review round.

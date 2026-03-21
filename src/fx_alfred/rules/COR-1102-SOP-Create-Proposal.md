@@ -231,7 +231,7 @@ Prefix: FXA, Area: 21
 
 1. af create prp --prefix FXA --area 21 --title "AF Update Command"
 2. Fill in Problem, Scope, Proposed Solution, Open Questions
-3. /team codex+gemini "review PRP-2104"
+3. /trinity codex "review PRP-2104" gemini "review PRP-2104"
    Round 1: Codex 6.2, Gemini 8.5 → FIX
    Round 2: Codex 8.3, Gemini 9.8 → FIX (Codex)
    Round 3: Codex 9.2, Gemini 10 → PASS (both >= 9)

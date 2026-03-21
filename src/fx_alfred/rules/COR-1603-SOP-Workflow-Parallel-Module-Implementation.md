@@ -82,7 +82,7 @@ Leader      Worker A    Worker B    Worker C    Reviewer
 **To disable** (single-pass mode): set `iterate: false` when invoking the SOP.
 
 ```
-/team plan --sop 1603 --no-iterate "implement auth, order, payment modules"
+/trinity glm:auth "implement auth" glm:order "implement order" glm:payment "implement payment"  # single pass
 ```
 
 When off: Workers produce, Reviewer scores, Leader receives results as-is.

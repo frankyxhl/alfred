@@ -100,7 +100,7 @@ Leader      Worker A    Worker B    Worker C    Reviewer
 **To disable** (single-pass mode): set `iterate: false` when invoking the SOP.
 
 ```
-/team plan --sop 1604 --no-iterate "implement LRU cache three ways"
+/trinity glm*3 "implement LRU cache three ways"  # single pass — select winner, done
 ```
 
 When off: Workers produce variants, Leader selects, done. No refinement round.

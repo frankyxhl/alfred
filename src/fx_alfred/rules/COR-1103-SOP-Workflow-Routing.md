@@ -1,7 +1,7 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-20
+**Last updated:** 2026-03-22
 **Last reviewed:** 2026-03-20
 **Status:** Active
 **Related:** COR-1607 (deprecated, replaced by this document)
@@ -78,7 +78,7 @@ Session End ───► af validate → commit
 
 • COR-1402: Declare 📋 active SOP before work and on every transition
 • COR-1103: Route the task before reading detailed SOPs
-• af plan:  Generate checklist from identified SOPs before execution
+• af plan:  Before every response — decide if task needs a checklist; if task has clear steps or spans multiple SOPs, run af plan <SOP_IDs> before proceeding
 
 ═══ PRIMARY ROUTE (stop at first match) ═══
 
@@ -169,21 +169,9 @@ When a step says "COR-1606 to select workflow", read COR-1606 and choose based o
 
 ## Creating Routing Documents for USR / PRJ Layers
 
-`af guide` scans three layers for documents matching `*-SOP-Workflow-Routing*.md`. PKG is bundled. To add USR or PRJ routing:
+To create a routing document, follow **COR-1004** (Create Routing Document).
 
-```bash
-# PRJ layer (project-specific)
-af create sop --prefix FXA --area 21 --title "Workflow Routing PRJ"
-
-# USR layer (cross-project, personal)
-af create sop --prefix ALF --area 22 --title "Workflow Routing USR" --layer user
-```
-
-Then edit the created file to add:
-- **PRJ:** Project Decision Tree, Project Context, Project Golden Rules
-- **USR:** User Context, User Golden Rules
-
-Run `af guide --root <project-root>` to verify all layers appear.
+`af guide` scans three layers for documents matching `*-SOP-Workflow-Routing*.md`. PKG is bundled. Run `af guide --root <project-root>` to verify all layers appear.
 
 ---
 
@@ -195,3 +183,5 @@ Run `af guide --root <project-root>` to verify all layers appear.
 | 2026-03-20 | Added USR/PRJ routing doc creation guide | Frank + Claude Code |
 | 2026-03-20 | Added Why/When NOT to Use sections per ALF-2210 | Claude Code |
 | 2026-03-21 | Added workflow sequence diagram, af plan to ALWAYS, new SOP review overlay | Claude Code |
+| 2026-03-22 | Clarified af plan ALWAYS rule: per-response decision, not just session-start | Frank + Claude Code |
+| 2026-03-22 | Reduced "Creating Routing Documents" section to pointer → COR-1004 | GLM |

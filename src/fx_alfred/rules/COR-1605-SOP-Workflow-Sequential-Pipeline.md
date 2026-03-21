@@ -96,7 +96,7 @@ Leader      Worker A    Worker B    Worker C    Reviewer
 **To disable** (single-pass mode): set `iterate: false` when invoking the SOP.
 
 ```
-/team plan --sop 1605 --no-iterate "requirements → code → tests"
+/trinity glm "requirements → code → tests"  # single pass — run pipeline once
 ```
 
 When off: Pipeline runs once start-to-finish, Reviewer scores, Leader receives as-is.

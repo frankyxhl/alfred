@@ -1,7 +1,7 @@
 # REF-0002: Document Format Contract
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-20
+**Last updated:** 2026-03-22
 **Last reviewed:** 2026-03-20
 **Status:** Active
 
@@ -77,6 +77,10 @@ Optional fields are allowed but not required. Templates pre-populate type-defaul
 2. Change History must have a table with columns: Date, Change, By
 3. Body must be separated from metadata by `---`
 
+## Language
+
+All documents must be written in English. See COR-1401 (Documentation Language Policy).
+
 ---
 
 ## Change History
@@ -84,3 +88,4 @@ Optional fields are allowed but not required. Templates pre-populate type-defaul
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-20 | Initial version, based on FXA-2116 PRP + FXA-2119 PLN confirmed decisions | Frank + Claude Code |
+| 2026-03-22 | Added Language section referencing COR-1401 | GLM |

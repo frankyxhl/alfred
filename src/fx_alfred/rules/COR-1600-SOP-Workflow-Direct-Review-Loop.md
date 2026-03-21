@@ -80,7 +80,7 @@ Leader    Worker    Reviewer A    Reviewer B
 **To disable** (single-pass mode): set `iterate: false` when invoking the SOP.
 
 ```
-/team plan --sop 1600 --no-iterate "task description"
+/trinity glm "task description"  # single pass — dispatch once, no re-review
 ```
 
 When off: Worker produces once, Reviewer(s) score once, Leader receives result as-is regardless of scores.

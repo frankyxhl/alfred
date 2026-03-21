@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.0.6 (2026-03-22)
+
+### New
+
+- COR-1004 — New PKG SOP: Create Routing Document. Standardizes language (COR-1401), required sections (PRJ/USR), and decision tree format (ASCII + Mermaid) for all routing documents.
+
+### Improvements
+
+- COR-1103 — Clarified `af plan` ALWAYS rule: per-response decision (not just session-start). Before every response, decide if task needs a checklist; if task has clear steps or spans multiple SOPs, run `af plan <SOP_IDs>` before proceeding.
+- COR-1103 — Reduced "Creating Routing Documents" section to a pointer to COR-1004.
+- COR-0002 — Added `## Language` section referencing COR-1401 (all documents must be written in English).
+- COR-1102, COR-1600–1605 — Updated `/team` references to `/trinity` (skill rename).
+
+### Fixes
+
+- `__init__.py` — Removed stale `__version__ = "0.5.0"` (version is read from package metadata).
+
 ## v1.0.5 (2026-03-22)
 
 ### Improvements
