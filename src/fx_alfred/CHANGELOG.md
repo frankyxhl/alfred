@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2 (2026-03-21)
+
+### Improvements
+
+- Renamed to **Alfred — Agent Runbook** (replaces "Alfred Document System")
+
 ## v1.0.1 (2026-03-21)
 
 ### Improvements
