@@ -67,6 +67,6 @@ def guide_cmd(ctx: click.Context):
         click.echo()
 
     click.echo(
-        "Tip: First time? Run `af setup` to see suggested prompts"
-        " for your agent config."
+        "Run this before EVERY task to route correctly."
+        " First time? Run `af setup` to configure your agent."
     )
