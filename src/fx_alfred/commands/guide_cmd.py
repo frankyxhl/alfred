@@ -67,6 +67,7 @@ def guide_cmd(ctx: click.Context):
         click.echo()
 
     click.echo(
-        "Run this before EVERY task to route correctly."
+        "Run this at session start for routing context."
+        " Then run `af plan <SOP_IDs>` before each task."
         " First time? Run `af setup` to configure your agent."
     )
