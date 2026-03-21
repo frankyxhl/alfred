@@ -1,25 +1,29 @@
-# CLAUDE.md — fx-alfred (af CLI)
+# CLAUDE.md — Alfred: Agent Runbook (af CLI)
 
 ## Project
 
-- **Package:** fx-alfred v0.9.1
+- **Package:** fx-alfred v1.0.2
+- **Description:** Alfred — Agent Runbook: workflow routing, SOP checklists, and document management
 - **Language:** Python 3.10+, Click 8.0+
 - **Entry point:** `af = fx_alfred.cli:cli`
 - **Source:** `src/fx_alfred/`
-- **Tests:** `tests/` (238 tests, pytest)
+- **Tests:** `tests/` (262 tests, pytest)
 
 ## Commands
 
 ```
+af guide [--root DIR]              # workflow routing (PKG → USR → PRJ)
+af plan SOP_ID [...] [--root DIR]  # LLM-optimized workflow checklist from SOPs
+af plan --human SOP_ID [...]       # human-readable checklist
+af setup                           # suggested prompts for agent config
 af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--json]
 af read IDENTIFIER [--json]
 af create TYPE --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer] [--subdir]
 af update IDENTIFIER [--status] [--field KEY VALUE] [--history] [--title] [--dry-run]
 af search PATTERN
-af validate
+af validate [--root DIR]
 af status [--json]
 af index
-af guide [--root]                                                        # workflow routing (PKG → USR → PRJ)
 af changelog
 ```
 
@@ -32,23 +36,25 @@ src/fx_alfred/
 ├── context.py          # --root option, get_root()
 ├── commands/
 │   ├── _helpers.py     # scan_or_fail(), find_or_fail()
+│   ├── guide_cmd.py    # workflow routing (layered PKG→USR→PRJ)
+│   ├── plan_cmd.py     # workflow checklist from SOPs
+│   ├── setup_cmd.py    # agent configuration prompts
 │   ├── list_cmd.py     # list + filtering + --json
 │   ├── read_cmd.py     # read + --json
 │   ├── create_cmd.py   # create from template
 │   ├── update_cmd.py   # metadata/history/rename updates
 │   ├── search_cmd.py   # content search
-│   ├── validate_cmd.py # structural health check
+│   ├── validate_cmd.py # metadata + status + SOP section validation
 │   ├── status_cmd.py   # summary counts + --json
-│   ├── index_cmd.py    # regenerate document index
-│   ├── guide_cmd.py    # workflow routing (layered PKG→USR→PRJ)
+│   ├── index_cmd.py    # regenerate document index (COR-0002 compliant)
 │   └── changelog_cmd.py
 ├── core/
 │   ├── document.py     # Document dataclass, FILENAME_PATTERN
-│   ├── parser.py       # parse_metadata(), render_document(), H1_PATTERN
+│   ├── parser.py       # parse_metadata(), render_document(), extract_section()
 │   ├── scanner.py      # scan_documents(), find_document(), layer validation
 │   └── source.py       # Source type, SOURCE_LABELS, SOURCE_ORDER
 ├── rules/              # PKG layer (bundled COR-* documents, read-only)
-└── templates/          # Document templates for af create
+└── templates/          # Document templates for af create (5W1H SOP template)
 ```
 
 ## Three-Layer Document Model
@@ -63,38 +69,52 @@ src/fx_alfred/
 
 ```
 <PREFIX>-<ACID>-<TYP>-<Title-With-Hyphens>.md
-  FXA   -2106 -PRP -AF-CLI-Optimization-v0.6.md
+  FXA   -2134 -PRP -AF-Plan-Command-Workflow-Checklist.md
 ```
 
 ## Essential Commands
 
 ```bash
 # Dev
-.venv/bin/pytest -v --tb=short        # run tests
+.venv/bin/pytest -v --tb=short        # run tests (262)
 .venv/bin/ruff check .                 # lint
 .venv/bin/ruff format --check .        # format check
-.venv/bin/pyright src/                 # typecheck
-make check                             # all of the above
 
 # Install (editable)
-make install
+pip install -e .
 
 # Alfred ops (project documents)
+af guide --root /Users/frank/Projects/alfred/alfred_ops
+af validate --root /Users/frank/Projects/alfred/alfred_ops
 af list --root /Users/frank/Projects/alfred/alfred_ops
-af read FXA-2106 --root /Users/frank/Projects/alfred/alfred_ops
 ```
 
 ## Key Design Patterns
 
-- **scan_or_fail(ctx)** / **find_or_fail(docs, id)** — all commands use these helpers from `_helpers.py`, never raw try/except
+- **scan_or_fail(ctx)** / **find_or_fail(docs, id)** — all commands use these helpers from `_helpers.py`
 - **LazyGroup** — cli.py imports zero command modules at startup; all loaded on demand via `importlib`
 - **core/ is framework-agnostic** — no Click imports in `core/`; Click dependency lives in `commands/`
 - **Atomic writes** — `update_cmd` uses tempfile + os.replace for safe file updates
+- **extract_section(body, heading)** — reusable section extraction in `parser.py`
+
+## Key COR SOPs (PKG layer)
+
+| SOP | Purpose |
+|-----|---------|
+| COR-1103 | Workflow Routing — intent-based router + golden rules |
+| COR-0002 | Document Format Contract — metadata rules, status values |
+| COR-1102 | Create Proposal (PRP lifecycle) |
+| COR-1101 | Submit Change Request (CHG) |
+| COR-1500 | TDD Development Workflow |
+| COR-1602 | Multi-Model Parallel Review |
+| COR-1608/1609/1610 | Review Scoring (PRP/CHG/Code rubrics) |
+| COR-1611 | Reviewer Calibration Guide |
 
 ## Active PRPs (Draft)
 
 | ACID | Title | Dependency |
 |------|-------|-----------|
+| ALF-2209 | Team Skill Session Resume | None |
 | FXA-2117 | AF Filter + Section Update | FXA-2116 (done) |
 | ALF-2202 | Team Skill Session Management | None |
 | ALF-2203 | Multi-CHG Implementation Workflow | None |
@@ -103,9 +123,12 @@ af read FXA-2106 --root /Users/frank/Projects/alfred/alfred_ops
 ## Workflow
 
 - **Session start:** `af guide --root /Users/frank/Projects/alfred/alfred_ops`
+- **Workflow checklist:** `af plan <SOP_IDs>` (LLM-optimized, follow each phase)
+- **First time:** `af setup` (suggested prompts for agent config)
 - **Routing:** COR-1103 (PKG) → ALF-2207 (USR) → FXA-2125 (PRJ)
 - All code changes go through `/team` dispatch (GLM = Worker, Codex/Gemini = Reviewer)
 - TDD mandatory: COR-1500 (Red-Green-Refactor)
-- Code review: COR-1602 (both >= 9/10 to pass)
-- Release: FXA-2102 SOP (GitHub Actions → PyPI)
+- Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (both >= 9.0 to pass)
+- Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
 - Documents: always `af create`, never manual files
+- Commit alfred_ops: FXA-2127 SOP
