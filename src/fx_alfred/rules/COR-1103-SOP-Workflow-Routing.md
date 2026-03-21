@@ -35,6 +35,42 @@ Ensures every task follows the correct SOP from the start, preventing wasted eff
 
 ---
 
+## Workflow Sequence
+
+```
+Session Start
+     │
+     ▼
+af guide ──────────► Read routing (PKG → USR → PRJ)
+     │
+     ▼
+Identify task ─────► Match PRIMARY ROUTE (1-7)
+     │
+     ▼
+af plan <SOPs> ────► Generate checklist
+     │
+     ▼
+Execute ───────────► Follow checklist step by step
+     │                  │
+     │            ┌─────┴──────┐
+     │            ▼            ▼
+     │       Code change?   Doc/SOP?
+     │            │            │
+     │         TDD (1500)   af create
+     │            │            │
+     │         Review       Review
+     │         (1602)       (1600)
+     │            │            │
+     │            └─────┬──────┘
+     │                  ▼
+     │              Commit
+     │                  │
+     ▼                  ▼
+Session End ───► af validate → commit
+```
+
+---
+
 ## Intent-Based Router
 
 ```
@@ -42,6 +78,7 @@ Ensures every task follows the correct SOP from the start, preventing wasted eff
 
 • COR-1402: Declare 📋 active SOP before work and on every transition
 • COR-1103: Route the task before reading detailed SOPs
+• af plan:  Generate checklist from identified SOPs before execution
 
 ═══ PRIMARY ROUTE (stop at first match) ═══
 
@@ -85,6 +122,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-5.
 
 • Code behavior changes     → COR-1500 (TDD: RED → GREEN → REFACTOR)
 • PRP approval              → COR-1602 strict (both reviewers >= 9)
+• New SOP/doc created       → Review via COR-1600 (Direct Review) at minimum
 • Choose review workflow    → COR-1606
 • Compound task (A AND B)   → Split into sub-routes, COR-1402 each transition
 • Confidence < 90%          → Ask one clarifying question before proceeding
@@ -156,3 +194,4 @@ Run `af guide --root <project-root>` to verify all layers appear.
 | 2026-03-20 | Initial version, replaces COR-1607. Intent-based router + golden rules per ALF-2205 PRP | Frank + Claude Code |
 | 2026-03-20 | Added USR/PRJ routing doc creation guide | Frank + Claude Code |
 | 2026-03-20 | Added Why/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-21 | Added workflow sequence diagram, af plan to ALWAYS, new SOP review overlay | Claude Code |
