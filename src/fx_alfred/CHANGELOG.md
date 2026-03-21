@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.4 (2026-03-21)
+
+### Improvements
+
+- FXA-2102 Release SOP — Added `ruff format --check` to prerequisites
+- `plan_cmd.py` — Applied ruff format
+
 ## v1.0.3 (2026-03-21)
 
 ### Improvements
