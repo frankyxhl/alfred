@@ -17,30 +17,6 @@ from fx_alfred.core.parser import (
 # Heading search order for step extraction
 _STEP_HEADINGS = ("Steps", "Rule", "Rules", "Concepts")
 
-_INIT_TEXT = """\
-# Suggested prompts for your agent configuration
-
-Add ONE of the following to your agent's instruction file:
-
-## Option A: Minimal
-Before any work, run `af plan <SOP_IDs>` and follow the output.
-
-## Option B: With routing
-Before any work:
-1. Run `af guide --root <project-root>` to determine which SOPs apply
-2. Run `af plan <SOP_IDs>` to generate workflow instructions
-3. Follow each step. Do not skip review gates.
-
-## Option C: Full
-Before any work:
-1. Run `af guide --root <project-root>` to see routing (PKG → USR → PRJ)
-2. From the decision tree, identify which SOPs apply to this task
-3. Run `af plan <SOP_IDs>` to generate step-by-step workflow
-4. Follow each step, declaring active SOP at transitions
-5. Do not commit code without completing review steps
-6. At session end, use the plan output as completion checklist
-"""
-
 _LLM_RULES = """\
 ## RULES
 - Complete each checkbox before moving to the next phase
@@ -134,18 +110,11 @@ def _format_phase_human(
 @root_option
 @click.argument("sop_ids", nargs=-1)
 @click.option("--human", is_flag=True, help="Human-readable output")
-@click.option(
-    "--init", "show_init", is_flag=True, help="Show suggested prompts for agent config"
-)
 @click.pass_context
 def plan_cmd(
-    ctx: click.Context, sop_ids: tuple[str, ...], human: bool, show_init: bool
+    ctx: click.Context, sop_ids: tuple[str, ...], human: bool
 ) -> None:
     """Generate workflow checklist from SOPs."""
-    if show_init:
-        click.echo(_INIT_TEXT)
-        return
-
     if not sop_ids:
         raise click.UsageError("Usage: af plan SOP_ID [SOP_ID ...]")
 

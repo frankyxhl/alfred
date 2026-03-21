@@ -37,6 +37,7 @@ Quick Start:
         "list": "fx_alfred.commands.list_cmd:list_cmd",
         "plan": "fx_alfred.commands.plan_cmd:plan_cmd",
         "read": "fx_alfred.commands.read_cmd:read_cmd",
+        "setup": "fx_alfred.commands.setup_cmd:setup_cmd",
         "search": "fx_alfred.commands.search_cmd:search_cmd",
         "status": "fx_alfred.commands.status_cmd:status_cmd",
         "update": "fx_alfred.commands.update_cmd:update_cmd",

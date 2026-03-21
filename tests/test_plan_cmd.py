@@ -112,13 +112,12 @@ def test_plan_human_mode(sample_project, monkeypatch):
     assert "First step" in result.output
 
 
-def test_plan_init_mode(sample_project, monkeypatch):
-    """--init flag outputs suggested prompt text (no SOP_IDs needed)."""
+def test_setup_outputs_prompts(sample_project, monkeypatch):
+    """af setup outputs suggested prompt text."""
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
-    result = runner.invoke(cli, ["plan", "--init"], catch_exceptions=False)
+    result = runner.invoke(cli, ["setup"], catch_exceptions=False)
     assert result.exit_code == 0
-    # Init mode should suggest prompt snippets
     assert "af plan" in result.output
     assert "af guide" in result.output
 
