@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.3 (2026-03-21)
+
+### Improvements
+
+- COR-1103 — Added workflow sequence diagram (session lifecycle visualization)
+- COR-1103 — Added `af plan` to ALWAYS section (session-start checklist)
+- COR-1103 — New overlay: "New SOP/doc created → review via COR-1600"
+- CLAUDE.md updated to v1.0.2
+
 ## v1.0.2 (2026-03-21)
 
 ### Improvements
