@@ -1,4 +1,4 @@
-# COR-1004: Create Routing Document
+# SOP-1004: Create Routing Document
 
 **Applies to:** All projects using the COR document system
 **Last updated:** 2026-03-22
