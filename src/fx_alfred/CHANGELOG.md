@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.0.0 (2026-03-21)
+
+### First Stable Release
+
+Alfred v1.0.0 marks the completion of the core document management and AI agent workflow system.
+
+### Highlights
+
+- **11 CLI commands** — list, read, create, update, search, validate, status, index, guide, plan, changelog
+- **Three-Layer Model** — PKG (bundled COR SOPs) → USR (personal preferences) → PRJ (project-specific)
+- **`af guide`** — Dynamic three-layer workflow routing with intent-based decision tree
+- **`af plan`** — LLM-optimized workflow checklists from SOPs (3 modes: default, --human, --init)
+- **`af validate`** — Metadata format, per-type Status values, SOP section structure checking
+- **Review Scoring Framework** — COR-1608/1609/1610 rubrics + COR-1611 calibration guide
+- **40+ SOPs standardized** — 5W1H pattern (What, Why, When, When NOT, How)
+- **README** — Logo, Mermaid diagrams, complete documentation
+
+### Stats
+
+- 262 tests, all passing
+- 86+ documents, 0 validation issues
+- 10 new COR SOPs (COR-0002, 1103, 1608-1611, plus updates)
+
+### Install
+
+```bash
+pip install fx-alfred==1.0.0
+pipx install fx-alfred
+pipx upgrade fx-alfred
+```
+
 ## v0.12.0 (2026-03-21)
 
 ### New Command: `af plan` (FXA-2134)
