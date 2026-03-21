@@ -3,9 +3,10 @@
 </p>
 
 <h1 align="center">Alfred</h1>
+<p align="center"><strong>Agent Runbook</strong></p>
 
 <p align="center">
-  <em>A document management system for AI agents and humans, built on PDCA + Johnny Decimal.</em>
+  <em>Workflow routing, SOP checklists, and document management for AI agents and humans.</em>
 </p>
 
 <p align="center">
@@ -18,7 +19,7 @@
 
 ## What is Alfred?
 
-Alfred is a CLI tool (`af`) that manages structured documents across three layers (PKG, USR, PRJ). It provides:
+Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
 - **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs

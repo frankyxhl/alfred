@@ -50,5 +50,5 @@ Quick Start:
 @click.version_option(package_name="fx-alfred")  # type: ignore[call-overload]
 @click.pass_context
 def cli(ctx: click.Context):
-    """Alfred document system CLI."""
+    """Alfred — Agent Runbook CLI."""
     ctx.ensure_object(dict)
