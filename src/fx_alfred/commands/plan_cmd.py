@@ -111,9 +111,7 @@ def _format_phase_human(
 @click.argument("sop_ids", nargs=-1)
 @click.option("--human", is_flag=True, help="Human-readable output")
 @click.pass_context
-def plan_cmd(
-    ctx: click.Context, sop_ids: tuple[str, ...], human: bool
-) -> None:
+def plan_cmd(ctx: click.Context, sop_ids: tuple[str, ...], human: bool) -> None:
     """Generate workflow checklist from SOPs."""
     if not sop_ids:
         raise click.UsageError("Usage: af plan SOP_ID [SOP_ID ...]")
