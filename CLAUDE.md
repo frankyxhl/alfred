@@ -2,7 +2,7 @@
 
 ## Project
 
-- **Package:** fx-alfred v1.0.2
+- **Package:** fx-alfred v1.0.6
 - **Description:** Alfred — Agent Runbook: workflow routing, SOP checklists, and document management
 - **Language:** Python 3.10+, Click 8.0+
 - **Entry point:** `af = fx_alfred.cli:cli`
@@ -114,11 +114,8 @@ af list --root /Users/frank/Projects/alfred/alfred_ops
 
 | ACID | Title | Dependency |
 |------|-------|-----------|
-| ALF-2209 | Team Skill Session Resume | None |
 | FXA-2117 | AF Filter + Section Update | FXA-2116 (done) |
-| ALF-2202 | Team Skill Session Management | None |
 | ALF-2203 | Multi-CHG Implementation Workflow | None |
-| ALF-2204 | Team Agent Health Monitoring | ALF-2202 |
 
 ## Workflow
 
@@ -126,7 +123,7 @@ af list --root /Users/frank/Projects/alfred/alfred_ops
 - **Workflow checklist:** `af plan <SOP_IDs>` (LLM-optimized, follow each phase)
 - **First time:** `af setup` (suggested prompts for agent config)
 - **Routing:** COR-1103 (PKG) → ALF-2207 (USR) → FXA-2125 (PRJ)
-- All code changes go through `/team` dispatch (GLM = Worker, Codex/Gemini = Reviewer)
+- All code changes go through `/trinity` dispatch (GLM = Worker, Codex/Gemini = Reviewer)
 - TDD mandatory: COR-1500 (Red-Green-Refactor)
 - Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (both >= 9.0 to pass)
 - Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
