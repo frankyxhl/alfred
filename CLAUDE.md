@@ -2,26 +2,28 @@
 
 ## Project
 
-- **Package:** fx-alfred v1.0.6
+- **Package:** fx-alfred v1.1.0
 - **Description:** Alfred — Agent Runbook: workflow routing, SOP checklists, and document management
 - **Language:** Python 3.10+, Click 8.0+
 - **Entry point:** `af = fx_alfred.cli:cli`
 - **Source:** `src/fx_alfred/`
-- **Tests:** `tests/` (262 tests, pytest)
+- **Tests:** `tests/` (374 tests, pytest)
 
 ## Commands
 
 ```
-af guide [--root DIR]              # workflow routing (PKG → USR → PRJ)
-af plan SOP_ID [...] [--root DIR]  # LLM-optimized workflow checklist from SOPs
-af plan --human SOP_ID [...]       # human-readable checklist
-af setup                           # suggested prompts for agent config
+af guide [--root DIR] [--json]              # workflow routing (PKG → USR → PRJ)
+af plan SOP_ID [...] [--root DIR] [--json]  # LLM-optimized workflow checklist from SOPs
+af plan --human SOP_ID [...]                # human-readable checklist
+af setup                                    # suggested prompts for agent config
 af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--json]
 af read IDENTIFIER [--json]
-af create TYPE --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer] [--subdir]
-af update IDENTIFIER [--status] [--field KEY VALUE] [--history] [--title] [--dry-run]
-af search PATTERN
-af validate [--root DIR]
+af create TYPE --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer] [--subdir] [--spec FILE] [--dry-run]
+af update IDENTIFIER [--status] [--field KEY VALUE] [--history] [--title] [--dry-run] [--spec FILE]
+af where IDENTIFIER [--json]               # print absolute file path of a document
+af fmt [DOC_IDS...] [--write] [--check]     # format documents to canonical style
+af search PATTERN [--json]
+af validate [--root DIR] [--json]
 af status [--json]
 af index
 af changelog
@@ -42,7 +44,9 @@ src/fx_alfred/
 │   ├── list_cmd.py     # list + filtering + --json
 │   ├── read_cmd.py     # read + --json
 │   ├── create_cmd.py   # create from template
-│   ├── update_cmd.py   # metadata/history/rename updates
+│   ├── update_cmd.py   # metadata/history/rename updates; --spec FILE
+│   ├── fmt_cmd.py      # format to canonical style (metadata order, whitespace, table align)
+│   ├── where_cmd.py    # find absolute file path of a document (--json)
 │   ├── search_cmd.py   # content search
 │   ├── validate_cmd.py # metadata + status + SOP section validation
 │   ├── status_cmd.py   # summary counts + --json
@@ -52,6 +56,8 @@ src/fx_alfred/
 │   ├── document.py     # Document dataclass, FILENAME_PATTERN
 │   ├── parser.py       # parse_metadata(), render_document(), extract_section()
 │   ├── scanner.py      # scan_documents(), find_document(), layer validation
+│   ├── schema.py       # DocType/DocRole enums, ALLOWED_STATUSES, REQUIRED_METADATA/SECTIONS
+│   ├── normalize.py    # slugify(), sort_metadata(), normalize_date(), strip_trailing_whitespace()
 │   └── source.py       # Source type, SOURCE_LABELS, SOURCE_ORDER
 ├── rules/              # PKG layer (bundled COR-* documents, read-only)
 └── templates/          # Document templates for af create (5W1H SOP template)
@@ -76,7 +82,7 @@ src/fx_alfred/
 
 ```bash
 # Dev
-.venv/bin/pytest -v --tb=short        # run tests (262)
+.venv/bin/pytest -v --tb=short        # run tests (374)
 .venv/bin/ruff check .                 # lint
 .venv/bin/ruff format --check .        # format check
 

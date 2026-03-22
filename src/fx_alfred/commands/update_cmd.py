@@ -8,17 +8,22 @@ import sys
 import tempfile
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import click
+import yaml
 
 from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
+from fx_alfred.core.normalize import slugify
 from fx_alfred.core.document import FILENAME_PATTERN
 from fx_alfred.core.parser import (
     MalformedDocumentError,
+    MetadataField,
     parse_metadata,
     render_document,
 )
+from fx_alfred.core.schema import DocType, ALLOWED_STATUSES
 
 
 def _is_interactive() -> bool:
@@ -31,6 +36,60 @@ def _escape_pipe(value: str) -> str:
     return value.replace("|", "\\|")
 
 
+def _get_doc_type(doc_type_code: str) -> DocType | None:
+    """Get DocType enum from type_code string."""
+    try:
+        return DocType(doc_type_code)
+    except ValueError:
+        return None
+
+
+def _validate_spec_status(doc_type: DocType, status: str) -> None:
+    """Validate status for the given document type."""
+    allowed = ALLOWED_STATUSES.get(doc_type, [])
+    if status not in allowed:
+        allowed_str = ", ".join(allowed)
+        raise click.ClickException(
+            f"Status '{status}' not allowed for {doc_type.value}; allowed: {allowed_str}"
+        )
+
+
+def _render_section_content(content: Any) -> str:
+    """Render section content to markdown text."""
+    if isinstance(content, list):
+        lines = []
+        for item in content:
+            lines.append(f"- {item}")
+        return "\n".join(lines)
+    elif isinstance(content, str):
+        return content
+    else:
+        return str(content)
+
+
+def _replace_section_in_body(
+    body: str, section_name: str, new_content: str
+) -> tuple[str, bool]:
+    """Replace a section in the body with new content.
+
+    Returns tuple of (modified body, found flag). If section not found,
+    returns (original body, False).
+    """
+    # Match the section heading and capture everything until next heading or end
+    pattern = rf"^(##\s+{re.escape(section_name)}\s*\n)(.*?)(?=\n##\s|\n---\s*$|\Z)"
+    match = re.search(pattern, body, re.MULTILINE | re.DOTALL)
+
+    if match:
+        # Replace the content after the heading
+        before = body[: match.start()]
+        heading = match.group(1)
+        after = body[match.end() :]
+        return before + heading + new_content + "\n" + after, True
+    else:
+        # Section not found
+        return body, False
+
+
 _EPILOG = """\
 Examples:
 
@@ -41,6 +100,8 @@ Examples:
   af update FXA-2107 --title "New Title" -y
 
   af update FXA-2107 --field "Reviewed by" "Alice" --dry-run
+
+  af update FXA-2107 --spec patch.yaml
 """
 
 
@@ -82,6 +143,13 @@ Examples:
     default=False,
     help="Skip interactive confirmation for destructive operations (rename)",
 )
+@click.option(
+    "--spec",
+    "spec_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    help="YAML spec file with patches (metadata and/or sections)",
+)
 @click.pass_context
 def update_cmd(
     ctx: click.Context,
@@ -93,10 +161,18 @@ def update_cmd(
     field: tuple[tuple[str, str], ...],
     dry_run: bool,
     yes: bool,
+    spec_path: str | None,
 ) -> None:
     """Update metadata fields, append history, or rename a document."""
-    # Validate: at least one update option must be provided
-    if new_title is None and history is None and status is None and not field:
+    # Validate: at least one update option must be provided (including --spec)
+    has_spec = spec_path is not None
+    if (
+        new_title is None
+        and history is None
+        and status is None
+        and not field
+        and not has_spec
+    ):
         raise click.ClickException(
             "Nothing to update. Provide at least one of: "
             "--title, --history, --status, --field"
@@ -143,16 +219,62 @@ def update_cmd(
 
     # ── Step 1: Validate all options ────────────────────────────────────────
 
-    # Collect all field updates to validate
-    field_updates: dict[str, str] = {}
-    if status is not None:
-        field_updates["Status"] = status
-    for key, value in field:
-        field_updates[key] = value
+    # Load spec file if provided
+    spec_metadata_updates: dict[str, Any] = {}
+    spec_section_updates: dict[str, Any] = {}
+    if has_spec:
+        try:
+            with open(spec_path, "r") as f:
+                spec = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise click.ClickException(f"Invalid YAML in spec file: {e}")
 
-    # Validate that all requested fields exist
+        if not isinstance(spec, dict):
+            raise click.ClickException("Spec file must contain a YAML mapping")
+
+        spec_metadata_updates = spec.get("metadata", {})
+        spec_section_updates = spec.get("sections", {})
+
+        if not isinstance(spec_metadata_updates, dict):
+            raise click.ClickException(
+                "Spec 'metadata' must be a mapping (key: value pairs)"
+            )
+        if not isinstance(spec_section_updates, dict):
+            raise click.ClickException(
+                "Spec 'sections' must be a mapping (key: value pairs)"
+            )
+
+        if not spec_metadata_updates and not spec_section_updates:
+            raise click.ClickException(
+                "Spec file must contain 'metadata' and/or 'sections'"
+            )
+
+    # Get document type for validation
+    doc_type_enum = _get_doc_type(doc.type_code)
+
+    # Collect CLI field updates (must already exist in document)
+    cli_field_updates: dict[str, str] = {}
+    if status is not None:
+        cli_field_updates["Status"] = status
+    for key, value in field:
+        cli_field_updates[key] = value
+
+    # Collect spec metadata updates (may add new fields)
+    spec_field_updates: dict[str, str] = {}
+    for key, value in spec_metadata_updates.items():
+        spec_field_updates[key] = str(value)
+
+    # Combined for apply step — CLI wins over spec (spec is the base, CLI overrides)
+    field_updates: dict[str, str] = {**spec_field_updates, **cli_field_updates}
+
+    # Validate effective Status (after CLI override) — only when a spec file is involved.
+    # Plain --field/--status CLI updates are not status-validated here.
+    if has_spec and "Status" in field_updates and doc_type_enum:
+        _validate_spec_status(doc_type_enum, field_updates["Status"])
+
+    # Validate that CLI-requested fields exist (spec may add new ones)
     existing_keys = {mf.key for mf in parsed.metadata_fields}
-    for key in field_updates:
+    for key in cli_field_updates:
         if key not in existing_keys:
             raise click.ClickException(f"Field '{key}' not found in document")
 
@@ -181,7 +303,7 @@ def update_cmd(
 
         # Build new filename
         new_filename = (
-            f"{doc.prefix}-{doc.acid}-{doc.type_code}-{new_title.replace(' ', '-')}.md"
+            f"{doc.prefix}-{doc.acid}-{doc.type_code}-{slugify(new_title)}.md"
         )
         if not FILENAME_PATTERN.match(new_filename):
             raise click.ClickException(
@@ -211,6 +333,24 @@ def update_cmd(
             mf.value = field_updates[mf.key]
             mf.dirty = True
 
+    # Append new spec fields (fields not currently in document)
+    for key, value in spec_field_updates.items():
+        if key not in existing_keys:
+            inferred_style = (
+                parsed.metadata_fields[0].prefix_style
+                if parsed.metadata_fields
+                else "bold"
+            )
+            parsed.metadata_fields.append(
+                MetadataField(
+                    key=key,
+                    value=value,
+                    prefix_style=inferred_style,
+                    raw_line="",
+                    dirty=True,
+                )
+            )
+
     # ── Step 3: Apply history append ────────────────────────────────────────
 
     if history is not None:
@@ -223,6 +363,20 @@ def update_cmd(
                 by=_escape_pipe(by),
             )
         )
+
+    # ── Step 3.5: Apply section patches from spec ───────────────────────────
+
+    if spec_section_updates:
+        for section_name, section_content in spec_section_updates.items():
+            rendered = _render_section_content(section_content)
+            new_body, found = _replace_section_in_body(
+                parsed.body, section_name, rendered
+            )
+            if not found:
+                raise click.ClickException(
+                    f"Section '{section_name}' not found in document"
+                )
+            parsed.body = new_body
 
     # ── Step 4: Apply rename (H1 update) ────────────────────────────────────
 

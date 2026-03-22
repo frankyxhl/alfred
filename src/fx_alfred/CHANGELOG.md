@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.1.0 (2026-03-22)
+
+### New
+
+- `af where IDENTIFIER [--json]` — Print the absolute filesystem path of any document. Composable with shell tools: `vi $(af where FXA-2107)`. JSON output includes `doc_id`, `path`, `source`, `filename`. (FXA-2144)
+- `af fmt [DOC_IDS...] [--write] [--check]` — Format documents to canonical style: normalize metadata order, whitespace, and table alignment. `--check` exits 1 if any changes needed (CI-friendly). (FXA-2140)
+- `af create --spec FILE` — Spec-driven document creation: pass a YAML/JSON file for batch metadata and section content. (FXA-2143)
+- `af update --spec FILE` — Spec-driven batch updates: update metadata fields and section content from a spec file. (FXA-2143)
+
+### Improvements
+
+- `af validate` — Schema-driven validation via new `core/schema.py`: DocType/DocRole enums, per-type `ALLOWED_STATUSES`, `REQUIRED_METADATA`, and `REQUIRED_SECTIONS`. Catches status violations and missing SOP sections precisely.
+- `core/normalize.py` — Extracted `slugify()`, `sort_metadata()`, `normalize_date()`, `strip_trailing_whitespace()` as reusable utilities.
+- COR-1103 — Golden Rules updated: added COR-1606 (select workflow before multi-agent work), clarified COR-1500 as TDD overlay, added standalone PLN route (branch 4, branches renumbered to 8). Sequence diagram simplified to linear flow.
+
+### Stats
+
+- 374 tests (108 new), all passing
+- 0 breaking changes
+
 ## v1.0.6 (2026-03-22)
 
 ### New

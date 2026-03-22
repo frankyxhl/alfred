@@ -24,7 +24,11 @@ Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and str
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
 - **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs
 - **Document Validation** — `af validate` enforces metadata format, status values, and section structure
+- **Document Formatting** — `af fmt` normalizes metadata order, whitespace, and table alignment to canonical style
+- **File Path Lookup** — `af where` prints the absolute filesystem path of any document by identifier
 - **Document Lifecycle** — Create, read, update, search, and index documents with consistent naming
+- **JSON Output** — `--json` flag on guide/plan/search/validate for machine-readable output
+- **Spec-driven Updates** — `--spec FILE` on create/update for batch metadata and section changes
 
 Alfred is designed to be used by both AI agents (Claude Code, Codex, Gemini) and humans.
 
@@ -113,6 +117,7 @@ Checks:
 # Create
 af create sop --prefix FXA --area 21 --title "My SOP"
 af create prp --prefix FXA --area 21 --title "My Proposal"
+af create sop --prefix FXA --area 21 --title "My SOP" --spec fields.yaml  # from spec file
 
 # Read
 af read COR-1000                    # by PREFIX-ACID
@@ -122,18 +127,33 @@ af read 1000                        # by ACID only
 af update FXA-2107 --status "Completed"
 af update FXA-2107 --history "Done" --by "Claude"
 af update FXA-2107 --title "New Title" -y
+af update FXA-2107 --spec patch.yaml  # batch update via spec file
+
+# Format
+af fmt                              # show diff for all PRJ documents
+af fmt FXA-2107                     # show diff for one document
+af fmt --write                      # apply canonical formatting in-place
+af fmt --check                      # CI check: exit 1 if any changes needed
 
 # Search
 af search "validation"              # search content across all docs
+af search "validation" --json       # JSON output
 
 # List & Filter
 af list --type SOP                  # filter by type
 af list --prefix FXA --json         # filter + JSON output
 
 # Other
+af guide --json                     # routing guide as JSON
+af validate --json                  # validation results as JSON
 af status                           # document counts by type/layer
 af index                            # regenerate project index
 af changelog                        # view version history
+
+# Where (file path lookup)
+af where FXA-2107                   # print absolute path
+af where FXA-2107 --json            # JSON: {doc_id, path, source, filename}
+vi $(af where FXA-2107)             # composable with shell tools
 ```
 
 ## Three-Layer Document Model
@@ -274,16 +294,17 @@ Pass threshold: >= 9.0/10. All deductions must cite specific lines.
 ## Commands Reference
 
 ```
-af guide [--root DIR]              Show workflow routing (PKG → USR → PRJ)
-af plan SOP_ID [...] [--root DIR]  Generate workflow checklist from SOPs
-af plan --human SOP_ID [...]       Human-readable checklist
-af plan --init                     Suggested prompts for agent config
+af guide [--root DIR] [--json]
+af plan SOP_ID [...] [--root DIR] [--json]
+af plan --human SOP_ID [...]
+af plan --init
 af list [--type] [--prefix] [--source] [--json]
 af read IDENTIFIER [--json]
-af create TYPE --prefix P --acid N|--area N --title T [--layer] [--subdir]
-af update IDENTIFIER [--status] [--field K V] [--history] [--title] [--dry-run]
-af search PATTERN
-af validate [--root DIR]
+af create TYPE --prefix P --acid N|--area N --title T [--layer] [--subdir] [--spec FILE] [--dry-run]
+af update IDENTIFIER [--status] [--field K V] [--history] [--title] [--dry-run] [--spec FILE]
+af fmt [DOC_IDS...] [--write] [--check]
+af search PATTERN [--json]
+af validate [--root DIR] [--json]
 af status [--json]
 af index
 af changelog

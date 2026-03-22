@@ -24,6 +24,7 @@ Quick Start:
   af list
   af read COR-1000
   af guide          Show workflow routing for current session
+  af fmt            Format documents to canonical style
 """
 
 
@@ -32,6 +33,7 @@ Quick Start:
     lazy_subcommands={
         "changelog": "fx_alfred.commands.changelog_cmd:changelog_cmd",
         "create": "fx_alfred.commands.create_cmd:create_cmd",
+        "fmt": "fx_alfred.commands.fmt_cmd:fmt_cmd",
         "guide": "fx_alfred.commands.guide_cmd:guide_cmd",
         "index": "fx_alfred.commands.index_cmd:index_cmd",
         "list": "fx_alfred.commands.list_cmd:list_cmd",
@@ -42,6 +44,7 @@ Quick Start:
         "status": "fx_alfred.commands.status_cmd:status_cmd",
         "update": "fx_alfred.commands.update_cmd:update_cmd",
         "validate": "fx_alfred.commands.validate_cmd:validate_cmd",
+        "where": "fx_alfred.commands.where_cmd:where_cmd",
     },
     epilog=_EPILOG,
     context_settings={"max_content_width": 120},

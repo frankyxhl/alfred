@@ -1,5 +1,6 @@
 """Validate command for af CLI -- validates all documents."""
 
+import json
 import re
 import sys
 from importlib import resources
@@ -8,6 +9,12 @@ from pathlib import Path
 import click
 
 from fx_alfred.context import get_root, root_option
+from fx_alfred.core.schema import (
+    ALLOWED_STATUSES,
+    REQUIRED_METADATA,
+    REQUIRED_SECTIONS,
+    DocType,
+)
 from fx_alfred.core.parser import H1_PATTERN, MalformedDocumentError, parse_metadata
 from fx_alfred.core.scanner import (
     LayerValidationError,
@@ -21,28 +28,6 @@ _H1_EXTRACT = re.compile(r"^# ([A-Z]{3})-(\d{4}): .+$")
 
 # Base required metadata fields (fallback for unknown types)
 _BASE_REQUIRED_FIELDS = {"Applies to", "Last updated", "Last reviewed"}
-
-# Per-type required metadata fields
-REQUIRED_FIELDS_BY_TYPE = {
-    "SOP": {"Applies to", "Last updated", "Last reviewed", "Status"},
-    "PRP": {"Applies to", "Last updated", "Last reviewed", "Status"},
-    "CHG": {"Applies to", "Last updated", "Last reviewed", "Status"},
-    "ADR": {"Applies to", "Last updated", "Last reviewed", "Status"},
-    "REF": {"Applies to", "Last updated", "Last reviewed", "Status"},
-    "PLN": {"Applies to", "Last updated", "Last reviewed", "Status"},
-    "INC": {"Applies to", "Last updated", "Last reviewed", "Status"},
-}
-
-# Allowed Status values per document type
-ALLOWED_STATUS = {
-    "SOP": {"Active", "Draft", "Deprecated"},
-    "PRP": {"Draft", "Approved", "Rejected", "Implemented"},
-    "CHG": {"Proposed", "Approved", "In Progress", "Completed", "Rolled Back"},
-    "ADR": {"Proposed", "Accepted", "Superseded", "Deprecated"},
-    "PLN": {"Draft", "Active", "Completed", "Cancelled"},
-    "INC": {"Open", "Resolved", "Monitoring"},
-    "REF": {"Active", "Draft", "Deprecated"},
-}
 
 # Required Change History columns
 REQUIRED_HISTORY_COLUMNS = ["Date", "Change", "By"]
@@ -113,8 +98,9 @@ Exit code 0 if clean, 1 if issues found.
 
 @click.command("validate", epilog=_EPILOG)
 @root_option
+@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def validate_cmd(ctx: click.Context):
+def validate_cmd(ctx: click.Context, output_json: bool):
     """Validate all documents for structural correctness."""
     root = get_root(ctx)
     try:
@@ -183,7 +169,14 @@ def validate_cmd(ctx: click.Context):
             found_fields = {mf.key for mf in parsed.metadata_fields}
 
             # Look up required fields for this document type
-            required = REQUIRED_FIELDS_BY_TYPE.get(doc.type_code, _BASE_REQUIRED_FIELDS)
+            try:
+                required = set(
+                    REQUIRED_METADATA.get(
+                        DocType(doc.type_code), list(_BASE_REQUIRED_FIELDS)
+                    )
+                )
+            except ValueError:
+                required = _BASE_REQUIRED_FIELDS
             missing = required - found_fields
             for field in sorted(missing):
                 issues.append(f"Missing required metadata field: '{field}'")
@@ -194,7 +187,12 @@ def validate_cmd(ctx: click.Context):
             )
             if status_field is not None:
                 status_val = status_field.value
-                allowed = ALLOWED_STATUS.get(doc.type_code)
+                try:
+                    allowed: set[str] | None = set(
+                        ALLOWED_STATUSES.get(DocType(doc.type_code), [])
+                    )
+                except ValueError:
+                    allowed = None
                 if allowed is not None:
                     if "(" in status_val or ")" in status_val:
                         issues.append(
@@ -220,11 +218,7 @@ def validate_cmd(ctx: click.Context):
             if doc.type_code == "SOP" and doc.source != "pkg" and parsed.body:
                 body_text = parsed.body
                 required_sections = [
-                    "## What Is It?",
-                    "## Why",
-                    "## When to Use",
-                    "## When NOT to Use",
-                    "## Steps",
+                    f"## {name}" for name in REQUIRED_SECTIONS.get(DocType.SOP, [])
                 ]
                 for section in required_sections:
                     if not re.search(
@@ -257,15 +251,44 @@ def validate_cmd(ctx: click.Context):
         if issues:
             issues_by_doc[doc_id] = issues
 
-    # Report issues
-    for doc_id, doc_issues in issues_by_doc.items():
-        click.echo(f"{doc_id}:")
-        for issue in doc_issues:
-            click.echo(f"  - {issue}")
+    # Build results for JSON output
+    if output_json:
+        results = []
+        for doc in docs:
+            doc_id = f"{doc.prefix}-{doc.acid}"
+            if doc_id in issues_by_doc:
+                results.append(
+                    {
+                        "doc_id": doc_id,
+                        "valid": False,
+                        "errors": issues_by_doc[doc_id],
+                    }
+                )
+            else:
+                results.append(
+                    {
+                        "doc_id": doc_id,
+                        "valid": True,
+                        "errors": [],
+                    }
+                )
 
-    total_issues = sum(len(i) for i in issues_by_doc.values())
-    click.echo(f"{len(docs)} documents checked, {total_issues} issues found.")
+        result = {
+            "schema_version": "1",
+            "results": results,
+        }
+        click.echo(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        # Report issues (text output)
+        for doc_id, doc_issues in issues_by_doc.items():
+            click.echo(f"{doc_id}:")
+            for issue in doc_issues:
+                click.echo(f"  - {issue}")
+
+        total_issues = sum(len(i) for i in issues_by_doc.values())
+        click.echo(f"{len(docs)} documents checked, {total_issues} issues found.")
 
     # Exit with code 1 if issues found
+    total_issues = sum(len(i) for i in issues_by_doc.values())
     if total_issues > 0:
         sys.exit(1)

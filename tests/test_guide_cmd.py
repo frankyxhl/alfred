@@ -186,6 +186,30 @@ Higher ACID content
     assert "FXA-2125" in result.output
 
 
+def test_guide_detects_routing_by_metadata_role(sample_project, monkeypatch):
+    """Doc with 'Document role: routing' metadata is treated as routing doc even without filename pattern."""
+    routing_doc = sample_project / "rules" / "FXA-9999-SOP-Custom-Name.md"
+    routing_doc.write_text(
+        """# SOP-9999: Custom Named Routing Doc
+
+**Applies to:** FXA
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Active
+**Document role:** routing
+
+---
+
+Metadata role routing content here
+"""
+    )
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["guide"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "Metadata role routing content here" in result.output
+
+
 def test_help_contains_quickstart():
     """af --help output contains quick-start content."""
     runner = CliRunner()
