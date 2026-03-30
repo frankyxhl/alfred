@@ -373,7 +373,11 @@ def create_cmd(
         if final_acid is None and final_area is not None:
             final_acid = _next_acid_in_area(docs, final_prefix, str(final_area))
 
-        assert final_acid is not None
+        if final_acid is None:
+            raise click.ClickException(
+                "ACID resolution failed for spec-file mode "
+                "(neither acid nor area resolved to a valid ACID)"
+            )
 
         # Check for duplicate
         for existing_doc in docs:
@@ -445,8 +449,11 @@ def create_cmd(
             raise click.ClickException("--area must be exactly 2 digits (e.g., 21)")
         acid = _next_acid_in_area(docs, prefix, area)
 
-    # acid is guaranteed non-None here
-    assert acid is not None
+    if acid is None:
+        raise click.ClickException(
+            "ACID resolution failed for CLI mode "
+            "(neither --acid nor --area resolved to a valid ACID)"
+        )
 
     doc_type_lower = doc_type.lower()
 
