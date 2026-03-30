@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
@@ -945,3 +946,75 @@ def test_template_field_order(tmp_path, monkeypatch, doc_type, acid):
     assert field_positions["Last reviewed"] < field_positions["Status"], (
         f"{doc_type}: 'Last reviewed' must come before 'Status'"
     )
+
+
+# ── CHG FXA-2160: Replace assert with ClickException ────────────────────────
+
+
+def test_spec_mode_acid_none_raises_click_exception(tmp_path, monkeypatch):
+    """When _next_acid_in_area returns None in spec-file mode, raise ClickException."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    # Create a minimal spec file that uses --area (triggers _next_acid_in_area)
+    spec_file = tmp_path / "spec.yaml"
+    spec_file.write_text(
+        "type: SOP\n"
+        "prefix: TST\n"
+        "area: '21'\n"
+        "title: Test Spec\n"
+        "metadata:\n"
+        "  Applies to: test\n"
+        "  Last updated: '2026-01-01'\n"
+        "  Last reviewed: '2026-01-01'\n"
+        "  Status: Active\n"
+        "sections:\n"
+        "  What Is It?: A test SOP\n"
+        "  Why: Testing\n"
+        "  When to Use: Always\n"
+        "  When NOT to Use: Never\n"
+        "  Steps: Step 1\n"
+    )
+
+    runner = CliRunner()
+
+    # Mock _next_acid_in_area to return None (simulating unexpected failure)
+    with patch(
+        "fx_alfred.commands.create_cmd._next_acid_in_area", return_value=None
+    ):
+        result = runner.invoke(
+            cli,
+            ["create", "--spec", str(spec_file)],
+        )
+        assert result.exit_code != 0
+        assert "spec-file mode" in result.output
+
+
+def test_cli_mode_acid_none_raises_click_exception(tmp_path, monkeypatch):
+    """When _next_acid_in_area returns None in CLI mode, raise ClickException."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+
+    # Mock _next_acid_in_area to return None (simulating unexpected failure)
+    with patch(
+        "fx_alfred.commands.create_cmd._next_acid_in_area", return_value=None
+    ):
+        result = runner.invoke(
+            cli,
+            [
+                "create",
+                "sop",
+                "--prefix",
+                "TST",
+                "--area",
+                "21",
+                "--title",
+                "CLI Test",
+            ],
+        )
+        assert result.exit_code != 0
+        assert "CLI mode" in result.output
