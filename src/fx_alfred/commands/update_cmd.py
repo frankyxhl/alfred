@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import re
 import sys
-import tempfile
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -13,7 +11,7 @@ from typing import Any
 import click
 import yaml
 
-from fx_alfred.commands._helpers import find_or_fail, render_section_content, scan_or_fail, validate_spec_status
+from fx_alfred.commands._helpers import atomic_write, find_or_fail, render_section_content, scan_or_fail, validate_spec_status
 from fx_alfred.context import root_option
 from fx_alfred.core.normalize import slugify
 from fx_alfred.core.document import FILENAME_PATTERN
@@ -395,19 +393,8 @@ def update_cmd(
             click.echo(f"\nRename: {file_path.name} -> {new_filename}")
         return
 
-    # Atomic write: temp file -> rename
-    fd, tmp_path_str = tempfile.mkstemp(dir=str(file_path.parent), suffix=".md.tmp")
-    try:
-        with os.fdopen(fd, "w") as f:
-            f.write(new_content)
-        os.replace(tmp_path_str, str(file_path))
-    except Exception:
-        # Clean up temp file on failure
-        try:
-            os.unlink(tmp_path_str)
-        except OSError:
-            pass
-        raise
+    # Atomic write
+    atomic_write(file_path, new_content)
 
     # ── Step 7: Post-write — rename file and auto-index ─────────────────────
 
