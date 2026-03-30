@@ -13,7 +13,7 @@ from typing import Any
 import click
 import yaml
 
-from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import find_or_fail, render_section_content, scan_or_fail, validate_spec_status
 from fx_alfred.context import root_option
 from fx_alfred.core.normalize import slugify
 from fx_alfred.core.document import FILENAME_PATTERN
@@ -23,7 +23,7 @@ from fx_alfred.core.parser import (
     parse_metadata,
     render_document,
 )
-from fx_alfred.core.schema import DocType, ALLOWED_STATUSES
+from fx_alfred.core.schema import DocType
 
 
 def _is_interactive() -> bool:
@@ -42,29 +42,6 @@ def _get_doc_type(doc_type_code: str) -> DocType | None:
         return DocType(doc_type_code)
     except ValueError:
         return None
-
-
-def _validate_spec_status(doc_type: DocType, status: str) -> None:
-    """Validate status for the given document type."""
-    allowed = ALLOWED_STATUSES.get(doc_type, [])
-    if status not in allowed:
-        allowed_str = ", ".join(allowed)
-        raise click.ClickException(
-            f"Status '{status}' not allowed for {doc_type.value}; allowed: {allowed_str}"
-        )
-
-
-def _render_section_content(content: Any) -> str:
-    """Render section content to markdown text."""
-    if isinstance(content, list):
-        lines = []
-        for item in content:
-            lines.append(f"- {item}")
-        return "\n".join(lines)
-    elif isinstance(content, str):
-        return content
-    else:
-        return str(content)
 
 
 def _replace_section_in_body(
@@ -270,7 +247,7 @@ def update_cmd(
     # Validate effective Status (after CLI override) — only when a spec file is involved.
     # Plain --field/--status CLI updates are not status-validated here.
     if has_spec and "Status" in field_updates and doc_type_enum:
-        _validate_spec_status(doc_type_enum, field_updates["Status"])
+        validate_spec_status(doc_type_enum, field_updates["Status"])
 
     # Validate that CLI-requested fields exist (spec may add new ones)
     existing_keys = {mf.key for mf in parsed.metadata_fields}
@@ -368,7 +345,7 @@ def update_cmd(
 
     if spec_section_updates:
         for section_name, section_content in spec_section_updates.items():
-            rendered = _render_section_content(section_content)
+            rendered = render_section_content(section_content)
             new_body, found = _replace_section_in_body(
                 parsed.body, section_name, rendered
             )
