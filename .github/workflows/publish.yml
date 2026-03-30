@@ -12,8 +12,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]" 2>/dev/null || pip install -e .
-      - run: pip install pytest ruff pyright build
+      - run: pip install -e ".[dev]"
+      - run: pip install build
       - run: ruff check .
       - run: pyright src/
       - run: pytest -v
