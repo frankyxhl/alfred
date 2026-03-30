@@ -65,3 +65,60 @@ def test_find_or_fail_raises_on_ambiguous():
     )
     with pytest.raises(click.ClickException, match="Ambiguous"):
         find_or_fail([doc1, doc2], "1000")
+
+
+# ── Extracted helper tests (FXA-2157) ─────────────────────────────────────
+
+
+def test_render_section_content_importable():
+    """render_section_content can be imported from _helpers."""
+    from fx_alfred.commands._helpers import render_section_content
+
+    assert callable(render_section_content)
+
+
+def test_validate_spec_status_importable():
+    """validate_spec_status can be imported from _helpers."""
+    from fx_alfred.commands._helpers import validate_spec_status
+
+    assert callable(validate_spec_status)
+
+
+def test_render_section_content_list():
+    """render_section_content renders a list as markdown bullets."""
+    from fx_alfred.commands._helpers import render_section_content
+
+    result = render_section_content(["one", "two"])
+    assert result == "- one\n- two"
+
+
+def test_render_section_content_string():
+    """render_section_content passes through a string."""
+    from fx_alfred.commands._helpers import render_section_content
+
+    assert render_section_content("hello") == "hello"
+
+
+def test_render_section_content_other():
+    """render_section_content converts non-str/list to str."""
+    from fx_alfred.commands._helpers import render_section_content
+
+    assert render_section_content(42) == "42"
+
+
+def test_validate_spec_status_valid():
+    """validate_spec_status accepts a valid status without raising."""
+    from fx_alfred.commands._helpers import validate_spec_status
+    from fx_alfred.core.schema import DocType
+
+    # Should not raise
+    validate_spec_status(DocType.SOP, "Active")
+
+
+def test_validate_spec_status_invalid():
+    """validate_spec_status raises ClickException for invalid status."""
+    from fx_alfred.commands._helpers import validate_spec_status
+    from fx_alfred.core.schema import DocType
+
+    with pytest.raises(click.ClickException, match="not allowed"):
+        validate_spec_status(DocType.SOP, "Nonexistent")

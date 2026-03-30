@@ -7,12 +7,11 @@ from typing import Any
 import click
 import yaml
 
-from fx_alfred.commands._helpers import scan_or_fail
+from fx_alfred.commands._helpers import render_section_content, scan_or_fail, validate_spec_status
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.normalize import slugify
 from fx_alfred.core.schema import (
     DocType,
-    ALLOWED_STATUSES,
     REQUIRED_METADATA,
     REQUIRED_SECTIONS,
 )
@@ -112,16 +111,6 @@ def _validate_spec_doc_type(type_str: str) -> DocType:
         )
 
 
-def _validate_spec_status(doc_type: DocType, status: str) -> None:
-    """Validate status for the given document type."""
-    allowed = ALLOWED_STATUSES.get(doc_type, [])
-    if status not in allowed:
-        allowed_str = ", ".join(allowed)
-        raise click.ClickException(
-            f"Status '{status}' not allowed for {doc_type.value}; allowed: {allowed_str}"
-        )
-
-
 def _validate_spec_required_metadata(
     doc_type: DocType, metadata: dict[str, Any]
 ) -> None:
@@ -144,19 +133,6 @@ def _validate_spec_required_sections(
             raise click.ClickException(
                 f"Required section '{section}' missing for {doc_type.value}"
             )
-
-
-def _render_section_content(content: Any) -> str:
-    """Render section content to markdown text."""
-    if isinstance(content, list):
-        lines = []
-        for item in content:
-            lines.append(f"- {item}")
-        return "\n".join(lines)
-    elif isinstance(content, str):
-        return content
-    else:
-        return str(content)
 
 
 def _generate_spec_document(
@@ -195,7 +171,7 @@ def _generate_spec_document(
     for section_name, section_content in sections.items():
         lines.append(f"## {section_name}")
         lines.append("")
-        rendered = _render_section_content(section_content)
+        rendered = render_section_content(section_content)
         lines.append(rendered)
         lines.append("")
 
@@ -385,7 +361,7 @@ def create_cmd(
 
         # Validate status if provided
         if "Status" in spec_metadata:
-            _validate_spec_status(doc_type_enum, spec_metadata["Status"])
+            validate_spec_status(doc_type_enum, spec_metadata["Status"])
 
         # Resolve write base
         write_base = _resolve_write_base(ctx, layer, subdir)

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
+from fx_alfred.commands.plan_cmd import _parse_steps_for_json
 
 
 def _create_sop_with_steps(rules_dir: Path, prefix: str, acid: str, title: str) -> Path:
@@ -167,3 +168,50 @@ def test_plan_human_mode_no_rules(sample_project, monkeypatch):
     result = runner.invoke(cli, ["plan", "--human", "TST-5001"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "## RULES" not in result.output
+
+
+# ── Gate detection tests for _parse_steps_for_json (FXA-2157) ─────────────
+
+
+class TestParseStepsForJsonGateDetection:
+    """Direct unit tests for _parse_steps_for_json gate detection logic."""
+
+    def test_plain_step_gate_false(self):
+        """Numbered step without markers has gate: false."""
+        result = _parse_steps_for_json("1. Do something")
+        assert len(result) == 1
+        assert result[0]["index"] == 1
+        assert result[0]["text"] == "Do something"
+        assert result[0]["gate"] is False
+
+    def test_step_with_checkmark_gate_true(self):
+        """Step ending with literal ✓ has gate: true."""
+        result = _parse_steps_for_json("1. Verify all tests pass ✓")
+        assert len(result) == 1
+        assert result[0]["gate"] is True
+
+    def test_step_with_gate_marker_gate_true(self):
+        """Step containing [GATE] has gate: true."""
+        result = _parse_steps_for_json("1. Review approved [GATE]")
+        assert len(result) == 1
+        assert result[0]["gate"] is True
+
+    def test_heading_prefix_parsed(self):
+        """Step with ### heading prefix is parsed correctly."""
+        result = _parse_steps_for_json("### 1. First step with heading")
+        assert len(result) == 1
+        assert result[0]["index"] == 1
+        assert result[0]["text"] == "First step with heading"
+        assert result[0]["gate"] is False
+
+    def test_mixed_content_only_numbered_extracted(self):
+        """Only numbered steps are extracted from mixed content."""
+        text = "Some intro text\n1. First step\nRandom line\n2. Second step\n\nAnother paragraph"
+        result = _parse_steps_for_json(text)
+        assert len(result) == 2
+        assert result[0]["index"] == 1
+        assert result[1]["index"] == 2
+
+    def test_empty_input_returns_empty_list(self):
+        """Empty input returns []."""
+        assert _parse_steps_for_json("") == []
