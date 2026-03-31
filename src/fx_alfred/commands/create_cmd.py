@@ -7,7 +7,12 @@ from typing import Any
 import click
 import yaml
 
-from fx_alfred.commands._helpers import render_section_content, scan_or_fail, validate_spec_status
+from fx_alfred.commands._helpers import (
+    invoke_index_update,
+    render_section_content,
+    scan_or_fail,
+    validate_spec_status,
+)
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.normalize import slugify
 from fx_alfred.core.schema import (
@@ -411,12 +416,7 @@ def create_cmd(
         click.echo(f"Created {output_path}")
 
         if layer != "user":
-            try:
-                from fx_alfred.commands.index_cmd import index_cmd
-
-                ctx.invoke(index_cmd)
-            except Exception as e:
-                click.echo(f"Warning: Failed to update index: {e}", err=True)
+            invoke_index_update(ctx)
         return
 
     # ── Mode 2: CLI args mode (original behavior) ──────────────────────────────
@@ -489,9 +489,4 @@ def create_cmd(
     click.echo(f"Created {output_path}")
 
     if layer != "user":
-        try:
-            from fx_alfred.commands.index_cmd import index_cmd
-
-            ctx.invoke(index_cmd)
-        except Exception as e:
-            click.echo(f"Warning: Failed to update index: {e}", err=True)
+        invoke_index_update(ctx)

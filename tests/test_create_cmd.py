@@ -980,9 +980,7 @@ def test_spec_mode_acid_none_raises_click_exception(tmp_path, monkeypatch):
     runner = CliRunner()
 
     # Mock _next_acid_in_area to return None (simulating unexpected failure)
-    with patch(
-        "fx_alfred.commands.create_cmd._next_acid_in_area", return_value=None
-    ):
+    with patch("fx_alfred.commands.create_cmd._next_acid_in_area", return_value=None):
         result = runner.invoke(
             cli,
             ["create", "--spec", str(spec_file)],
@@ -1000,9 +998,7 @@ def test_cli_mode_acid_none_raises_click_exception(tmp_path, monkeypatch):
     runner = CliRunner()
 
     # Mock _next_acid_in_area to return None (simulating unexpected failure)
-    with patch(
-        "fx_alfred.commands.create_cmd._next_acid_in_area", return_value=None
-    ):
+    with patch("fx_alfred.commands.create_cmd._next_acid_in_area", return_value=None):
         result = runner.invoke(
             cli,
             [
