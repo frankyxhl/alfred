@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import difflib
-import os
 import re
-import tempfile
 from pathlib import Path
 
 import click
 
-from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import atomic_write, find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.normalize import sort_metadata
 from fx_alfred.core.parser import (
@@ -393,20 +391,7 @@ def fmt_cmd(
             click.echo(f"{doc.prefix}-{doc.acid} needs formatting")
         elif write_:
             # Write changes in-place
-            # Atomic write
-            fd, tmp_path_str = tempfile.mkstemp(
-                dir=str(file_path.parent), suffix=".md.tmp"
-            )
-            try:
-                with os.fdopen(fd, "w") as f:
-                    f.write(new_content)
-                os.replace(tmp_path_str, str(file_path))
-            except Exception:
-                try:
-                    os.unlink(tmp_path_str)
-                except OSError:
-                    pass
-                raise
+            atomic_write(file_path, new_content)
 
             click.echo(f"Formatted {doc.prefix}-{doc.acid}")
         else:

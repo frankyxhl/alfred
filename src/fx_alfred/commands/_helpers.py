@@ -1,5 +1,8 @@
 """Shared helpers for CLI commands — wraps core functions with Click error handling."""
 
+import os
+import tempfile
+from pathlib import Path
 from typing import Any
 
 import click
@@ -54,3 +57,31 @@ def render_section_content(content: Any) -> str:
         return content
     else:
         return str(content)
+
+
+def atomic_write(path: Path, content: str) -> None:
+    """Write content to a file atomically using temp file + os.replace.
+
+    Creates a temporary file in the same directory, writes content to it,
+    then atomically replaces the target file. On failure, cleans up the
+    temporary file without modifying the original.
+
+    Args:
+        path: Target file path to write to.
+        content: String content to write.
+
+    Raises:
+        OSError: If file operations fail (propagated after cleanup).
+    """
+    fd, tmp_path_str = tempfile.mkstemp(dir=str(path.parent), suffix=".md.tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.replace(tmp_path_str, str(path))
+    except Exception:
+        # Clean up temp file on any failure
+        try:
+            os.unlink(tmp_path_str)
+        except OSError:
+            pass
+        raise

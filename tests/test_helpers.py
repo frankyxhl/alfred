@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import click
@@ -122,3 +123,70 @@ def test_validate_spec_status_invalid():
 
     with pytest.raises(click.ClickException, match="not allowed"):
         validate_spec_status(DocType.SOP, "Nonexistent")
+
+
+# ── atomic_write tests ───────────────────────────────────────────────────
+
+
+def test_atomic_write_success(tmp_path):
+    """atomic_write writes content and file matches expected content."""
+    from fx_alfred.commands._helpers import atomic_write
+
+    file_path = tmp_path / "test.md"
+    content = "# Test Document\n\nHello, world!\n"
+
+    atomic_write(file_path, content)
+
+    assert file_path.exists()
+    assert file_path.read_text() == content
+
+
+def test_atomic_write_cleanup_on_failure(tmp_path):
+    """atomic_write removes temp file when os.replace raises OSError."""
+    from unittest.mock import patch
+
+    from fx_alfred.commands._helpers import atomic_write
+
+    file_path = tmp_path / "test.md"
+    content = "test content"
+
+    # Track temp files created
+    temp_files = []
+
+    original_mkstemp = __import__("tempfile").mkstemp
+
+    def track_mkstemp(*args, **kwargs):
+        fd, path = original_mkstemp(*args, **kwargs)
+        temp_files.append(path)
+        return fd, path
+
+    with (
+        patch("tempfile.mkstemp", side_effect=track_mkstemp),
+        patch("os.replace", side_effect=OSError("replace failed")),
+    ):
+        with pytest.raises(OSError, match="replace failed"):
+            atomic_write(file_path, content)
+
+    # Verify temp file was cleaned up
+    for temp_path in temp_files:
+        assert not Path(temp_path).exists(), f"Temp file {temp_path} should be removed"
+
+
+def test_atomic_write_preserves_existing(tmp_path):
+    """atomic_write preserves existing file content when os.replace fails."""
+    from unittest.mock import patch
+
+    from fx_alfred.commands._helpers import atomic_write
+
+    file_path = tmp_path / "test.md"
+    original_content = "# Original\n\nOriginal content.\n"
+    file_path.write_text(original_content)
+
+    new_content = "# New\n\nNew content.\n"
+
+    with patch("os.replace", side_effect=OSError("replace failed")):
+        with pytest.raises(OSError, match="replace failed"):
+            atomic_write(file_path, new_content)
+
+    # Original file should be unchanged
+    assert file_path.read_text() == original_content
