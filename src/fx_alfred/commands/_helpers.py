@@ -1,5 +1,6 @@
 """Shared helpers for CLI commands — wraps core functions with Click error handling."""
 
+import importlib
 import os
 import tempfile
 from pathlib import Path
@@ -85,3 +86,19 @@ def atomic_write(path: Path, content: str) -> None:
         except OSError:
             pass
         raise
+
+
+def invoke_index_update(ctx: click.Context) -> None:
+    """Invoke index_cmd to regenerate document index.
+
+    Lazy-imports index_cmd to avoid circular imports, then invokes it
+    with the given context. On failure, emits a warning to stderr.
+
+    Args:
+        ctx: Click context to invoke the command with.
+    """
+    try:
+        index_cmd_module = importlib.import_module("fx_alfred.commands.index_cmd")
+        ctx.invoke(index_cmd_module.index_cmd)
+    except Exception as e:
+        click.echo(f"Warning: Failed to update index: {e}", err=True)

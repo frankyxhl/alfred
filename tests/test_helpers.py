@@ -190,3 +190,55 @@ def test_atomic_write_preserves_existing(tmp_path):
 
     # Original file should be unchanged
     assert file_path.read_text() == original_content
+
+
+# ── invoke_index_update tests (FXA-2166) ───────────────────────────────────
+
+
+def test_invoke_index_update_importable():
+    """invoke_index_update can be imported from _helpers."""
+    from fx_alfred.commands._helpers import invoke_index_update
+
+    assert callable(invoke_index_update)
+
+
+def test_invoke_index_update_success():
+    """invoke_index_update calls ctx.invoke with index_cmd on success."""
+    from unittest.mock import MagicMock, patch
+
+    from fx_alfred.commands._helpers import invoke_index_update
+
+    ctx = MagicMock(spec=click.Context)
+    mock_index_cmd = MagicMock()
+
+    with patch.dict(
+        "sys.modules",
+        {"fx_alfred.commands.index_cmd": MagicMock(index_cmd=mock_index_cmd)},
+    ):
+        # Simulate successful import by patching the import inside the function
+        with patch(
+            "fx_alfred.commands._helpers.importlib.import_module",
+            return_value=MagicMock(index_cmd=mock_index_cmd),
+        ):
+            invoke_index_update(ctx)
+
+    ctx.invoke.assert_called_once_with(mock_index_cmd)
+
+
+def test_invoke_index_update_failure_emits_warning():
+    """invoke_index_update emits warning to stderr when ctx.invoke raises."""
+    from unittest.mock import MagicMock, patch
+
+    from fx_alfred.commands._helpers import invoke_index_update
+
+    ctx = MagicMock(spec=click.Context)
+    ctx.invoke.side_effect = RuntimeError("index failed")
+
+    with patch("click.echo") as mock_echo:
+        invoke_index_update(ctx)
+
+    mock_echo.assert_called_once()
+    args, kwargs = mock_echo.call_args
+    assert "Warning" in args[0]
+    assert "Failed to update index" in args[0]
+    assert kwargs.get("err") is True

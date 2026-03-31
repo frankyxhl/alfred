@@ -11,7 +11,14 @@ from typing import Any
 import click
 import yaml
 
-from fx_alfred.commands._helpers import atomic_write, find_or_fail, render_section_content, scan_or_fail, validate_spec_status
+from fx_alfred.commands._helpers import (
+    atomic_write,
+    find_or_fail,
+    invoke_index_update,
+    render_section_content,
+    scan_or_fail,
+    validate_spec_status,
+)
 from fx_alfred.context import root_option
 from fx_alfred.core.normalize import slugify
 from fx_alfred.core.document import FILENAME_PATTERN
@@ -407,11 +414,6 @@ def update_cmd(
         click.echo(f"Renamed {file_path.name} -> {new_file_path.name}")
 
         if doc.source == "prj":
-            try:
-                from fx_alfred.commands.index_cmd import index_cmd
-
-                ctx.invoke(index_cmd)
-            except Exception as e:
-                click.echo(f"Warning: Failed to update index: {e}", err=True)
+            invoke_index_update(ctx)
     else:
         click.echo(f"Updated {file_path.name}")
