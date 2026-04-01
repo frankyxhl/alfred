@@ -216,16 +216,13 @@ def parse_metadata(content: str) -> ParsedDocument:
             # Strip leading/trailing pipes, then split on unescaped pipes
             inner = stripped[1:-1]
             cells = [c.strip() for c in re.split(r"(?<!\\)\|", inner)]
-            if len(cells) >= 3:
-                rows.append(HistoryRow(date=cells[0], change=cells[1], by=cells[2]))
-            else:
-                rows.append(
-                    HistoryRow(
-                        date=cells[0] if cells else "",
-                        change=cells[1] if len(cells) > 1 else "",
-                        by=cells[2] if len(cells) > 2 else "",
-                    )
+            rows.append(
+                HistoryRow(
+                    date=cells[0] if cells else "",
+                    change=cells[1] if len(cells) > 1 else "",
+                    by=cells[2] if len(cells) > 2 else "",
                 )
+            )
         else:
             data_done = True
             trailing_lines.append(line)

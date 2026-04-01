@@ -4,7 +4,10 @@ from pathlib import Path
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
-from fx_alfred.commands.plan_cmd import _parse_steps_for_json
+from fx_alfred.commands.plan_cmd import (
+    _format_phase,
+    _parse_steps_for_json,
+)
 
 
 def _create_sop_with_steps(rules_dir: Path, prefix: str, acid: str, title: str) -> Path:
@@ -215,3 +218,133 @@ class TestParseStepsForJsonGateDetection:
     def test_empty_input_returns_empty_list(self):
         """Empty input returns []."""
         assert _parse_steps_for_json("") == []
+
+
+# ── Exact-output snapshot tests for _format_phase (FXA-2169) ───────────────
+
+# Shared test bodies used across LLM and human snapshot tests.
+_BODY_WITH_STEPS = (
+    "## What Is It?\nA test SOP for demo.\n\n"
+    "Second paragraph ignored.\n"
+    "## Steps\n1. First step\n2. Second step\n3. Third step\n"
+)
+_SUMMARY_WITH_STEPS = "A test SOP for demo.\n\nSecond paragraph ignored."
+
+_BODY_NO_STEPS = "## What Is It?\nJust an overview.\n## Notes\nSome notes here.\n"
+_SUMMARY_NO_STEPS = "Just an overview."
+
+_BODY_RAW_FALLBACK = (
+    "## What Is It?\nOverview text.\n"
+    "## Steps\nNo numbered items here, just prose describing what to do.\n"
+)
+_SUMMARY_RAW_FALLBACK = "Overview text."
+
+
+class TestFormatPhaseLlmSnapshot:
+    """Exact-output snapshot tests for _format_phase (LLM mode) (FXA-2169)."""
+
+    def test_with_steps_and_summary(self):
+        heading = "## Phase 1: COR-1500 (TDD Workflow)"
+        result = _format_phase(
+            heading, _SUMMARY_WITH_STEPS, _BODY_WITH_STEPS, "What: ", "- [ ] "
+        )
+        expected = (
+            "## Phase 1: COR-1500 (TDD Workflow)\n"
+            "What: A test SOP for demo.\n"
+            "\n"
+            "- [ ] 1. First step\n"
+            "- [ ] 2. Second step\n"
+            "- [ ] 3. Third step"
+        )
+        assert result == expected
+
+    def test_no_steps_section(self):
+        heading = "## Phase 2: COR-1600 (Review)"
+        result = _format_phase(
+            heading, _SUMMARY_NO_STEPS, _BODY_NO_STEPS, "What: ", "- [ ] "
+        )
+        expected = (
+            "## Phase 2: COR-1600 (Review)\n"
+            "What: Just an overview.\n"
+            "\n"
+            "(no Steps section found)"
+        )
+        assert result == expected
+
+    def test_raw_section_fallback(self):
+        heading = "## Phase 1: COR-1700 (Misc)"
+        result = _format_phase(
+            heading, _SUMMARY_RAW_FALLBACK, _BODY_RAW_FALLBACK, "What: ", "- [ ] "
+        )
+        expected = (
+            "## Phase 1: COR-1700 (Misc)\n"
+            "What: Overview text.\n"
+            "\n"
+            "No numbered items here, just prose describing what to do."
+        )
+        assert result == expected
+
+    def test_no_summary(self):
+        heading = "## Phase 1: COR-1500 (TDD Workflow)"
+        result = _format_phase(heading, None, _BODY_WITH_STEPS, "What: ", "- [ ] ")
+        expected = (
+            "## Phase 1: COR-1500 (TDD Workflow)\n"
+            "\n"
+            "- [ ] 1. First step\n"
+            "- [ ] 2. Second step\n"
+            "- [ ] 3. Third step"
+        )
+        assert result == expected
+
+
+class TestFormatPhaseHumanSnapshot:
+    """Exact-output snapshot tests for _format_phase (human mode) (FXA-2169)."""
+
+    def test_with_steps_and_summary(self):
+        heading = "═══ Phase 1: COR-1500 (TDD Workflow) ═══"
+        result = _format_phase(heading, _SUMMARY_WITH_STEPS, _BODY_WITH_STEPS, "", "□ ")
+        expected = (
+            "═══ Phase 1: COR-1500 (TDD Workflow) ═══\n"
+            "A test SOP for demo.\n"
+            "\n"
+            "□ 1. First step\n"
+            "□ 2. Second step\n"
+            "□ 3. Third step"
+        )
+        assert result == expected
+
+    def test_no_steps_section(self):
+        heading = "═══ Phase 2: COR-1600 (Review) ═══"
+        result = _format_phase(heading, _SUMMARY_NO_STEPS, _BODY_NO_STEPS, "", "□ ")
+        expected = (
+            "═══ Phase 2: COR-1600 (Review) ═══\n"
+            "Just an overview.\n"
+            "\n"
+            "(no Steps section found)"
+        )
+        assert result == expected
+
+    def test_raw_section_fallback(self):
+        heading = "═══ Phase 1: COR-1700 (Misc) ═══"
+        result = _format_phase(
+            heading, _SUMMARY_RAW_FALLBACK, _BODY_RAW_FALLBACK, "", "□ "
+        )
+        expected = (
+            "═══ Phase 1: COR-1700 (Misc) ═══\n"
+            "Overview text.\n"
+            "\n"
+            "No numbered items here, just prose describing what to do."
+        )
+        assert result == expected
+
+    def test_no_summary(self):
+        heading = "═══ Phase 1: COR-1500 (TDD Workflow) ═══"
+        result = _format_phase(heading, None, _BODY_WITH_STEPS, "", "□ ")
+        expected = (
+            "═══ Phase 1: COR-1500 (TDD Workflow) ═══\n"
+            "\n"
+            "□ 1. First step\n"
+            "□ 2. Second step\n"
+            "□ 3. Third step"
+        )
+        assert result == expected
