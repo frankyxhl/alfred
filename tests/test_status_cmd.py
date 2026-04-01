@@ -1,5 +1,7 @@
+import json
 import re
 from pathlib import Path
+from unittest.mock import patch
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
@@ -121,3 +123,28 @@ def test_status_json(sample_project, monkeypatch):
 
     # PRJ should have 3 documents (ALF-0000, ALF-2201, ALF-2202)
     assert data["by_source"].get("prj") == 3
+
+
+# ── C5: Empty docs coverage ─────────────────────────────────────────────────
+
+
+@patch("fx_alfred.commands.status_cmd.scan_or_fail", return_value=[])
+def test_status_empty_docs_json(mock_scan):
+    """status --json on empty docs returns JSON with total=0."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status", "--json"], catch_exceptions=False)
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["total"] == 0
+    assert data["by_source"] == {}
+    assert data["by_type"] == {}
+    assert data["by_prefix"] == {}
+
+
+@patch("fx_alfred.commands.status_cmd.scan_or_fail", return_value=[])
+def test_status_empty_docs_text(mock_scan):
+    """status on empty docs shows 'No documents found' message."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "No documents found" in result.output

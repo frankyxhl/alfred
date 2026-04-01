@@ -5,6 +5,7 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+from fx_alfred.core.parser import parse_metadata
 
 
 # ── Sample Documents ──────────────────────────────────────────────────────────
@@ -1065,3 +1066,39 @@ def test_fmt_table_idempotent_after_write(tmp_path):
     assert result2.exit_code == 0, (
         f"False positive: --check reported changes after --write. Output: {result2.output}"
     )
+
+
+# ── C3: HistoryRow with missing 'by' column ─────────────────────────────────
+
+TWO_COLUMN_HISTORY_DOC = """\
+# TST-2114: Two Column History
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body content.
+
+---
+
+## Change History
+
+| Date       | Change          |
+|------------|-----------------|
+| 2026-01-01 | Initial version |
+"""
+
+
+def test_parse_metadata_two_column_history_row():
+    """A 2-column Change History row (missing 'by') produces HistoryRow with by=''."""
+    parsed = parse_metadata(TWO_COLUMN_HISTORY_DOC)
+    assert len(parsed.history_rows) == 1
+    row = parsed.history_rows[0]
+    assert row.date == "2026-01-01"
+    assert row.change == "Initial version"
+    assert row.by == ""
