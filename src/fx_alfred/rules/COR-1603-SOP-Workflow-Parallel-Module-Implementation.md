@@ -1,8 +1,8 @@
 # SOP-1603: Workflow — Parallel Module Implementation
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-04-01
+**Last reviewed:** 2026-04-01
 **Status:** Active
 
 ---
@@ -66,6 +66,11 @@ Leader      Worker A    Worker B    Worker C    Reviewer
 
 1. **Leader splits work** — define independent modules/tasks with clear boundaries
 2. **Leader assigns Workers** — each Worker gets one module
+
+   **Dispatch context:** When assigning Workers, include instructions for accessing project artifacts. Since all projects using this workflow have `af` installed, include:
+   - `af read <ACID>` — read a document by ID
+   - `af list` — list all documents
+
 3. **Workers execute in parallel** — each produces their deliverable independently
 4. **Leader collects results** — waits for all Workers to complete
 5. **Leader dispatches review** — sends combined output to Reviewer(s)
@@ -175,3 +180,4 @@ Phase 3 (review):
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), output_retention: composable (D6), Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
+| 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |

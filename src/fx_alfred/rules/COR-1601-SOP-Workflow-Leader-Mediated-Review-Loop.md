@@ -1,8 +1,8 @@
 # SOP-1601: Workflow — Leader Mediated Review Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-04-01
+**Last reviewed:** 2026-04-01
 **Status:** Active
 
 ---
@@ -64,6 +64,11 @@ Leader        Worker      Reviewer A    Reviewer B
 2. **Leader assigns roles** — specify which agent is Worker, which are Reviewers
 3. **Worker executes** — produces first version
 4. **Worker sends to Leader** — Leader forwards to Reviewer(s)
+
+   **Dispatch context:** When forwarding to Reviewers, include instructions for accessing project artifacts. Since all projects using this workflow have `af` installed, include:
+   - `af read <ACID>` — read a document by ID
+   - `af list` — list all documents
+
 5. **Reviewer(s) review** — each provides feedback and score to Leader
 6. **Leader evaluates feedback** — decides next action:
    - **Revise**: send specific instructions to Worker (may filter or merge reviewer feedback)
@@ -180,3 +185,4 @@ Round 3:
 | 2026-03-17 | Fixed flow diagram and example to enforce Leader-only communication; added key rule | Claude Code |
 | 2026-03-19 | Added sequence diagram (D4), iteration mode (D3), review scoring (D9), renamed with Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
+| 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |

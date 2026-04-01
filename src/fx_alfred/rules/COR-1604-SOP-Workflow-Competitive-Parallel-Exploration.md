@@ -1,8 +1,8 @@
 # SOP-1604: Workflow — Competitive Parallel Exploration
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-20
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-04-01
+**Last reviewed:** 2026-04-01
 **Status:** Active
 
 ---
@@ -45,6 +45,11 @@ Choosing the wrong approach early wastes more time than exploring several approa
 
 1. **Leader defines task and approach variants** — same goal, different methods or constraints
 2. **Leader assigns Workers** — each Worker gets one approach variant
+
+   **Dispatch context:** When assigning Workers, include instructions for accessing project artifacts. Since all projects using this workflow have `af` installed, include:
+   - `af read <ACID>` — read a document by ID
+   - `af list` — list all documents
+
 3. **Workers execute in parallel** — each produces their result independently
 4. **Leader collects all results** — compares approaches
 5. **(Optional) Reviewer evaluates** — ranks or scores each variant
@@ -174,3 +179,4 @@ Phase 3 (refine):
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), output_retention: competitive (D6), Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Migrate to standard 5W1H section structure (FXA-2133 batch 6): add Why, move When to Use / When NOT to Use after What Is It | Claude Code |
+| 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
