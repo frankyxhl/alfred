@@ -69,17 +69,33 @@ def _parse_steps_for_json(section_text: str) -> list[dict]:
     return steps
 
 
-def _format_phase_llm(
-    phase_num: int, sop_id: str, title: str, summary: str | None, body: str
+def _format_phase(
+    heading: str,
+    summary: str | None,
+    body: str,
+    summary_prefix: str,
+    checkbox: str,
 ) -> str:
-    """Format a single SOP phase for LLM-optimized output."""
-    lines: list[str] = []
-    lines.append(f"## Phase {phase_num}: {sop_id} ({title})")
+    """Format a single SOP phase.
+
+    Parameters
+    ----------
+    heading:
+        Pre-built heading line (e.g. ``## Phase 1: COR-1500 (TDD)``).
+    summary:
+        Raw "What Is It?" section text, or *None*.
+    body:
+        Full document body (used to extract Steps).
+    summary_prefix:
+        Prefix before first paragraph of summary (e.g. ``"What: "`` or ``""``).
+    checkbox:
+        Per-item checkbox prefix (e.g. ``"- [ ] "`` or ``"□ "``).
+    """
+    lines: list[str] = [heading]
 
     if summary:
-        # Take first paragraph of "What Is It?" section
         first_para = summary.split("\n\n")[0].strip()
-        lines.append(f"What: {first_para}")
+        lines.append(f"{summary_prefix}{first_para}")
 
     lines.append("")
 
@@ -90,36 +106,9 @@ def _format_phase_llm(
         items = _parse_numbered_items(steps_section)
         if items:
             for item in items:
-                lines.append(f"- [ ] {item}")
+                lines.append(f"{checkbox}{item}")
         else:
             # Raw section text fallback
-            lines.append(steps_section)
-
-    return "\n".join(lines)
-
-
-def _format_phase_human(
-    phase_num: int, sop_id: str, title: str, summary: str | None, body: str
-) -> str:
-    """Format a single SOP phase for human-readable output."""
-    lines: list[str] = []
-    lines.append(f"═══ Phase {phase_num}: {sop_id} ({title}) ═══")
-
-    if summary:
-        first_para = summary.split("\n\n")[0].strip()
-        lines.append(first_para)
-
-    lines.append("")
-
-    steps_section = _extract_steps_section(body)
-    if steps_section is None:
-        lines.append("(no Steps section found)")
-    else:
-        items = _parse_numbered_items(steps_section)
-        if items:
-            for item in items:
-                lines.append(f"□ {item}")
-        else:
             lines.append(steps_section)
 
     return "\n".join(lines)
@@ -188,12 +177,12 @@ def plan_cmd(
                 }
             )
         elif human:
-            phases_text.append(
-                _format_phase_human(phase_num, sop_id, title, summary, body)
-            )
+            heading = f"═══ Phase {phase_num}: {sop_id} ({title}) ═══"
+            phases_text.append(_format_phase(heading, summary, body, "", "□ "))
         else:
+            heading = f"## Phase {phase_num}: {sop_id} ({title})"
             phases_text.append(
-                _format_phase_llm(phase_num, sop_id, title, summary, body)
+                _format_phase(heading, summary, body, "What: ", "- [ ] ")
             )
 
     if output_json:
