@@ -1,8 +1,8 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-22
-**Last reviewed:** 2026-03-20
+**Last updated:** 2026-04-02
+**Last reviewed:** 2026-04-02
 **Status:** Active
 **Related:** COR-1607 (deprecated, replaced by this document)
 
@@ -41,6 +41,9 @@ Ensures every task follows the correct SOP from the start, preventing wasted eff
 Session Start
      │
      ▼
+COR-1201 ──────────► Load/create today's Discussion Tracker, set next_d
+     │
+     ▼
 af guide ──────────► Read routing (PKG → USR → PRJ)
      │
      ▼
@@ -66,6 +69,7 @@ Commit ────────────► af validate → Session End
 ```
 ═══ ALWAYS (every session, every task) ═══
 
+• COR-1201: Load today's Discussion Tracker — search for today's file, read max DN, auto-increment on new topics (see COR-1201 Session Start Protocol)
 • COR-1402: Declare 📋 active SOP before work and on every transition
 • COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP)
 • af plan:  Before every response — decide if task needs a checklist; if task has clear steps or spans multiple SOPs, run af plan <SOP_IDs> before proceeding
@@ -139,7 +143,7 @@ COR-1100: Durable decision already made → ADR, write immediately
 PLN: Execution coordination for approved/in-progress work → PLN before starting multi-phase or multi-agent implementation
 COR-1300: Existing document edit → af update, update Last updated + Change History; never delete, deprecate instead (COR-1301)
 COR-1000/1001: New SOP → COR-1000; new document → af create (COR-1001) with correct prefix, ACID, type, template
-COR-1201: Track discussion items with D new/list/show/start/done/defer/archive
+COR-1201: Session start → load today's Discussion Tracker (af search), read max DN, auto-increment; D new/list/show/start/done/defer/archive
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
@@ -209,3 +213,5 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-03-22 | Fix R7 Codex issues: diagram "(1-7)" → "(1-8)"; "Code change?" → "Normal code change? (branches 3-5)"; Doc/SOP adds "New SOP: COR-1000" | Claude Code |
 | 2026-03-22 | Fix R8 Codex issues: diagram completely simplified — COR-1606 before Execute; removed branching detail that belongs in router section | Claude Code |
 | 2026-03-22 | R9 review: Gemini 10.0/10 PASS, Codex 9.4/10 PASS. Merged. | Claude Code |
+| 2026-04-02 | ALWAYS section: add COR-1201 Discussion Tracker as mandatory session-start step; Golden Rules: expand COR-1201 to include load + auto-increment | Frank + Claude Code |
+| 2026-04-02 | R1 fix: Workflow Sequence diagram — add COR-1201 as first step before af guide | Frank + Claude Code |
