@@ -1,8 +1,8 @@
 # SOP-1605: Workflow — Sequential Pipeline
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-20
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-04-01
+**Last reviewed:** 2026-04-01
 **Status:** Active
 
 ---
@@ -41,6 +41,11 @@ Some tasks have natural stage boundaries where each stage's output feeds the nex
 
 1. **Leader defines pipeline** — ordered list of stages, each with input/output contract
 2. **Leader assigns Workers** — one Worker per stage (or one Worker for multiple stages)
+
+   **Dispatch context:** When assigning Workers, include instructions for accessing project artifacts. Since all projects using this workflow have `af` installed, include:
+   - `af read <ACID>` — read a document by ID
+   - `af list` — list all documents
+
 3. **Stage 1 Worker executes** — produces output
 4. **Leader hands off** — passes Stage 1 output as input to Stage 2 Worker
 5. **Repeat** — each stage receives the previous stage's output and produces its own
@@ -164,3 +169,4 @@ Review:
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), and review scoring (D9) | Claude Code |
 | 2026-03-20 | Migrate to standard 5W1H section structure (FXA-2133 batch 6): add Why, move When to Use / When NOT to Use after What Is It | Claude Code |
+| 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |

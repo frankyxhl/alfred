@@ -1,8 +1,8 @@
 # SOP-1600: Workflow — Direct Review Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-04-01
+**Last reviewed:** 2026-04-01
 **Status:** Active
 
 ---
@@ -64,6 +64,11 @@ Leader    Worker    Reviewer A    Reviewer B
 
 1. **Leader defines task** — clear deliverable, acceptance criteria, and which reviewers must approve
 2. **Leader assigns roles** — specify which agent is Worker, which are Reviewers
+
+   **Dispatch context:** When assigning Workers and Reviewers, include instructions for accessing project artifacts. Since all projects using this workflow have `af` installed, include:
+   - `af read <ACID>` — read a document by ID
+   - `af list` — list all documents
+
 3. **Worker executes** — produces first version of the deliverable
 4. **Worker sends to Reviewer(s)** — directly, not through Leader
 5. **Reviewer(s) review** — each provides feedback or approval with a score
@@ -160,3 +165,4 @@ Final result → Claude Code
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-19 | Added sequence diagram (D4), iteration mode (D3), review scoring (D9), Lead Reviewer rule (D10), renamed with Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
+| 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
