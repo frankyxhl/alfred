@@ -1,8 +1,8 @@
 # SOP-1602: Workflow — Multi Model Parallel Review
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-04-01
+**Last reviewed:** 2026-04-01
 **Status:** Active
 
 ---
@@ -60,6 +60,11 @@ Leader      Reviewer A    Reviewer B
 
 1. **Leader identifies artifact** — the document, plan, code, or design to be reviewed
 2. **Leader dispatches Reviewers** — all Reviewers receive the same artifact in parallel
+
+   **Dispatch context:** When dispatching Reviewers, include instructions for accessing project artifacts. Since all projects using this workflow have `af` installed, include:
+   - `af read <ACID>` — read a document by ID
+   - `af list` — list all documents
+
 3. **Reviewers analyze independently** — each produces findings, risks, and recommendations
 4. **Leader collects all reviews** — waits for all Reviewers to complete
 5. **Leader synthesizes** — identifies consensus, conflicts, and unique insights
@@ -157,3 +162,4 @@ Round 1 (iterate: false, single-pass):
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
+| 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
