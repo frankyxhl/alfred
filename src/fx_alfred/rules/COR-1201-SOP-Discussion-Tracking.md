@@ -50,10 +50,10 @@ At the start of **every session**, the agent MUST execute these steps before any
 ### Step 1: Find today's tracker
 
 ```bash
-af list --type ref | grep "Discussion Tracker.*$(date +%Y-%m-%d)"
+af list --type ref | grep "Discussion Tracker.*$(date '+%Y %m %d')"
 ```
 
-This filters REF documents by title for today's date. If the project uses `--root`, add it.
+This filters REF documents by title for today's date. `af list` shows dates with spaces (e.g., `2026 04 02`), so use `%Y %m %d` format. If the project uses `--root`, add it.
 
 **Important:** Do NOT use `af search` — it does content search and can false-match against this SOP's own examples or other documents containing the phrase.
 
@@ -94,7 +94,7 @@ From this point forward in the session:
 ### Example
 
 ```
-Session start → af list --type ref | grep "Discussion Tracker.*2026-04-02" finds FXA-2150
+Session start → af list --type ref | grep "Discussion Tracker.*2026 04 02" finds FXA-2150
 → af read FXA-2150 → Active: D3(Open), D4(WIP); Archived: D1, D2
 → max DN across both tables = 4
 → next_d = 5
@@ -255,4 +255,4 @@ Before running COR-1200 (Session Retrospective):
 | 2026-04-02 | Added Session Start Protocol (Mandatory): always-on tracker loading, auto-increment algorithm, example; removed single-topic exception from When NOT to Use; updated When to Use to mandate every-session activation | Frank + Claude Code |
 | 2026-04-02 | R1 fix: Step 1 use content search (spaces not hyphens); Step 2a scan both Active+Archived for max DN; Step 2b clarify prefix/area lookup, concrete deferred carry-forward with import-first numbering; Step 3 handle bare D<n> edge case; reframe When NOT to Use as artifact precedence | Frank + Claude Code |
 | 2026-04-02 | R2 fix: Step 2a add empty-tracker fallback (next_d=1); fix format example (D1 no longer in both Active and Archived); carry-forward status explicitly Open | Frank + Claude Code |
-| 2026-04-02 | PR fix: replace af search with af list --type ref to avoid false-positive matches against SOP examples and non-tracker documents | Frank + Claude Code |
+| 2026-04-02 | PR fix: replace af search with af list --type ref to avoid false-positive matches against SOP examples and non-tracker documents; fix date format to space-separated (%Y %m %d) matching af list output | Frank + Claude Code |
