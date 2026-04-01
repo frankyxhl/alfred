@@ -50,10 +50,12 @@ At the start of **every session**, the agent MUST execute these steps before any
 ### Step 1: Find today's tracker
 
 ```bash
-af search "Discussion Tracker $(date +%Y-%m-%d)"
+af list --type ref | grep "Discussion Tracker.*$(date +%Y-%m-%d)"
 ```
 
-This searches document **content** for today's tracker title. If the project uses `--root`, add it.
+This filters REF documents by title for today's date. If the project uses `--root`, add it.
+
+**Important:** Do NOT use `af search` — it does content search and can false-match against this SOP's own examples or other documents containing the phrase.
 
 ### Step 2a: Tracker found → load and continue
 
@@ -71,9 +73,9 @@ This searches document **content** for today's tracker title. If the project use
    - Area: use the project's discussion tracker area (check existing tracker files for the convention, or ask the user on first use)
 2. Check for deferred items from the most recent prior tracker:
    ```bash
-   af search "Discussion Tracker"
+   af list --type ref | grep "Discussion Tracker"
    ```
-   Pick the most recent result, read it, extract any Deferred items.
+   Results are listed by ACID. Pick the entry with the latest date in the title, read it, extract any Deferred items.
 3. Create today's tracker file:
    ```bash
    af create ref --prefix <PREFIX> --area <AREA> --title "Discussion Tracker $(date +%Y-%m-%d)"
@@ -92,7 +94,7 @@ From this point forward in the session:
 ### Example
 
 ```
-Session start → af search "Discussion Tracker 2026-04-02" finds FXA-2150
+Session start → af list --type ref | grep "Discussion Tracker.*2026-04-02" finds FXA-2150
 → af read FXA-2150 → Active: D3(Open), D4(WIP); Archived: D1, D2
 → max DN across both tables = 4
 → next_d = 5
@@ -253,3 +255,4 @@ Before running COR-1200 (Session Retrospective):
 | 2026-04-02 | Added Session Start Protocol (Mandatory): always-on tracker loading, auto-increment algorithm, example; removed single-topic exception from When NOT to Use; updated When to Use to mandate every-session activation | Frank + Claude Code |
 | 2026-04-02 | R1 fix: Step 1 use content search (spaces not hyphens); Step 2a scan both Active+Archived for max DN; Step 2b clarify prefix/area lookup, concrete deferred carry-forward with import-first numbering; Step 3 handle bare D<n> edge case; reframe When NOT to Use as artifact precedence | Frank + Claude Code |
 | 2026-04-02 | R2 fix: Step 2a add empty-tracker fallback (next_d=1); fix format example (D1 no longer in both Active and Archived); carry-forward status explicitly Open | Frank + Claude Code |
+| 2026-04-02 | PR fix: replace af search with af list --type ref to avoid false-positive matches against SOP examples and non-tracker documents | Frank + Claude Code |

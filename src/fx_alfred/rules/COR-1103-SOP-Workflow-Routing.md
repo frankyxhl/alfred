@@ -143,7 +143,7 @@ COR-1100: Durable decision already made → ADR, write immediately
 PLN: Execution coordination for approved/in-progress work → PLN before starting multi-phase or multi-agent implementation
 COR-1300: Existing document edit → af update, update Last updated + Change History; never delete, deprecate instead (COR-1301)
 COR-1000/1001: New SOP → COR-1000; new document → af create (COR-1001) with correct prefix, ACID, type, template
-COR-1201: Session start → load today's Discussion Tracker (af search), read max DN, auto-increment; D new/list/show/start/done/defer/archive
+COR-1201: Session start → load today's Discussion Tracker (af list --type ref), read max DN, auto-increment; D new/list/show/start/done/defer/archive
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
