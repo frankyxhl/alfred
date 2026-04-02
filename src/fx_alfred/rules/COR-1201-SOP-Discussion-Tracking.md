@@ -50,16 +50,18 @@ At the start of **every session**, the agent MUST execute these steps before any
 ### Step 1: Find today's tracker
 
 ```bash
-af list --type ref | grep "Discussion Tracker.*$(date '+%Y %m %d')"
+af list --type ref --prefix <PREFIX> | grep "Discussion Tracker.*$(date '+%Y %m %d')"
 ```
 
-This filters REF documents by title for today's date. `af list` shows dates with spaces (e.g., `2026 04 02`), so use `%Y %m %d` format. If the project uses `--root`, add it.
+- Use the project's prefix (e.g., `FXA`, `NRV`) to scope the search to this project only
+- `af list` shows dates with spaces (e.g., `2026 04 02`), so use `%Y %m %d` format
+- If the project uses `--root`, add it
 
 **Important:** Do NOT use `af search` — it does content search and can false-match against this SOP's own examples or other documents containing the phrase.
 
 ### Step 2a: Tracker found → load and continue
 
-1. Read the tracker file with `af read <ACID>`
+1. Read the tracker file with `af read <PREFIX-ACID>` (e.g., `af read FXA-2150` — use the full prefix-ACID from the list output to avoid ambiguity)
 2. Parse **both** Active Items **and** Archived Items tables
 3. Find the highest DN number across both tables (e.g., if Active has D5 and Archived has D7 → max = 7)
 4. If both tables are empty (tracker exists but no D items yet), set `next_d = 1`
@@ -73,9 +75,9 @@ This filters REF documents by title for today's date. `af list` shows dates with
    - Area: use the project's discussion tracker area (check existing tracker files for the convention, or ask the user on first use)
 2. Check for deferred items from the most recent prior tracker:
    ```bash
-   af list --type ref | grep "Discussion Tracker"
+   af list --type ref --prefix <PREFIX> | grep "Discussion Tracker"
    ```
-   Results are listed by ACID. Pick the entry with the latest date in the title, read it, extract any Deferred items.
+   Pick the entry with the latest date in the title, read it with `af read <PREFIX-ACID>`, extract any Deferred items.
 3. Create today's tracker file:
    ```bash
    af create ref --prefix <PREFIX> --area <AREA> --title "Discussion Tracker $(date +%Y-%m-%d)"
