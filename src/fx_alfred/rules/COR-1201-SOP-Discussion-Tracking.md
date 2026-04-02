@@ -1,8 +1,8 @@
 # SOP-1201: Discussion Tracking
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-04-02
+**Last reviewed:** 2026-04-02
 **Status:** Active
 
 ---
@@ -21,7 +21,7 @@ Prevents discussion points from being lost during long sessions by giving each i
 
 ## When to Use
 
-- When a session involves multiple discussion points that need individual tracking
+- **Every session** — the agent MUST load or create today's tracker at session start (see Session Start Protocol)
 - When a topic comes up that cannot be resolved immediately and needs to be deferred
 - When you need to reference a specific discussion point later in the session
 
@@ -29,9 +29,9 @@ Prevents discussion points from being lost during long sessions by giving each i
 
 ## When NOT to Use
 
-- For single-topic sessions where there is nothing to track separately
-- For formal decisions — use ADR (COR-1100) instead
-- For bug reports or incidents — use INC instead
+D items track discussion topics within a session. Use the correct document type for durable records:
+- Formal decisions → ADR (COR-1100)
+- Bug reports or incidents → INC
 
 ---
 
@@ -40,6 +40,77 @@ Prevents discussion points from being lost during long sessions by giving each i
 - **D item**: A numbered discussion point within a day's session (D1, D2, D3, ...)
 - **Tracker file**: A REF document per day that records all D items, updated in real-time
 - **Daily reset**: D numbers start from D1 each day; a new tracker file is created per day
+
+---
+
+## Session Start Protocol (Mandatory)
+
+At the start of **every session**, the agent MUST execute these steps before any other work:
+
+### Step 1: Find today's tracker
+
+```bash
+af list --type ref --prefix <PREFIX> | grep "Discussion Tracker.*$(date '+%Y %m %d')"
+```
+
+- Use the project's prefix (e.g., `FXA`, `NRV`) to scope the search to this project only
+- `af list` shows dates with spaces (e.g., `2026 04 02`), so use `%Y %m %d` format
+- If the project uses `--root`, add it
+
+**Important:** Do NOT use `af search` — it does content search and can false-match against this SOP's own examples or other documents containing the phrase.
+
+### Step 2a: Tracker found → load and continue
+
+1. Read the tracker file with `af read <PREFIX-ACID>` (e.g., `af read FXA-2150` — use the full prefix-ACID from the list output to avoid ambiguity)
+2. Parse **both** Active Items **and** Archived Items tables
+3. Find the highest DN number across both tables (e.g., if Active has D5 and Archived has D7 → max = 7)
+4. If both tables are empty (tracker exists but no D items yet), set `next_d = 1`
+5. Otherwise, set `next_d = max + 1` (next topic will be D8)
+6. Note any Deferred/WIP items — proactively inform the user
+
+### Step 2b: Tracker not found → create new
+
+1. Determine the project prefix and area:
+   - Prefix: run `af list` and use the project's existing prefix (e.g., `FXA`, `NRV`)
+   - Area: use the project's discussion tracker area (check existing tracker files for the convention, or ask the user on first use)
+2. Check for deferred items from the most recent prior tracker:
+   ```bash
+   af list --type ref --prefix <PREFIX> | grep "Discussion Tracker"
+   ```
+   Pick the entry with the latest date in the title, read it with `af read <PREFIX-ACID>`, extract any Deferred items.
+3. Create today's tracker file:
+   ```bash
+   af create ref --prefix <PREFIX> --area <AREA> --title "Discussion Tracker $(date +%Y-%m-%d)"
+   ```
+4. If deferred items exist, import them as D1, D2, ... with status **Open** and note `(from YYYY-MM-DD D<n>)` in Topic, then set `next_d = count of imported items + 1`
+5. If no deferred items, set `next_d = 1`
+
+### Step 3: Auto-increment on new topics
+
+From this point forward in the session:
+- When the user raises a new topic → automatically assign `D{next_d}`, write to tracker, increment `next_d`
+- When the user writes `D<n>` with topic text → reference existing item or auto-create if it's the next sequential number
+- When the user writes `D<n>` with no topic text → if it exists, continue that discussion; if it's next sequential, ask for topic
+- Every state change → immediately persist to the tracker file
+
+### Example
+
+```
+Session start → af list --type ref | grep "Discussion Tracker.*2026 04 02" finds FXA-2150
+→ af read FXA-2150 → Active: D3(Open), D4(WIP); Archived: D1, D2
+→ max DN across both tables = 4
+→ next_d = 5
+→ Agent tells user: "Loaded today's tracker (FXA-2150). D3 Open, D4 WIP. Next is D5."
+
+User: "af update 需要支持 --dry-run"
+Agent: "D5 (Open): af update --dry-run support"  → writes to tracker, next_d = 6
+
+User: "D5 先做个 PRP"
+Agent: updates D5 notes → "Creating PRP..."
+
+User: "另外 af list 的输出格式要改"
+Agent: "D6 (Open): af list output format change"  → writes to tracker, next_d = 7
+```
 
 ---
 
@@ -107,25 +178,26 @@ Created via `af create ref` at the start of each day's first session, or manuall
 
 | DN | Status | Parent | Source | Created | Updated | Topic |
 |----|--------|--------|--------|---------|---------|-------|
-| D1 | Done | — | User | 09:00 | 09:15 | Retrospective save location |
-| D12 | WIP | — | User | 10:30 | — | af update command |
-| D15 | Open | D12 | Codex | 14:00 | — | H1 validation fix |
+| D5 | WIP | — | User | 10:30 | — | af update command |
+| D6 | Open | D5 | Codex | 14:00 | — | H1 validation fix |
 
 ## Archived Items
 
 | DN | Parent | Source | Topic |
 |----|--------|--------|-------|
 | D1 | — | User | Retrospective save location |
+| D2 | — | User | af rename discussion |
+| D3 | — | User | Index rebuild |
+| D4 | D1 | User | Save location follow-up |
 
 ## Discussion Notes
 
-### D1: Retrospective save location
-- **Decision**: FXA project layer, area 21
-- **Result**: Created FXA-2108
-
-### D12: af update command
+### D5: af update command
 - **Decision**: PRP-2104 → 3 rounds review → implement
 - **Result**: Committed d6a968d
+
+### D6: H1 validation fix
+- **Source**: Codex review found heading mismatch
 ```
 
 ### Real-time persistence
@@ -182,3 +254,7 @@ Before running COR-1200 (Session Retrospective):
 |------|--------|----|
 | 2026-03-19 | Initial version | Frank + Claude |
 | 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-04-02 | Added Session Start Protocol (Mandatory): always-on tracker loading, auto-increment algorithm, example; removed single-topic exception from When NOT to Use; updated When to Use to mandate every-session activation | Frank + Claude Code |
+| 2026-04-02 | R1 fix: Step 1 use content search (spaces not hyphens); Step 2a scan both Active+Archived for max DN; Step 2b clarify prefix/area lookup, concrete deferred carry-forward with import-first numbering; Step 3 handle bare D<n> edge case; reframe When NOT to Use as artifact precedence | Frank + Claude Code |
+| 2026-04-02 | R2 fix: Step 2a add empty-tracker fallback (next_d=1); fix format example (D1 no longer in both Active and Archived); carry-forward status explicitly Open | Frank + Claude Code |
+| 2026-04-02 | PR fix: replace af search with af list --type ref to avoid false-positive matches against SOP examples and non-tracker documents; fix date format to space-separated (%Y %m %d) matching af list output | Frank + Claude Code |
