@@ -21,7 +21,7 @@ _STEP_HEADINGS = ("Steps", "Rule", "Rules", "Concepts")
 _LLM_RULES = """\
 ## RULES
 - Complete each checkbox before moving to the next phase
-- Declare active SOP at every phase transition (COR-1402)
+- Declare active SOP per COR-1402: before starting, at every phase transition, flag if none exist, and confirm at completion
 - ⚠️ marks hard stops — do not proceed until condition is met
 - If stuck, ask one clarifying question before proceeding
 """

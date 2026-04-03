@@ -126,6 +126,7 @@ af list --root /Users/frank/Projects/alfred/fx_alfred
 ## Workflow
 
 - **Session start:** `af guide --root /Users/frank/Projects/alfred/fx_alfred`
+- **Before every task:** Declare active SOP per COR-1402 before starting work (or flag if none exist)
 - **Workflow checklist:** `af plan <SOP_IDs>` (LLM-optimized, follow each phase)
 - **First time:** `af setup` (suggested prompts for agent config)
 - **Routing:** COR-1103 (PKG) → ALF-2207 (USR) → FXA-2125 (PRJ)
