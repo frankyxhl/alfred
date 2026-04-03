@@ -89,10 +89,10 @@ src/fx_alfred/
 # Install (editable)
 pip install -e .
 
-# Alfred ops (project documents)
-af guide --root /Users/frank/Projects/alfred/alfred_ops
-af validate --root /Users/frank/Projects/alfred/alfred_ops
-af list --root /Users/frank/Projects/alfred/alfred_ops
+# Alfred ops (project documents — now in fx_alfred/rules/)
+af guide --root /Users/frank/Projects/alfred/fx_alfred
+af validate --root /Users/frank/Projects/alfred/fx_alfred
+af list --root /Users/frank/Projects/alfred/fx_alfred
 ```
 
 ## Key Design Patterns
@@ -125,7 +125,7 @@ af list --root /Users/frank/Projects/alfred/alfred_ops
 
 ## Workflow
 
-- **Session start:** `af guide --root /Users/frank/Projects/alfred/alfred_ops`
+- **Session start:** `af guide --root /Users/frank/Projects/alfred/fx_alfred`
 - **Workflow checklist:** `af plan <SOP_IDs>` (LLM-optimized, follow each phase)
 - **First time:** `af setup` (suggested prompts for agent config)
 - **Routing:** COR-1103 (PKG) → ALF-2207 (USR) → FXA-2125 (PRJ)
@@ -134,4 +134,4 @@ af list --root /Users/frank/Projects/alfred/alfred_ops
 - Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (both >= 9.0 to pass)
 - Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
 - Documents: always `af create`, never manual files
-- Commit alfred_ops: FXA-2127 SOP
+- Documents live in `fx_alfred/rules/` (PRJ layer)
