@@ -7,3 +7,5 @@ build/
 .pytest_cache/
 .coverage
 .team/
+coverage.json
+*.bundle
