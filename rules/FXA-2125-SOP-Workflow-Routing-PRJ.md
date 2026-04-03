@@ -1,7 +1,7 @@
 # SOP-2125: Workflow Routing PRJ
 
 **Applies to:** FXA project
-**Last updated:** 2026-03-30
+**Last updated:** 2026-04-04
 **Last reviewed:** 2026-03-20
 **Status:** Active
 
@@ -81,11 +81,6 @@ What do you need to do in the FXA project?
    └── .venv/bin/pytest tests/ -v --tb=short      (tests)
        .venv/bin/ruff check .                       (lint)
        af validate --root fx_alfred                (document validation)
-
-9. End of session?
-   └── FXA-2127 (Commit Alfred Ops)
-       Steps: git status → delete ALF-0000 → git add rules/ → git commit → af validate
-       If code changes exist: follow FXA-2102 release process
 ```
 
 ## Project Context
@@ -110,7 +105,7 @@ ALF-2300: Incident = record what happened, impact, resolution, follow-up
 COR-1500: Any code change → TDD: failing test first, then green, then refactor
 af create: Never manually create .md files, always af create --prefix FXA --area 21
 af validate: Run after document migrations to confirm 0 issues
-fx_alfred: Documents live in rules/ (PRJ layer), document changes, no remote (local git only)
+fx_alfred: Documents live in rules/ (PRJ layer), document changes committed with code
 ```
 
 ## Steps
@@ -128,3 +123,4 @@ This is a routing SOP — no procedural steps. The Project Decision Tree above i
 | 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration) | Claude Code |
 | 2026-03-21 | Added Steps section (routing SOP, no procedural steps) | Claude Code |
 | 2026-03-30 | CHG FXA-2153: Translated decision tree from Chinese to English (COR-0002/COR-1401 compliance) | Claude Code |
+| 2026-04-04 | CHG FXA-2190: Remove deprecated FXA-2127 ref from decision tree, fix stale "no remote" golden rule | Claude Code |
