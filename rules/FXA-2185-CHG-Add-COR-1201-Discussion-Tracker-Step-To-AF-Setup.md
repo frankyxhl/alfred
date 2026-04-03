@@ -1,9 +1,9 @@
 # CHG-2185: Add COR-1201 Discussion Tracker Step To AF Setup
 
 **Applies to:** FXA project
-**Last updated:** 2026-04-03
+**Last updated:** 2026-04-04
 **Last reviewed:** 2026-04-03
-**Status:** Implemented
+**Status:** Completed
 **Date:** 2026-04-03
 **Requested by:** Frank
 **Priority:** Medium
