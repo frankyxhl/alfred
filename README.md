@@ -108,7 +108,7 @@ Checks:
 - SOP required sections (What Is It?, Why, When to Use, When NOT to Use, Steps)
 
 ```
-86 documents checked, 0 issues found.
+207 documents checked, 0 issues found.
 ```
 
 ### Document Management
@@ -303,8 +303,10 @@ af read IDENTIFIER [--json]
 af create TYPE --prefix P --acid N|--area N --title T [--layer] [--subdir] [--spec FILE] [--dry-run]
 af update IDENTIFIER [--status] [--field K V] [--history] [--title] [--dry-run] [--spec FILE]
 af fmt [DOC_IDS...] [--write] [--check]
+af where IDENTIFIER [--json]
 af search PATTERN [--json]
 af validate [--root DIR] [--json]
+af setup
 af status [--json]
 af index
 af changelog
