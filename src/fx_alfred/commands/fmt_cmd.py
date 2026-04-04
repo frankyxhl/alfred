@@ -56,8 +56,8 @@ def normalize_metadata_order(parsed: ParsedDocument, doc_type: DocType | None) -
                 break
     ordered_fields.extend(remaining)
 
-    # Compare by object identity: same objects in same order = no change
-    if [id(mf) for mf in ordered_fields] == [id(mf) for mf in parsed.metadata_fields]:
+    # Same objects in same order = no change (dataclass __eq__ compares all fields)
+    if ordered_fields == parsed.metadata_fields:
         return False
 
     parsed.metadata_fields = ordered_fields

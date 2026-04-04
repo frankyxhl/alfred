@@ -1102,3 +1102,62 @@ def test_parse_metadata_two_column_history_row():
     assert row.date == "2026-01-01"
     assert row.change == "Initial version"
     assert row.by == ""
+
+
+# ── CHG FXA-2194: normalize_metadata_order comparison ─────────────────────────
+
+
+def test_normalize_metadata_order_no_change_when_already_canonical():
+    """normalize_metadata_order returns False when fields are already in canonical order."""
+    from fx_alfred.commands.fmt_cmd import normalize_metadata_order
+    from fx_alfred.core.schema import DocType
+
+    doc = """\
+# SOP-9999: Already Canonical
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body.
+"""
+    parsed = parse_metadata(doc)
+    original_fields = list(parsed.metadata_fields)
+    result = normalize_metadata_order(parsed, DocType.SOP)
+    assert result is False
+    # Fields should be unchanged — same objects in same order
+    assert parsed.metadata_fields == original_fields
+    assert all(mf.dirty is False for mf in parsed.metadata_fields)
+
+
+def test_normalize_metadata_order_reorders_when_not_canonical():
+    """normalize_metadata_order returns True and reorders when fields are out of order."""
+    from fx_alfred.commands.fmt_cmd import normalize_metadata_order
+    from fx_alfred.core.schema import DocType
+
+    doc = """\
+# SOP-9999: Out Of Order
+
+**Status:** Draft
+**Last reviewed:** 2026-01-01
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+
+---
+
+## What Is It?
+
+Body.
+"""
+    parsed = parse_metadata(doc)
+    result = normalize_metadata_order(parsed, DocType.SOP)
+    assert result is True
+    # Fields should now be in canonical order
+    keys = [mf.key for mf in parsed.metadata_fields]
+    assert keys[0] == "Applies to"
+    assert all(mf.dirty is True for mf in parsed.metadata_fields)
