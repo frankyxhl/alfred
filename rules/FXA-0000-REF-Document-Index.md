@@ -101,6 +101,9 @@
 | 2189 | PRP | Fix FXA 2185 Invalid CHG Status |
 | 2190 | CHG | Fix FXA 2125 Stale Alfred Ops Refs |
 | 2191 | CHG | Fix FXA 2185 Invalid CHG Status |
+| 2192 | REF | Evolve Run 20260404 082129 |
+| 2193 | PRP | Simplify Fmt Metadata Order Comparison |
+| 2194 | CHG | Simplify Fmt Metadata Order Comparison |
 
 ---
 
