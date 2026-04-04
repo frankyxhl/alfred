@@ -37,8 +37,8 @@ def normalize_date(s: str) -> str:
 
 
 KNOWN_OPTIONAL_ORDER = [
-    "Related", "Reviewed by", "Last executed", "Severity",
-    "Date", "Requested by", "Priority", "Change Type",
+    "Related", "Reviewed by", "Last executed",
+    "Date", "Severity", "Requested by", "Priority", "Change Type",
     "Document role", "Tags",
 ]
 

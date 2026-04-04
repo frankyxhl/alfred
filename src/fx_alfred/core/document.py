@@ -59,7 +59,7 @@ class Document:
     def tags(self) -> list[str]:
         """Parse Tags metadata field. Returns [] if absent or unreadable."""
         try:
-            from fx_alfred.core.parser import parse_metadata, parse_tags
+            from fx_alfred.core.parser import MalformedDocumentError, parse_metadata, parse_tags
 
             content = self.resolve_resource().read_text()
             # ACID=0000 index docs may have non-standard H1; substitute
@@ -77,7 +77,7 @@ class Document:
                 (mf for mf in parsed.metadata_fields if mf.key == "Tags"), None
             )
             return parse_tags(tag_field.value) if tag_field else []
-        except (ValueError, OSError, Exception):
+        except (ValueError, OSError, MalformedDocumentError):
             return []
 
     def resolve_resource(self) -> Resource:

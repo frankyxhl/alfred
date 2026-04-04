@@ -16,7 +16,7 @@ af guide [--root DIR] [--json]              # workflow routing (PKG → USR → 
 af plan SOP_ID [...] [--root DIR] [--json]  # LLM-optimized workflow checklist from SOPs
 af plan --human SOP_ID [...]                # human-readable checklist
 af setup                                    # suggested prompts for agent config
-af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--json]
+af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
 af read IDENTIFIER [--json]                 # read by PREFIX-ACID or ACID only
 af create [TYPE] --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer project|user] [--subdir] [--spec FILE] [--dry-run]
 af update IDENTIFIER [--status] [--field KEY VALUE] [--history TEXT] [--by TEXT] [--title TEXT] [--dry-run] [-y] [--spec FILE]
