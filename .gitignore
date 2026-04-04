@@ -9,3 +9,5 @@ build/
 .team/
 coverage.json
 *.bundle
+docs/
+site/
