@@ -2,6 +2,12 @@ name: Deploy Docs
 on:
   release:
     types: [published]
+  push:
+    branches: [main]
+    paths:
+      - 'src/fx_alfred/rules/COR-*.md'
+      - 'mkdocs.yml'
+      - 'scripts/build_docs.py'
 permissions:
   contents: write
 jobs:
