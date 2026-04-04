@@ -8,6 +8,7 @@ on:
       - 'src/fx_alfred/rules/COR-*.md'
       - 'mkdocs.yml'
       - 'scripts/build_docs.py'
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
