@@ -4,9 +4,6 @@ Covers: parse_tags, Document.tags property, af list --tag,
 af validate tags checks, af fmt tags normalization, sort_metadata with Tags.
 """
 
-from pathlib import Path
-
-import pytest
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
