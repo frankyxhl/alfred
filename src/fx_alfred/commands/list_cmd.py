@@ -36,6 +36,7 @@ Filters use exact case-insensitive matching (AND logic).
     "--source", "source_filter", default=None, help="Filter by layer (pkg, usr, prj)."
 )
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON array.")
+@click.option("--tag", default=None, help="Filter by tag (case-insensitive exact match).")
 @click.pass_context
 def list_cmd(
     ctx: click.Context,
@@ -43,6 +44,7 @@ def list_cmd(
     prefix: str | None,
     source_filter: str | None,
     json_output: bool,
+    tag: str | None,
 ):
     """List all documents across PKG, USR, and PRJ layers."""
     docs = scan_or_fail(ctx)
@@ -54,6 +56,8 @@ def list_cmd(
         docs = [d for d in docs if d.prefix.upper() == prefix.upper()]
     if source_filter is not None:
         docs = [d for d in docs if d.source.lower() == source_filter.lower()]
+    if tag is not None:
+        docs = [d for d in docs if tag.lower() in d.tags]
 
     if not docs:
         if json_output:

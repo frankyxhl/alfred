@@ -46,6 +46,8 @@ REQUIRED_METADATA: dict[DocType, list[str]] = {
     DocType.INC: ["Applies to", "Last updated", "Last reviewed", "Status"],
 }
 
+OPTIONAL_METADATA: dict[DocType, list[str]] = {dt: ["Tags"] for dt in DocType}
+
 REQUIRED_SECTIONS: dict[DocType, list[str]] = {
     DocType.SOP: ["What Is It?", "Why", "When to Use", "When NOT to Use", "Steps"],
     DocType.PRP: [

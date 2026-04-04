@@ -289,6 +289,11 @@ def render_document(parsed: ParsedDocument) -> str:
     return result
 
 
+def parse_tags(value: str) -> list[str]:
+    """Split comma-separated tags, strip whitespace, filter empty, lowercase."""
+    return [t.strip().lower() for t in value.split(",") if t.strip()]
+
+
 def extract_section(body: str, heading: str) -> str | None:
     """Extract a section from document body by heading name.
 

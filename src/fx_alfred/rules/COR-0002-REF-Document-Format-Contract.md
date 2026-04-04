@@ -1,7 +1,7 @@
 # REF-0002: Document Format Contract
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-22
+**Last updated:** 2026-04-04
 **Last reviewed:** 2026-03-20
 **Status:** Active
 
@@ -70,6 +70,7 @@ Optional fields are allowed but not required. Templates pre-populate type-defaul
 | Requested by | CHG | COR-1602 review decision |
 | Priority | CHG | COR-1602 review decision |
 | Change Type | CHG | COR-1602 review decision |
+| Tags | All types | FXA-2200 PRP |
 
 ## Section Rules
 
@@ -89,3 +90,4 @@ All documents must be written in English. See COR-1401 (Documentation Language P
 |------|--------|----|
 | 2026-03-20 | Initial version, based on FXA-2116 PRP + FXA-2119 PLN confirmed decisions | Frank + Claude Code |
 | 2026-03-22 | Added Language section referencing COR-1401 | GLM |
+| 2026-04-04 | Added Tags optional field for all types per FXA-2200 | Claude Code |

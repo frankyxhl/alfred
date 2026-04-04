@@ -2,12 +2,12 @@
 
 ## Project
 
-- **Package:** fx-alfred v1.1.0
+- **Package:** fx-alfred v1.4.0
 - **Description:** Alfred — Agent Runbook: workflow routing, SOP checklists, and document management
 - **Language:** Python 3.10+, Click 8.0+
 - **Entry point:** `af = fx_alfred.cli:cli`
 - **Source:** `src/fx_alfred/`
-- **Tests:** `tests/` (374 tests, pytest)
+- **Tests:** `tests/` (pytest)
 
 ## Commands
 
@@ -16,17 +16,17 @@ af guide [--root DIR] [--json]              # workflow routing (PKG → USR → 
 af plan SOP_ID [...] [--root DIR] [--json]  # LLM-optimized workflow checklist from SOPs
 af plan --human SOP_ID [...]                # human-readable checklist
 af setup                                    # suggested prompts for agent config
-af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--json]
-af read IDENTIFIER [--json]
-af create TYPE --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer] [--subdir] [--spec FILE] [--dry-run]
-af update IDENTIFIER [--status] [--field KEY VALUE] [--history] [--title] [--dry-run] [--spec FILE]
+af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
+af read IDENTIFIER [--json]                 # read by PREFIX-ACID or ACID only
+af create [TYPE] --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer project|user] [--subdir] [--spec FILE] [--dry-run]
+af update IDENTIFIER [--status] [--field KEY VALUE] [--history TEXT] [--by TEXT] [--title TEXT] [--dry-run] [-y] [--spec FILE]
 af where IDENTIFIER [--json]               # print absolute file path of a document
 af fmt [DOC_IDS...] [--write] [--check]     # format documents to canonical style
-af search PATTERN [--json]
-af validate [--root DIR] [--json]
-af status [--json]
-af index
-af changelog
+af search PATTERN [--json]                  # case-insensitive content search
+af validate [--root DIR] [--json]           # structural correctness checks
+af status [--json]                          # document counts by source/type/prefix
+af index                                    # regenerate PRJ layer index
+af changelog                                # show version changelog
 ```
 
 ## Architecture
@@ -43,7 +43,7 @@ src/fx_alfred/
 │   ├── setup_cmd.py    # agent configuration prompts
 │   ├── list_cmd.py     # list + filtering + --json
 │   ├── read_cmd.py     # read + --json
-│   ├── create_cmd.py   # create from template
+│   ├── create_cmd.py   # create from template or spec
 │   ├── update_cmd.py   # metadata/history/rename updates; --spec FILE
 │   ├── fmt_cmd.py      # format to canonical style (metadata order, whitespace, table align)
 │   ├── where_cmd.py    # find absolute file path of a document (--json)
@@ -82,7 +82,7 @@ src/fx_alfred/
 
 ```bash
 # Dev
-.venv/bin/pytest -v --tb=short        # run tests (374)
+.venv/bin/pytest -v --tb=short        # run tests
 .venv/bin/ruff check .                 # lint
 .venv/bin/ruff format --check .        # format check
 
