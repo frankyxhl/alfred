@@ -3,8 +3,6 @@
 from pathlib import Path
 from textwrap import dedent
 
-import yaml
-
 from scripts.build_docs import (
     build_nav,
     clean_docs_dir,
@@ -143,7 +141,33 @@ class TestUpdateMkdocsYml:
         new_nav = [{"Home": "index.md"}, {"SOP": [{"SOP-1000: Create": "COR-1000.md"}]}]
         update_mkdocs_yml(new_nav)
 
-        with open(yml, encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        assert config["nav"] == new_nav
-        assert config["site_name"] == "Test"
+        content = yml.read_text(encoding="utf-8")
+        assert "site_name: Test" in content
+        assert "SOP-1000" in content
+        assert "COR-1000.md" in content
+
+    def test_preserves_non_nav_config(self, tmp_path: Path, monkeypatch: object) -> None:
+        import scripts.build_docs as mod
+
+        yml = tmp_path / "mkdocs.yml"
+        yml.write_text(
+            dedent("""\
+                site_name: Test
+                markdown_extensions:
+                - pymdownx.superfences:
+                    custom_fences:
+                    - name: mermaid
+                      class: mermaid
+                      format: !!python/name:pymdownx.superfences.fence_code_format
+                nav:
+                - Home: index.md
+            """),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(mod, "MKDOCS_YML", yml)  # type: ignore[attr-defined]
+
+        update_mkdocs_yml([{"Home": "index.md"}])
+
+        content = yml.read_text(encoding="utf-8")
+        assert "pymdownx.superfences" in content
+        assert "!!python/name:" in content

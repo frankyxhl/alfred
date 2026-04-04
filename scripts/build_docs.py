@@ -13,8 +13,6 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 
-import yaml
-
 ROOT = Path(__file__).resolve().parent.parent
 RULES_DIR = ROOT / "src" / "fx_alfred" / "rules"
 DOCS_DIR = ROOT / "docs"
@@ -85,15 +83,40 @@ def build_nav(copied_files: list[Path]) -> list[dict]:
     return nav
 
 
+def _yaml_quote(s: str) -> str:
+    """Quote a YAML string if it contains special characters."""
+    if ":" in s or '"' in s or "'" in s or "#" in s:
+        return "'" + s.replace("'", "''") + "'"
+    return s
+
+
+def _render_nav(nav: list[dict], indent: int = 0) -> str:
+    """Render nav structure as YAML lines."""
+    lines: list[str] = []
+    prefix = "  " * indent
+    for item in nav:
+        for key, value in item.items():
+            if isinstance(value, str):
+                lines.append(f"{prefix}- {_yaml_quote(key)}: {value}")
+            elif isinstance(value, list):
+                lines.append(f"{prefix}- {key}:")
+                lines.append(_render_nav(value, indent + 2))
+    return "\n".join(lines)
+
+
 def update_mkdocs_yml(nav: list[dict]) -> None:
-    """Update the nav section in mkdocs.yml using pyyaml."""
-    with open(MKDOCS_YML, encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+    """Update the nav section in mkdocs.yml, preserving other config."""
+    content = MKDOCS_YML.read_text(encoding="utf-8")
+    nav_yaml = _render_nav(nav, indent=1)
+    nav_block = f"nav:\n{nav_yaml}\n"
 
-    config["nav"] = nav
+    if "nav:" in content:
+        # Remove everything from nav: to end of file, then append new nav
+        content = content[: content.index("nav:")] + nav_block
+    else:
+        content = content.rstrip() + "\n\n" + nav_block
 
-    with open(MKDOCS_YML, "w", encoding="utf-8") as f:
-        yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    MKDOCS_YML.write_text(content, encoding="utf-8")
 
 
 def main() -> None:
