@@ -37,10 +37,19 @@ Without a standard process, review comments get fixed without replies, missed en
 
 ## Steps
 
-### 1. Fetch all review comments
+### 1. Fetch all PR review feedback
+
+Fetch inline review comments, review summary comments, and top-level PR conversation comments:
 
 ```bash
-gh api repos/{owner}/{repo}/pulls/{number}/comments --jq '.[] | {id, path, line, body}'
+# Inline review comments on changed lines
+gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate --jq '.[] | {type: "inline", id, path, line, body}'
+
+# Review summary comments (review bodies)
+gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.body != null and .body != "") | {type: "review_summary", id, state, body}'
+
+# Top-level PR conversation comments
+gh api repos/{owner}/{repo}/issues/{number}/comments --paginate --jq '.[] | {type: "issue_comment", id, body}'
 ```
 
 ### 2. Categorize each comment
@@ -107,7 +116,7 @@ Fixed in abc1234. Narrowed exception catch to `(ValueError, OSError, MalformedDo
 
 Example (declining):
 ```
-This suggestion is incorrect — COR-0002 requires Date before Severity for INC documents (see template inc.md:7-8). No change needed.
+This suggestion is incorrect — the INC template places Date before Severity (see `src/fx_alfred/templates/inc.md`). No change needed.
 ```
 
 ---
@@ -126,3 +135,4 @@ This suggestion is incorrect — COR-0002 requires Date before Severity for INC 
 | Date | Change | By |
 |------|--------|----|
 | 2026-04-04 | Initial version per Issue #28 | Claude Code |
+| 2026-04-04 | PR review fix: fetch 3 endpoints (inline + review summary + issue comments), add --paginate, fix declining example to cite template not COR-0002 | Claude Code |
