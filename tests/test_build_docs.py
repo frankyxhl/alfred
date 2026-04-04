@@ -22,12 +22,16 @@ def _make_cor_file(directory: Path, name: str, h1: str) -> Path:
 
 class TestParseH1:
     def test_valid_sop(self, tmp_path: Path) -> None:
-        path = _make_cor_file(tmp_path, "COR-1000-SOP-Create-SOP.md", "SOP-1000: Create SOP")
+        path = _make_cor_file(
+            tmp_path, "COR-1000-SOP-Create-SOP.md", "SOP-1000: Create SOP"
+        )
         result = parse_h1(path)
         assert result == ("SOP", 1000, "Create SOP")
 
     def test_valid_ref(self, tmp_path: Path) -> None:
-        path = _make_cor_file(tmp_path, "COR-0001-REF-Glossary.md", "REF-0001: Glossary")
+        path = _make_cor_file(
+            tmp_path, "COR-0001-REF-Glossary.md", "REF-0001: Glossary"
+        )
         result = parse_h1(path)
         assert result == ("REF", 1, "Glossary")
 
@@ -146,7 +150,9 @@ class TestUpdateMkdocsYml:
         assert "SOP-1000" in content
         assert "COR-1000.md" in content
 
-    def test_preserves_non_nav_config(self, tmp_path: Path, monkeypatch: object) -> None:
+    def test_preserves_non_nav_config(
+        self, tmp_path: Path, monkeypatch: object
+    ) -> None:
         import scripts.build_docs as mod
 
         yml = tmp_path / "mkdocs.yml"
