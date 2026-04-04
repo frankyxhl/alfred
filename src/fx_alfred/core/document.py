@@ -55,6 +55,21 @@ class Document:
     def filename(self) -> str:
         return f"{self.prefix}-{self.acid}-{self.type_code}-{self.title.replace(' ', '-')}.md"
 
+    @property
+    def tags(self) -> list[str]:
+        """Parse Tags metadata field. Returns [] if absent or unreadable."""
+        try:
+            from fx_alfred.core.parser import MalformedDocumentError, parse_metadata, parse_tags
+
+            content = self.resolve_resource().read_text()
+            parsed = parse_metadata(content)
+            tag_field = next(
+                (mf for mf in parsed.metadata_fields if mf.key == "Tags"), None
+            )
+            return parse_tags(tag_field.value) if tag_field else []
+        except (ValueError, OSError, Exception):
+            return []
+
     def resolve_resource(self) -> Resource:
         """Return a resource that supports read_text().
 

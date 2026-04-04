@@ -207,6 +207,18 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                             f"{', '.join(sorted(allowed))})"
                         )
 
+            # Validate Tags field format (if present)
+            tag_field = next(
+                (mf for mf in parsed.metadata_fields if mf.key == "Tags"), None
+            )
+            if tag_field is not None:
+                raw_parts = [t.strip() for t in tag_field.value.split(",")]
+                if any(not part for part in raw_parts):
+                    issues.append("Tags field contains empty tag values")
+                lowered = [t.lower() for t in raw_parts if t]
+                if len(lowered) != len(set(lowered)):
+                    issues.append("Tags field contains duplicate tags")
+
             # Validate Change History table header
             if parsed.history_header:
                 history_issues = _validate_history_header(parsed.history_header)

@@ -109,6 +109,8 @@
 | 2197 | CHG | Auto Deploy Docs On Push |
 | 2198 | PRP | COR Evolution Philosophy Reference |
 | 2199 | CHG | Implement COR 1800 REF Evolution Philosophy |
+| 2200 | PRP | Document Tags Metadata Field |
+| 2201 | CHG | Implement Document Tags Metadata Field |
 
 ---
 

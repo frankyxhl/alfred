@@ -66,6 +66,30 @@ def normalize_metadata_order(parsed: ParsedDocument, doc_type: DocType | None) -
     return True
 
 
+def normalize_tags(parsed: ParsedDocument) -> bool:
+    """Normalize Tags metadata field: lowercase, sort, deduplicate.
+
+    Returns True if any changes were made.
+    """
+    tag_field = next(
+        (mf for mf in parsed.metadata_fields if mf.key == "Tags"), None
+    )
+    if tag_field is None:
+        return False
+
+    from fx_alfred.core.parser import parse_tags
+
+    tags = parse_tags(tag_field.value)
+    normalized = ", ".join(sorted(set(tags)))
+
+    if normalized == tag_field.value:
+        return False
+
+    tag_field.value = normalized
+    tag_field.dirty = True
+    return True
+
+
 def normalize_trailing_whitespace(parsed: ParsedDocument) -> bool:
     """Strip trailing whitespace from metadata values.
 
@@ -274,6 +298,7 @@ def format_document(parsed: ParsedDocument, doc_type: DocType | None) -> bool:
     """
     changed = False
     changed |= normalize_metadata_order(parsed, doc_type)
+    changed |= normalize_tags(parsed)
     changed |= normalize_trailing_whitespace(parsed)
     changed |= normalize_blank_lines_in_body(parsed)
     changed |= normalize_table_alignment(parsed)
