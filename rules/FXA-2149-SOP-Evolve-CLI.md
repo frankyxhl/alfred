@@ -68,9 +68,9 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
 10. **Switch to Evaluator role** (skeptical by default). Score each candidate using Evolve-CLI weights from FXA-2146:
     - Test verifiability 35% / Scope restraint 30% / Backward compatibility 20% / Necessity 15%
 11. **Discard candidates scoring < 7.0**. Record scores and discards in the run log.
-12. **If no candidates pass** — update run log with "no-op: no candidate reached threshold", leave file as uncommitted working-tree file, exit.
+12. **If no candidates pass** — update run log with "no-op: no candidate reached threshold", commit and push run log to main, exit.
 
-### Phase 5: Implement (for each passing candidate, TDD)
+### Phase 5: Implement (top candidate, TDD)
 
 13. **Open GitHub issue** — `gh issue create --title "evolve: <change-title>" --label evolve`
 14. **Create branch** — `git checkout -b chore/<issue-number>-evolve-cli-YYYYMMDD`
@@ -115,3 +115,4 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2149)"
 | 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147 | Frank + Claude |
 | 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5; D2: add working directory note to Phase 2; D3: fix af where identifier in example | Frank + Claude |
 | 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions | Claude Code |
+| 2026-04-04 | Step 12: commit+push run log on no-op; Phase 5: "top candidate" not "for each" (retro FXA-2195) | Claude Code |
