@@ -108,6 +108,7 @@
 | 2196 | CHG | MkDocs Material PKG Documentation Site |
 | 2197 | CHG | Auto Deploy Docs On Push |
 | 2198 | PRP | COR Evolution Philosophy Reference |
+| 2199 | CHG | Implement COR 1800 REF Evolution Philosophy |
 
 ---
 

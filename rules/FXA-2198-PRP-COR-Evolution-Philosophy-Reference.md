@@ -3,7 +3,7 @@
 **Applies to:** All projects using the COR document system
 **Last updated:** 2026-04-04
 **Last reviewed:** 2026-04-04
-**Status:** Draft
+**Status:** Approved
 
 ---
 
