@@ -62,6 +62,16 @@ class Document:
             from fx_alfred.core.parser import parse_metadata, parse_tags
 
             content = self.resolve_resource().read_text()
+            # ACID=0000 index docs may have non-standard H1; substitute
+            # a dummy H1 so the parser can extract metadata (same approach
+            # as validate_cmd).
+            if self.acid == "0000":
+                from fx_alfred.core.parser import H1_PATTERN
+
+                lines = content.split("\n")
+                if lines and not H1_PATTERN.match(lines[0]):
+                    dummy_h1 = f"# {self.type_code}-{self.acid}: Index"
+                    content = dummy_h1 + content[len(lines[0]):]
             parsed = parse_metadata(content)
             tag_field = next(
                 (mf for mf in parsed.metadata_fields if mf.key == "Tags"), None

@@ -98,6 +98,30 @@ def test_document_tags_absent(tmp_path):
     assert doc.tags == []
 
 
+def test_document_tags_acid_0000_index(tmp_path):
+    """ACID=0000 index docs with non-standard H1 should still parse Tags."""
+    from fx_alfred.core.document import Document
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    doc_file = rules / "TST-0000-REF-Document-Index.md"
+    doc_file.write_text(
+        "# TST Document Index\n\n"
+        "**Applies to:** TST project\n"
+        "**Last updated:** 2026-04-04\n"
+        "**Last reviewed:** 2026-04-04\n"
+        "**Status:** Active\n"
+        "**Tags:** index, reference\n\n"
+        "---\n\n## What Is It?\n\nIndex.\n\n"
+        "---\n\n## Change History\n\n"
+        "| Date | Change | By |\n|------|--------|----|"
+    )
+    doc = Document.from_filename(
+        "TST-0000-REF-Document-Index.md", directory="rules", source="prj", base_path=rules
+    )
+    assert doc.tags == ["index", "reference"]
+
+
 def test_document_tags_malformed_returns_empty(tmp_path):
     from fx_alfred.core.document import Document
 
