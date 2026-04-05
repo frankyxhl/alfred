@@ -1,4 +1,4 @@
-# CHG-2101: Validate-Status-Flag-In-Update-Cmd
+# CHG-2105: Validate-Status-Flag-In-Update-Cmd
 
 **Applies to:** FXA project
 **Last updated:** 2026-04-05
@@ -17,7 +17,7 @@ Remove `has_spec` guard from status validation in `update_cmd.py` line 252 so th
 
 ## Why
 
-`af update DOC --status InvalidValue` silently writes invalid statuses. Only `--spec`-sourced updates are validated. Per PRP FXA-2100.
+`af update DOC --status InvalidValue` silently writes invalid statuses. Only `--spec`-sourced updates are validated. Per PRP FXA-2104.
 
 ## Impact Analysis
 

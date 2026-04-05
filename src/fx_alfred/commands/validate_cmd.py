@@ -27,9 +27,6 @@ from fx_alfred.core.workflow import (
     validate_workflow_signature,
 )
 
-# Pattern to extract type_code and ACID from H1 line
-_H1_EXTRACT = re.compile(r"^# ([A-Z]{3})-(\d{4}): .+$")
-
 # Base required metadata fields (fallback for unknown types)
 _BASE_REQUIRED_FIELDS = {"Applies to", "Last updated", "Last reviewed"}
 
@@ -144,10 +141,10 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                 issues.append(f"H1 does not match expected format: {h1_line!r}")
             else:
                 # Check 2: type_code and ACID in H1 must match filename
-                match = _H1_EXTRACT.match(h1_line)
+                match = H1_PATTERN.match(h1_line)
                 if match:
-                    h1_type_code = match.group(1)
-                    h1_acid = match.group(2)
+                    h1_type_code = match.group("type_code")
+                    h1_acid = match.group("acid")
                     if h1_type_code != doc.type_code:
                         issues.append(
                             f"H1 type_code '{h1_type_code}' does not match "

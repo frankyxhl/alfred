@@ -1,4 +1,4 @@
-# PRP-2100: Validate-Status-Flag-In-Update-Cmd
+# PRP-2104: Validate-Status-Flag-In-Update-Cmd
 
 **Applies to:** FXA project
 **Last updated:** 2026-04-05
