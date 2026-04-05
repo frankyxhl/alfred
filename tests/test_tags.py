@@ -117,7 +117,10 @@ def test_document_tags_acid_0000_index(tmp_path):
         "| Date | Change | By |\n|------|--------|----|"
     )
     doc = Document.from_filename(
-        "TST-0000-REF-Document-Index.md", directory="rules", source="prj", base_path=rules
+        "TST-0000-REF-Document-Index.md",
+        directory="rules",
+        source="prj",
+        base_path=rules,
     )
     assert doc.tags == ["index", "reference"]
 
@@ -202,7 +205,9 @@ def test_list_tag_no_match(tmp_path, monkeypatch):
     proj = _make_tagged_project(tmp_path)
     monkeypatch.chdir(proj)
     runner = CliRunner()
-    result = runner.invoke(cli, ["list", "--tag", "nonexistent"], catch_exceptions=False)
+    result = runner.invoke(
+        cli, ["list", "--tag", "nonexistent"], catch_exceptions=False
+    )
     assert result.exit_code == 0
     assert "No documents found." in result.output
 
@@ -307,9 +312,7 @@ def test_fmt_normalizes_tags(tmp_path, monkeypatch):
     )
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["fmt", "--write", "TST-1000"], catch_exceptions=False
-    )
+    result = runner.invoke(cli, ["fmt", "--write", "TST-1000"], catch_exceptions=False)
     assert result.exit_code == 0
     content = (rules / "TST-1000-SOP-Test-Doc.md").read_text()
     assert "**Tags:** release, review, tdd" in content
@@ -331,8 +334,12 @@ def test_sort_metadata_tags_before_unknown():
     from fx_alfred.core.normalize import sort_metadata
 
     fields = [
-        "Applies to", "Last updated", "Last reviewed", "Status",
-        "Unknown field", "Tags",
+        "Applies to",
+        "Last updated",
+        "Last reviewed",
+        "Status",
+        "Unknown field",
+        "Tags",
     ]
     result = sort_metadata(fields, DocType.SOP)
     assert result.index("Tags") < result.index("Unknown field")

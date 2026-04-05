@@ -37,9 +37,16 @@ def normalize_date(s: str) -> str:
 
 
 KNOWN_OPTIONAL_ORDER = [
-    "Related", "Reviewed by", "Last executed",
-    "Date", "Severity", "Requested by", "Priority", "Change Type",
-    "Document role", "Tags",
+    "Related",
+    "Reviewed by",
+    "Last executed",
+    "Date",
+    "Severity",
+    "Requested by",
+    "Priority",
+    "Change Type",
+    "Document role",
+    "Tags",
 ]
 
 
@@ -52,7 +59,9 @@ def sort_metadata(fields: list[str], doc_type: DocType) -> list[str]:
     # Required fields in canonical order
     ordered = [f for f in canonical if f in fields]
     # Known optional fields in defined order
-    ordered += [f for f in KNOWN_OPTIONAL_ORDER if f in fields and f not in canonical_set]
+    ordered += [
+        f for f in KNOWN_OPTIONAL_ORDER if f in fields and f not in canonical_set
+    ]
     # Truly unknown fields in original relative order
     ordered += [f for f in fields if f not in canonical_set and f not in optional_set]
     return ordered

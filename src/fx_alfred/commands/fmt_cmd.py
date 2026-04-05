@@ -71,9 +71,7 @@ def normalize_tags(parsed: ParsedDocument) -> bool:
 
     Returns True if any changes were made.
     """
-    tag_field = next(
-        (mf for mf in parsed.metadata_fields if mf.key == "Tags"), None
-    )
+    tag_field = next((mf for mf in parsed.metadata_fields if mf.key == "Tags"), None)
     if tag_field is None:
         return False
 

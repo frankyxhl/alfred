@@ -36,7 +36,9 @@ Filters use exact case-insensitive matching (AND logic).
     "--source", "source_filter", default=None, help="Filter by layer (pkg, usr, prj)."
 )
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON array.")
-@click.option("--tag", default=None, help="Filter by tag (case-insensitive exact match).")
+@click.option(
+    "--tag", default=None, help="Filter by tag (case-insensitive exact match)."
+)
 @click.pass_context
 def list_cmd(
     ctx: click.Context,
