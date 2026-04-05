@@ -45,8 +45,8 @@ Fetch inline review comments, review summary comments, and top-level PR conversa
 # Inline review comments on changed lines
 gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate --jq '.[] | {type: "inline", id, path, line, body}'
 
-# Review summary comments (review bodies)
-gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.body != null and .body != "") | {type: "review_summary", id, state, body}'
+# Review summary comments (review bodies). Keep CHANGES_REQUESTED reviews even if body is empty.
+gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type: "review_summary", id, state, body}'
 
 # Top-level PR conversation comments
 gh api repos/{owner}/{repo}/issues/{number}/comments --paginate --jq '.[] | {type: "issue_comment", id, body}'
@@ -67,11 +67,9 @@ Read each comment and classify:
 
 **Blocking:**
 1. Fix the code
-2. Reply on GitHub with commit hash and what changed
-3. Push the fix
 
 **Advisory:**
-1. If adopting: fix, reply with commit hash
+1. If adopting: fix the code
 2. If declining: reply with reasoning why the change is not needed
 
 **Question:**
@@ -86,14 +84,23 @@ Read each comment and classify:
 Group all blocking and adopted advisory fixes into a single commit referencing the PR:
 
 ```bash
+git add <changed-files>
 git commit -m "fix: address PR review comments (#<PR>)"
+git push
 ```
 
-### 5. Wait for CI
+### 5. Reply to each fixed comment
+
+After the fix commit is pushed, reply on GitHub for each blocking or adopted advisory comment with:
+
+1. The commit hash
+2. What changed
+
+### 6. Wait for CI
 
 Verify CI passes after the fix commit.
 
-### 6. Do NOT self-resolve threads
+### 7. Do NOT self-resolve threads
 
 The reviewer (human or bot) must confirm the fix and resolve the thread. Never resolve your own fix.
 
@@ -136,3 +143,4 @@ This suggestion is incorrect — the INC template places Date before Severity (s
 |------|--------|----|
 | 2026-04-04 | Initial version per Issue #28 | Claude Code |
 | 2026-04-04 | PR review fix: fetch 3 endpoints (inline + review summary + issue comments), add --paginate, fix declining example to cite template not COR-0002 | Claude Code |
+| 2026-04-05 | PR review fix: include empty-body CHANGES_REQUESTED reviews, move replies after commit/push, add explicit git push step | Codex |
