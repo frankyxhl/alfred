@@ -67,26 +67,27 @@ class WorkflowEdge:
 def parse_workflow_signature(parsed: ParsedDocument) -> WorkflowSignature | None:
     """Extract a workflow signature from a parsed document.
 
-    Returns ``None`` when neither ``Workflow input`` nor ``Workflow output``
-    metadata is present (i.e. the document is untyped).
+    Returns ``None`` only when *none* of the four workflow metadata keys
+    are present (i.e. the document is fully untyped).  If any workflow
+    key exists — even just ``Workflow requires`` — a signature is returned
+    so that ``validate_workflow_signature`` can lint it.
     """
     field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
 
     input_val = field_map.get(WORKFLOW_INPUT)
     output_val = field_map.get(WORKFLOW_OUTPUT)
+    requires_val = field_map.get(WORKFLOW_REQUIRES)
+    provides_val = field_map.get(WORKFLOW_PROVIDES)
 
-    # Untyped document — no workflow metadata at all.
-    if input_val is None and output_val is None:
+    # Fully untyped document — no workflow metadata at all.
+    if all(v is None for v in (input_val, output_val, requires_val, provides_val)):
         return None
 
-    # Both must be present if either is present; however ``parse`` returns
-    # whatever it finds and ``validate`` catches the error.  Treat a missing
-    # value as empty string so ``validate`` produces the right diagnostic.
     return WorkflowSignature(
         input=input_val.strip() if input_val else "",
         output=output_val.strip() if output_val else "",
-        requires=_parse_token_list(field_map.get(WORKFLOW_REQUIRES, "")),
-        provides=_parse_token_list(field_map.get(WORKFLOW_PROVIDES, "")),
+        requires=_parse_token_list(requires_val or ""),
+        provides=_parse_token_list(provides_val or ""),
     )
 
 
@@ -94,12 +95,18 @@ def validate_workflow_signature(sig: WorkflowSignature) -> list[str]:
     """Return a list of error strings.  Empty list means valid."""
     errors: list[str] = []
 
+    has_list_fields = bool(sig.requires or sig.provides)
+
     # Both input and output must be present if either exists.
     if not sig.input or not sig.output:
         if sig.input and not sig.output:
             errors.append("Workflow input is set but Workflow output is missing")
         elif sig.output and not sig.input:
             errors.append("Workflow output is set but Workflow input is missing")
+        elif has_list_fields:
+            errors.append(
+                "Workflow requires/provides present without Workflow input/output"
+            )
         else:
             errors.append("Workflow input and Workflow output are both empty")
 
@@ -137,14 +144,17 @@ def check_composition(
 
     *chain* is a list of ``(doc_id, WorkflowSignature)`` tuples.  Each
     adjacent pair produces a :class:`WorkflowEdge`.  An edge is typed only
-    when **both** signatures have non-empty ``input``/``output``.
+    when **both** signatures have complete (non-empty) ``input`` *and*
+    ``output``.
     """
     edges: list[WorkflowEdge] = []
     for i in range(len(chain) - 1):
         left_id, left_sig = chain[i]
         right_id, right_sig = chain[i + 1]
 
-        typed = bool(left_sig.output and right_sig.input)
+        left_complete = bool(left_sig.input and left_sig.output)
+        right_complete = bool(right_sig.input and right_sig.output)
+        typed = left_complete and right_complete
         compatible = left_sig.output == right_sig.input if typed else True
 
         edges.append(

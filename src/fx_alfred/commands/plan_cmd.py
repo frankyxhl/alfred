@@ -20,6 +20,7 @@ from fx_alfred.core.workflow import (
     WorkflowSignature,
     check_composition,
     parse_workflow_signature,
+    validate_workflow_signature,
 )
 
 # Heading search order for step extraction
@@ -174,6 +175,16 @@ def plan_cmd(
 
         sig = parse_workflow_signature(parsed)
         phase_info.append((sop_id, doc, parsed, sig))
+
+    # ── Validate workflow signatures before composition ──
+    for sop_id, doc, parsed, sig in phase_info:
+        if sig is not None:
+            wf_errors = validate_workflow_signature(sig)
+            if wf_errors:
+                doc_id = f"{doc.prefix}-{doc.acid}"
+                raise click.ClickException(
+                    f"Invalid workflow metadata in {doc_id}: " + "; ".join(wf_errors)
+                )
 
     # ── Workflow composition check ──
     chain: list[tuple[str, WorkflowSignature]] = [

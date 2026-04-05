@@ -283,3 +283,68 @@ def test_parse_absent_requires_produces_empty_list():
     assert sig is not None
     assert sig.requires == []
     assert sig.provides == []
+
+
+# ---------------------------------------------------------------------------
+# Fix 1: parse returns signature when ANY workflow key present
+# ---------------------------------------------------------------------------
+
+
+def test_parse_returns_sig_for_requires_only():
+    """SOP with only Workflow requires must still return a signature."""
+    parsed = _make_parsed(
+        [
+            ("Status", "Active"),
+            ("Workflow requires", "repo:clean"),
+        ]
+    )
+    sig = parse_workflow_signature(parsed)
+    assert sig is not None
+    assert sig.input == ""
+    assert sig.output == ""
+    assert sig.requires == ["repo:clean"]
+
+
+def test_parse_returns_sig_for_provides_only():
+    """SOP with only Workflow provides must still return a signature."""
+    parsed = _make_parsed(
+        [
+            ("Status", "Active"),
+            ("Workflow provides", "proposal:draft"),
+        ]
+    )
+    sig = parse_workflow_signature(parsed)
+    assert sig is not None
+    assert sig.provides == ["proposal:draft"]
+
+
+def test_validate_requires_without_input_output():
+    """requires/provides present without input/output must be flagged."""
+    sig = WorkflowSignature(
+        input="", output="", requires=["repo:clean"], provides=["proposal:draft"]
+    )
+    errors = validate_workflow_signature(sig)
+    assert any("without" in e.lower() and "input" in e.lower() for e in errors)
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: edge typed requires complete signatures on both sides
+# ---------------------------------------------------------------------------
+
+
+def test_edge_untyped_when_left_has_partial_signature():
+    """Partial signature (only output, no input) must not make an edge typed."""
+    sig_a = WorkflowSignature(input="", output="proposal:draft")  # partial
+    sig_b = WorkflowSignature(input="proposal:draft", output="proposal:reviewed")
+    edges = check_composition([("A", sig_a), ("B", sig_b)])
+    assert len(edges) == 1
+    assert edges[0].typed is False  # partial left → untyped
+
+
+def test_edge_untyped_when_right_has_partial_signature():
+    """Partial signature (only input, no output) must not make an edge typed."""
+    sig_a = WorkflowSignature(input="proposal:none", output="proposal:draft")
+    sig_b = WorkflowSignature(input="proposal:draft", output="")  # partial
+    edges = check_composition([("A", sig_a), ("B", sig_b)])
+    assert len(edges) == 1
+    assert edges[0].typed is False  # partial right → untyped
