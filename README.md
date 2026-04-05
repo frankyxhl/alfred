@@ -125,7 +125,7 @@ af read COR-1000                    # by PREFIX-ACID
 af read 1000                        # by ACID only
 
 # Update
-af update FXA-2107 --status "Completed"
+af update FXA-2107 --status "Active"
 af update FXA-2107 --history "Done" --by "Claude"
 af update FXA-2107 --title "New Title" -y
 af update FXA-2107 --spec patch.yaml  # batch update via spec file
