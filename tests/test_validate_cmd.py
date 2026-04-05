@@ -1334,6 +1334,5 @@ Missing Last reviewed.
     import json
 
     output = json.loads(result.output)
-    invalid_docs = [r for r in output["results"] if not r["valid"]]
-    assert len(invalid_docs) > 0
-    assert invalid_docs[0]["doc_id"] == "SOP-1000"
+    invalid_doc_ids = [r["doc_id"] for r in output["results"] if not r["valid"]]
+    assert "SOP-1000" in invalid_doc_ids
