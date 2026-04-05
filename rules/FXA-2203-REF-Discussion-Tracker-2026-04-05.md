@@ -11,11 +11,11 @@
 
 | DN | Status | Parent | Source | Created | Updated | Topic |
 |----|--------|--------|--------|---------|---------|-------|
-| D1 | Done | — | User | 09:46 | 10:21 | 遵守 COR-1201 SOP，创建 Discussion Tracker |
-| D2 | Done | — | User | 09:54 | 10:35 | PR #29 未解决的 review comments |
-| D3 | Open | — | Saeba | 09:54 | — | ACP Claude Code 认证失败，需排查 |
-| D4 | Done | — | Saeba | 10:00 | 10:53 | v1.5.0 发版（pyright fix → 重建 release → CI pass） |
-| D5 | Open | — | User | 16:11 | — | FXA-2204 Typed SOP Composition — 用 droid 实现，分 phases，走 PR，发布 v1.6.0 |
+| D1 | Done | — | User | 09:46 | 10:21 | Follow COR-1201 SOP, create Discussion Tracker |
+| D2 | Done | — | User | 09:54 | 10:35 | Unresolved review comments on PR #29 |
+| D3 | Open | — | Saeba | 09:54 | — | ACP Claude Code auth failure, needs investigation |
+| D4 | Done | — | Saeba | 10:00 | 10:53 | v1.5.0 release (pyright fix → rebuild release → CI pass) |
+| D5 | Open | — | User | 16:11 | — | FXA-2204 Typed SOP Composition — implement via droid, split into phases, go through PR, publish v1.6.0 |
 
 ## Archived Items
 
@@ -24,33 +24,33 @@
 
 ## Discussion Notes
 
-### D1: 遵守 COR-1201 SOP
-- Frank 指示 Saeba 需要遵守 COR-1201 Discussion Tracking SOP
-- 创建了今天 (2026-04-05) 的 tracker: FXA-2203
-- 将 COR-1201 纳入工作习惯 ✅
+### D1: Follow COR-1201 SOP
+- Frank instructed Saeba to follow COR-1201 Discussion Tracking SOP
+- Created today's (2026-04-05) tracker: FXA-2203
+- COR-1201 incorporated into workflow habits ✅
 
-### D2: PR #29 未解决的 review comments
-- 3 轮 Codex review，全部修复 + 回复 ✅
-- FXA-2202 CHG 补全 ✅
+### D2: Unresolved review comments on PR #29
+- 3 rounds of Codex review, all fixed + replied ✅
+- FXA-2202 CHG completed ✅
 - PR merged ✅
 
-### D3: ACP Claude Code 认证失败
+### D3: ACP Claude Code auth failure
 - acpx exit code 1, tokens 0
-- Frank 已尝试 symlink 修复，仍未成功
-- Codex ACP 可用
+- Frank tried symlink fix, still unsuccessful
+- Codex ACP works
 
-### D4: v1.5.0 发版
-- 按 FXA-2102 SOP 执行
-- pyright 类型检查失败 → Codex 修复 → 重建 release → CI pass ✅
-- PyPI 发布成功 ✅
+### D4: v1.5.0 release
+- Followed FXA-2102 SOP
+- pyright type check failed → Codex fix → rebuild release → CI pass ✅
+- PyPI publish successful ✅
 - Gemini review: 9.7/10 PASS ✅
 
 ### D5: FXA-2204 Typed SOP Composition
-- CHG-2204 已创建（2193 被 PRP 占，用 2204）
-- 直接 CHG 不需要 PRP
-- 需要走 PR 流程
-- 用 droid (GLM 5.1) 实现，Saeba 分 phases 派发
-- 实现完发布 v1.6.0
+- CHG-2204 created (2193 occupied by PRP, used 2204)
+- Direct CHG, no PRP needed
+- Must go through PR workflow
+- Implement via droid (GLM 5.1), Saeba splits into phases and dispatches
+- Publish v1.6.0 after implementation
 
 ---
 
