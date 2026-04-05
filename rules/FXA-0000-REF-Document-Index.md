@@ -111,6 +111,7 @@
 | 2199 | CHG | Implement COR 1800 REF Evolution Philosophy |
 | 2200 | PRP | Document Tags Metadata Field |
 | 2201 | CHG | Implement Document Tags Metadata Field |
+| 2202 | CHG | Add COR 1612 Respond To PR Review Comments SOP |
 
 ---
 

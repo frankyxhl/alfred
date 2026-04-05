@@ -1,7 +1,7 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-19
+**Last updated:** 2026-04-04
 **Last reviewed:** 2026-03-19
 **Status:** Active
 
@@ -16,6 +16,7 @@ A reference index of all documents in the COR system.
 | ACID | Type | Title |
 |------|------|-------|
 | 0001 | REF | Glossary |
+| 0002 | REF | Document Format Contract |
 | 1000 | SOP | Create SOP |
 | 1001 | SOP | Create Document |
 | 1002 | SOP | Read Document |
@@ -43,10 +44,17 @@ A reference index of all documents in the COR system.
 | 1604 | SOP | Workflow — Competitive Parallel Exploration |
 | 1605 | SOP | Workflow — Sequential Pipeline |
 | 1606 | SOP | Workflow — Selection |
+| 1607 | SOP | Workflow Routing |
+| 1608 | SOP | PRP Review Scoring |
+| 1609 | SOP | CHG Review Scoring |
+| 1610 | SOP | Code Review Scoring |
+| 1611 | SOP | Reviewer Calibration Guide |
+| 1612 | SOP | Respond To PR Review Comments |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
 | 1703 | SOP | Fork Project |
+| 1800 | REF | Evolution Philosophy |
 
 ---
 
@@ -55,3 +63,4 @@ A reference index of all documents in the COR system.
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version with proper structure | Frank |
+| 2026-04-04 | Added COR-1607–1612, COR-1800 | Claude Code |
