@@ -1,7 +1,7 @@
 # SOP-1612: Respond To PR Review Comments
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-04
+**Last updated:** 2026-04-05
 **Last reviewed:** 2026-04-04
 **Status:** Draft
 
@@ -93,6 +93,8 @@ git push
 
 After the fix commit is pushed, reply on GitHub for each blocking or adopted advisory comment with:
 
+GitHub only auto-marks line-anchored comments as outdated when the referenced diff line changes. Diff position comments with `line: null` (common for Codex/Copilot bot comments) and issue-level/top-level comments are not auto-outdated, so reply to those manually after the fix lands.
+
 1. The commit hash
 2. What changed
 
@@ -144,3 +146,4 @@ This suggestion is incorrect — the INC template places Date before Severity (s
 | 2026-04-04 | Initial version per Issue #28 | Claude Code |
 | 2026-04-04 | PR review fix: fetch 3 endpoints (inline + review summary + issue comments), add --paginate, fix declining example to cite template not COR-0002 | Claude Code |
 | 2026-04-05 | PR review fix: include empty-body CHANGES_REQUESTED reviews, move replies after commit/push, add explicit git push step | Codex |
+| 2026-04-05 | Add note that diff-position and top-level comments do not auto-mark outdated | Codex |
