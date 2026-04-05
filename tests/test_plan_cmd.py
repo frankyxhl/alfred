@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import click
+import pytest
 from click.testing import CliRunner
 from fx_alfred.cli import cli
 from fx_alfred.commands.plan_cmd import (
@@ -401,10 +403,8 @@ def test_plan_typed_compatible_chain(sample_project, monkeypatch):
     assert "proposal:draft" in result.output
 
 
-def test_plan_typed_mismatch_sets_composition_invalid(sample_project, monkeypatch):
-    """Incompatible typed chain yields JSON with composition_valid=false."""
-    import json
-
+def test_plan_typed_mismatch_raises(sample_project, monkeypatch):
+    """Incompatible typed chain fails fast with ClickException."""
     rules_dir = sample_project / "rules"
     _create_typed_sop(
         rules_dir, "TST", "6001", "Step-A", "proposal:draft", "proposal:reviewed"
@@ -414,18 +414,12 @@ def test_plan_typed_mismatch_sets_composition_invalid(sample_project, monkeypatc
     )
 
     monkeypatch.chdir(sample_project)
-    runner = CliRunner()
-    result = runner.invoke(
-        cli, ["plan", "--json", "TST-6001", "TST-6002"], catch_exceptions=False
-    )
-    assert result.exit_code == 0
-
-    data = json.loads(result.stdout)
-    assert data["composition_valid"] is False
-    assert len(data["edges"]) == 1
-    assert data["edges"][0]["typed"] is True
-    assert data["edges"][0]["compatible"] is False
-    assert "Workflow type mismatch" in result.stderr
+    with pytest.raises(click.ClickException, match="Workflow type mismatch"):
+        cli.main(
+            args=["plan", "--json", "TST-6001", "TST-6002"],
+            prog_name="af",
+            standalone_mode=False,
+        )
 
 
 def test_plan_json_contains_workflow_fields(sample_project, monkeypatch):

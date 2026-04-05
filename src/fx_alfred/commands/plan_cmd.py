@@ -185,17 +185,14 @@ def plan_cmd(
     ]
     edges = check_composition(chain)
 
-    composition_valid = all(e.compatible for e in edges) if edges else True
-    composition_warnings = [
-        f"Workflow type mismatch: {edge.from_doc} outputs "
-        f"'{edge.from_output}' but {edge.to_doc} expects '{edge.to_input}'"
-        for edge in edges
-        if edge.typed and not edge.compatible
-    ]
+    for edge in edges:
+        if edge.typed and not edge.compatible:
+            raise click.ClickException(
+                f"Workflow type mismatch: {edge.from_doc} outputs "
+                f"'{edge.from_output}' but {edge.to_doc} expects '{edge.to_input}'"
+            )
 
-    if not composition_valid:
-        for warning in composition_warnings:
-            click.echo(f"Warning: {warning}", err=output_json)
+    composition_valid = all(e.compatible for e in edges) if edges else True
 
     # ── Second pass: render output ──
     phases_json: list[dict] = []
