@@ -1,9 +1,9 @@
 # CHG-2201: Implement Document Tags Metadata Field
 
 **Applies to:** FXA project
-**Last updated:** 2026-04-04
-**Last reviewed:** 2026-04-04
-**Status:** In Progress
+**Last updated:** 2026-04-05
+**Last reviewed:** 2026-04-05
+**Status:** Completed
 **Date:** 2026-04-04
 **Requested by:** —
 **Priority:** Medium

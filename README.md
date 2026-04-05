@@ -27,6 +27,7 @@ Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and str
 - **Document Formatting** — `af fmt` normalizes metadata order, whitespace, and table alignment to canonical style
 - **File Path Lookup** — `af where` prints the absolute filesystem path of any document by identifier
 - **Document Lifecycle** — Create, read, update, search, and index documents with consistent naming
+- **Tags Metadata** — Optional `Tags:` field, exposed via `Document.tags` and filterable with `af list --tag`
 - **JSON Output** — `--json` flag on guide/plan/search/validate for machine-readable output
 - **Spec-driven Updates** — `--spec FILE` on create/update for batch metadata and section changes
 
@@ -71,7 +72,7 @@ Generate step-by-step checklists from SOPs — optimized for LLM consumption:
 ```bash
 af plan COR-1102 COR-1602 COR-1500    # LLM-optimized output
 af plan --human COR-1102               # human-readable format
-af plan --init                          # suggested prompts for agent config
+af setup                               # suggested prompts for agent config
 ```
 
 ```
@@ -141,6 +142,7 @@ af search "validation" --json       # JSON output
 
 # List & Filter
 af list --type SOP                  # filter by type
+af list --tag release               # filter by tag
 af list --prefix FXA --json         # filter + JSON output
 
 # Other
@@ -229,7 +231,7 @@ af plan COR-1102 COR-1602 COR-1500 # 2. Generate workflow checklist
 ### First Time Setup
 
 ```bash
-af plan --init                      # See suggested prompts for your agent config
+af setup                            # See suggested prompts for your agent config
 ```
 
 ### Decision Tree (COR-1103)
@@ -277,6 +279,7 @@ graph TD
 | COR-1101 | Submit Change Request (CHG) |
 | COR-1500 | TDD Development Workflow |
 | COR-1602 | Multi-Model Parallel Review |
+| COR-1612 | Respond to PR review comments on GitHub |
 | COR-1608 | PRP Review Scoring rubric |
 | COR-1611 | Reviewer Calibration Guide |
 
@@ -295,13 +298,11 @@ Pass threshold: >= 9.0/10. All deductions must cite specific lines.
 
 ```
 af guide [--root DIR] [--json]
-af plan SOP_ID [...] [--root DIR] [--json]
-af plan --human SOP_ID [...]
-af plan --init
-af list [--type] [--prefix] [--source] [--json]
+af plan SOP_ID [...] [--root DIR] [--human] [--json]
+af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
 af read IDENTIFIER [--json]
-af create TYPE --prefix P --acid N|--area N --title T [--layer] [--subdir] [--spec FILE] [--dry-run]
-af update IDENTIFIER [--status] [--field K V] [--history] [--title] [--dry-run] [--spec FILE]
+af create TYPE --prefix P --acid N|--area N --title T [--layer project|user] [--subdir DIR] [--spec FILE] [--dry-run]
+af update IDENTIFIER [--status STATUS] [--field KEY VALUE] [--history TEXT] [--by NAME] [--title TITLE] [-y|--yes] [--dry-run] [--spec FILE]
 af fmt [DOC_IDS...] [--write] [--check]
 af where IDENTIFIER [--json]
 af search PATTERN [--json]

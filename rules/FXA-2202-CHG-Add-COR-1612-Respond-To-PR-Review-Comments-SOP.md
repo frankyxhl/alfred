@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-04-05
 **Last reviewed:** 2026-04-05
-**Status:** In Progress
+**Status:** Completed
 **Date:** 2026-04-04
 **Requested by:** Frank
 **Priority:** Medium
