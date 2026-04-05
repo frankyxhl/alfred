@@ -401,8 +401,10 @@ def test_plan_typed_compatible_chain(sample_project, monkeypatch):
     assert "proposal:draft" in result.output
 
 
-def test_plan_typed_mismatch_raises(sample_project, monkeypatch):
-    """Incompatible typed chain raises ClickException with mismatch message."""
+def test_plan_typed_mismatch_sets_composition_invalid(sample_project, monkeypatch):
+    """Incompatible typed chain yields JSON with composition_valid=false."""
+    import json
+
     rules_dir = sample_project / "rules"
     _create_typed_sop(
         rules_dir, "TST", "6001", "Step-A", "proposal:draft", "proposal:reviewed"
@@ -413,9 +415,17 @@ def test_plan_typed_mismatch_raises(sample_project, monkeypatch):
 
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
-    result = runner.invoke(cli, ["plan", "TST-6001", "TST-6002"])
-    assert result.exit_code != 0
-    assert "Workflow type mismatch" in result.output
+    result = runner.invoke(
+        cli, ["plan", "--json", "TST-6001", "TST-6002"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.stdout)
+    assert data["composition_valid"] is False
+    assert len(data["edges"]) == 1
+    assert data["edges"][0]["typed"] is True
+    assert data["edges"][0]["compatible"] is False
+    assert "Workflow type mismatch" in result.stderr
 
 
 def test_plan_json_contains_workflow_fields(sample_project, monkeypatch):

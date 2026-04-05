@@ -142,10 +142,26 @@ def test_reject_duplicate_in_provides():
     assert any("duplicate entry" in e and "proposal:draft" in e for e in errors)
 
 
+def test_reject_empty_string_token_in_validate():
+    requires_sig = WorkflowSignature(
+        input="proposal:none",
+        output="proposal:draft",
+        requires=[""],
+    )
+    requires_errors = validate_workflow_signature(requires_sig)
+    assert any("Workflow requires: empty token" in e for e in requires_errors)
+
+    provides_sig = WorkflowSignature(
+        input="proposal:none",
+        output="proposal:draft",
+        provides=[""],
+    )
+    provides_errors = validate_workflow_signature(provides_sig)
+    assert any("Workflow provides: empty token" in e for e in provides_errors)
+
+
 def test_reject_empty_token_in_requires_list():
-    """A token that becomes empty after stripping should be rejected."""
-    # The parse step filters empty strings, so we test validate directly
-    # with a token that has invalid format instead.
+    """Invalid token format in requires list should be rejected."""
     sig = WorkflowSignature(
         input="proposal:none",
         output="proposal:draft",

@@ -9,8 +9,10 @@ import click
 
 from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
+from fx_alfred.core.document import Document
 from fx_alfred.core.parser import (
     MalformedDocumentError,
+    ParsedDocument,
     extract_section,
     parse_metadata,
 )
@@ -144,7 +146,9 @@ def plan_cmd(
     docs = scan_or_fail(ctx)
 
     # ── First pass: parse all SOPs and collect workflow signatures ──
-    phase_info: list[tuple] = []  # (sop_id, doc, parsed, sig_or_none)
+    phase_info: list[
+        tuple[str, Document, ParsedDocument, WorkflowSignature | None]
+    ] = []
 
     for sop_id in sop_ids:
         doc = find_or_fail(docs, sop_id)
@@ -181,15 +185,17 @@ def plan_cmd(
     ]
     edges = check_composition(chain)
 
-    # Fail fast on typed mismatch
-    for edge in edges:
-        if edge.typed and not edge.compatible:
-            raise click.ClickException(
-                f"Workflow type mismatch: {edge.from_doc} outputs "
-                f"'{edge.from_output}' but {edge.to_doc} expects '{edge.to_input}'"
-            )
-
     composition_valid = all(e.compatible for e in edges) if edges else True
+    composition_warnings = [
+        f"Workflow type mismatch: {edge.from_doc} outputs "
+        f"'{edge.from_output}' but {edge.to_doc} expects '{edge.to_input}'"
+        for edge in edges
+        if edge.typed and not edge.compatible
+    ]
+
+    if not composition_valid:
+        for warning in composition_warnings:
+            click.echo(f"Warning: {warning}", err=output_json)
 
     # ── Second pass: render output ──
     phases_json: list[dict] = []
