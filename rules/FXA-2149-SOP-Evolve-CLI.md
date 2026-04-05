@@ -90,6 +90,29 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
 25. **Push branch** — `git push -u origin <branch>`
 26. **Open PR** — `gh pr create --title "evolve: <change-title>" --body "<run log summary: signals, scores, change>"` — body auto-populated from run log REF
 
+### Phase 7: Completion Checklist
+
+27. **Display checklist** — After all phases complete (or on early exit at Step 12), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
+
+```
+## Evolve-CLI Run Checklist
+
+- [ ] **Guard: no open evolve PR** — <PASS/FAIL>
+- [ ] **Run log created** — <ACID>
+- [ ] **Signals collected**
+  - Tests: <N passed, N failed>
+  - Ruff: <N issues>
+  - Coverage: <N%>
+- [ ] **Candidates evaluated** — <N generated, N passed, N discarded>
+- [ ] **PRP review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
+- [ ] **Hard gate (pytest + ruff)** — <PASS/FAIL>
+- [ ] **README check** — <UPDATED commit SHA / N/A: reason>
+- [ ] **Code review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
+- [ ] **PR opened** — <URL>
+```
+
+If a step was skipped due to early exit (e.g., no candidate passed), mark remaining items as `— SKIPPED (reason)`.
+
 ### Prohibited actions
 
 - Must not modify `FXA-2148-SOP-Evolve-SOP.md`, `FXA-2149-SOP-Evolve-CLI.md`, or `FXA-2146-REF-Evolution-Philosophy.md`
@@ -116,3 +139,4 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2149)"
 | 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5; D2: add working directory note to Phase 2; D3: fix af where identifier in example | Frank + Claude |
 | 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions | Claude Code |
 | 2026-04-04 | Step 12: commit+push run log on no-op; Phase 5: "top candidate" not "for each" (retro FXA-2195) | Claude Code |
+| 2026-04-06 | CHG FXA-2107: Add Phase 7 Completion Checklist — mandatory post-run audit trail | Frank + Claude |
