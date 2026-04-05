@@ -1296,3 +1296,44 @@ def test_validate_no_workflow_metadata_no_issue(tmp_path):
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "0 issues found" in result.output
+
+
+def test_validate_json_output_exits_1_on_issues(tmp_path):
+    """JSON output path should also exit with code 1 when issues exist."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Document with missing "Last reviewed" metadata
+    invalid_content = """# SOP-1000: Invalid Doc
+
+**Applies to:** All projects
+**Last updated:** 2026-03-14
+**Status:** Active
+
+---
+
+## What Is It?
+
+Missing Last reviewed.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-14 | Initial version | Frank |
+"""
+    (rules_dir / "SOP-1000-SOP-Invalid-Doc.md").write_text(invalid_content)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--json", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    # JSON output should contain the invalid document
+    import json
+
+    output = json.loads(result.output)
+    invalid_docs = [r for r in output["results"] if not r["valid"]]
+    assert len(invalid_docs) > 0
+    assert invalid_docs[0]["doc_id"] == "SOP-1000"

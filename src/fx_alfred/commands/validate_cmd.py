@@ -271,6 +271,8 @@ def validate_cmd(ctx: click.Context, output_json: bool):
         if issues:
             issues_by_doc[doc_id] = issues
 
+    total_issues = sum(len(i) for i in issues_by_doc.values())
+
     # Build results for JSON output
     if output_json:
         results = []
@@ -305,10 +307,8 @@ def validate_cmd(ctx: click.Context, output_json: bool):
             for issue in doc_issues:
                 click.echo(f"  - {issue}")
 
-        total_issues = sum(len(i) for i in issues_by_doc.values())
         click.echo(f"{len(docs)} documents checked, {total_issues} issues found.")
 
     # Exit with code 1 if issues found
-    total_issues = sum(len(i) for i in issues_by_doc.values())
     if total_issues > 0:
         sys.exit(1)
