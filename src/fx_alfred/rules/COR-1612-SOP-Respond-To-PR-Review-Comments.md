@@ -81,7 +81,7 @@ Read each comment and classify:
 
 ### 4. Push all fixes in one commit
 
-Group all blocking and adopted advisory fixes into a single commit referencing the PR:
+If any blocking or adopted advisory comments required code changes, group those fixes into a single commit referencing the PR:
 
 ```bash
 git add <changed-files>
@@ -89,14 +89,18 @@ git commit -m "fix: address PR review comments (#<PR>)"
 git push
 ```
 
+If there were no code changes (for example, only Question, Incorrect, or declined Advisory comments), skip this step and continue to Step 5.
+
 ### 5. Reply to each fixed comment
 
-After the fix commit is pushed, reply on GitHub for each blocking or adopted advisory comment with:
+If Step 4 produced a fix commit, reply on GitHub for each blocking or adopted advisory comment with:
 
 GitHub only auto-marks line-anchored comments as outdated when the referenced diff line changes. Diff position comments with `line: null` (common for Codex/Copilot bot comments) and issue-level/top-level comments are not auto-outdated, so reply to those manually after the fix lands.
 
 1. The commit hash
 2. What changed
+
+If there was no fix commit, reply only where applicable for Question, Incorrect, or declined Advisory comments.
 
 ### 6. Wait for CI
 
@@ -147,3 +151,4 @@ This suggestion is incorrect — the INC template places Date before Severity (s
 | 2026-04-04 | PR review fix: fetch 3 endpoints (inline + review summary + issue comments), add --paginate, fix declining example to cite template not COR-0002 | Claude Code |
 | 2026-04-05 | PR review fix: include empty-body CHANGES_REQUESTED reviews, move replies after commit/push, add explicit git push step | Codex |
 | 2026-04-05 | Add note that diff-position and top-level comments do not auto-mark outdated | Codex |
+| 2026-04-05 | Make Step 4 conditional when review responses do not require code changes | Codex |
