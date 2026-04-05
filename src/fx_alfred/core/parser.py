@@ -58,7 +58,7 @@ _BOLD_FIELD = re.compile(r"^\*\*(.+?):\*\*\s*(.*)")
 _LIST_FIELD = re.compile(r"^- \*\*(.+?):\*\*\s*(.*)")
 
 # H1 must follow the Document Structure Contract: # <TYP>-<ACID>: <Title>
-H1_PATTERN = re.compile(r"^# [A-Z]{3}-\d{4}: .+$")
+H1_PATTERN = re.compile(r"^# (?P<type_code>[A-Z]{3})-(?P<acid>\d{4}): .+$")
 
 
 def parse_metadata(content: str) -> ParsedDocument:
