@@ -46,7 +46,23 @@ REQUIRED_METADATA: dict[DocType, list[str]] = {
     DocType.INC: ["Applies to", "Last updated", "Last reviewed", "Status"],
 }
 
-OPTIONAL_METADATA: dict[DocType, list[str]] = {dt: ["Tags"] for dt in DocType}
+# Workflow metadata keys — SOP-only, optional.
+WORKFLOW_INPUT = "Workflow input"
+WORKFLOW_OUTPUT = "Workflow output"
+WORKFLOW_REQUIRES = "Workflow requires"
+WORKFLOW_PROVIDES = "Workflow provides"
+
+_WORKFLOW_FIELDS = [
+    WORKFLOW_INPUT,
+    WORKFLOW_OUTPUT,
+    WORKFLOW_REQUIRES,
+    WORKFLOW_PROVIDES,
+]
+
+OPTIONAL_METADATA: dict[DocType, list[str]] = {
+    DocType.SOP: _WORKFLOW_FIELDS + ["Tags"],
+    **{dt: ["Tags"] for dt in DocType if dt != DocType.SOP},
+}
 
 REQUIRED_SECTIONS: dict[DocType, list[str]] = {
     DocType.SOP: ["What Is It?", "Why", "When to Use", "When NOT to Use", "Steps"],

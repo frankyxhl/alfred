@@ -1147,3 +1147,152 @@ This is not the same as ## Examples."""
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
     assert result.exit_code == 1
     assert "SOP missing required section: '## Examples'" in result.output
+
+
+# -- FXA-2204 tests: workflow metadata validation for SOP docs --
+
+
+def _write_sop_with_workflow(
+    path,
+    acid,
+    wf_input="",
+    wf_output="",
+    wf_requires="",
+    wf_provides="",
+):
+    """Write a valid SOP document with optional workflow metadata."""
+    wf_lines = ""
+    if wf_input:
+        wf_lines += f"\n**Workflow input:** {wf_input}"
+    if wf_output:
+        wf_lines += f"\n**Workflow output:** {wf_output}"
+    if wf_requires:
+        wf_lines += f"\n**Workflow requires:** {wf_requires}"
+    if wf_provides:
+        wf_lines += f"\n**Workflow provides:** {wf_provides}"
+
+    content = f"""# SOP-{acid}: Workflow Test
+
+**Applies to:** Test
+**Last updated:** 2026-03-14
+**Last reviewed:** 2026-03-14
+**Status:** Active{wf_lines}
+
+---
+
+## What Is It?
+
+A test SOP for workflow validation.
+
+## Why
+
+Testing.
+
+## When to Use
+
+Testing.
+
+## When NOT to Use
+
+Not testing.
+
+## Steps
+
+1. Step one.
+2. Step two.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-14 | Initial version | Test |
+"""
+    path.write_text(content)
+
+
+def test_validate_valid_workflow_metadata_passes(tmp_path):
+    """SOP with valid workflow metadata should report no issues."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_workflow(
+        rules_dir / "SOP-3001-SOP-Valid-Workflow.md",
+        "3001",
+        wf_input="proposal:none",
+        wf_output="proposal:draft",
+        wf_requires="repo:clean",
+        wf_provides="proposal:draft, proposal:editable",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+def test_validate_bad_token_format_reported(tmp_path):
+    """SOP with invalid token format in workflow metadata should report error."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_workflow(
+        rules_dir / "SOP-3002-SOP-Bad-Token.md",
+        "3002",
+        wf_input="BAD TOKEN!",
+        wf_output="proposal:draft",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-3002" in result.output
+    assert "invalid token format" in result.output
+    assert "BAD TOKEN!" in result.output
+
+
+def test_validate_partial_signature_reported(tmp_path):
+    """SOP with only Workflow input (no output) should report error."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_workflow(
+        rules_dir / "SOP-3003-SOP-Partial-Sig.md",
+        "3003",
+        wf_input="proposal:none",
+        wf_output="",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-3003" in result.output
+    assert "Workflow output is missing" in result.output
+
+
+def test_validate_duplicate_provides_token_reported(tmp_path):
+    """SOP with duplicate token in Workflow provides should report error."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_workflow(
+        rules_dir / "SOP-3004-SOP-Dup-Provides.md",
+        "3004",
+        wf_input="proposal:none",
+        wf_output="proposal:draft",
+        wf_provides="proposal:draft, proposal:draft",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-3004" in result.output
+    assert "duplicate entry" in result.output
+    assert "proposal:draft" in result.output
+
+
+def test_validate_no_workflow_metadata_no_issue(tmp_path):
+    """SOP without workflow metadata should pass (it's optional)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_workflow(
+        rules_dir / "SOP-3005-SOP-No-Workflow.md",
+        "3005",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output

@@ -227,11 +227,11 @@ def test_plan_json_multiple_sops(sample_project, monkeypatch):
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["plan", "--json", "COR-1500", "COR-1103"], catch_exceptions=False
+        cli, ["plan", "--json", "COR-1102", "COR-1103"], catch_exceptions=False
     )
     assert result.exit_code == 0
     data = json.loads(result.output)
-    assert data["sop_ids"] == ["COR-1500", "COR-1103"]
+    assert data["sop_ids"] == ["COR-1102", "COR-1103"]
     assert len(data["phases"]) == 2
 
 

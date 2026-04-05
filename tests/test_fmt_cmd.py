@@ -1161,3 +1161,89 @@ Body.
     keys = [mf.key for mf in parsed.metadata_fields]
     assert keys[0] == "Applies to"
     assert all(mf.dirty is True for mf in parsed.metadata_fields)
+
+
+# ── FXA-2204: Workflow Metadata Reordering ──────────────────────────────────
+
+WORKFLOW_UNORDERED_DOC = """\
+# TST-2200: Workflow Unordered
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+**Workflow output:** code:tested
+**Workflow input:** task:routed
+**Workflow provides:** code:tested
+**Workflow requires:** repo:clean
+
+---
+
+## What Is It?
+
+Body content.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+"""
+
+EXPECTED_WORKFLOW_ORDERED_DOC = """\
+# TST-2200: Workflow Unordered
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+**Workflow input:** task:routed
+**Workflow output:** code:tested
+**Workflow requires:** repo:clean
+**Workflow provides:** code:tested
+
+---
+
+## What Is It?
+
+Body content.
+
+---
+
+## Change History
+
+| Date       | Change          | By     |
+|------------|-----------------|--------|
+| 2026-01-01 | Initial version | Author |
+"""
+
+
+def test_fmt_workflow_metadata_reordered_canonically(tmp_path):
+    """Workflow metadata fields are reordered to match KNOWN_OPTIONAL_ORDER."""
+    from fx_alfred.core.normalize import KNOWN_OPTIONAL_ORDER
+
+    project = _make_project(
+        tmp_path,
+        ("TST-2200-SOP-Workflow-Unordered.md", WORKFLOW_UNORDERED_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2200"])
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2200-SOP-Workflow-Unordered.md").read_text()
+
+    # Extract the metadata keys from the formatted document
+    meta_keys = []
+    for line in content.split("\n"):
+        if line.startswith("**") and ":** " in line:
+            key = line.split(":**")[0].lstrip("*")
+            meta_keys.append(key)
+
+    # Find only the workflow keys in the result
+    workflow_keys = [k for k in meta_keys if k.startswith("Workflow")]
+    # Determine canonical order from KNOWN_OPTIONAL_ORDER
+    canonical_workflow_order = [
+        k for k in KNOWN_OPTIONAL_ORDER if k.startswith("Workflow")
+    ]
+    assert workflow_keys == canonical_workflow_order

@@ -22,6 +22,10 @@ from fx_alfred.core.scanner import (
     _scan_pkg_dir,
     scan_documents,
 )
+from fx_alfred.core.workflow import (
+    parse_workflow_signature,
+    validate_workflow_signature,
+)
 
 # Pattern to extract type_code and ACID from H1 line
 _H1_EXTRACT = re.compile(r"^# ([A-Z]{3})-(\d{4}): .+$")
@@ -256,6 +260,13 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                         "SOP missing required section: '## Examples' "
                         "(has Prerequisites or > 5 Steps)"
                     )
+
+            # Check 7: Workflow metadata validation (SOP only, optional)
+            if doc.type_code == "SOP":
+                sig = parse_workflow_signature(parsed)
+                if sig is not None:
+                    wf_errors = validate_workflow_signature(sig)
+                    issues.extend(wf_errors)
         except MalformedDocumentError as e:
             # Report parsing error as an issue, don't crash
             issues.append(f"Malformed document: {e}")

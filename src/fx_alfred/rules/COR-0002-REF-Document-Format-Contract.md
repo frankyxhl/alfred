@@ -70,6 +70,10 @@ Optional fields are allowed but not required. Templates pre-populate type-defaul
 | Requested by | CHG | COR-1602 review decision |
 | Priority | CHG | COR-1602 review decision |
 | Change Type | CHG | COR-1602 review decision |
+| Workflow input | SOP only | FXA-2204 CHG |
+| Workflow output | SOP only | FXA-2204 CHG |
+| Workflow requires | SOP only | FXA-2204 CHG |
+| Workflow provides | SOP only | FXA-2204 CHG |
 | Tags | All types | FXA-2200 PRP |
 
 ## Section Rules
@@ -91,3 +95,4 @@ All documents must be written in English. See COR-1401 (Documentation Language P
 | 2026-03-20 | Initial version, based on FXA-2116 PRP + FXA-2119 PLN confirmed decisions | Frank + Claude Code |
 | 2026-03-22 | Added Language section referencing COR-1401 | GLM |
 | 2026-04-04 | Added Tags optional field for all types per FXA-2200 | Claude Code |
+| 2026-04-05 | Added Workflow input/output/requires/provides optional fields (SOP only) per FXA-2204 | GLM |

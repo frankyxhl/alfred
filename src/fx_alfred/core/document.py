@@ -6,7 +6,12 @@ from importlib import resources
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from fx_alfred.core.parser import H1_PATTERN, MalformedDocumentError, parse_metadata, parse_tags
+from fx_alfred.core.parser import (
+    H1_PATTERN,
+    MalformedDocumentError,
+    parse_metadata,
+    parse_tags,
+)
 
 FILENAME_PATTERN = re.compile(r"^([A-Z]{3})-(\d{4})-([A-Z]{3})-(.+)\.md$")
 

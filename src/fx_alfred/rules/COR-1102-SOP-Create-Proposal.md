@@ -4,6 +4,8 @@
 **Last updated:** 2026-03-19
 **Last reviewed:** 2026-03-19
 **Status:** Active
+**Workflow input:** proposal:none
+**Workflow output:** proposal:draft
 
 ---
 

@@ -5,6 +5,8 @@
 **Last reviewed:** 2026-04-02
 **Status:** Active
 **Related:** COR-1607 (deprecated, replaced by this document)
+**Workflow input:** proposal:draft
+**Workflow output:** task:routed
 
 ---
 

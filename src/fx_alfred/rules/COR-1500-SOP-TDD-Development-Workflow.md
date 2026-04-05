@@ -5,6 +5,8 @@
 **Last reviewed:** 2026-03-15
 **Status:** Active
 **Last executed:** —
+**Workflow input:** task:routed
+**Workflow output:** code:tested
 
 ---
 
