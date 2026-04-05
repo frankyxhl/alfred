@@ -32,8 +32,14 @@ def _validate_token(token: str) -> str | None:
 
 
 def _parse_token_list(value: str) -> list[str]:
-    """Split a comma-separated token string, strip whitespace, filter empty."""
-    return [t.strip() for t in value.split(",") if t.strip()]
+    """Split a comma-separated token string, strip whitespace.
+
+    Empty tokens (e.g. from ``"a, ,b"`` or ``"a,"`` ) are preserved so
+    that ``validate_workflow_signature`` can report them per CHG-2204 §4.
+    """
+    if not value.strip():
+        return []
+    return [t.strip() for t in value.split(",")]
 
 
 @dataclass(frozen=True)

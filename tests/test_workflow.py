@@ -226,3 +226,60 @@ def test_composition_empty_chain():
 def test_composition_single_sop_no_edges():
     sig = WorkflowSignature(input="x:0", output="x:1")
     assert check_composition([("SOP-1", sig)]) == []
+
+
+# ---------------------------------------------------------------------------
+# _parse_token_list — empty token preservation (CHG-2204 §Validation #4)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_preserves_empty_token_from_double_comma():
+    """Empty token between commas must survive parsing so validate can flag it.
+
+    CHG-2204 validation rule #4: 'Empty tokens are invalid.'
+    af validate must report: 'empty token after comma splitting'.
+    """
+    parsed = _make_parsed(
+        [
+            ("Workflow input", "proposal:none"),
+            ("Workflow output", "proposal:draft"),
+            ("Workflow requires", "repo:clean, ,tests:green"),
+        ]
+    )
+    sig = parse_workflow_signature(parsed)
+    assert sig is not None
+    # The empty token must be preserved in the list
+    assert "" in sig.requires
+    # Validation must catch it
+    errors = validate_workflow_signature(sig)
+    assert any("empty token" in e for e in errors)
+
+
+def test_parse_preserves_empty_token_from_trailing_comma():
+    """Trailing comma produces an empty token that must be flagged."""
+    parsed = _make_parsed(
+        [
+            ("Workflow input", "proposal:none"),
+            ("Workflow output", "proposal:draft"),
+            ("Workflow provides", "proposal:draft,"),
+        ]
+    )
+    sig = parse_workflow_signature(parsed)
+    assert sig is not None
+    assert "" in sig.provides
+    errors = validate_workflow_signature(sig)
+    assert any("empty token" in e for e in errors)
+
+
+def test_parse_absent_requires_produces_empty_list():
+    """Missing Workflow requires field must still produce an empty list, not ['']."""
+    parsed = _make_parsed(
+        [
+            ("Workflow input", "proposal:none"),
+            ("Workflow output", "proposal:draft"),
+        ]
+    )
+    sig = parse_workflow_signature(parsed)
+    assert sig is not None
+    assert sig.requires == []
+    assert sig.provides == []
