@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import click
+import pytest
 from click.testing import CliRunner
 from fx_alfred.cli import cli
 from fx_alfred.commands.plan_cmd import (
@@ -348,3 +350,138 @@ class TestFormatPhaseHumanSnapshot:
             "□ 3. Third step"
         )
         assert result == expected
+
+
+# ── Workflow composition tests (FXA-2204) ──────────────────────────────────
+
+
+def _create_typed_sop(
+    rules_dir: Path,
+    prefix: str,
+    acid: str,
+    title: str,
+    workflow_input: str,
+    workflow_output: str,
+) -> Path:
+    """Helper to create a typed SOP document with workflow metadata."""
+    filename = f"{prefix}-{acid}-SOP-{title}.md"
+    content = f"""# {prefix}-{acid}: {title.replace("-", " ")}
+
+**Applies to:** Test
+**Status:** Active
+**Workflow input:** {workflow_input}
+**Workflow output:** {workflow_output}
+---
+## What Is It?
+A typed test SOP for {acid}.
+## Steps
+1. First step for {acid}
+2. Second step for {acid}
+"""
+    filepath = rules_dir / filename
+    filepath.write_text(content)
+    return filepath
+
+
+def test_plan_typed_compatible_chain(sample_project, monkeypatch):
+    """Compatible typed chain: SOP-A outputs match SOP-B inputs."""
+    rules_dir = sample_project / "rules"
+    _create_typed_sop(
+        rules_dir, "TST", "6001", "Step-A", "proposal:draft", "proposal:reviewed"
+    )
+    _create_typed_sop(
+        rules_dir, "TST", "6002", "Step-B", "proposal:reviewed", "proposal:approved"
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-6001", "TST-6002"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "State:" in result.output
+    assert "proposal:draft" in result.output
+
+
+def test_plan_typed_mismatch_raises(sample_project, monkeypatch):
+    """Incompatible typed chain fails fast with ClickException."""
+    rules_dir = sample_project / "rules"
+    _create_typed_sop(
+        rules_dir, "TST", "6001", "Step-A", "proposal:draft", "proposal:reviewed"
+    )
+    _create_typed_sop(
+        rules_dir, "TST", "6002", "Step-B", "change:approved", "change:completed"
+    )
+
+    monkeypatch.chdir(sample_project)
+    with pytest.raises(click.ClickException, match="Workflow type mismatch"):
+        cli.main(
+            args=["plan", "--json", "TST-6001", "TST-6002"],
+            prog_name="af",
+            standalone_mode=False,
+        )
+
+
+def test_plan_json_contains_workflow_fields(sample_project, monkeypatch):
+    """--json output includes composition_valid, edges, and workflow fields per phase."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_typed_sop(
+        rules_dir, "TST", "6001", "Step-A", "proposal:draft", "proposal:reviewed"
+    )
+    _create_typed_sop(
+        rules_dir, "TST", "6002", "Step-B", "proposal:reviewed", "proposal:approved"
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--json", "TST-6001", "TST-6002"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+
+    # Top-level composition fields
+    assert data["composition_valid"] is True
+    assert isinstance(data["edges"], list)
+    assert len(data["edges"]) == 1
+    edge = data["edges"][0]
+    assert edge["typed"] is True
+    assert edge["compatible"] is True
+    assert edge["from_output"] == "proposal:reviewed"
+    assert edge["to_input"] == "proposal:reviewed"
+
+    # Each phase has workflow fields
+    for phase in data["phases"]:
+        assert "workflow_input" in phase
+        assert "workflow_output" in phase
+        assert "workflow_typed" in phase
+        assert phase["workflow_typed"] is True
+
+
+def test_plan_mixed_typed_untyped_chain(sample_project, monkeypatch):
+    """Mix of typed and untyped SOPs works without error (backward compatible)."""
+    rules_dir = sample_project / "rules"
+    # Typed SOP
+    _create_typed_sop(
+        rules_dir, "TST", "6001", "Step-A", "proposal:draft", "proposal:reviewed"
+    )
+    # Untyped SOP (no workflow metadata)
+    _create_sop_with_steps(rules_dir, "TST", "6002", "Step-B")
+    # Another typed SOP
+    _create_typed_sop(
+        rules_dir, "TST", "6003", "Step-C", "proposal:reviewed", "proposal:approved"
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "TST-6001", "TST-6002", "TST-6003"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Typed SOPs should still show their State lines
+    assert "State:" in result.output

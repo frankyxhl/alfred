@@ -46,6 +46,10 @@ KNOWN_OPTIONAL_ORDER = [
     "Priority",
     "Change Type",
     "Document role",
+    "Workflow input",
+    "Workflow output",
+    "Workflow requires",
+    "Workflow provides",
     "Tags",
 ]
 

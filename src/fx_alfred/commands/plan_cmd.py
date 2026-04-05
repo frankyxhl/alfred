@@ -9,10 +9,18 @@ import click
 
 from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
+from fx_alfred.core.document import Document
 from fx_alfred.core.parser import (
     MalformedDocumentError,
+    ParsedDocument,
     extract_section,
     parse_metadata,
+)
+from fx_alfred.core.workflow import (
+    WorkflowSignature,
+    check_composition,
+    parse_workflow_signature,
+    validate_workflow_signature,
 )
 
 # Heading search order for step extraction
@@ -75,6 +83,7 @@ def _format_phase(
     body: str,
     summary_prefix: str,
     checkbox: str,
+    state_line: str | None = None,
 ) -> str:
     """Format a single SOP phase.
 
@@ -90,12 +99,17 @@ def _format_phase(
         Prefix before first paragraph of summary (e.g. ``"What: "`` or ``""``).
     checkbox:
         Per-item checkbox prefix (e.g. ``"- [ ] "`` or ``"□ "``).
+    state_line:
+        Optional workflow state line (e.g. ``"State: x -> y"``).
     """
     lines: list[str] = [heading]
 
     if summary:
         first_para = summary.split("\n\n")[0].strip()
         lines.append(f"{summary_prefix}{first_para}")
+
+    if state_line:
+        lines.append(state_line)
 
     lines.append("")
 
@@ -132,12 +146,10 @@ def plan_cmd(
 
     docs = scan_or_fail(ctx)
 
-    # For JSON output
-    phases_json: list[dict] = []
-
-    # For text output
-    phases_text: list[str] = []
-    phase_num = 0
+    # ── First pass: parse all SOPs and collect workflow signatures ──
+    phase_info: list[
+        tuple[str, Document, ParsedDocument, WorkflowSignature | None]
+    ] = []
 
     for sop_id in sop_ids:
         doc = find_or_fail(docs, sop_id)
@@ -161,10 +173,53 @@ def plan_cmd(
                 )
             continue
 
+        sig = parse_workflow_signature(parsed)
+        phase_info.append((sop_id, doc, parsed, sig))
+
+    # ── Validate workflow signatures before composition ──
+    for sop_id, doc, parsed, sig in phase_info:
+        if sig is not None:
+            wf_errors = validate_workflow_signature(sig)
+            if wf_errors:
+                doc_id = f"{doc.prefix}-{doc.acid}"
+                raise click.ClickException(
+                    f"Invalid workflow metadata in {doc_id}: " + "; ".join(wf_errors)
+                )
+
+    # ── Workflow composition check ──
+    chain: list[tuple[str, WorkflowSignature]] = [
+        (
+            f"{doc.prefix}-{doc.acid}",
+            sig if sig is not None else WorkflowSignature(input="", output=""),
+        )
+        for _, doc, _, sig in phase_info
+    ]
+    edges = check_composition(chain)
+
+    for edge in edges:
+        if edge.typed and not edge.compatible:
+            raise click.ClickException(
+                f"Workflow type mismatch: {edge.from_doc} outputs "
+                f"'{edge.from_output}' but {edge.to_doc} expects '{edge.to_input}'"
+            )
+
+    composition_valid = all(e.compatible for e in edges) if edges else True
+
+    # ── Second pass: render output ──
+    phases_json: list[dict] = []
+    phases_text: list[str] = []
+    phase_num = 0
+
+    for sop_id, doc, parsed, sig in phase_info:
         body = parsed.body
         summary = extract_section(body, "What Is It?")
         title = doc.title
         phase_num += 1
+
+        # Build state line for typed phases
+        state_line: str | None = None
+        if sig is not None and sig.input and sig.output:
+            state_line = f"State: {sig.input} -> {sig.output}"
 
         if output_json:
             steps_section = _extract_steps_section(body)
@@ -174,15 +229,23 @@ def plan_cmd(
                     "phase": sop_id,
                     "source_sop": sop_id,
                     "steps": steps,
+                    "workflow_input": sig.input if sig else "",
+                    "workflow_output": sig.output if sig else "",
+                    "workflow_requires": sig.requires if sig else [],
+                    "workflow_provides": sig.provides if sig else [],
+                    "workflow_typed": sig is not None
+                    and bool(sig.input and sig.output),
                 }
             )
         elif human:
             heading = f"═══ Phase {phase_num}: {sop_id} ({title}) ═══"
-            phases_text.append(_format_phase(heading, summary, body, "", "□ "))
+            phases_text.append(
+                _format_phase(heading, summary, body, "", "□ ", state_line)
+            )
         else:
             heading = f"## Phase {phase_num}: {sop_id} ({title})"
             phases_text.append(
-                _format_phase(heading, summary, body, "What: ", "- [ ] ")
+                _format_phase(heading, summary, body, "What: ", "- [ ] ", state_line)
             )
 
     if output_json:
@@ -190,6 +253,18 @@ def plan_cmd(
             "schema_version": "1",
             "sop_ids": list(sop_ids),
             "phases": phases_json,
+            "composition_valid": composition_valid,
+            "edges": [
+                {
+                    "from": e.from_doc,
+                    "to": e.to_doc,
+                    "typed": e.typed,
+                    "compatible": e.compatible,
+                    "from_output": e.from_output,
+                    "to_input": e.to_input,
+                }
+                for e in edges
+            ],
         }
         click.echo(json.dumps(result, ensure_ascii=False, indent=2))
         return
