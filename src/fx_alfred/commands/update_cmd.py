@@ -249,9 +249,8 @@ def update_cmd(
     # Combined for apply step — CLI wins over spec (spec is the base, CLI overrides)
     field_updates: dict[str, str] = {**spec_field_updates, **cli_field_updates}
 
-    # Validate effective Status (after CLI override) — only when a spec file is involved.
-    # Plain --field/--status CLI updates are not status-validated here.
-    if has_spec and "Status" in field_updates and doc_type_enum:
+    # Validate effective Status against ALLOWED_STATUSES for the doc type.
+    if "Status" in field_updates and doc_type_enum:
         validate_spec_status(doc_type_enum, field_updates["Status"])
 
     # Validate that CLI-requested fields exist (spec may add new ones)

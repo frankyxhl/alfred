@@ -137,6 +137,36 @@ def test_update_status_field(tmp_path, monkeypatch):
     assert "**Status:** Active" in content
 
 
+def test_update_cli_status_invalid_rejected(tmp_path, monkeypatch):
+    """Plain --status with invalid value must be rejected (FXA-2101)."""
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "InvalidValue"],
+    )
+    assert result.exit_code != 0
+    assert "not allowed" in result.output.lower() or "not allowed" in str(
+        result.exception
+    ).lower()
+
+
+def test_update_cli_status_valid_succeeds(tmp_path, monkeypatch):
+    """Plain --status with valid value must succeed (FXA-2101 regression guard)."""
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "Active"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2100-SOP-Test-Document.md").read_text()
+    assert "**Status:** Active" in content
+
+
 def test_update_generic_field(tmp_path, monkeypatch):
     """Update a generic metadata field via --field."""
     project = _make_project(tmp_path)
@@ -830,7 +860,7 @@ def test_update_roundtrip_preserves_formatting(tmp_path, monkeypatch):
     runner = CliRunner()
     result = runner.invoke(
         cli,
-        ["update", "TST-2100", "--field", "Status", "Completed"],
+        ["update", "TST-2100", "--field", "Status", "Active"],
         catch_exceptions=False,
     )
     assert result.exit_code == 0
@@ -842,7 +872,7 @@ def test_update_roundtrip_preserves_formatting(tmp_path, monkeypatch):
         "# TST-2100: Test Document\n"
         "\n"
         "**Applies to:** All projects\n"
-        f"**Status:** Completed\n"
+        f"**Status:** Active\n"
         f"**Last updated:** {today}\n"
         "\n"
         "---\n"
