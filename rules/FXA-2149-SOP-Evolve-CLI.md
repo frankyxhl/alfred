@@ -103,12 +103,11 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
     - **Actionable** — valid issue, fix it
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
-29. **If CI is not green** — go to Step 27 (counts as one iteration).
-30. **If actionable items exist:**
+29. **If actionable items exist:**
     a. Fix the issues — fixes must be **mechanical** (test ordering, variable names, doc wording, style). If a fix requires substantive logic changes, stop the loop and re-run Phase 5 from Step 22 (hard gate) instead.
     b. Re-run hard gate (`pytest` must pass 100% + `ruff check` must return 0 issues)
     c. Commit + push
-    d. Go to Step 27.
+30. **Check CI** — if CI is not green and no fixes were pushed in Step 29, go to Step 27 (counts as one iteration). If fixes were pushed in Step 29, go to Step 27 (CI will re-run on the new push).
 31. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain, list them in the completion checklist for human review.
 
 ### Phase 8: Completion Checklist

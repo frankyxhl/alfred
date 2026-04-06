@@ -21,6 +21,7 @@
 | 2109 | CHG | Deduplicate Total Issues In Validate Cmd |
 | 2110 | CHG | Add Completion Checklist To Evolve SOP |
 | 2111 | CHG | Add Post Push Review Loop To Evolve SOPs |
+| 2112 | CHG | Reorder Review Loop To Process Comments Before CI Gate |
 
 ---
 

@@ -97,12 +97,11 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
     - **Actionable** — valid issue, fix it
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
-26. **If CI is not green** — go to Step 24 (counts as one iteration).
-27. **If actionable items exist:**
+26. **If actionable items exist:**
     a. Fix the issues — fixes must be **mechanical** (doc wording, formatting, metadata). If a fix requires substantive content changes, stop the loop and re-run Phase 5 Step 20 (code review gate) instead.
     b. Re-run hard gate (`af --root /path/to/fx_alfred validate` must pass with 0 issues on modified documents)
     c. Commit + push
-    d. Go to Step 24.
+27. **Check CI** — if CI is not green and no fixes were pushed in Step 26, go to Step 24 (counts as one iteration). If fixes were pushed in Step 26, go to Step 24 (CI will re-run on the new push).
 28. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain, list them in the completion checklist for human review.
 
 ### Phase 8: Completion Checklist
