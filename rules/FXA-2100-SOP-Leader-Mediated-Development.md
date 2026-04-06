@@ -1,8 +1,8 @@
 # SOP-2100: Leader Mediated Development
 
 **Applies to:** FXA project
-**Last updated:** 2026-04-01
-**Last reviewed:** 2026-03-17
+**Last updated:** 2026-04-06
+**Last reviewed:** 2026-04-06
 **Status:** Active
 
 ---
@@ -104,7 +104,16 @@ Separating code implementation from review, and using two independent reviewers,
    - **Pass**: both reviewers' weighted average >= 9.0/10
    - **Fail**: either reviewer's weighted average < 9.0
 8. **If fail** — Leader merges issues from both, instructs Coder to fix. Coder revises and submits back to Leader. Repeat from step 4. If 5 rounds reached without pass, Leader makes final call.
-9. **If pass** — task complete
+9. **If pass** — prepare merge/push artifacts and proceed to post-push intake
+10. **Post-push review intake loop (max 3 iterations)**:
+   - Wait for CI + incoming PR review comments after push
+   - Categorize each item as:
+     - **Actionable**: valid issue requiring fix
+     - **Advisory**: suggestion noted; optional change
+     - **False positive**: no change needed with rationale
+   - If actionable items are **mechanical** (wording/format/small refactor), fix directly, re-run tests/checks, then continue loop
+   - If actionable items are **substantive**, route back to Step 4 dual-review gate before continuing
+   - Exit when CI is green and no unresolved actionable items remain, or loop limit is reached (record unresolved items for human follow-up)
 
 ---
 
@@ -112,6 +121,7 @@ Separating code implementation from review, and using two independent reviewers,
 
 - Both Codex AND Gemini must achieve weighted average >= 9.0/10 per COR-1610
 - Maximum 5 review rounds; Leader makes final call if not reached
+- Post-push intake loop must end with CI green and 0 unresolved actionable items (or explicit handoff list if loop limit reached)
 
 ---
 
@@ -163,3 +173,4 @@ When Codex and Gemini disagree:
 | 2026-04-01 | CHG FXA-2174: Align scoring with COR-1610 (4 dims → 5 weighted dims), update pass criteria to weighted average | Claude Code |
 | 2026-04-01 | CHG FXA-2180: Standardize role naming — replace Droid with GLM in description, roles table, and flow diagram | Claude Code |
 | 2026-04-01 | CHG FXA-2181: Add optional Tool Context block to Review Prompt Template for project-specific CLI instructions | Claude Code |
+| 2026-04-06 | CHG FXA-2207: Add explicit post-push review-intake loop and closure rule (max 3 iterations) | Codex |
