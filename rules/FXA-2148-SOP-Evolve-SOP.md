@@ -89,7 +89,7 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
 24. **Wait for CI + automated reviews** — sleep 3 minutes after PR is opened (or after each fix-push), then:
     ```bash
     gh pr checks <PR-number>
-    gh api repos/{owner}/{repo}/pulls/<PR-number>/comments
+    gh api --paginate repos/{owner}/{repo}/pulls/<PR-number>/comments
     ```
 25. **Categorize each review comment:**
     - **Actionable** — valid issue, fix it
