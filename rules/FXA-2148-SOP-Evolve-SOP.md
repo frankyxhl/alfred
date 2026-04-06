@@ -84,6 +84,28 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
 22. **Push branch** — `git push -u origin <branch>`
 23. **Open PR** — `gh pr create --title "evolve: <change-title>" --body "<run log summary: signals, scores, change>"` — body auto-populated from run log REF
 
+### Phase 7: Completion Checklist
+
+24. **Display checklist** — After all phases complete (or on early exit at Step 11), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
+
+```
+## Evolve-SOP Run Checklist
+
+- [ ] **Guard: no open evolve PR** — <PASS/FAIL>
+- [ ] **Run log created** — <ACID>
+- [ ] **Signals collected**
+  - af validate: <N issues>
+  - Content analysis: <N SOPs reviewed>
+  - GitHub Issues: <N relevant>
+- [ ] **Candidates evaluated** — <N generated, N passed, N discarded>
+- [ ] **PRP review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
+- [ ] **Hard gate (af validate)** — <PASS/FAIL>
+- [ ] **Code review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
+- [ ] **PR opened** — <URL>
+```
+
+If a step was skipped due to early exit (e.g., no candidate passed), mark remaining items as `— SKIPPED (reason)`.
+
 ### Prohibited actions
 
 - Must not modify `FXA-2148-SOP-Evolve-SOP.md`, `FXA-2149-SOP-Evolve-CLI.md`, or `FXA-2146-REF-Evolution-Philosophy.md`
@@ -108,3 +130,4 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2148)"
 | 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147 | Frank + Claude |
 | 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5 (before PRP); D3: fix af where identifier in example | Frank + Claude |
 | 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions | Claude Code |
+| 2026-04-06 | CHG FXA-2110: Add Phase 7 Completion Checklist — mandatory post-run audit trail | Frank + Claude |
