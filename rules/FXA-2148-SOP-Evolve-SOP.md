@@ -84,9 +84,27 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
 22. **Push branch** — `git push -u origin <branch>`
 23. **Open PR** — `gh pr create --title "evolve: <change-title>" --body "<run log summary: signals, scores, change>"` — body auto-populated from run log REF
 
-### Phase 7: Completion Checklist
+### Phase 7: Post-Push Review Loop
 
-24. **Display checklist** — After all phases complete (or on early exit at Step 11), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
+24. **Wait for CI + automated reviews** — sleep 3 minutes after PR is opened (or after each fix-push), then:
+    ```bash
+    gh pr checks <PR-number>
+    gh api repos/{owner}/{repo}/pulls/<PR-number>/comments
+    ```
+25. **Categorize each review comment:**
+    - **Actionable** — valid issue, fix it
+    - **Advisory** — noted, no code change needed (reply explaining why)
+    - **False positive** — reply with reasoning, no change
+26. **If actionable items exist:**
+    a. Fix the issues
+    b. Re-run hard gate (`af validate` must pass with 0 issues on modified documents)
+    c. Commit + push
+    d. Go to Step 24 (max **3 iterations** total)
+27. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain after 3 iterations, list them in the completion checklist for human review.
+
+### Phase 8: Completion Checklist
+
+28. **Display checklist** — After all phases complete (or on early exit at Step 11), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
 
 ```
 ## Evolve-SOP Run Checklist
@@ -102,6 +120,7 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
 - [ ] **Hard gate (af validate)** — <PASS/FAIL>
 - [ ] **Code review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
 - [ ] **PR opened** — <URL>
+- [ ] **Post-push review loop** — <N iterations, N comments fixed / N advisory / N false positive>
 ```
 
 If a step was skipped due to early exit (e.g., no candidate passed), mark remaining items as `— SKIPPED (reason)`.
@@ -131,3 +150,4 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2148)"
 | 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5 (before PRP); D3: fix af where identifier in example | Frank + Claude |
 | 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions | Claude Code |
 | 2026-04-06 | CHG FXA-2110: Add Phase 7 Completion Checklist — mandatory post-run audit trail | Frank + Claude |
+| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8 | Frank + Claude |

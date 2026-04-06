@@ -90,9 +90,27 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
 25. **Push branch** — `git push -u origin <branch>`
 26. **Open PR** — `gh pr create --title "evolve: <change-title>" --body "<run log summary: signals, scores, change>"` — body auto-populated from run log REF
 
-### Phase 7: Completion Checklist
+### Phase 7: Post-Push Review Loop
 
-27. **Display checklist** — After all phases complete (or on early exit at Step 12), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
+27. **Wait for CI + automated reviews** — sleep 3 minutes after PR is opened (or after each fix-push), then:
+    ```bash
+    gh pr checks <PR-number>
+    gh api repos/{owner}/{repo}/pulls/<PR-number>/comments
+    ```
+28. **Categorize each review comment:**
+    - **Actionable** — valid issue, fix it
+    - **Advisory** — noted, no code change needed (reply explaining why)
+    - **False positive** — reply with reasoning, no change
+29. **If actionable items exist:**
+    a. Fix the issues
+    b. Re-run hard gate (`pytest` must pass 100% + `ruff check` must return 0 issues)
+    c. Commit + push
+    d. Go to Step 27 (max **3 iterations** total)
+30. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain after 3 iterations, list them in the completion checklist for human review.
+
+### Phase 8: Completion Checklist
+
+31. **Display checklist** — After all phases complete (or on early exit at Step 12), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
 
 ```
 ## Evolve-CLI Run Checklist
@@ -109,6 +127,7 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
 - [ ] **README check** — <UPDATED commit SHA / N/A: reason>
 - [ ] **Code review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
 - [ ] **PR opened** — <URL>
+- [ ] **Post-push review loop** — <N iterations, N comments fixed / N advisory / N false positive>
 ```
 
 If a step was skipped due to early exit (e.g., no candidate passed), mark remaining items as `— SKIPPED (reason)`.
@@ -140,3 +159,4 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2149)"
 | 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions | Claude Code |
 | 2026-04-04 | Step 12: commit+push run log on no-op; Phase 5: "top candidate" not "for each" (retro FXA-2195) | Claude Code |
 | 2026-04-06 | CHG FXA-2107: Add Phase 7 Completion Checklist — mandatory post-run audit trail | Frank + Claude |
+| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8 | Frank + Claude |
