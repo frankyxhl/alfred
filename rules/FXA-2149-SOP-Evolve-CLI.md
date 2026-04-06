@@ -101,16 +101,17 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
     - **Actionable** — valid issue, fix it
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
-29. **If actionable items exist:**
+29. **If CI is not green** — go to Step 27 (wait and re-check). CI must be green before exiting the loop.
+30. **If actionable items exist:**
     a. Fix the issues — fixes must be **mechanical** (test ordering, variable names, doc wording, style). If a fix requires substantive logic changes, stop the loop and re-run Phase 5 Step 23 (code review gate) instead.
     b. Re-run hard gate (`pytest` must pass 100% + `ruff check` must return 0 issues)
     c. Commit + push
     d. Go to Step 27 (max **3 iterations** total)
-30. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain after 3 iterations, list them in the completion checklist for human review.
+31. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain after 3 iterations, list them in the completion checklist for human review.
 
 ### Phase 8: Completion Checklist
 
-31. **Display checklist** — After all phases complete (or on early exit at Step 12), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
+32. **Display checklist** — After all phases complete (or on early exit at Step 12), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
 
 ```
 ## Evolve-CLI Run Checklist

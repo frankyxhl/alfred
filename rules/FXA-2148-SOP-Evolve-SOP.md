@@ -95,16 +95,17 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
     - **Actionable** — valid issue, fix it
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
-26. **If actionable items exist:**
+26. **If CI is not green** — go to Step 24 (wait and re-check). CI must be green before exiting the loop.
+27. **If actionable items exist:**
     a. Fix the issues — fixes must be **mechanical** (doc wording, formatting, metadata). If a fix requires substantive content changes, stop the loop and re-run Phase 5 Step 20 (code review gate) instead.
-    b. Re-run hard gate (`af validate` must pass with 0 issues on modified documents)
+    b. Re-run hard gate (`af --root /path/to/fx_alfred validate` must pass with 0 issues on modified documents)
     c. Commit + push
     d. Go to Step 24 (max **3 iterations** total)
-27. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain after 3 iterations, list them in the completion checklist for human review.
+28. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain after 3 iterations, list them in the completion checklist for human review.
 
 ### Phase 8: Completion Checklist
 
-28. **Display checklist** — After all phases complete (or on early exit at Step 11), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
+29. **Display checklist** — After all phases complete (or on early exit at Step 11), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
 
 ```
 ## Evolve-SOP Run Checklist
