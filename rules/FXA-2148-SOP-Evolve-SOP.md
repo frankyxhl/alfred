@@ -96,7 +96,7 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
 26. **If actionable items exist:**
-    a. Fix the issues
+    a. Fix the issues — fixes must be **mechanical** (doc wording, formatting, metadata). If a fix requires substantive content changes, stop the loop and re-run Phase 5 Step 20 (code review gate) instead.
     b. Re-run hard gate (`af validate` must pass with 0 issues on modified documents)
     c. Commit + push
     d. Go to Step 24 (max **3 iterations** total)
