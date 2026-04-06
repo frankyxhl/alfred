@@ -102,7 +102,7 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
 29. **If actionable items exist:**
-    a. Fix the issues — fixes must be **mechanical** (test ordering, variable names, doc wording, style). If a fix requires substantive logic changes, stop the loop and re-run Phase 5 Step 24 (code review gate) instead.
+    a. Fix the issues — fixes must be **mechanical** (test ordering, variable names, doc wording, style). If a fix requires substantive logic changes, stop the loop and re-run Phase 5 Step 23 (code review gate) instead.
     b. Re-run hard gate (`pytest` must pass 100% + `ruff check` must return 0 issues)
     c. Commit + push
     d. Go to Step 27 (max **3 iterations** total)
