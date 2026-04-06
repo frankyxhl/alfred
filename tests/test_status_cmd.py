@@ -36,7 +36,7 @@ def test_status_shows_by_source(sample_project, monkeypatch):
     pkg_count = int(pkg_match.group(1))
     assert pkg_count >= 20, f"Expected at least 20 PKG docs, got {pkg_count}"
 
-    # PRJ should have exactly 2 documents (ALF-2201, ALF-2202)
+    # PRJ should have exactly 3 documents (ALF-0000, ALF-2201, ALF-2202)
     prj_match = re.search(r"PRJ:\s*(\d+)", result.output)
     assert prj_match, "PRJ count not found in output"
     prj_count = int(prj_match.group(1))

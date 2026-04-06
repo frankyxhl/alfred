@@ -216,11 +216,17 @@ def parse_metadata(content: str) -> ParsedDocument:
             # Strip leading/trailing pipes, then split on unescaped pipes
             inner = stripped[1:-1]
             cells = [c.strip() for c in re.split(r"(?<!\\)\|", inner)]
+            # Change History data rows must have exactly 3 columns.
+            # If a malformed row appears, stop parsing rows and keep remaining text.
+            if len(cells) != 3:
+                data_done = True
+                trailing_lines.append(line)
+                continue
             rows.append(
                 HistoryRow(
-                    date=cells[0] if cells else "",
-                    change=cells[1] if len(cells) > 1 else "",
-                    by=cells[2] if len(cells) > 2 else "",
+                    date=cells[0],
+                    change=cells[1],
+                    by=cells[2],
                 )
             )
         else:
