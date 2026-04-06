@@ -86,6 +86,8 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
 
 ### Phase 7: Post-Push Review Loop
 
+> **Loop limit:** Steps 24–27 repeat at most **3 iterations** in total (counting both CI-wait retries and actionable-fix cycles). If the limit is reached, go to Step 28.
+
 24. **Wait for CI + automated reviews** — sleep 3 minutes after PR is opened (or after each fix-push), then:
     ```bash
     gh pr checks <PR-number>
@@ -95,13 +97,13 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
     - **Actionable** — valid issue, fix it
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
-26. **If CI is not green** — go to Step 24 (wait and re-check). CI must be green before exiting the loop.
+26. **If CI is not green** — go to Step 24 (counts as one iteration).
 27. **If actionable items exist:**
     a. Fix the issues — fixes must be **mechanical** (doc wording, formatting, metadata). If a fix requires substantive content changes, stop the loop and re-run Phase 5 Step 20 (code review gate) instead.
     b. Re-run hard gate (`af --root /path/to/fx_alfred validate` must pass with 0 issues on modified documents)
     c. Commit + push
-    d. Go to Step 24 (max **3 iterations** total)
-28. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain after 3 iterations, list them in the completion checklist for human review.
+    d. Go to Step 24.
+28. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain, list them in the completion checklist for human review.
 
 ### Phase 8: Completion Checklist
 
