@@ -1242,8 +1242,11 @@ def test_fmt_workflow_metadata_reordered_canonically(tmp_path):
 
     # Find only the workflow keys in the result
     workflow_keys = [k for k in meta_keys if k.startswith("Workflow")]
-    # Determine canonical order from KNOWN_OPTIONAL_ORDER
+    # Determine canonical order from KNOWN_OPTIONAL_ORDER, filtered to only
+    # include keys that are present in the document
     canonical_workflow_order = [
-        k for k in KNOWN_OPTIONAL_ORDER if k.startswith("Workflow")
+        k
+        for k in KNOWN_OPTIONAL_ORDER
+        if k.startswith("Workflow") and k in workflow_keys
     ]
     assert workflow_keys == canonical_workflow_order

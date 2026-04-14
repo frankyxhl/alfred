@@ -7,6 +7,7 @@
 **Related:** COR-1607 (deprecated, replaced by this document)
 **Workflow input:** proposal:draft
 **Workflow output:** task:routed
+**Always included:** true
 
 ---
 

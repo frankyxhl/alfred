@@ -10,12 +10,15 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from fx_alfred.core.parser import ParsedDocument
+import yaml
+
+from fx_alfred.core.parser import MalformedDocumentError, ParsedDocument
 from fx_alfred.core.schema import (
     WORKFLOW_INPUT,
     WORKFLOW_OUTPUT,
     WORKFLOW_PROVIDES,
     WORKFLOW_REQUIRES,
+    WORKFLOW_LOOPS,
 )
 
 # Token format per the CHG-2204 contract.
@@ -168,3 +171,210 @@ def check_composition(
             )
         )
     return edges
+
+
+# ---------------------------------------------------------------------------
+# FXA-2205: Loop metadata parsing and validation
+# ---------------------------------------------------------------------------
+
+# Regex to match numbered steps: "1. text" or "### 1. text"
+_STEP_INDEX_RE = re.compile(r"^(?:###\s+)?(\d+)\.\s+")
+# Required keys in a loop declaration
+_LOOP_REQUIRED_KEYS = ("id", "from", "to", "max_iterations", "condition")
+
+
+@dataclass(frozen=True)
+class LoopSignature:
+    """Intra-SOP loop declaration extracted from ``Workflow loops`` metadata."""
+
+    id: str
+    from_step: int
+    to_step: int
+    max_iterations: int
+    condition: str
+
+
+@dataclass(frozen=True)
+class LoopError:
+    """Validation error for a single loop entry (or a file-level issue)."""
+
+    msg: str
+    loop_id: str | None
+
+
+def parse_workflow_loops(parsed: ParsedDocument) -> list[LoopSignature]:
+    """Parse the optional ``Workflow loops:`` metadata value into LoopSignatures.
+
+    Returns ``[]`` when the field is absent or its value is empty.
+
+    Raises :class:`MalformedDocumentError` if the YAML is not a list, if any
+    entry is not a dict, if any required key is missing, or if any typed key
+    has the wrong type. The error message cites the loop ``id`` when known.
+    """
+    field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
+    raw = field_map.get(WORKFLOW_LOOPS)
+    if raw is None or not raw.strip():
+        return []
+
+    # Two supported shapes:
+    #   1) Inline YAML on the field line (rare): "[{id: x, from: 3, to: 1, ...}]"
+    #   2) A block following the key on subsequent lines — not representable in
+    #      bold-field prefix. So authors use the inline form.
+    try:
+        data = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise MalformedDocumentError(f"Workflow loops: invalid YAML — {exc}") from exc
+
+    if data is None:
+        return []
+    if not isinstance(data, list):
+        raise MalformedDocumentError(
+            "Workflow loops: expected a YAML list of loop objects"
+        )
+
+    loops: list[LoopSignature] = []
+    for idx, entry in enumerate(data):
+        if not isinstance(entry, dict):
+            raise MalformedDocumentError(
+                f"Workflow loops[{idx}]: expected a mapping, got {type(entry).__name__}"
+            )
+        loop_id = entry.get("id")
+        id_label = loop_id if isinstance(loop_id, str) and loop_id else f"#{idx}"
+
+        for key in _LOOP_REQUIRED_KEYS:
+            if key not in entry:
+                raise MalformedDocumentError(
+                    f"Workflow loops[{id_label}]: missing required key '{key}'"
+                )
+
+        if not isinstance(loop_id, str) or not loop_id:
+            raise MalformedDocumentError(
+                f"Workflow loops[{id_label}]: 'id' must be a non-empty string"
+            )
+        from_step = entry["from"]
+        to_step = entry["to"]
+        max_iter = entry["max_iterations"]
+        condition = entry["condition"]
+
+        if isinstance(from_step, bool) or not isinstance(from_step, int):
+            raise MalformedDocumentError(
+                f"Workflow loops[{loop_id}]: 'from' must be an integer"
+            )
+        if isinstance(to_step, bool) or not isinstance(to_step, int):
+            raise MalformedDocumentError(
+                f"Workflow loops[{loop_id}]: 'to' must be an integer"
+            )
+        if isinstance(max_iter, bool) or not isinstance(max_iter, int):
+            raise MalformedDocumentError(
+                f"Workflow loops[{loop_id}]: 'max_iterations' must be an integer"
+            )
+        if not isinstance(condition, str) or not condition.strip():
+            raise MalformedDocumentError(
+                f"Workflow loops[{loop_id}]: 'condition' must be a non-empty string"
+            )
+
+        loops.append(
+            LoopSignature(
+                id=loop_id,
+                from_step=from_step,
+                to_step=to_step,
+                max_iterations=max_iter,
+                condition=condition,
+            )
+        )
+
+    return loops
+
+
+def _parse_step_indices(parsed: ParsedDocument) -> frozenset[int] | None:
+    """Parse the set of step indices observed in the SOP's Steps section.
+
+    Returns ``None`` if no ``Steps`` heading is present; otherwise a frozenset
+    of the step indices parsed from top-level numbered Markdown lines (e.g.
+    ``1. First``) and ``### 1. First``-style headings.
+
+    The regex is applied to the *raw* line (not stripped), so indented
+    sub-items (e.g. ``    1. Sub-item``) and numbered lines inside fenced
+    code blocks are **not** counted as top-level steps — top-level Markdown
+    numbered items are flush-left by convention.
+    """
+    from fx_alfred.core.parser import extract_section
+
+    section = extract_section(parsed.body, "Steps")
+    if section is None:
+        return None
+
+    indices: set[int] = set()
+    for line in section.split("\n"):
+        m = _STEP_INDEX_RE.match(line)
+        if m:
+            indices.add(int(m.group(1)))
+    return frozenset(indices)
+
+
+def validate_loops(
+    parsed: ParsedDocument, loops: list[LoopSignature]
+) -> list[LoopError]:
+    """Return a list of LoopError.  Empty list means valid.
+
+    Pure intra-SOP validation. No cross-SOP logic.
+    """
+    errors: list[LoopError] = []
+    step_indices = _parse_step_indices(parsed)
+
+    for loop in loops:
+        if loop.from_step <= loop.to_step:
+            errors.append(
+                LoopError(
+                    msg=(
+                        f"loop '{loop.id}': 'from' ({loop.from_step}) must be greater "
+                        f"than 'to' ({loop.to_step}) — loops are back-edges only"
+                    ),
+                    loop_id=loop.id,
+                )
+            )
+        if loop.max_iterations <= 0:
+            errors.append(
+                LoopError(
+                    msg=(
+                        f"loop '{loop.id}': 'max_iterations' "
+                        f"({loop.max_iterations}) must be a positive integer"
+                    ),
+                    loop_id=loop.id,
+                )
+            )
+
+        # Membership check: only meaningful if we know the step indices.
+        # The spec requires that 'from' and 'to' reference *existing* step
+        # indexes in the Steps section — gapped or sparse numbering means
+        # intermediate values are not valid references.
+        if step_indices is not None:
+            found_desc = (
+                "{" + ", ".join(str(i) for i in sorted(step_indices)) + "}"
+                if step_indices
+                else "{}"
+            )
+            if loop.from_step not in step_indices:
+                errors.append(
+                    LoopError(
+                        msg=(
+                            f"loop '{loop.id}': 'from' ({loop.from_step}) "
+                            f"does not reference an existing step in Steps section "
+                            f"(found: {found_desc})"
+                        ),
+                        loop_id=loop.id,
+                    )
+                )
+            if loop.to_step not in step_indices:
+                errors.append(
+                    LoopError(
+                        msg=(
+                            f"loop '{loop.id}': 'to' ({loop.to_step}) "
+                            f"does not reference an existing step in Steps section "
+                            f"(found: {found_desc})"
+                        ),
+                        loop_id=loop.id,
+                    )
+                )
+
+    return errors
