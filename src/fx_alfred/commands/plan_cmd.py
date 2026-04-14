@@ -17,8 +17,10 @@ from fx_alfred.core.parser import (
     parse_metadata,
 )
 from fx_alfred.core.workflow import (
+    LoopSignature,
     WorkflowSignature,
     check_composition,
+    parse_workflow_loops,
     parse_workflow_signature,
     validate_workflow_signature,
 )
@@ -128,14 +130,145 @@ def _format_phase(
     return "\n".join(lines)
 
 
+def _build_todo_items(
+    phase_num: int,
+    sop_id: str,
+    body: str,
+    loops: list[LoopSignature],
+    checkbox_prefix: str,
+) -> list[str]:
+    """Build flat TODO items for a single SOP phase.
+
+    Returns list of formatted TODO lines with dotted numbering,
+    SOP provenance tags, gate markers, and loop markers.
+    """
+    items: list[str] = []
+    steps_section = _extract_steps_section(body)
+
+    if steps_section is None:
+        return [f"{checkbox_prefix}{phase_num}.1 [{sop_id}] (no Steps section found)"]
+
+    steps = _parse_steps_for_json(steps_section)
+    if not steps:
+        # Raw section text fallback
+        return [f"{checkbox_prefix}{phase_num}.1 [{sop_id}] {steps_section.strip()}"]
+
+    # Build loop marker maps
+    loop_to_steps = {loop.to_step: loop for loop in loops}
+    loop_from_steps = {loop.from_step: loop for loop in loops}
+
+    for step in steps:
+        step_idx = step["index"]
+        text = step["text"]
+        gate = step["gate"]
+        dotted = f"{phase_num}.{step_idx}"
+
+        # Determine loop marker
+        loop_marker = None
+        if gate:
+            loop_marker = "gate"
+        elif step_idx in loop_to_steps:
+            loop_marker = "loop-start"
+        elif step_idx in loop_from_steps:
+            loop_marker = "loop-back"
+
+        # Apply markers to text
+        if loop_marker == "loop-start":
+            text = f"🔁 loop-start: {text}"
+        elif loop_marker == "loop-back":
+            loop = loop_from_steps[step_idx]
+            text = f"{text} — 🔁 if {loop.condition} → back to {phase_num}.{loop.to_step} (max {loop.max_iterations})"
+        elif gate:
+            text = f"⚠️ gate: {text}"
+
+        items.append(f"{checkbox_prefix}{dotted} [{sop_id}] {text}")
+
+    return items
+
+
+def _build_todo_json(
+    phase_num: int,
+    sop_id: str,
+    body: str,
+    loops: list[LoopSignature],
+) -> list[dict]:
+    """Build JSON todo items for a single SOP phase."""
+    items: list[dict] = []
+    steps_section = _extract_steps_section(body)
+
+    if steps_section is None:
+        return [
+            {
+                "index": f"{phase_num}.1",
+                "sop": sop_id,
+                "text": "(no Steps section found)",
+                "gate": False,
+                "loop_marker": None,
+            }
+        ]
+
+    steps = _parse_steps_for_json(steps_section)
+    if not steps:
+        return [
+            {
+                "index": f"{phase_num}.1",
+                "sop": sop_id,
+                "text": steps_section.strip(),
+                "gate": False,
+                "loop_marker": None,
+            }
+        ]
+
+    # Build loop marker maps
+    loop_to_steps = {loop.to_step: loop for loop in loops}
+    loop_from_steps = {loop.from_step: loop for loop in loops}
+
+    for step in steps:
+        step_idx = step["index"]
+        text = step["text"]
+        gate = step["gate"]
+        dotted = f"{phase_num}.{step_idx}"
+
+        # Determine loop marker
+        loop_marker = None
+        if gate:
+            loop_marker = "gate"
+        elif step_idx in loop_to_steps:
+            loop_marker = "loop-start"
+        elif step_idx in loop_from_steps:
+            loop_marker = "loop-back"
+
+        items.append(
+            {
+                "index": dotted,
+                "sop": sop_id,
+                "text": text,
+                "gate": gate,
+                "loop_marker": loop_marker,
+            }
+        )
+
+    return items
+
+
 @click.command("plan")
 @root_option
 @click.argument("sop_ids", nargs=-1)
 @click.option("--human", is_flag=True, help="Human-readable output")
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.option(
+    "--todo",
+    "output_todo",
+    is_flag=True,
+    help="Flat unified TODO list across selected SOPs",
+)
 @click.pass_context
 def plan_cmd(
-    ctx: click.Context, sop_ids: tuple[str, ...], human: bool, output_json: bool
+    ctx: click.Context,
+    sop_ids: tuple[str, ...],
+    human: bool,
+    output_json: bool,
+    output_todo: bool,
 ) -> None:
     """Generate workflow checklist from SOPs."""
     if not sop_ids:
@@ -148,7 +281,9 @@ def plan_cmd(
 
     # ── First pass: parse all SOPs and collect workflow signatures ──
     phase_info: list[
-        tuple[str, Document, ParsedDocument, WorkflowSignature | None]
+        tuple[
+            str, Document, ParsedDocument, WorkflowSignature | None, list[LoopSignature]
+        ]
     ] = []
 
     for sop_id in sop_ids:
@@ -174,10 +309,11 @@ def plan_cmd(
             continue
 
         sig = parse_workflow_signature(parsed)
-        phase_info.append((sop_id, doc, parsed, sig))
+        loops = parse_workflow_loops(parsed)
+        phase_info.append((sop_id, doc, parsed, sig, loops))
 
     # ── Validate workflow signatures before composition ──
-    for sop_id, doc, parsed, sig in phase_info:
+    for sop_id, doc, parsed, sig, loops in phase_info:
         if sig is not None:
             wf_errors = validate_workflow_signature(sig)
             if wf_errors:
@@ -192,7 +328,7 @@ def plan_cmd(
             f"{doc.prefix}-{doc.acid}",
             sig if sig is not None else WorkflowSignature(input="", output=""),
         )
-        for _, doc, _, sig in phase_info
+        for _, doc, _, sig, _ in phase_info
     ]
     edges = check_composition(chain)
 
@@ -205,23 +341,43 @@ def plan_cmd(
 
     composition_valid = all(e.compatible for e in edges) if edges else True
 
-    # ── Second pass: render output ──
-    phases_json: list[dict] = []
-    phases_text: list[str] = []
-    phase_num = 0
+    # ── Flat TODO output mode ──
+    if output_todo and not output_json:
+        todo_items: list[str] = []
+        phase_num = 0
+        checkbox = "□ " if human else "- [ ] "
 
-    for sop_id, doc, parsed, sig in phase_info:
-        body = parsed.body
-        summary = extract_section(body, "What Is It?")
-        title = doc.title
-        phase_num += 1
+        for sop_id, doc, parsed, sig, loops in phase_info:
+            phase_num += 1
+            body = parsed.body
+            doc_id = f"{doc.prefix}-{doc.acid}"
+            items = _build_todo_items(phase_num, doc_id, body, loops, checkbox)
+            todo_items.extend(items)
 
-        # Build state line for typed phases
-        state_line: str | None = None
-        if sig is not None and sig.input and sig.output:
-            state_line = f"State: {sig.input} -> {sig.output}"
+        if not todo_items:
+            return
 
-        if output_json:
+        # Header
+        if human:
+            click.echo("# Flat TODO — Follow each item in order")
+        else:
+            click.echo("# Flat TODO — Follow each item in order")
+        click.echo()
+        click.echo("\n".join(todo_items))
+        return
+
+    # ── JSON output mode ──
+    if output_json:
+        phases_json: list[dict] = []
+        todo_json: list[dict] = []
+        loops_json: list[dict] = []
+        phase_num = 0
+
+        for sop_id, doc, parsed, sig, loops in phase_info:
+            phase_num += 1
+            body = parsed.body
+            doc_id = f"{doc.prefix}-{doc.acid}"
+
             steps_section = _extract_steps_section(body)
             steps = _parse_steps_for_json(steps_section) if steps_section else []
             phases_json.append(
@@ -237,20 +393,26 @@ def plan_cmd(
                     and bool(sig.input and sig.output),
                 }
             )
-        elif human:
-            heading = f"═══ Phase {phase_num}: {sop_id} ({title}) ═══"
-            phases_text.append(
-                _format_phase(heading, summary, body, "", "□ ", state_line)
-            )
-        else:
-            heading = f"## Phase {phase_num}: {sop_id} ({title})"
-            phases_text.append(
-                _format_phase(heading, summary, body, "What: ", "- [ ] ", state_line)
-            )
 
-    if output_json:
+            # Build todo items if --todo is set
+            if output_todo:
+                todo_items = _build_todo_json(phase_num, doc_id, body, loops)
+                todo_json.extend(todo_items)
+
+                # Build loops array with dotted step references
+                for loop in loops:
+                    loops_json.append(
+                        {
+                            "id": loop.id,
+                            "from": f"{phase_num}.{loop.from_step}",
+                            "to": f"{phase_num}.{loop.to_step}",
+                            "max_iterations": loop.max_iterations,
+                            "sop": doc_id,
+                        }
+                    )
+
         result = {
-            "schema_version": "1",
+            "schema_version": "2" if output_todo else "1",
             "sop_ids": list(sop_ids),
             "phases": phases_json,
             "composition_valid": composition_valid,
@@ -266,8 +428,39 @@ def plan_cmd(
                 for e in edges
             ],
         }
+
+        if output_todo:
+            result["todo"] = todo_json
+            result["loops"] = loops_json
+
         click.echo(json.dumps(result, ensure_ascii=False, indent=2))
         return
+
+    # ── Second pass: render phased output (default behavior) ──
+    phases_text: list[str] = []
+    phase_num = 0
+
+    for sop_id, doc, parsed, sig, loops in phase_info:
+        body = parsed.body
+        summary = extract_section(body, "What Is It?")
+        title = doc.title
+        phase_num += 1
+
+        # Build state line for typed phases
+        state_line: str | None = None
+        if sig is not None and sig.input and sig.output:
+            state_line = f"State: {sig.input} -> {sig.output}"
+
+        if human:
+            heading = f"═══ Phase {phase_num}: {sop_id} ({title}) ═══"
+            phases_text.append(
+                _format_phase(heading, summary, body, "", "□ ", state_line)
+            )
+        else:
+            heading = f"## Phase {phase_num}: {sop_id} ({title})"
+            phases_text.append(
+                _format_phase(heading, summary, body, "What: ", "- [ ] ", state_line)
+            )
 
     if not phases_text:
         return

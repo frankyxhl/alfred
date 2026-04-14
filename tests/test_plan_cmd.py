@@ -485,3 +485,298 @@ def test_plan_mixed_typed_untyped_chain(sample_project, monkeypatch):
     assert result.exit_code == 0
     # Typed SOPs should still show their State lines
     assert "State:" in result.output
+
+
+# ── Flat TODO output tests (FXA-2205 PR2) ───────────────────────────────────
+
+
+def test_todo_flag_flat_checkbox_lines(sample_project, monkeypatch):
+    """--todo alone emits `- [ ] N.M [SOP-ID] text` lines in composition order."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--todo", "TST-7001"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # Should have markdown checkboxes
+    assert "- [ ]" in result.output
+    # Should have dotted numbering N.M
+    assert "1.1" in result.output
+    # Should have SOP-ID provenance tag
+    assert "[TST-7001]" in result.output
+    # Should NOT have phased output headers
+    assert "## Phase" not in result.output
+
+
+def test_todo_human_flag_unicode_checkbox(sample_project, monkeypatch):
+    """--todo --human emits `□ N.M [SOP-ID] text` lines."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--human", "TST-7001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should have unicode checkbox
+    assert "□" in result.output
+    # Should NOT have markdown checkbox
+    assert "- [ ]" not in result.output
+    # Should still have dotted numbering and provenance
+    assert "1.1" in result.output
+    assert "[TST-7001]" in result.output
+
+
+def test_todo_gate_marker(sample_project, monkeypatch):
+    """Gate markers produce `⚠️ gate` prefix in TODO item."""
+    rules_dir = sample_project / "rules"
+    content = """# TST-7002: Gate Test
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+A test SOP with a gate step.
+## Steps
+1. Regular step
+2. Gate step ✓
+"""
+    filepath = rules_dir / "TST-7002-SOP-Gate-Test.md"
+    filepath.write_text(content)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--todo", "TST-7002"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # Gate step should have warning marker
+    assert "⚠️" in result.output or "gate" in result.output.lower()
+
+
+def test_todo_json_produces_todo_array(sample_project, monkeypatch):
+    """--todo --json produces `todo` array with correct fields."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "TST-7001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+
+    # Should have todo array
+    assert "todo" in data
+    assert isinstance(data["todo"], list)
+    assert len(data["todo"]) >= 1
+
+    # Each todo item should have required fields
+    todo_item = data["todo"][0]
+    assert "index" in todo_item
+    assert "sop" in todo_item
+    assert "text" in todo_item
+    assert "gate" in todo_item
+    assert "loop_marker" in todo_item
+
+    # Index should be dotted format
+    assert "." in todo_item["index"]
+    assert todo_item["sop"] == "TST-7001"
+
+
+def test_todo_json_includes_loops_array(sample_project, monkeypatch):
+    """--todo --json includes `loops` array with dotted step references."""
+    import json
+
+    # Use COR-1602 from PKG layer which has Workflow loops metadata
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "COR-1602"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+
+    # Should have loops array
+    assert "loops" in data
+    assert isinstance(data["loops"], list)
+    assert len(data["loops"]) >= 1
+
+    # Each loop should have required fields with dotted format
+    loop = data["loops"][0]
+    assert "id" in loop
+    assert "from" in loop
+    assert "to" in loop
+    assert "max_iterations" in loop
+    assert "sop" in loop
+
+    # from and to should be dotted format (e.g., "1.7")
+    assert "." in loop["from"]
+    assert "." in loop["to"]
+
+
+def test_todo_json_schema_version_bumps(sample_project, monkeypatch):
+    """--todo --json sets `schema_version` to "2"."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "TST-7001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert data["schema_version"] == "2"
+
+
+def test_json_without_todo_unchanged_schema(sample_project, monkeypatch):
+    """--json without --todo keeps existing schema untouched."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--json", "TST-7001"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    # Schema version should be "1" (no new keys)
+    assert data["schema_version"] == "1"
+    # Should NOT have todo or loops keys
+    assert "todo" not in data
+    assert "loops" not in data
+
+
+def test_todo_preserves_json_human_mutex(sample_project, monkeypatch):
+    """--todo preserves existing --json --human mutex error."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--todo", "--json", "--human", "TST-7001"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output.lower()
+
+
+def test_todo_without_steps_section(sample_project, monkeypatch):
+    """--todo on a SOP without Steps section shows appropriate message."""
+    rules_dir = sample_project / "rules"
+    _create_sop_without_steps(rules_dir, "TST", "7003", "Empty-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--todo", "TST-7003"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # Should note there are no steps
+    output_lower = result.output.lower()
+    assert "no steps" in output_lower or "no step" in output_lower
+
+
+def test_todo_multi_sop_continuous_numbering(sample_project, monkeypatch):
+    """Composition of 2+ SOPs produces continuous phase numbering (1.*, 2.*)."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+    _create_sop_with_steps(rules_dir, "TST", "7002", "Second-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "TST-7001", "TST-7002"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    # Should have phase 1.x and phase 2.x numbering
+    assert "1.1" in result.output
+    assert "1.2" in result.output
+    assert "2.1" in result.output
+    assert "2.2" in result.output
+    # Should have both SOP provenance tags
+    assert "[TST-7001]" in result.output
+    assert "[TST-7002]" in result.output
+
+
+def test_todo_loop_markers_on_cor_1602(sample_project, monkeypatch):
+    """--todo on COR-1602 produces loop markers on the correct steps.
+
+    COR-1602 has Workflow loops: [{id: review-retry, from: 7, to: 3, ...}]
+    - Step 3 should have 🔁 loop-start prefix
+    - Step 7 should have 🔁 if ... → back to 1.3 (max 3) suffix
+    """
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--todo", "COR-1602"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    output = result.output
+
+    # Should have loop-start marker
+    assert "🔁" in output or "loop-start" in output.lower()
+
+    # Should have loop-back marker with condition and max iterations
+    assert "back to" in output.lower() or "→" in output
+    assert "max 3" in output.lower() or "max_iterations" in output.lower()
+
+    # Provenance tag should be present
+    assert "[COR-1602]" in output
+
+
+def test_todo_loop_marker_json_values(sample_project, monkeypatch):
+    """--todo --json loop_marker field has correct values."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "COR-1602"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+
+    # Find todo items with loop markers
+    loop_start_items = [t for t in data["todo"] if t.get("loop_marker") == "loop-start"]
+    loop_back_items = [t for t in data["todo"] if t.get("loop_marker") == "loop-back"]
+
+    # COR-1602 has from:7 to:3, so step 3 is loop-start, step 7 is loop-back
+    assert len(loop_start_items) >= 1
+    assert len(loop_back_items) >= 1
+
+    # The loop-start item should be at index 1.3
+    assert any(t["index"] == "1.3" for t in loop_start_items)
+
+    # The loop-back item should be at index 1.7
+    assert any(t["index"] == "1.7" for t in loop_back_items)
+
+
+def test_todo_preserves_default_output(sample_project, monkeypatch):
+    """Default (no --todo) output remains byte-identical to existing behavior."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+
+    # Get default output
+    runner = CliRunner()
+    default_result = runner.invoke(cli, ["plan", "TST-7001"], catch_exceptions=False)
+    assert default_result.exit_code == 0
+
+    # Should have phased output headers
+    assert "## Phase" in default_result.output
+    # Should have ## RULES section
+    assert "## RULES" in default_result.output
