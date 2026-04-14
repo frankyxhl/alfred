@@ -52,6 +52,12 @@ WORKFLOW_OUTPUT = "Workflow output"
 WORKFLOW_REQUIRES = "Workflow requires"
 WORKFLOW_PROVIDES = "Workflow provides"
 
+# FXA-2205: Loop metadata key — SOP-only, optional.
+WORKFLOW_LOOPS = "Workflow loops"
+
+# FXA-2205: Always-included flag — SOP-only, optional.
+ALWAYS_INCLUDED = "Always included"
+
 _WORKFLOW_FIELDS = [
     WORKFLOW_INPUT,
     WORKFLOW_OUTPUT,
@@ -60,7 +66,7 @@ _WORKFLOW_FIELDS = [
 ]
 
 OPTIONAL_METADATA: dict[DocType, list[str]] = {
-    DocType.SOP: _WORKFLOW_FIELDS + ["Tags"],
+    DocType.SOP: _WORKFLOW_FIELDS + [WORKFLOW_LOOPS, ALWAYS_INCLUDED, "Tags"],
     **{dt: ["Tags"] for dt in DocType if dt != DocType.SOP},
 }
 

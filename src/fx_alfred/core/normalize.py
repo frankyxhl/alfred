@@ -50,6 +50,8 @@ KNOWN_OPTIONAL_ORDER = [
     "Workflow output",
     "Workflow requires",
     "Workflow provides",
+    "Workflow loops",
+    "Always included",
     "Tags",
 ]
 

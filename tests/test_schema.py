@@ -7,6 +7,9 @@ from fx_alfred.core.schema import (
     REQUIRED_METADATA,
     REQUIRED_SECTIONS,
     ROUTING_ROLE_METADATA_KEY,
+    OPTIONAL_METADATA,
+    WORKFLOW_LOOPS,
+    ALWAYS_INCLUDED,
 )
 
 
@@ -66,3 +69,42 @@ def test_schema_import_has_no_side_effects():
     import fx_alfred.core.schema as m
 
     importlib.reload(m)
+
+
+# ---------------------------------------------------------------------------
+# FXA-2205: Workflow loops and Always included constants
+# ---------------------------------------------------------------------------
+
+
+def test_workflow_loops_constant():
+    """WORKFLOW_LOOPS constant has correct literal value."""
+    assert WORKFLOW_LOOPS == "Workflow loops"
+
+
+def test_always_included_constant():
+    """ALWAYS_INCLUDED constant has correct literal value."""
+    assert ALWAYS_INCLUDED == "Always included"
+
+
+def test_optional_metadata_sop_contains_workflow_loops():
+    """OPTIONAL_METADATA for SOP contains 'Workflow loops'."""
+    assert "Workflow loops" in OPTIONAL_METADATA[DocType.SOP]
+
+
+def test_optional_metadata_sop_contains_always_included():
+    """OPTIONAL_METADATA for SOP contains 'Always included'."""
+    assert "Always included" in OPTIONAL_METADATA[DocType.SOP]
+
+
+def test_optional_metadata_non_sop_does_not_contain_workflow_loops():
+    """Non-SOP document types do not have 'Workflow loops'."""
+    for dt in DocType:
+        if dt != DocType.SOP:
+            assert "Workflow loops" not in OPTIONAL_METADATA[dt]
+
+
+def test_optional_metadata_non_sop_does_not_contain_always_included():
+    """Non-SOP document types do not have 'Always included'."""
+    for dt in DocType:
+        if dt != DocType.SOP:
+            assert "Always included" not in OPTIONAL_METADATA[dt]

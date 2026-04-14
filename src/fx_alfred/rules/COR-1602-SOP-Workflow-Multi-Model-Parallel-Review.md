@@ -4,6 +4,7 @@
 **Last updated:** 2026-04-01
 **Last reviewed:** 2026-04-01
 **Status:** Active
+**Workflow loops:** [{id: review-retry, from: 7, to: 3, max_iterations: 3, condition: "iteration is on and not all reviewers approve"}]
 
 ---
 
