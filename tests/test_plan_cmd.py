@@ -657,6 +657,16 @@ def test_json_without_todo_unchanged_schema(sample_project, monkeypatch):
     assert "todo" not in data
     assert "loops" not in data
 
+    # Type stability: workflow_requires and workflow_provides must be lists
+    # (not strings) even for untyped phases that hit the `else` fallback
+    for phase in data["phases"]:
+        assert isinstance(phase["workflow_requires"], list), (
+            f"workflow_requires must be list, got {type(phase['workflow_requires'])}"
+        )
+        assert isinstance(phase["workflow_provides"], list), (
+            f"workflow_provides must be list, got {type(phase['workflow_provides'])}"
+        )
+
 
 def test_todo_preserves_json_human_mutex(sample_project, monkeypatch):
     """--todo preserves existing --json --human mutex error."""

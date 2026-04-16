@@ -444,7 +444,7 @@ def plan_cmd(
                     "workflow_input": sig.input if sig else "",
                     "workflow_output": sig.output if sig else "",
                     "workflow_requires": sig.requires if sig else [],
-                    "workflow_provides": sig.provides if sig else "",
+                    "workflow_provides": sig.provides if sig else [],
                     "workflow_typed": sig is not None
                     and bool(sig.input and sig.output),
                 }
