@@ -780,3 +780,218 @@ def test_todo_preserves_default_output(sample_project, monkeypatch):
     assert "## Phase" in default_result.output
     # Should have ## RULES section
     assert "## RULES" in default_result.output
+
+
+# ── Gate + Loop collision tests (FXA-2205 PR2 Round-2) ───────────────────────
+
+
+def _create_sop_with_gate_and_loop(
+    rules_dir: Path,
+    prefix: str,
+    acid: str,
+    title: str,
+    workflow_loops: str,
+    steps_with_gate: str,
+) -> Path:
+    """Helper to create an SOP with Workflow loops and a gate step."""
+    filename = f"{prefix}-{acid}-SOP-{title}.md"
+    content = f"""# {prefix}-{acid}: {title.replace("-", " ")}
+
+**Applies to:** Test
+**Status:** Active
+**Workflow loops:** {workflow_loops}
+---
+## What Is It?
+A test SOP with gate and loop metadata.
+## Steps
+{steps_with_gate}
+"""
+    filepath = rules_dir / filename
+    filepath.write_text(content)
+    return filepath
+
+
+def test_gate_plus_loop_from_collision_text(sample_project, monkeypatch):
+    """Step that is gate AND from_step → text has BOTH ⚠️ gate prefix AND loop-back suffix."""
+    rules_dir = sample_project / "rules"
+    # Step 2 is both gate (✓) and loop from_step (from:2, to:1)
+    _create_sop_with_gate_and_loop(
+        rules_dir,
+        "TST",
+        "8001",
+        "Gate-Loop-Collision",
+        "[{id: retry, from: 2, to: 1, max_iterations: 3, condition: 'needs retry'}]",
+        "1. First step\n2. Retry gate ✓\n3. Final step",
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--todo", "TST-8001"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    # Step 2 should have BOTH gate prefix AND loop-back suffix
+    assert "⚠️ gate:" in result.output
+    assert "🔁 if needs retry → back to 1.1 (max 3)" in result.output
+    # Both markers should appear on the same line (step 2)
+    lines = result.output.split("\n")
+    step2_line = [line for line in lines if "1.2" in line][0]
+    assert "⚠️ gate:" in step2_line
+    assert "🔁 if needs retry" in step2_line
+
+
+def test_gate_plus_loop_from_collision_json(sample_project, monkeypatch):
+    """Step that is gate AND from_step → JSON has gate=True, loop_marker='loop-back'."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_gate_and_loop(
+        rules_dir,
+        "TST",
+        "8001",
+        "Gate-Loop-Collision",
+        "[{id: retry, from: 2, to: 1, max_iterations: 3, condition: 'needs retry'}]",
+        "1. First step\n2. Retry gate ✓\n3. Final step",
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "TST-8001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    # Find step 2 (index "1.2")
+    step2 = [t for t in data["todo"] if t["index"] == "1.2"][0]
+    assert step2["gate"] is True
+    assert step2["loop_marker"] == "loop-back"
+
+
+def test_gate_plus_loop_to_collision_text(sample_project, monkeypatch):
+    """Step that is gate AND to_step → text has BOTH ⚠️ gate AND 🔁 loop-start."""
+    rules_dir = sample_project / "rules"
+    # Step 1 is both gate (✓) and loop to_step (from:2, to:1)
+    _create_sop_with_gate_and_loop(
+        rules_dir,
+        "TST",
+        "8002",
+        "Gate-LoopStart-Collision",
+        "[{id: retry, from: 2, to: 1, max_iterations: 3, condition: 'needs retry'}]",
+        "1. Gate at loop start ✓\n2. Retry step\n3. Final step",
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--todo", "TST-8002"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    # Step 1 should have BOTH gate prefix AND loop-start prefix
+    lines = result.output.split("\n")
+    step1_line = [line for line in lines if "1.1" in line][0]
+    assert "⚠️ gate:" in step1_line
+    assert "🔁 loop-start:" in step1_line
+    # Gate should be leftmost (applied after loop-start prepend)
+    assert step1_line.index("⚠️") < step1_line.index("🔁 loop-start")
+
+
+def test_gate_plus_loop_to_collision_json(sample_project, monkeypatch):
+    """Step that is gate AND to_step → JSON has gate=True, loop_marker='loop-start'."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_gate_and_loop(
+        rules_dir,
+        "TST",
+        "8002",
+        "Gate-LoopStart-Collision",
+        "[{id: retry, from: 2, to: 1, max_iterations: 3, condition: 'needs retry'}]",
+        "1. Gate at loop start ✓\n2. Retry step\n3. Final step",
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "TST-8002"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    # Find step 1 (index "1.1")
+    step1 = [t for t in data["todo"] if t["index"] == "1.1"][0]
+    assert step1["gate"] is True
+    assert step1["loop_marker"] == "loop-start"
+
+
+def test_gate_alone_no_loop_collision(sample_project, monkeypatch):
+    """Gate without loop overlap → ⚠️ gate text and gate=True, loop_marker=null JSON."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    # No workflow loops, just a gate step
+    _create_sop_with_gate_and_loop(
+        rules_dir,
+        "TST",
+        "8003",
+        "Gate-Only",
+        "[]",  # no loops
+        "1. First step\n2. Gate step ✓\n3. Final step",
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "TST-8003"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    step2 = [t for t in data["todo"] if t["index"] == "1.2"][0]
+    assert step2["gate"] is True
+    assert step2["loop_marker"] is None
+
+    # Text output
+    result_text = runner.invoke(
+        cli, ["plan", "--todo", "TST-8003"], catch_exceptions=False
+    )
+    assert result_text.exit_code == 0
+    assert "⚠️ gate:" in result_text.output
+
+
+def test_loop_to_and_from_same_step_multi_loop(sample_project, monkeypatch):
+    """Step is both loop to_step AND loop_from (multi-loop edge) → loop-back takes precedence."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    # Step 2 is to_step of loop-a (from:3, to:2) AND from_step of loop-b (from:2, to:1)
+    # This creates a chain: 1 ←(loop-b)← 2 ←(loop-a)← 3
+    _create_sop_with_gate_and_loop(
+        rules_dir,
+        "TST",
+        "8004",
+        "Multi-Loop-Edge",
+        "[{id: loop-a, from: 3, to: 2, max_iterations: 2, condition: 'a'}, "
+        "{id: loop-b, from: 2, to: 1, max_iterations: 1, condition: 'b'}]",
+        "1. First\n2. Middle (both to and from)\n3. Last",
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--json", "TST-8004"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    # Step 2 should have loop_marker="loop-back" (tiebreak: loop_from takes precedence)
+    step2 = [t for t in data["todo"] if t["index"] == "1.2"][0]
+    assert step2["loop_marker"] == "loop-back"
+
+    # Text output should have BOTH loop-start prefix AND loop-back suffix
+    result_text = runner.invoke(
+        cli, ["plan", "--todo", "TST-8004"], catch_exceptions=False
+    )
+    assert result_text.exit_code == 0
+    lines = result_text.output.split("\n")
+    step2_line = [line for line in lines if "1.2" in line][0]
+    assert "🔁 loop-start:" in step2_line
+    assert "🔁 if b → back to 1.1 (max 1)" in step2_line

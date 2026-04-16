@@ -130,6 +130,63 @@ def _format_phase(
     return "\n".join(lines)
 
 
+def _classify_step(
+    step_idx: int,
+    gate: bool,
+    loop_to_steps: dict[int, LoopSignature],
+    loop_from_steps: dict[int, LoopSignature],
+) -> tuple[bool, LoopSignature | None, LoopSignature | None]:
+    """Classify a step for gate and loop markers.
+
+    Returns (is_gate, loop_to_signature_or_None, loop_from_signature_or_None).
+
+    Gate and loop markers are INDEPENDENTLY COMPOSABLE — a step can be both
+    a gate and a loop endpoint without losing either marker.
+
+    When a step is both loop_to and loop_from (multi-loop edge case where
+    the same step is the target of one loop and the source of another),
+    loop_from takes precedence as it carries more information (the condition
+    and back-reference).
+    """
+    loop_to_sig = loop_to_steps.get(step_idx)
+    loop_from_sig = loop_from_steps.get(step_idx)
+    return (gate, loop_to_sig, loop_from_sig)
+
+
+def _apply_text_markers(
+    text: str,
+    gate: bool,
+    loop_to_sig: LoopSignature | None,
+    loop_from_sig: LoopSignature | None,
+    phase_num: int,
+) -> str:
+    """Apply gate and loop markers to TODO item text.
+
+    Markers are applied in this EXACT order (documented contract):
+    1. If loop_to_sig: prepend "🔁 loop-start: " to text.
+    2. If gate: prepend "⚠️ gate: " to text (after loop-start, so leftmost
+       token is ⚠️ when both apply).
+    3. If loop_from_sig: append " — 🔁 if {cond} → back to {phase}.{to} (max {N})"
+       to text.
+
+    A step that is gate AND loop-to AND loop-from renders:
+    "⚠️ gate: 🔁 loop-start: <original> — 🔁 if cond → back to N.K (max 3)"
+    """
+    # 1. Loop-start prefix (loop target)
+    if loop_to_sig:
+        text = f"🔁 loop-start: {text}"
+
+    # 2. Gate prefix
+    if gate:
+        text = f"⚠️ gate: {text}"
+
+    # 3. Loop-back suffix (loop source)
+    if loop_from_sig:
+        text = f"{text} — 🔁 if {loop_from_sig.condition} → back to {phase_num}.{loop_from_sig.to_step} (max {loop_from_sig.max_iterations})"
+
+    return text
+
+
 def _build_todo_items(
     phase_num: int,
     sop_id: str,
@@ -163,23 +220,13 @@ def _build_todo_items(
         gate = step["gate"]
         dotted = f"{phase_num}.{step_idx}"
 
-        # Determine loop marker
-        loop_marker = None
-        if gate:
-            loop_marker = "gate"
-        elif step_idx in loop_to_steps:
-            loop_marker = "loop-start"
-        elif step_idx in loop_from_steps:
-            loop_marker = "loop-back"
+        # Classify step (gate and loop markers are independent)
+        is_gate, loop_to_sig, loop_from_sig = _classify_step(
+            step_idx, gate, loop_to_steps, loop_from_steps
+        )
 
         # Apply markers to text
-        if loop_marker == "loop-start":
-            text = f"🔁 loop-start: {text}"
-        elif loop_marker == "loop-back":
-            loop = loop_from_steps[step_idx]
-            text = f"{text} — 🔁 if {loop.condition} → back to {phase_num}.{loop.to_step} (max {loop.max_iterations})"
-        elif gate:
-            text = f"⚠️ gate: {text}"
+        text = _apply_text_markers(text, is_gate, loop_to_sig, loop_from_sig, phase_num)
 
         items.append(f"{checkbox_prefix}{dotted} [{sop_id}] {text}")
 
@@ -192,7 +239,15 @@ def _build_todo_json(
     body: str,
     loops: list[LoopSignature],
 ) -> list[dict]:
-    """Build JSON todo items for a single SOP phase."""
+    """Build JSON todo items for a single SOP phase.
+
+    JSON contract:
+    - gate: bool — gate semantic (independent of loop_marker).
+    - loop_marker: "loop-start" | "loop-back" | null — NEVER carries "gate".
+    - gate AND loop-from → gate=True, loop_marker="loop-back".
+    - gate AND loop-to → gate=True, loop_marker="loop-start".
+    - loop-to AND loop-from same step → loop_marker="loop-back" (tiebreak).
+    """
     items: list[dict] = []
     steps_section = _extract_steps_section(body)
 
@@ -229,21 +284,25 @@ def _build_todo_json(
         gate = step["gate"]
         dotted = f"{phase_num}.{step_idx}"
 
-        # Determine loop marker
+        # Classify step (gate and loop markers are independent)
+        is_gate, loop_to_sig, loop_from_sig = _classify_step(
+            step_idx, gate, loop_to_steps, loop_from_steps
+        )
+
+        # Determine loop_marker for JSON (never "gate")
+        # Tiebreak: loop_from takes precedence over loop_to
         loop_marker = None
-        if gate:
-            loop_marker = "gate"
-        elif step_idx in loop_to_steps:
-            loop_marker = "loop-start"
-        elif step_idx in loop_from_steps:
+        if loop_from_sig:
             loop_marker = "loop-back"
+        elif loop_to_sig:
+            loop_marker = "loop-start"
 
         items.append(
             {
                 "index": dotted,
                 "sop": sop_id,
                 "text": text,
-                "gate": gate,
+                "gate": is_gate,
                 "loop_marker": loop_marker,
             }
         )
@@ -357,11 +416,8 @@ def plan_cmd(
         if not todo_items:
             return
 
-        # Header
-        if human:
-            click.echo("# Flat TODO — Follow each item in order")
-        else:
-            click.echo("# Flat TODO — Follow each item in order")
+        # Header (same for both human and default modes)
+        click.echo("# Flat TODO — Follow each item in order")
         click.echo()
         click.echo("\n".join(todo_items))
         return
@@ -388,7 +444,7 @@ def plan_cmd(
                     "workflow_input": sig.input if sig else "",
                     "workflow_output": sig.output if sig else "",
                     "workflow_requires": sig.requires if sig else [],
-                    "workflow_provides": sig.provides if sig else [],
+                    "workflow_provides": sig.provides if sig else "",
                     "workflow_typed": sig is not None
                     and bool(sig.input and sig.output),
                 }
