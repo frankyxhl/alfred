@@ -16,6 +16,7 @@ from fx_alfred.core.parser import (
     extract_section,
     parse_metadata,
 )
+from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.workflow import (
     LoopSignature,
     WorkflowSignature,
@@ -310,6 +311,33 @@ def _build_todo_json(
     return items
 
 
+def _build_mermaid_phases(
+    phase_info: list[
+        tuple[
+            str, Document, ParsedDocument, WorkflowSignature | None, list[LoopSignature]
+        ]
+    ],
+) -> list[dict]:
+    """Build the phases list consumed by ``render_mermaid()``.
+
+    Each entry is ``{"sop_id": str, "steps": list[dict], "loops": list}``.
+    """
+    mermaid_phases: list[dict] = []
+    for sop_id, doc, parsed, sig, loops in phase_info:
+        body = parsed.body
+        doc_id = f"{doc.prefix}-{doc.acid}"
+        steps_section = _extract_steps_section(body)
+        steps = _parse_steps_for_json(steps_section) if steps_section else []
+        mermaid_phases.append(
+            {
+                "sop_id": doc_id,
+                "steps": steps,
+                "loops": loops,
+            }
+        )
+    return mermaid_phases
+
+
 @click.command("plan")
 @root_option
 @click.argument("sop_ids", nargs=-1)
@@ -321,6 +349,12 @@ def _build_todo_json(
     is_flag=True,
     help="Flat unified TODO list across selected SOPs",
 )
+@click.option(
+    "--graph",
+    "output_graph",
+    is_flag=True,
+    help="Append Mermaid flowchart of composed plan",
+)
 @click.pass_context
 def plan_cmd(
     ctx: click.Context,
@@ -328,6 +362,7 @@ def plan_cmd(
     human: bool,
     output_json: bool,
     output_todo: bool,
+    output_graph: bool,
 ) -> None:
     """Generate workflow checklist from SOPs."""
     if not sop_ids:
@@ -420,6 +455,14 @@ def plan_cmd(
         click.echo("# Flat TODO — Follow each item in order")
         click.echo()
         click.echo("\n".join(todo_items))
+
+        if output_graph:
+            mermaid_phases = _build_mermaid_phases(phase_info)
+            mermaid_str = render_mermaid(mermaid_phases)
+            click.echo()
+            click.echo("```mermaid")
+            click.echo(mermaid_str)
+            click.echo("```")
         return
 
     # ── JSON output mode ──
@@ -467,8 +510,10 @@ def plan_cmd(
                         }
                     )
 
+        has_new_keys = output_todo or output_graph
+
         result = {
-            "schema_version": "2" if output_todo else "1",
+            "schema_version": "2" if has_new_keys else "1",
             "sop_ids": list(sop_ids),
             "phases": phases_json,
             "composition_valid": composition_valid,
@@ -488,6 +533,10 @@ def plan_cmd(
         if output_todo:
             result["todo"] = todo_json
             result["loops"] = loops_json
+
+        if output_graph:
+            mermaid_phases = _build_mermaid_phases(phase_info)
+            result["graph_mermaid"] = render_mermaid(mermaid_phases)
 
         click.echo(json.dumps(result, ensure_ascii=False, indent=2))
         return
@@ -532,3 +581,10 @@ def plan_cmd(
         click.echo("\n\n".join(phases_text))
         click.echo()
         click.echo(_LLM_RULES)
+
+    if output_graph:
+        mermaid_phases = _build_mermaid_phases(phase_info)
+        mermaid_str = render_mermaid(mermaid_phases)
+        click.echo("```mermaid")
+        click.echo(mermaid_str)
+        click.echo("```")
