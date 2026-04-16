@@ -360,6 +360,8 @@ def plan_cmd(
         try:
             content = doc.resolve_resource().read_text()
             parsed = parse_metadata(content)
+            sig = parse_workflow_signature(parsed)
+            loops = parse_workflow_loops(parsed)
         except MalformedDocumentError as e:
             if not output_json:
                 click.echo(
@@ -367,8 +369,6 @@ def plan_cmd(
                 )
             continue
 
-        sig = parse_workflow_signature(parsed)
-        loops = parse_workflow_loops(parsed)
         phase_info.append((sop_id, doc, parsed, sig, loops))
 
     # ── Validate workflow signatures before composition ──

@@ -1005,3 +1005,110 @@ def test_loop_to_and_from_same_step_multi_loop(sample_project, monkeypatch):
     step2_line = [line for line in lines if "1.2" in line][0]
     assert "🔁 loop-start:" in step2_line
     assert "🔁 if b → back to 1.1 (max 1)" in step2_line
+
+
+# ── Malformed Workflow loops regression tests (FXA-2205 PR2 P1 fix) ───────────
+
+
+def _create_sop_with_malformed_loops(
+    rules_dir: Path, prefix: str, acid: str, title: str
+) -> Path:
+    """Helper to create an SOP with malformed Workflow loops YAML."""
+    filename = f"{prefix}-{acid}-SOP-{title}.md"
+    # Intentionally malformed: 'from' is a string, not an int
+    content = f"""# {prefix}-{acid}: {title.replace("-", " ")}
+
+**Applies to:** Test
+**Last updated:** 2026-04-16
+**Last reviewed:** 2026-04-16
+**Status:** Active
+**Workflow loops:** [{{id: bad-loop, from: not-an-int, to: 1, max_iterations: 3, condition: "test"}}]
+
+---
+
+## What Is It?
+
+A test SOP with malformed loops.
+
+## Why
+
+Testing error handling.
+
+## When to Use
+
+Testing.
+
+## When NOT to Use
+
+Not testing.
+
+## Steps
+
+1. First step
+2. Second step
+"""
+    filepath = rules_dir / filename
+    filepath.write_text(content)
+    return filepath
+
+
+def test_malformed_loops_warn_and_skip(sample_project, monkeypatch):
+    """SOP with malformed loops + normal SOP → warns on bad, renders good."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "9001", "Good-SOP")
+    _create_sop_with_malformed_loops(rules_dir, "TST", "9002", "Bad-Loops")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-9002", "TST-9001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should warn about the bad SOP
+    assert "Warning" in result.output
+    assert "malformed" in result.output.lower()
+    # Should still render the good SOP
+    assert "TST-9001" in result.output
+    assert "## Phase" in result.output
+
+
+def test_malformed_loops_todo_mode(sample_project, monkeypatch):
+    """Malformed loops with --todo flag → warns and continues."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "9001", "Good-SOP")
+    _create_sop_with_malformed_loops(rules_dir, "TST", "9002", "Bad-Loops")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "TST-9002", "TST-9001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should warn about the bad SOP
+    assert "Warning" in result.output
+    # Should still render the good SOP in TODO format
+    assert "[TST-9001]" in result.output
+    assert "- [ ]" in result.output
+
+
+def test_malformed_loops_json_mode_silent_skip(sample_project, monkeypatch):
+    """Malformed loops with --json → silent skip, no warning in output."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "9001", "Good-SOP")
+    _create_sop_with_malformed_loops(rules_dir, "TST", "9002", "Bad-Loops")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--json", "TST-9002", "TST-9001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    # Only the good SOP should be in phases
+    assert len(data["phases"]) == 1
+    assert data["phases"][0]["phase"] == "TST-9001"
+    # No warning in JSON output (per existing convention)
+    assert "Warning" not in result.output
