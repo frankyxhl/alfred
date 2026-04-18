@@ -1,10 +1,54 @@
 # Changelog
 
-## Unreleased
+## v1.6.0 (2026-04-18)
+
+Major feature release: `af plan` gains auto-composition (`--task`), flat TODO (`--todo`), and graph output (`--graph`) with both terminal-friendly ASCII and GitHub/Obsidian-ready Mermaid. Three new SOP metadata fields (`Task tags`, `Workflow loops`, `Always included`) drive auto-composition and loop visualisation. New PKG SOP **COR-1202: Compose Session Plan** gives every user an ID-addressable entry point for the full session-workflow pattern.
 
 ### New
 
-- Added COR-1202: Compose Session Plan SOP (CHG-2207).
+- **`af plan --task "<description>"`** — auto-compose the set of SOPs for a task from its one-sentence description using deterministic tag matching + always-included baseline. No LLM. Explicit positional IDs still work (union/normalise). Fail-closed on true dependency cycles; exits 2 with diagnostic on empty tag match. (FXA-2205 / PR #46)
+- **`af plan --todo`** — emit a single continuously-numbered TODO list across all composed SOPs with `[SOP-ID]` provenance on every item, stable `{phase}.{step}` numbering, `⚠️ gate` markers, and `🔁 loop-start` / `🔁 back to N.M (max K)` loop markers. Mutually compatible with `--human` and `--json`. (FXA-2205 / PR #44)
+- **`af plan --graph`** — emit a flowchart of the composed plan. Default `--graph-format=both` prints an ASCII box-and-arrow diagram (terminal-friendly, Unicode-width aware) followed by a fenced Mermaid block (GitHub / Obsidian / mermaid.live). `--graph-format=ascii` or `--graph-format=mermaid` pick one. JSON output adds `ascii_graph` + `graph_mermaid` keys. (FXA-2205 PR #45 / FXA-2206 PR #47)
+- **`Workflow loops:` SOP metadata** — optional list of intra-SOP back-edges `[{id, from, to, max_iterations, condition}]`. Renders as dashed back-edges in Mermaid, `◄──┐ / ─────┘ max N` in ASCII, and `🔁 back to N.M (max K)` in TODO. `core/workflow.validate_loops()` enforces back-edge-only (`from > to`), positive `max_iterations`, and in-range step indices. (FXA-2205 / PR #43)
+- **`Task tags:` SOP metadata** — optional list of keywords used by `--task` auto-matching. Free-form; advisory lint warning planned for singletons. Backfilled on COR-1500/1602/1608/1609/1610/1611 and FXA-2148/2149 as the pilot corpus. (FXA-2205 / PR #46, FXA-2206 / PR #47)
+- **`Always included: true` SOP metadata** — optional boolean for SOPs that must be pulled into every `--task` composition (session baseline). Backfilled on COR-1103 (routing) and COR-1402 (declare-active-SOP). (FXA-2205 / PR #43)
+- **`core/ascii_graph.py`** — new pure-stdlib ASCII box-and-arrow renderer with Unicode visual-width handling (CJK, emoji, variation selectors) and balanced-width-invariant test. (FXA-2206 / PR #47)
+- **`core/phases.py`** — new shared `PhaseDict` / `StepDict` / `LoopDict` `TypedDict` contracts, formalising what was previously an implicit shape between `render_mermaid` and `_build_mermaid_phases`. `PhaseDict` uses `total=False` to keep legacy builders typecheckable. (FXA-2206 / PR #47)
+- **COR-1202: Compose Session Plan SOP** — new PKG SOP giving every user a named, ID-addressable procedure for `af plan --task … --todo --graph`. Users can say "follow COR-1202" and get a complete session workflow plan. Includes 7 Steps, 3 worked Examples with expected output, and tag-gap recovery flow. (FXA-2207 / PR #48)
+- **COR-1103 intent-router cross-reference** — routes "show me the plan" / "compose session plan" intents to COR-1202; disambiguates from the generic `af plan <SOP_IDs>` manual-checklist bullet. (FXA-2207 / PR #48)
+
+### Fixed
+
+- **Compose resolver**: `resolve_sops_from_task` now passes `workflow_edges` to `compose_order`, so Kahn's topological sort actually uses `Workflow input`/`Workflow output` metadata instead of always falling through to the layer+ASCII tiebreak. (FXA-2205 / PR #46)
+- **Compose empty-match check**: now keyed on `tag_cands` + `positional_set`, not `candidates == always_set`; previously an always-included SOP that also had a matching `Task tags` entry would wrongly trigger exit 2. (FXA-2205 / PR #46, bot P2)
+- **Compose positional IDs**: `--task` mode now accepts ACID-only IDs via `core.scanner.find_document` (normalised to PREFIX-ACID), matching the legacy `af plan <id>` semantics. (FXA-2205 / PR #46, bot P2)
+- **ASCII renderer** inter-phase border off-by-one: `└─┬─┘` separator line previously rendered at `box_width + 1`. (FXA-2206 / PR #47)
+- **ASCII renderer** `⚠️` visual width: `_visual_width` now treats `0x2600-0x27BF` (Misc Symbols + Dingbats) as 2 cells and `0xFE00-0xFE0F` (variation selectors) as 0. Gate step right borders now align. (FXA-2206 / PR #47)
+- **`af plan --graph-format=mermaid`**: byte-identical to pre-v1.6 `af plan --graph` output, preserving backward-compat for scripted consumers. (FXA-2206 / PR #47)
+- **`af plan`** no longer crashes on SOPs with malformed `Workflow loops` metadata; `parse_workflow_signature` and `parse_workflow_loops` now share the `MalformedDocumentError` warn-and-skip path with `parse_metadata`. (FXA-2205 / PR #44, bot P2)
+- **`af plan --todo` marker composition**: gate / loop-start / loop-back markers are now independently composable rather than mutually exclusive. A step that is both a gate and a loop endpoint no longer silently loses its loop annotation. JSON `loop_marker ∈ {null, "loop-start", "loop-back"}` (gate is its own `gate: bool` field). (FXA-2205 / PR #44)
+- **`af plan --json` contract**: `workflow_provides` for untyped phases is `[]` (list), not `""` (string); restores type stability. (FXA-2205 / PR #44)
+
+### Improvements
+
+- `Composed from:` header in the flat-TODO and default views now shows provenance markers `(always)` / `(auto)` / `(explicit)` next to every SOP ID. JSON output adds a `composed_from: {always, auto, explicit}` key when `--task` is used.
+- Deterministic composition order: Kahn's topological sort with `(layer: PKG→USR→PRJ, then SOP-ID ASCII)` tiebreak guarantees same task + same corpus → same output bytes.
+- `af plan` documentation in COR-1103 routing now explicitly distinguishes manual `af plan <SOP_IDs>` (targeted checklist) from the new COR-1202 auto-compose path (full session plan).
+
+### Stats
+
+- 660 tests (80+ new since v1.5.0), all passing
+- `core/ascii_graph.py`, `core/compose.py`, `core/mermaid.py`, `core/phases.py` all new modules; 95%+ coverage on each
+- 0 new runtime dependencies (still `click` + `pyyaml`)
+- 0 breaking changes
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.6.0      # install specific version
+pipx install fx-alfred             # first install
+pipx upgrade fx-alfred             # upgrade existing
+```
 
 ## v1.1.0 (2026-03-22)
 

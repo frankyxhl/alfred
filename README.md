@@ -22,7 +22,7 @@
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
-- **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs
+- **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs. With `--task "<description>"` auto-composes the SOP set from tags; `--todo` flattens into a unified checklist; `--graph` renders ASCII + Mermaid flowcharts with intra-SOP loops and gates
 - **Document Validation** — `af validate` enforces metadata format, status values, and section structure
 - **Document Formatting** — `af fmt` normalizes metadata order, whitespace, and table alignment to canonical style
 - **File Path Lookup** — `af where` prints the absolute filesystem path of any document by identifier
@@ -70,28 +70,30 @@ af guide --root /path/to/project
 Generate step-by-step checklists from SOPs — optimized for LLM consumption:
 
 ```bash
-af plan COR-1102 COR-1602 COR-1500    # LLM-optimized output
-af plan --human COR-1102               # human-readable format
-af setup                               # suggested prompts for agent config
+af plan COR-1102 COR-1602 COR-1500            # phased checklist from named SOPs
+af plan --human COR-1102                       # human-readable format
+af plan --task "implement FXA-XXXX PRP"        # auto-compose SOPs from tags (COR-1202)
+af plan --task "..." --todo --graph            # flat TODO + ASCII + Mermaid graph
+af plan --task "..." --graph --graph-format=ascii    # ASCII only (terminal)
+af plan --task "..." --graph --graph-format=mermaid  # Mermaid only (GitHub / Obsidian)
+af setup                                       # suggested prompts for agent config
 ```
 
-```
-# Session Workflow — Follow each phase in order.
+**Auto-compose** matches the task description against `Task tags:` SOP metadata
+(deterministic, no LLM), includes any SOP with `Always included: true` as a
+baseline (e.g., COR-1103 routing), and topologically orders the result via
+`Workflow input`/`Workflow output` edges with layer+ASCII tiebreaks.
 
-## Phase 1: COR-1102 (Create Proposal)
-- [ ] 1. Create the PRP document
-- [ ] 2. Fill in required sections
-- [ ] 3. Review via COR-1602
+**`--todo`** flattens all phases into one continuously-numbered checklist with
+`[SOP-ID]` provenance, `⚠️ gate` markers, and `🔁 loop-start` /
+`🔁 back to N.M (max K)` markers driven by `Workflow loops:` SOP metadata.
 
-## Phase 2: COR-1602 (Multi Model Parallel Review)
-- [ ] 1. Dispatch Reviewers
-- [ ] 2. Both >= 9? Proceed. Otherwise revise.
-⚠️ DO NOT PROCEED WITHOUT PASSING REVIEW
+**`--graph`** emits both an ASCII box-and-arrow diagram (Unicode-width aware,
+terminal-friendly) and a fenced Mermaid block (pasteable into GitHub / Obsidian).
+Use `--graph-format={ascii,mermaid,both}` to pick one.
 
-## RULES
-- Complete each checkbox before moving to the next phase
-- Declare active SOP at every phase transition
-```
+See [COR-1202 (Compose Session Plan)](src/fx_alfred/rules/COR-1202-SOP-Compose-Session-Plan.md)
+for the canonical usage procedure.
 
 ### Document Validation (`af validate`)
 
@@ -275,6 +277,7 @@ graph TD
 | SOP | What it does |
 |-----|-------------|
 | COR-1103 | Workflow routing — which SOP to follow for any task |
+| COR-1202 | Compose Session Plan — `af plan --task … --todo --graph` for full session workflow |
 | COR-1102 | Create Proposal (PRP lifecycle) |
 | COR-1101 | Submit Change Request (CHG) |
 | COR-1500 | TDD Development Workflow |
@@ -298,7 +301,7 @@ Pass threshold: >= 9.0/10. All deductions must cite specific lines.
 
 ```
 af guide [--root DIR] [--json]
-af plan SOP_ID [...] [--root DIR] [--human] [--json]
+af plan [SOP_ID ...] [--root DIR] [--task TEXT] [--todo] [--graph] [--graph-format ascii|mermaid|both] [--human] [--json]
 af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
 af read IDENTIFIER [--json]
 af create TYPE --prefix P --acid N|--area N --title T [--layer project|user] [--subdir DIR] [--spec FILE] [--dry-run]

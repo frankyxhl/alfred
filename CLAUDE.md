@@ -2,7 +2,7 @@
 
 ## Project
 
-- **Package:** fx-alfred v1.4.0
+- **Package:** fx-alfred v1.6.0
 - **Description:** Alfred — Agent Runbook: workflow routing, SOP checklists, and document management
 - **Language:** Python 3.10+, Click 8.0+
 - **Entry point:** `af = fx_alfred.cli:cli`

@@ -147,9 +147,10 @@ def test_update_cli_status_invalid_rejected(tmp_path, monkeypatch):
         ["update", "TST-2100", "--status", "InvalidValue"],
     )
     assert result.exit_code != 0
-    assert "not allowed" in result.output.lower() or "not allowed" in str(
-        result.exception
-    ).lower()
+    assert (
+        "not allowed" in result.output.lower()
+        or "not allowed" in str(result.exception).lower()
+    )
 
 
 def test_update_cli_status_valid_succeeds(tmp_path, monkeypatch):
