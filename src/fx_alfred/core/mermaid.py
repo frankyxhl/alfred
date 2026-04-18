@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 from fx_alfred.core.workflow import LoopSignature
 
 if TYPE_CHECKING:
-    from fx_alfred.core.phases import PhaseDict
+    from fx_alfred.core.phases import PhaseDict, StepDict
 
 # Maximum label length before truncation (chars).
 _MAX_LABEL_LEN = 60
@@ -86,7 +86,7 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
 
     for phase_idx, phase in enumerate(phases, start=1):
         sop_id: str = phase["sop_id"]
-        steps: list[dict] = phase["steps"]
+        steps: list[StepDict] = phase["steps"]
         loops: list[LoopSignature] = phase.get("loops", [])
 
         if not steps:

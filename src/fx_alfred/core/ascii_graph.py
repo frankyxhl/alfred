@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from fx_alfred.core.phases import PhaseDict
+    from fx_alfred.core.phases import PhaseDict, StepDict
 
 # Minimum inner content width (fits in 50-wide box: '│ ' + 46 + ' │' = 50)
 INNER_MIN = 46
@@ -111,7 +111,7 @@ def _loop_attr(loop: object, name: str, default=None):
     return getattr(loop, name, default)
 
 
-def _build_step_base_text(phase_num: int, step: dict) -> str:
+def _build_step_base_text(phase_num: int, step: StepDict) -> str:
     """Build step base text WITHOUT loop annotations.
 
     Includes: [N.M] prefix, gate marker, step text.
@@ -160,6 +160,12 @@ def _apply_loop_track(
         from_step = _loop_attr(loop, "from_step")
         max_iter = _loop_attr(loop, "max_iterations")
         condition = _loop_attr(loop, "condition", "") or ""
+
+        # Type narrowing: skip malformed loops with missing or invalid endpoints
+        if not isinstance(to_step, int) or not isinstance(from_step, int):
+            continue
+        if not isinstance(max_iter, int):
+            continue
 
         # Find step line indices (lines[0] is header, steps start at lines[1]).
         to_line_idx = None

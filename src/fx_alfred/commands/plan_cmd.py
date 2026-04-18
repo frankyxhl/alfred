@@ -19,6 +19,7 @@ from fx_alfred.core.parser import (
 from fx_alfred.core.ascii_graph import render_ascii
 from fx_alfred.core.compose import resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
+from fx_alfred.core.phases import PhaseDict, StepDict
 from fx_alfred.core.schema import TASK_TAGS
 from fx_alfred.core.workflow import (
     LoopSignature,
@@ -125,7 +126,7 @@ def _parse_numbered_items(section_text: str) -> list[str]:
     return items
 
 
-def _parse_steps_for_json(section_text: str) -> list[dict]:
+def _parse_steps_for_json(section_text: str) -> list[StepDict]:
     """Extract steps as structured data for JSON output.
 
     Returns list of {"index": int, "text": str, "gate": bool}.
@@ -381,20 +382,20 @@ def _build_mermaid_phases(
         ]
     ],
     provenance_map: dict[str, str] | None = None,
-) -> list[dict]:
+) -> list[PhaseDict]:
     """Build the phases list consumed by ``render_mermaid()`` / ``render_ascii()``.
 
     Each entry is ``{"sop_id": str, "steps": list[dict], "loops": list}``.
     When ``provenance_map`` is provided, each entry also gets
     ``"provenance"`` set to the matching marker ("always" / "auto" / "explicit").
     """
-    mermaid_phases: list[dict] = []
+    mermaid_phases: list[PhaseDict] = []
     for sop_id, doc, parsed, sig, loops in phase_info:
         body = parsed.body
         doc_id = f"{doc.prefix}-{doc.acid}"
         steps_section = _extract_steps_section(body)
         steps = _parse_steps_for_json(steps_section) if steps_section else []
-        entry: dict = {
+        entry: PhaseDict = {
             "sop_id": doc_id,
             "steps": steps,
             "loops": loops,
@@ -490,7 +491,7 @@ def plan_cmd(
     if not output_graph:
         # click.Choice default is "both"; distinguish explicit vs default by
         # consulting the parameter source. Explicit without --graph is an error.
-        param_source = ctx.get_parameter_source("graph_format")
+        param_source = ctx.get_parameter_source("graph_format")  # type: ignore[attr-defined]
         if param_source is not None and param_source.name != "DEFAULT":
             raise click.UsageError("--graph-format requires --graph")
 
@@ -643,8 +644,8 @@ def plan_cmd(
 
             # Build todo items if --todo is set
             if output_todo:
-                todo_items = _build_todo_json(phase_num, doc_id, body, loops)
-                todo_json.extend(todo_items)
+                todo_items_json = _build_todo_json(phase_num, doc_id, body, loops)
+                todo_json.extend(todo_items_json)
 
                 # Build loops array with dotted step references
                 for loop in loops:

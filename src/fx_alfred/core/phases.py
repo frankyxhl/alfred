@@ -5,7 +5,10 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
+
+if TYPE_CHECKING:
+    from fx_alfred.core.workflow import LoopSignature
 
 
 class StepDict(TypedDict):
@@ -40,11 +43,26 @@ class LoopDict(TypedDict):
     condition: str
 
 
-class PhaseDict(TypedDict, total=False):
+class _PhaseRequired(TypedDict):
+    """Required keys for PhaseDict — always present.
+
+    Note: ``loops`` is typed as ``list[LoopSignature]`` because the runtime
+    producer (``workflow.parse_workflow_loops``) always yields dataclass
+    instances, not plain dicts.  ``LoopDict`` is retained above as a
+    documentation-only shape mirror used by earlier design notes.
+    """
+
+    sop_id: str
+    steps: list[StepDict]
+    loops: list[LoopSignature]
+
+
+class PhaseDict(_PhaseRequired, total=False):
     """A single phase in the composition.
 
-    Required keys are yielded by `_build_mermaid_phases` in PR 3.
-    Optional keys are introduced by this CHG for ASCII header rendering.
+    Required keys (sop_id, steps, loops) are yielded by
+    ``_build_mermaid_phases`` in plan_cmd. Optional provenance is added
+    by the --task composition layer.
 
     Attributes:
         sop_id: Full PREFIX-ACID form (e.g., "COR-1602").
@@ -53,7 +71,4 @@ class PhaseDict(TypedDict, total=False):
         provenance: How this SOP was selected ("always" | "auto" | "explicit").
     """
 
-    sop_id: str
-    steps: list[StepDict]
-    loops: list[LoopDict]
     provenance: str  # Optional - added by plan_cmd for ASCII rendering
