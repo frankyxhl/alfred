@@ -770,3 +770,71 @@ class TestCoverageFills:
 
         assert "BAD-9999" in str(exc_info.value)
         assert "not found" in str(exc_info.value).lower()
+
+
+class TestResolveSopsFromTaskBotP2Regression:
+    """Regression tests for PR #46 bot-P2 fix (chatgpt-codex-connector).
+
+    The empty-match check must be based on tag_cands + positional_set only,
+    NOT on `candidates == always_set`. Otherwise, a SOP that is BOTH
+    always-included AND has a matching Task tag wrongly triggers exit 2.
+    """
+
+    def test_always_included_with_tag_match_does_not_trigger_empty_error(self):
+        """SOP that is BOTH Always included AND has matching tag → returns successfully."""
+        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.document import Document
+
+        # Synthetic SOP that is both always-included AND has matching tag 'foo'.
+        always_and_tagged_doc = Document(
+            prefix="TST",
+            acid="9100",
+            type_code="SOP",
+            title="AlwaysAndTagged",
+            source="pkg",
+            directory="rules/TST-9100-SOP-AlwaysAndTagged.md",
+        )
+
+        # (doc, task_tags, always_included)
+        # Only one SOP in the corpus. It has tag 'foo' AND always_included=True.
+        all_sops = [
+            (always_and_tagged_doc, frozenset(["foo", "bar"]), True),
+        ]
+
+        # Task "foo bar" tokenizes to {foo, bar}; tag_cands = {TST-9100}.
+        # always_set also = {TST-9100}. Pre-fix: candidates == always_set → exit 2.
+        # Post-fix: tag_cands is non-empty → compose successfully.
+        ordered_ids, provenance = resolve_sops_from_task("foo bar", all_sops, [])
+
+        # No exception was raised; SOP is in the plan.
+        assert "TST-9100" in ordered_ids
+        # Always-included provenance wins the classification for dual-class SOPs.
+        assert "TST-9100" in provenance["always"]
+
+    def test_empty_match_still_raises_when_no_tags_and_no_positional(self):
+        """Empty tag match + no positional → ClickException exit 2 (fail-closed preserved)."""
+        import click
+
+        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.document import Document
+
+        # SOP with no tags, not always-included.
+        untagged_doc = Document(
+            prefix="TST",
+            acid="9200",
+            type_code="SOP",
+            title="Untagged",
+            source="pkg",
+            directory="rules/TST-9200-SOP-Untagged.md",
+        )
+
+        all_sops = [
+            (untagged_doc, frozenset(), False),  # No tags, not always-included
+        ]
+
+        # "xyzzy unmatched" matches no tags; no positional → must fail-closed.
+        with pytest.raises(click.ClickException) as exc_info:
+            resolve_sops_from_task("xyzzy unmatched", all_sops, [])
+
+        assert exc_info.value.exit_code == 2
+        assert "matched 0 tagged SOPs" in str(exc_info.value)

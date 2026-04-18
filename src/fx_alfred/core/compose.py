@@ -284,7 +284,7 @@ def resolve_sops_from_task(
     ------
     click.ClickException:
         If tag matching produces nothing and no positional IDs given
-        (candidates == always_set only), exit code 2.
+        (tag_cands is empty and positional_set is empty), exit code 2.
     """
     # 1. Tokenize (as set for probing)
     tokens = tokenize(task_description)
@@ -318,7 +318,12 @@ def resolve_sops_from_task(
     candidates = positional_set | tag_cands | always_set
 
     # 7. Empty result check
-    if candidates == always_set and not positional_set:
+    # Only fail if NO user intent signals (tags or positional IDs).
+    # Always-included SOPs alone do not count as a plan — they are a baseline,
+    # not a signal. Previously this checked `candidates == always_set`, which
+    # wrongly fired when an always-included SOP also had a matching Task tag
+    # (because tag_cands ⊆ always_set keeps set equality True).
+    if not tag_cands and not positional_set:
         exc = click.ClickException(
             f'--task "{task_description}" matched 0 tagged SOPs. '
             "No routing fallback in v1.\n"
