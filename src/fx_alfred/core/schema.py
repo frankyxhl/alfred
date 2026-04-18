@@ -58,6 +58,9 @@ WORKFLOW_LOOPS = "Workflow loops"
 # FXA-2205: Always-included flag — SOP-only, optional.
 ALWAYS_INCLUDED = "Always included"
 
+# FXA-2205 PR4: Task tags — SOP-only, optional.
+TASK_TAGS = "Task tags"
+
 _WORKFLOW_FIELDS = [
     WORKFLOW_INPUT,
     WORKFLOW_OUTPUT,
@@ -66,7 +69,8 @@ _WORKFLOW_FIELDS = [
 ]
 
 OPTIONAL_METADATA: dict[DocType, list[str]] = {
-    DocType.SOP: _WORKFLOW_FIELDS + [WORKFLOW_LOOPS, ALWAYS_INCLUDED, "Tags"],
+    DocType.SOP: _WORKFLOW_FIELDS
+    + [WORKFLOW_LOOPS, ALWAYS_INCLUDED, TASK_TAGS, "Tags"],
     **{dt: ["Tags"] for dt in DocType if dt != DocType.SOP},
 }
 

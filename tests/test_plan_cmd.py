@@ -1264,3 +1264,241 @@ def test_malformed_loops_graph_mode(sample_project, monkeypatch):
     # Should still have mermaid block for the good SOP
     assert "```mermaid" in result.output
     assert "flowchart TD" in result.output
+
+
+# ── af plan --task auto-composition tests (FXA-2205 PR4) ────────────────────
+
+
+def _create_sop_with_task_tags(
+    rules_dir: Path,
+    prefix: str,
+    acid: str,
+    title: str,
+    task_tags: str,
+    always_included: bool = False,
+    workflow_input: str = "",
+    workflow_output: str = "",
+) -> Path:
+    """Helper to create an SOP with Task tags metadata.
+
+    Note: Uses non-COR prefix by default to avoid PKG-layer collision.
+    """
+    filename = f"{prefix}-{acid}-SOP-{title}.md"
+    always_line = "**Always included:** true\n" if always_included else ""
+    input_line = f"**Workflow input:** {workflow_input}\n" if workflow_input else ""
+    output_line = f"**Workflow output:** {workflow_output}\n" if workflow_output else ""
+    sop_content = f"""# {prefix}-{acid}: {title.replace("-", " ")}
+
+**Applies to:** Test
+**Status:** Active
+{always_line}{input_line}{output_line}**Task tags:** {task_tags}
+---
+## What Is It?
+A test SOP with task tags.
+## Steps
+1. First step for {acid}
+2. Second step for {acid}
+"""
+    filepath = rules_dir / filename
+    filepath.write_text(sop_content)
+    return filepath
+
+
+def test_task_flag_includes_tagged_sop(sample_project, monkeypatch):
+    """--task 'implement FXA-2117 PRP' includes TST-1500 (has 'implement' tag)."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir,
+        "TST",
+        "1500",
+        "TDD",
+        "[implement, feature, tdd, code, code-change, fix]",
+    )
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1103", "Routing", "[]", always_included=True
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--task", "implement FXA-2117 PRP"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should include TST-1500 (matched by 'implement' tag)
+    assert "TST-1500" in result.output
+    # Should include TST-1103 (always included)
+    assert "TST-1103" in result.output
+
+
+def test_task_no_match_raises_exit_2(sample_project, monkeypatch):
+    """--task 'rare unmatched xyzzy' → exit 2 with diagnostic message."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1103", "Routing", "[]", always_included=True
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--task", "rare unmatched xyzzy"], catch_exceptions=False
+    )
+    # Exit code 2 for empty tag match
+    assert result.exit_code == 2
+    # Should have diagnostic message
+    assert "matched 0 tagged SOPs" in result.output or "Try:" in result.output
+
+
+def test_task_json_todo_graph_combo(sample_project, monkeypatch):
+    """--task ... --todo --graph --json → JSON has composed_from, todo, graph_mermaid."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1500", "TDD", "[implement, feature, tdd]"
+    )
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1103", "Routing", "[]", always_included=True
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--task", "implement feature", "--todo", "--graph", "--json"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    # Should have composed_from key
+    assert "composed_from" in data
+    assert "always" in data["composed_from"]
+    assert "auto" in data["composed_from"]
+    # Should have todo array
+    assert "todo" in data
+    # Should have graph_mermaid
+    assert "graph_mermaid" in data
+    # Schema version should be "2" or higher
+    assert data["schema_version"] in ("2", "3")
+
+
+def test_task_with_positional_union(sample_project, monkeypatch):
+    """--task ... TST-XXX → positional + tag matches, no duplicates."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1500", "TDD", "[implement, feature, tdd]"
+    )
+    _create_sop_with_task_tags(rules_dir, "TST", "7001", "Other", "[other, misc]")
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1103", "Routing", "[]", always_included=True
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--task", "implement feature", "TST-7001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should include TST-7001 (positional)
+    assert "TST-7001" in result.output
+    # Should include TST-1500 (tag matched)
+    assert "TST-1500" in result.output
+    # Should include TST-1103 (always included)
+    assert "TST-1103" in result.output
+
+
+def test_default_plan_no_task_byte_identical(sample_project, monkeypatch):
+    """Default af plan COR-XXX (no --task) → byte-identical to pre-PR4 output."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(rules_dir, "TST", "7001", "First-SOP", "[test]")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+
+    # Default output (no --task)
+    result = runner.invoke(cli, ["plan", "TST-7001"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    # Should have phased output headers and RULES
+    assert "## Phase" in result.output
+    assert "## RULES" in result.output
+    # Should NOT have Composed from header
+    assert "Composed from:" not in result.output
+
+
+def test_task_without_value_click_error(sample_project, monkeypatch):
+    """--task without value → Click error (non-zero exit)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    # --task requires a value
+    result = runner.invoke(cli, ["plan", "--task"], catch_exceptions=False)
+    assert result.exit_code != 0
+
+
+def test_task_bigram_matches_hyphenated_tag(sample_project, monkeypatch):
+    """Bigram 'code change' matches 'code-change' tag."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1500", "TDD", "[code-change, implement]"
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--task", "code change feature"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should match via bigram "code-change"
+    assert "TST-1500" in result.output
+
+
+def test_task_header_shows_provenance(sample_project, monkeypatch):
+    """--task output header shows (always) / (auto) / (explicit) markers."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(rules_dir, "TST", "1500", "TDD", "[implement]")
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1103", "Routing", "[]", always_included=True
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--task", "implement feature"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should have Composed from header with markers
+    assert "Composed from:" in result.output
+    assert "(always)" in result.output
+    assert "(auto)" in result.output
+
+
+def test_task_json_composed_from_structure(sample_project, monkeypatch):
+    """--task --json composed_from has always/auto lists."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(rules_dir, "TST", "1500", "TDD", "[implement]")
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "1103", "Routing", "[]", always_included=True
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--task", "implement", "--json"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert "composed_from" in data
+    cf = data["composed_from"]
+    assert "always" in cf
+    assert "auto" in cf
+    assert "explicit" in cf
+    assert isinstance(cf["always"], list)
+    assert isinstance(cf["auto"], list)
+    assert isinstance(cf["explicit"], list)
+    # TST-1103 should be in always
+    assert "TST-1103" in cf["always"]
+    # TST-1500 should be in auto
+    assert "TST-1500" in cf["auto"]

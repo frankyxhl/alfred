@@ -4,6 +4,7 @@
 **Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-20
 **Status:** Active
+**Task tags:** [review, code-review, scoring, implement]
 
 ---
 

@@ -16,7 +16,9 @@ from fx_alfred.core.parser import (
     extract_section,
     parse_metadata,
 )
+from fx_alfred.core.compose import resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
+from fx_alfred.core.schema import TASK_TAGS
 from fx_alfred.core.workflow import (
     LoopSignature,
     WorkflowSignature,
@@ -28,6 +30,66 @@ from fx_alfred.core.workflow import (
 
 # Heading search order for step extraction
 _STEP_HEADINGS = ("Steps", "Rule", "Rules", "Concepts")
+
+
+def _gather_all_sops(
+    docs: list[Document],
+) -> list[tuple[Document, frozenset[str], bool]]:
+    """Gather all SOPs with their task tags and always-included status.
+
+    Returns list of (Document, task_tags_frozenset, always_included_bool).
+    """
+    result: list[tuple[Document, frozenset[str], bool]] = []
+
+    for doc in docs:
+        if doc.type_code != "SOP":
+            continue
+
+        try:
+            content = doc.resolve_resource().read_text()
+            parsed = parse_metadata(content)
+        except (OSError, MalformedDocumentError):
+            continue
+
+        # Extract Task tags
+        task_tags: frozenset[str] = frozenset()
+        field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
+        raw_tags = field_map.get(TASK_TAGS)
+        if raw_tags:
+            # Parse tag list: "[tag1, tag2]" or "tag1, tag2"
+            raw = raw_tags.strip()
+            if raw.startswith("[") and raw.endswith("]"):
+                raw = raw[1:-1]
+            tags = [t.strip().lower() for t in raw.split(",") if t.strip()]
+            task_tags = frozenset(tags)
+
+        # Extract Always included
+        always_included = False
+        raw_always = field_map.get("Always included")
+        if raw_always:
+            always_included = raw_always.strip().lower() == "true"
+
+        result.append((doc, task_tags, always_included))
+
+    return result
+
+
+def _format_composed_from_header(provenance: dict[str, list[str]]) -> str:
+    """Format the 'Composed from:' header with provenance markers.
+
+    Markers: (always), (auto), (explicit).
+    """
+    parts: list[str] = []
+
+    for doc_id in provenance.get("always", []):
+        parts.append(f"{doc_id}(always)")
+    for doc_id in provenance.get("explicit", []):
+        parts.append(f"{doc_id}(explicit)")
+    for doc_id in provenance.get("auto", []):
+        parts.append(f"{doc_id}(auto)")
+
+    return "Composed from: " + " → ".join(parts)
+
 
 _LLM_RULES = """\
 ## RULES
@@ -355,6 +417,12 @@ def _build_mermaid_phases(
     is_flag=True,
     help="Append Mermaid flowchart of composed plan",
 )
+@click.option(
+    "--task",
+    "task_description",
+    default=None,
+    help="Auto-compose SOPs by matching Task tags against task description",
+)
 @click.pass_context
 def plan_cmd(
     ctx: click.Context,
@@ -363,15 +431,34 @@ def plan_cmd(
     output_json: bool,
     output_todo: bool,
     output_graph: bool,
+    task_description: str | None,
 ) -> None:
     """Generate workflow checklist from SOPs."""
+    # Scan documents first (needed for --task resolution)
+    docs = scan_or_fail(ctx)
+
+    # Handle --task flag for auto-composition
+    composed_from_provenance: dict[str, list[str]] | None = None
+
+    if task_description is not None:
+        # Auto-compose SOPs via tag matching
+        all_sops = _gather_all_sops(docs)
+        positional_list = list(sop_ids)
+        try:
+            resolved_ids, composed_from_provenance = resolve_sops_from_task(
+                task_description, all_sops, positional_list
+            )
+        except click.ClickException:
+            # Re-raise with proper exit code
+            raise
+        # Convert resolved IDs back to tuple for processing
+        sop_ids = tuple(resolved_ids)
+
     if not sop_ids:
         raise click.UsageError("Usage: af plan SOP_ID [SOP_ID ...]")
 
     if output_json and human:
         raise click.UsageError("--json and --human are mutually exclusive")
-
-    docs = scan_or_fail(ctx)
 
     # ── First pass: parse all SOPs and collect workflow signatures ──
     phase_info: list[
@@ -451,7 +538,11 @@ def plan_cmd(
         if not todo_items:
             return
 
-        # Header (same for both human and default modes)
+        # Header (with Composed from if task was used)
+        if composed_from_provenance:
+            header = _format_composed_from_header(composed_from_provenance)
+            click.echo(f"# {header}")
+            click.echo()
         click.echo("# Flat TODO — Follow each item in order")
         click.echo()
         click.echo("\n".join(todo_items))
@@ -510,10 +601,13 @@ def plan_cmd(
                         }
                     )
 
-        has_new_keys = output_todo or output_graph
+        has_new_keys = (
+            output_todo or output_graph or (composed_from_provenance is not None)
+        )
+        schema_ver = "2" if has_new_keys else "1"
 
         result = {
-            "schema_version": "2" if has_new_keys else "1",
+            "schema_version": schema_ver,
             "sop_ids": list(sop_ids),
             "phases": phases_json,
             "composition_valid": composition_valid,
@@ -529,6 +623,9 @@ def plan_cmd(
                 for e in edges
             ],
         }
+
+        if composed_from_provenance:
+            result["composed_from"] = composed_from_provenance
 
         if output_todo:
             result["todo"] = todo_json
@@ -570,7 +667,11 @@ def plan_cmd(
     if not phases_text:
         return
 
-    # Header
+    # Header (with Composed from if task was used)
+    if composed_from_provenance:
+        header = _format_composed_from_header(composed_from_provenance)
+        click.echo(f"# {header}")
+        click.echo()
     if human:
         click.echo("\n".join(phases_text))
     else:
