@@ -1,8 +1,8 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-02
-**Last reviewed:** 2026-04-02
+**Last updated:** 2026-04-18
+**Last reviewed:** 2026-04-18
 **Status:** Active
 **Related:** COR-1607 (deprecated, replaced by this document)
 **Workflow input:** proposal:draft
@@ -75,7 +75,8 @@ Commit ────────────► af validate → Session End
 • COR-1201: Load today's Discussion Tracker — search for today's file, read max DN, auto-increment on new topics (see COR-1201 Session Start Protocol)
 • COR-1402: Declare 📋 active SOP before work and on every transition
 • COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP)
-• af plan:  Before every response — decide if task needs a checklist; if task has clear steps or spans multiple SOPs, run af plan <SOP_IDs> before proceeding
+• af plan: Before every response — decide if task needs a checklist. For a manual, targeted checklist from specific SOPs: `af plan <SOP_IDs>`.
+• COR-1202 (Compose Session Plan): for the full session-workflow plan — use when the user says "show me the plan" / "compose session plan" / "follow COR-1202", or when the task spans multiple SOPs and you want auto-composition (ASCII + Mermaid + flat TODO) rather than hand-picking SOP IDs.
 
 ═══ PRIMARY ROUTE (stop at first match) ═══
 
@@ -218,3 +219,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-03-22 | R9 review: Gemini 10.0/10 PASS, Codex 9.4/10 PASS. Merged. | Claude Code |
 | 2026-04-02 | ALWAYS section: add COR-1201 Discussion Tracker as mandatory session-start step; Golden Rules: expand COR-1201 to include load + auto-increment | Frank + Claude Code |
 | 2026-04-02 | R1 fix: Workflow Sequence diagram — add COR-1201 as first step before af guide | Frank + Claude Code |
+| 2026-04-18 | Add intent-router cross-reference to COR-1202 (per CHG-2207 Step 8). | Frank + Claude Code |
