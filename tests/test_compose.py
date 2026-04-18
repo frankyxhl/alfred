@@ -838,3 +838,142 @@ class TestResolveSopsFromTaskBotP2Regression:
 
         assert exc_info.value.exit_code == 2
         assert "matched 0 tagged SOPs" in str(exc_info.value)
+
+
+class TestResolveSopsFromTaskAcidOnlyPositional:
+    """FXA-2205 PR4 — PR #46 bot P2 (2nd) regression.
+
+    Positional IDs passed to `resolve_sops_from_task` must accept ACID-only
+    identifiers (e.g. "1500") in addition to full PREFIX-ACID form, matching
+    the behavior of `af plan <id>` without --task, which routes through
+    `core.scanner.find_document`. Prior behavior rejected ACID-only with
+    "SOP '1500' not found".
+    """
+
+    def test_acid_only_positional_id_resolves(self):
+        """ACID-only positional ID ('1500') resolves to full PREFIX-ACID."""
+        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.document import Document
+
+        doc = Document(
+            prefix="COR",
+            acid="1500",
+            type_code="SOP",
+            title="TDD",
+            source="pkg",
+            directory="rules/COR-1500-SOP-TDD.md",
+        )
+        all_sops = [(doc, frozenset(["implement"]), False)]
+
+        ordered_ids, provenance = resolve_sops_from_task(
+            "implement xyz", all_sops, ["1500"]
+        )
+
+        assert "COR-1500" in ordered_ids
+        # Classified as explicit via positional (wins over auto).
+        assert "COR-1500" in provenance["explicit"]
+
+    def test_full_prefix_acid_still_works(self):
+        """Full PREFIX-ACID positional form still resolves (unchanged)."""
+        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.document import Document
+
+        doc = Document(
+            prefix="COR",
+            acid="1500",
+            type_code="SOP",
+            title="TDD",
+            source="pkg",
+            directory="rules/COR-1500-SOP-TDD.md",
+        )
+        all_sops = [(doc, frozenset(["implement"]), False)]
+
+        ordered_ids, provenance = resolve_sops_from_task(
+            "implement xyz", all_sops, ["COR-1500"]
+        )
+
+        assert "COR-1500" in ordered_ids
+        assert "COR-1500" in provenance["explicit"]
+
+    def test_bad_acid_only_still_raises(self):
+        """Non-existent ACID-only positional raises 'SOP 'X' not found'."""
+        import click
+
+        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.document import Document
+
+        doc = Document(
+            prefix="COR",
+            acid="1500",
+            type_code="SOP",
+            title="TDD",
+            source="pkg",
+            directory="rules/COR-1500-SOP-TDD.md",
+        )
+        all_sops = [(doc, frozenset(["implement"]), False)]
+
+        with pytest.raises(click.ClickException) as exc_info:
+            resolve_sops_from_task("implement", all_sops, ["99999"])
+
+        assert "99999" in str(exc_info.value)
+        assert "not found" in str(exc_info.value).lower()
+
+    def test_bad_full_id_still_raises(self):
+        """Non-existent full PREFIX-ACID raises 'SOP 'X' not found'."""
+        import click
+
+        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.document import Document
+
+        doc = Document(
+            prefix="COR",
+            acid="1500",
+            type_code="SOP",
+            title="TDD",
+            source="pkg",
+            directory="rules/COR-1500-SOP-TDD.md",
+        )
+        all_sops = [(doc, frozenset(["implement"]), False)]
+
+        with pytest.raises(click.ClickException) as exc_info:
+            resolve_sops_from_task("implement", all_sops, ["BAD-9999"])
+
+        assert "BAD-9999" in str(exc_info.value)
+        assert "not found" in str(exc_info.value).lower()
+
+    def test_ambiguous_acid_raises(self):
+        """Same ACID across two prefixes, ACID-only positional → ambiguity error."""
+        import click
+
+        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.document import Document
+
+        doc_a = Document(
+            prefix="COR",
+            acid="1500",
+            type_code="SOP",
+            title="TDD-A",
+            source="pkg",
+            directory="rules/COR-1500-SOP-TDD.md",
+        )
+        doc_b = Document(
+            prefix="USR",
+            acid="1500",
+            type_code="SOP",
+            title="TDD-B",
+            source="usr",
+            directory="rules/USR-1500-SOP-TDD.md",
+        )
+        all_sops = [
+            (doc_a, frozenset(), False),
+            (doc_b, frozenset(), False),
+        ]
+
+        with pytest.raises(click.ClickException) as exc_info:
+            resolve_sops_from_task("implement", all_sops, ["1500"])
+
+        # The message comes from AmbiguousDocumentError.__str__
+        # Format: "Ambiguous ACID 1500. Multiple matches: COR-1500, USR-1500. ..."
+        msg = str(exc_info.value).lower()
+        assert "1500" in msg
+        assert "ambiguous" in msg or "multiple" in msg

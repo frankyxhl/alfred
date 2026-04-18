@@ -16,6 +16,11 @@ from dataclasses import dataclass
 import click
 
 from fx_alfred.core.document import Document
+from fx_alfred.core.scanner import (
+    AmbiguousDocumentError,
+    DocumentNotFoundError,
+    find_document,
+)
 from fx_alfred.core.parser import parse_metadata
 from fx_alfred.core.workflow import parse_workflow_signature
 
@@ -308,13 +313,21 @@ def resolve_sops_from_task(
         if always_included:
             always_set.add(f"{doc.prefix}-{doc.acid}")
 
-    # 6. Validate positional IDs exist, then build candidates
-    doc_map_for_validation = {f"{d.prefix}-{d.acid}": d for d, _, _ in all_sops}
+    # 6. Validate positional IDs (accept both PREFIX-ACID and ACID-only).
+    # Use find_document so --task is additive with existing `af plan <id>`
+    # positional semantics. Normalize to PREFIX-ACID for downstream union.
+    all_docs = [doc for doc, _, _ in all_sops]
+    normalized_positional: list[str] = []
     for sop_id in positional_ids:
-        if sop_id not in doc_map_for_validation:
-            raise click.ClickException(f"SOP '{sop_id}' not found")
+        try:
+            doc = find_document(all_docs, sop_id)
+        except DocumentNotFoundError:
+            raise click.ClickException(f"SOP '{sop_id}' not found") from None
+        except AmbiguousDocumentError as e:
+            raise click.ClickException(str(e)) from None
+        normalized_positional.append(f"{doc.prefix}-{doc.acid}")
 
-    positional_set = set(positional_ids)
+    positional_set = set(normalized_positional)
     candidates = positional_set | tag_cands | always_set
 
     # 7. Empty result check
