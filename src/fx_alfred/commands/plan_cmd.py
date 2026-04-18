@@ -16,6 +16,7 @@ from fx_alfred.core.parser import (
     extract_section,
     parse_metadata,
 )
+from fx_alfred.core.ascii_graph import render_ascii
 from fx_alfred.core.compose import resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.schema import TASK_TAGS
@@ -379,10 +380,13 @@ def _build_mermaid_phases(
             str, Document, ParsedDocument, WorkflowSignature | None, list[LoopSignature]
         ]
     ],
+    provenance_map: dict[str, str] | None = None,
 ) -> list[dict]:
-    """Build the phases list consumed by ``render_mermaid()``.
+    """Build the phases list consumed by ``render_mermaid()`` / ``render_ascii()``.
 
     Each entry is ``{"sop_id": str, "steps": list[dict], "loops": list}``.
+    When ``provenance_map`` is provided, each entry also gets
+    ``"provenance"`` set to the matching marker ("always" / "auto" / "explicit").
     """
     mermaid_phases: list[dict] = []
     for sop_id, doc, parsed, sig, loops in phase_info:
@@ -390,14 +394,52 @@ def _build_mermaid_phases(
         doc_id = f"{doc.prefix}-{doc.acid}"
         steps_section = _extract_steps_section(body)
         steps = _parse_steps_for_json(steps_section) if steps_section else []
-        mermaid_phases.append(
-            {
-                "sop_id": doc_id,
-                "steps": steps,
-                "loops": loops,
-            }
-        )
+        entry: dict = {
+            "sop_id": doc_id,
+            "steps": steps,
+            "loops": loops,
+        }
+        if provenance_map is not None:
+            prov = provenance_map.get(doc_id)
+            if prov:
+                entry["provenance"] = prov
+        mermaid_phases.append(entry)
     return mermaid_phases
+
+
+def _build_provenance_map(
+    composed_from_provenance: dict[str, list[str]] | None,
+) -> dict[str, str]:
+    """Invert a {marker: [doc_ids]} dict into {doc_id: marker}."""
+    result: dict[str, str] = {}
+    if not composed_from_provenance:
+        return result
+    for marker, doc_ids in composed_from_provenance.items():
+        for doc_id in doc_ids:
+            result[doc_id] = marker
+    return result
+
+
+def _emit_graph(
+    phase_info: list,
+    provenance_map: dict[str, str],
+    graph_format: str,
+) -> None:
+    """Emit graph output for text modes (default, --todo).
+
+    ``graph_format`` must be one of ``ascii``, ``mermaid``, ``both``.
+    """
+    mermaid_phases = _build_mermaid_phases(phase_info, provenance_map)
+    if graph_format in ("ascii", "both"):
+        ascii_str = render_ascii(mermaid_phases)
+        click.echo(ascii_str, nl=False)
+    if graph_format == "both":
+        click.echo()
+    if graph_format in ("mermaid", "both"):
+        mermaid_str = render_mermaid(mermaid_phases)
+        click.echo("```mermaid")
+        click.echo(mermaid_str)
+        click.echo("```")
 
 
 @click.command("plan")
@@ -415,7 +457,14 @@ def _build_mermaid_phases(
     "--graph",
     "output_graph",
     is_flag=True,
-    help="Append Mermaid flowchart of composed plan",
+    help="Append graph of composed plan (ASCII + fenced Mermaid by default)",
+)
+@click.option(
+    "--graph-format",
+    "graph_format",
+    type=click.Choice(["ascii", "mermaid", "both"]),
+    default="both",
+    help="Graph rendering format (requires --graph). Default: both.",
 )
 @click.option(
     "--task",
@@ -431,9 +480,20 @@ def plan_cmd(
     output_json: bool,
     output_todo: bool,
     output_graph: bool,
+    graph_format: str,
     task_description: str | None,
 ) -> None:
     """Generate workflow checklist from SOPs."""
+    # ── Validate --graph-format / --graph coupling ──
+    # --graph-format is only meaningful with --graph.  Detect when the user
+    # passed a non-default graph_format without --graph and raise UsageError.
+    if not output_graph:
+        # click.Choice default is "both"; distinguish explicit vs default by
+        # consulting the parameter source. Explicit without --graph is an error.
+        param_source = ctx.get_parameter_source("graph_format")
+        if param_source is not None and param_source.name != "DEFAULT":
+            raise click.UsageError("--graph-format requires --graph")
+
     # Scan documents first (needed for --task resolution)
     docs = scan_or_fail(ctx)
 
@@ -548,12 +608,9 @@ def plan_cmd(
         click.echo("\n".join(todo_items))
 
         if output_graph:
-            mermaid_phases = _build_mermaid_phases(phase_info)
-            mermaid_str = render_mermaid(mermaid_phases)
+            provenance_map = _build_provenance_map(composed_from_provenance)
             click.echo()
-            click.echo("```mermaid")
-            click.echo(mermaid_str)
-            click.echo("```")
+            _emit_graph(phase_info, provenance_map, graph_format)
         return
 
     # ── JSON output mode ──
@@ -632,8 +689,12 @@ def plan_cmd(
             result["loops"] = loops_json
 
         if output_graph:
-            mermaid_phases = _build_mermaid_phases(phase_info)
-            result["graph_mermaid"] = render_mermaid(mermaid_phases)
+            provenance_map = _build_provenance_map(composed_from_provenance)
+            mermaid_phases = _build_mermaid_phases(phase_info, provenance_map)
+            if graph_format in ("ascii", "both"):
+                result["ascii_graph"] = render_ascii(mermaid_phases)
+            if graph_format in ("mermaid", "both"):
+                result["graph_mermaid"] = render_mermaid(mermaid_phases)
 
         click.echo(json.dumps(result, ensure_ascii=False, indent=2))
         return
@@ -684,8 +745,5 @@ def plan_cmd(
         click.echo(_LLM_RULES)
 
     if output_graph:
-        mermaid_phases = _build_mermaid_phases(phase_info)
-        mermaid_str = render_mermaid(mermaid_phases)
-        click.echo("```mermaid")
-        click.echo(mermaid_str)
-        click.echo("```")
+        provenance_map = _build_provenance_map(composed_from_provenance)
+        _emit_graph(phase_info, provenance_map, graph_format)

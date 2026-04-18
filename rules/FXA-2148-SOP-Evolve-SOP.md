@@ -4,6 +4,7 @@
 **Last updated:** 2026-03-30
 **Last reviewed:** 2026-03-30
 **Status:** Active
+**Workflow loops:** [{id: review-retry, from: 27, to: 24, max_iterations: 3, condition: "CI not green or unresolved comments"}]
 **Task tags:** [evolve, sop, refactor-sop, improve-sop]
 
 ---

@@ -4,12 +4,15 @@
 **Last updated:** 2026-03-30
 **Last reviewed:** 2026-03-30
 **Status:** Active
+**Workflow loops:** [{id: review-retry, from: 30, to: 27, max_iterations: 3, condition: "CI not green or unresolved comments"}]
+**Task tags:** [evolve, cli, refactor-cli, improve-cli]
 
 ---
 
 ## What Is It?
 
 An automated self-improvement procedure that periodically discovers improvements to the `fx_alfred` Python codebase, evaluates candidates using a weighted rubric, implements approved changes following alfred's own document lifecycle (TDD: red → green → refactor), and opens a PR for human review.
+
 
 ## Why
 
@@ -22,10 +25,12 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
 - Operator wants to run a CLI improvement cycle manually (Phase 1)
 - Scheduled via cron (Phase 2)
 
+
 ## When NOT to Use
 
 - An evolve PR is already open (`gh pr list --label evolve` returns results — skip run)
 - Tests are currently failing for unrelated reasons (fix first)
+
 
 ## Prerequisites
 
@@ -33,6 +38,7 @@ The `fx_alfred` CLI currently improves only through manual human-initiated sessi
 - `/trinity` USR-layer skill available (Codex + Gemini reviewers)
 - `af` installed and accessible with `--root /path/to/fx_alfred`
 - `pytest-json-report` and `pytest-cov` installed in `fx_alfred` virtual environment
+
 
 ## Steps
 
@@ -154,11 +160,11 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2149)"
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147 | Frank + Claude |
+| Date       | Change                                                                                                                                         | By             |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147                                                                                  | Frank + Claude |
 | 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5; D2: add working directory note to Phase 2; D3: fix af where identifier in example | Frank + Claude |
-| 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions | Claude Code |
-| 2026-04-04 | Step 12: commit+push run log on no-op; Phase 5: "top candidate" not "for each" (retro FXA-2195) | Claude Code |
-| 2026-04-06 | CHG FXA-2107: Add Phase 7 Completion Checklist — mandatory post-run audit trail | Frank + Claude |
-| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8 | Frank + Claude |
+| 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions                                                                                       | Claude Code    |
+| 2026-04-04 | Step 12: commit+push run log on no-op; Phase 5: "top candidate" not "for each" (retro FXA-2195)                                                | Claude Code    |
+| 2026-04-06 | CHG FXA-2107: Add Phase 7 Completion Checklist — mandatory post-run audit trail                                                                | Frank + Claude |
+| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8                                                                 | Frank + Claude |
