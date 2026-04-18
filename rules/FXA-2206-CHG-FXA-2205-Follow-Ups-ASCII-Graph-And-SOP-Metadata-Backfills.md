@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-04-18
 **Last reviewed:** 2026-04-18
-**Status:** Approved
+**Status:** Completed
 **Date:** 2026-04-18
 **Requested by:** Frank
 **Priority:** Medium
@@ -265,3 +265,4 @@ _To be filled in after merge:_
 | 2026-04-18 | Initial version | Claude (Opus 4.6) |
 | 2026-04-18 | Round-1 fixes (Codex 9.6 PASS + Gemini 9.4 FIX, both real CLI): added C4 (FXA-2149 Workflow loops backfill — Gemini B2); embedded concrete ASCII output sample in §Impl Step 4 (Gemini B1); formalised shared phase contract as `TypedDict` in new `core/phases.py` (Codex A1 + Gemini adv); froze FXA-2149 tag list (Codex A2); added missing COR-1101 template sections (Scheduled, Related, Testing/Verification, Approval, Execution Log, Post-Change Review — Codex A3); added Unicode/width edge-case test spec (Gemini adv); added explicit rollback verification steps. | Claude (Opus 4.6) |
 | 2026-04-18 | R2 double PASS (Gemini 9.9 + Codex 9.9, both real CLI). Advisories addressed inline: PhaseDict.provenance marked NotRequired-equivalent via total=False; pytest count gate replaced with 'full suite green'; phases.py path fixed as canonical. Status: Proposed -> Approved. | Frank (Leader, on Claude's recommendation) |
+| 2026-04-18 | Shipped in fx-alfred v1.6.1 (2026-04-18) via PR #47 — ASCII graph renderer, core/phases.py TypedDict, Evolve-SOP metadata backfills (FXA-2148/2149). | Frank |

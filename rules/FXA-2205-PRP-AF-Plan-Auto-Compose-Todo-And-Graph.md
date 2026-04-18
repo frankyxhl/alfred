@@ -1,9 +1,9 @@
 # PRP-2205: AF Plan Auto Compose Todo And Graph
 
 **Applies to:** FXA project
-**Last updated:** 2026-04-15
+**Last updated:** 2026-04-18
 **Last reviewed:** 2026-04-15
-**Status:** Approved
+**Status:** Implemented
 
 ---
 
@@ -354,3 +354,4 @@ Each PR is independently useful; no big-bang merge.
 | 2026-04-15 | Round 2 review fixes (Gemini 3 + Codex GPT-5.4, both via real CLI): introduce explicit `compose_order()` helper with Kahn's topological sort + deterministic layer+ASCII tiebreak, replacing incorrect claim that `check_composition()` performs ordering; remove "fail-closed on multiple valid orders" (common case given `Workflow input/output` is OPTIONAL); remove cross-SOP cycle detection from C3 (impossible by design — `Workflow loops` are intra-SOP only); remove redundant reachability check; rewrite Scope boundary to honestly describe the new advisory `af validate` checks and opt-in SOP metadata backfill; fix COR-1600 vs COR-1602 round-limit conflation (COR-1600 max 5, COR-1602 max 3 — examples now use COR-1602 throughout); add missing `S3_3` node to Mermaid example; rewrite Risk 2 to distinguish DAG cycles (via `Workflow input/output`) from intra-SOP loops. | Claude (Opus 4.6) |
 | 2026-04-15 | Round 3 review integration (Gemini 3 PASS 9.8/10, Codex GPT-5.4 FIX 8.9/10 — max 3 rounds reached, Leader final-call per COR-1602:102 incorporating all Codex blockers + both models' advisories). Introduce `Always included: true` SOP metadata (backfill COR-1103 + COR-1402 in PR 1) so routing SOPs are prepended without resurrecting routing-doc parsing — closes Codex R3-B3 headline-example feasibility gap. Fix PR 4 pilot set COR-1600 → COR-1602 (Codex R3-B1). Update Affected Files test descriptions to match revised C1/C3 semantics (Codex R3-B2). Update `Composed from:` header example and JSON `composed_from` schema to show `always` bucket. Strengthen `tokenize` spec to strip `string.punctuation` before stopword drop (Gemini adv 1). Strengthen `validate_loops` from `from != to` to `from > to` (Gemini adv 2). Renumber C1 steps after insertion. | Claude (Opus 4.6) |
 | 2026-04-15 | Round 3 final: Gemini 9.8 PASS, Codex 8.9 FIX. Leader final-call per COR-1602:102 (max 3 rounds reached). All Codex R3 blockers + both models' advisories incorporated into this revision. Status: Draft → Approved. | Frank (Leader, on Claude's recommendation) |
+| 2026-04-18 | Shipped in fx-alfred v1.6.1 (2026-04-18) — 4 merged PRs #43/#44/#45/#46 covering --task auto-compose / --todo / --graph Mermaid / Workflow loops metadata / Task tags / Always included. | Frank |

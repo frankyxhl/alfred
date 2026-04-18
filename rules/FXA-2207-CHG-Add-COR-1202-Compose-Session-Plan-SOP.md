@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-04-18
 **Last reviewed:** 2026-04-18
-**Status:** Approved
+**Status:** Completed
 **Date:** 2026-04-18
 **Requested by:** Frank
 **Priority:** Medium
@@ -192,3 +192,4 @@ _To be filled in after merge + release:_
 | 2026-04-18 | Initial version | Claude (Opus 4.6) |
 | 2026-04-18 | Round-1 review fixes (Codex 9.6 PASS + Gemini 9.8 PASS, both real CLI): title changed "Visualize Session Plan" → "Compose Session Plan" (Gemini: Visualize overpromises given text output); fixed Why bullet-count mismatch (3 → 4, Codex A1); removed CJK usage example per COR-0002 English-only rule (Codex A2); promoted COR-1103 cross-reference from optional to required for discoverability (Codex A3); unified `--root .` across all commands (Gemini A4); listed 3 explicit Examples scenarios — standard auto-compose / mixing tags with explicit pins / empty-match recovery (Gemini A5); clarified Step 6 role (executor honours loops, not user) (Gemini A6); revised Step 4 tag-gap remediation — immediate fix is positional pin `MISSING-1234`, durable fix (tag backfill) deferred to retrospective to avoid mid-session context switching (Gemini strategic insight). | Claude (Opus 4.6) |
 | 2026-04-18 | R3 double PASS: Gemini 9.9 + Codex 9.9 (R2 post-fix re-read). All R1 advisories + R2 blocker + R3 stale-'optional' advisory resolved. Status: Proposed -> Approved. | Frank (Leader) |
+| 2026-04-18 | Shipped in fx-alfred v1.6.1 (2026-04-18) via PR #48 — COR-1202 Compose Session Plan SOP + COR-1103 intent-router cross-reference. | Frank |
