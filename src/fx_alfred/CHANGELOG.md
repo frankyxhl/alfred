@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- Added COR-1202: Compose Session Plan SOP (CHG-2207).
+
 ## v1.1.0 (2026-03-22)
 
 ### New
