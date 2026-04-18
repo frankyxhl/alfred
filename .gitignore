@@ -1,3 +1,4 @@
+# Python build + env
 __pycache__/
 *.pyc
 *.egg-info/
@@ -6,8 +7,19 @@ build/
 .venv/
 .pytest_cache/
 .coverage
-.team/
 coverage.json
 *.bundle
+
+# Docs build output
 docs/
 site/
+
+# Project
+.team/
+
+# AI agent / CLI runtime workspaces (never commit — contain local logs, state, auth)
+.omx/
+.factory/
+
+# macOS
+.DS_Store
