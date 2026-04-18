@@ -21,8 +21,12 @@ Design decisions:
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 
 from fx_alfred.core.workflow import LoopSignature
+
+if TYPE_CHECKING:
+    from fx_alfred.core.phases import PhaseDict
 
 # Maximum label length before truncation (chars).
 _MAX_LABEL_LEN = 60
@@ -57,7 +61,7 @@ def _node_id(phase: int, step: int) -> str:
     return f"S{phase}_{step}"
 
 
-def render_mermaid(phases: list[dict]) -> str:
+def render_mermaid(phases: list[PhaseDict]) -> str:
     """Render a Mermaid ``flowchart TD`` string from composed phases.
 
     Parameters

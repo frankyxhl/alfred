@@ -1502,3 +1502,178 @@ def test_task_json_composed_from_structure(sample_project, monkeypatch):
     assert "TST-1103" in cf["always"]
     # TST-1500 should be in auto
     assert "TST-1500" in cf["auto"]
+
+
+# ── FXA-2206: --graph-format flag matrix ───────────────────────────────────
+
+
+def test_graph_default_format_has_both_ascii_and_mermaid(sample_project, monkeypatch):
+    """Test 13: af plan --graph (default format=both) → ASCII + fenced Mermaid."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--graph", "COR-1602"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # ASCII block: box-drawing chars present
+    assert "┌" in result.output
+    assert "└" in result.output
+    assert "Phase 1:" in result.output
+    # Fenced Mermaid still present
+    assert "```mermaid" in result.output
+    assert "flowchart TD" in result.output
+    # Order: ASCII box must precede the Mermaid fence
+    assert result.output.index("┌") < result.output.index("```mermaid")
+
+
+def test_graph_format_mermaid_backward_compat(sample_project, monkeypatch):
+    """Test 14: --graph --graph-format=mermaid → no ASCII block; back-compat."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--graph", "--graph-format", "mermaid", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Mermaid present
+    assert "```mermaid" in result.output
+    assert "flowchart TD" in result.output
+    # ASCII box-drawing must NOT be present
+    assert "┌" not in result.output
+    # └ in └─...─┘ would be an ASCII-graph bottom border; must not be present.
+    # Default phased output does not use box-drawing chars.
+    assert "└" not in result.output
+    assert "▼" not in result.output
+
+
+def test_graph_format_ascii_only(sample_project, monkeypatch):
+    """Test 15: --graph --graph-format=ascii → ASCII only; no fenced Mermaid."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--graph", "--graph-format", "ascii", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "┌" in result.output
+    # No Mermaid fence
+    assert "```mermaid" not in result.output
+    assert "flowchart TD" not in result.output
+
+
+def test_graph_format_without_graph_errors(sample_project, monkeypatch):
+    """Test 16: --graph-format without --graph → click.UsageError, exit 2."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--graph-format", "ascii", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 2
+    assert "--graph-format requires --graph" in result.output
+
+
+def test_json_graph_default_has_both_keys(sample_project, monkeypatch):
+    """Test 17: --graph --json (default format=both) → JSON has ascii_graph + graph_mermaid."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--json", "--graph", "COR-1602"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert "ascii_graph" in data
+    assert "graph_mermaid" in data
+    assert isinstance(data["ascii_graph"], str)
+    assert isinstance(data["graph_mermaid"], str)
+    assert data["schema_version"] == "2"
+
+
+def test_json_graph_ascii_format_no_mermaid_key(sample_project, monkeypatch):
+    """Test 18: --json --graph --graph-format=ascii → JSON has ascii_graph only."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--json", "--graph", "--graph-format", "ascii", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert "ascii_graph" in data
+    assert "graph_mermaid" not in data
+
+
+def test_json_graph_mermaid_format_no_ascii_key(sample_project, monkeypatch):
+    """Test 19: --json --graph --graph-format=mermaid → JSON has graph_mermaid only."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--json", "--graph", "--graph-format", "mermaid", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert "graph_mermaid" in data
+    assert "ascii_graph" not in data
+
+
+def test_default_plan_unchanged_no_graph_no_ascii(sample_project, monkeypatch):
+    """Test 20: default af plan (no --graph) → no ASCII, no Mermaid (regression)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "COR-1602"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # Phased output should be there
+    assert "## Phase" in result.output
+    # No ASCII box, no Mermaid fence
+    assert "┌" not in result.output
+    assert "```mermaid" not in result.output
+    assert "flowchart TD" not in result.output
+    assert "ascii_graph" not in result.output
+
+
+def test_task_evolve_cli_graph_shows_both_backedges(sample_project, monkeypatch):
+    """Test 21: af plan --task "evolve CLI" --todo --graph composes COR-1103 +
+    COR-1402 + FXA-2148 + FXA-2149 with both Phase-7 back-edges.
+
+    Skipped if the live FXA-2148/FXA-2149 SOPs aren't reachable from the
+    sample_project fixture; otherwise asserts both SOPs appear and both
+    back-edges are present in the Mermaid output.
+    """
+    # Use real project root (not sample_project) — the real SOPs live there.
+    real_root = Path(__file__).parent.parent
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "--root",
+            str(real_root),
+            "--task",
+            "evolve CLI",
+            "--todo",
+            "--graph",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Both SOP IDs present
+    assert "FXA-2148" in result.output
+    assert "FXA-2149" in result.output
+    # ASCII block precedes Mermaid fence
+    assert "┌" in result.output
+    assert "```mermaid" in result.output
+    assert result.output.index("┌") < result.output.index("```mermaid")
+    # Two Mermaid back-edges — one per SOP's Phase-7 loop.
+    # Pattern "-. ... .->" appears once per loop.
+    mermaid_section = result.output[result.output.index("```mermaid") :]
+    assert mermaid_section.count(".->") >= 2
