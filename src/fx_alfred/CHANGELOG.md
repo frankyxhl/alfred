@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.6.1 (2026-04-18)
+
+Patch release: v1.6.0's publish-to-PyPI GitHub Actions workflow failed at the `pyright src/` step with 16 type errors. The errors were static-only — all 660 tests passed — but blocked PyPI publish, so v1.6.0 exists as a GitHub tag only. v1.6.1 ships the identical feature set with the type annotations corrected.
+
+### Fixed
+
+- **`core/phases.py`**: `PhaseDict` split into `_PhaseRequired` (required: `sop_id`, `steps`, `loops`) + optional `provenance` via `total=False` inheritance. Previously `PhaseDict(TypedDict, total=False)` made every field optional, causing `reportTypedDictNotRequiredAccess` on every consumer. Codex R1 had flagged this as advisory during FXA-2206 review; v1.6.1 implements the tightening.
+- **`core/mermaid.py`, `core/ascii_graph.py`, `commands/plan_cmd.py`**: annotation + narrowing fixes flowing from the tighter `PhaseDict`. Loop endpoint null-checks in `ascii_graph` use assert-and-skip. `plan_cmd` gains one `# type: ignore[attr-defined]` on `ctx.get_parameter_source` (Click 8.3 ships the method but pyright's bundled stubs don't).
+- **`lazy.py`**: unrelated pre-existing `Iterable[str] + list[str]` operator issue.
+
+### Stats
+
+- 0 runtime changes (pure static-type tightening)
+- 660 tests still passing
+- 0 new dependencies
+- 16 pyright errors → 0
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.6.1       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.6.0 (2026-04-18)
 
 Major feature release: `af plan` gains auto-composition (`--task`), flat TODO (`--todo`), and graph output (`--graph`) with both terminal-friendly ASCII and GitHub/Obsidian-ready Mermaid. Three new SOP metadata fields (`Task tags`, `Workflow loops`, `Always included`) drive auto-composition and loop visualisation. New PKG SOP **COR-1202: Compose Session Plan** gives every user an ID-addressable entry point for the full session-workflow pattern.
