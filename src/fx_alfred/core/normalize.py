@@ -52,6 +52,7 @@ KNOWN_OPTIONAL_ORDER = [
     "Workflow provides",
     "Workflow loops",
     "Always included",
+    "Task tags",
     "Tags",
 ]
 
