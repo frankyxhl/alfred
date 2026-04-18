@@ -31,6 +31,7 @@ def _visual_width(s: str) -> int:
     Handles:
     - CJK characters (2 cells each)
     - Emoji (2 cells each)
+    - Misc Symbols + Dingbats (⚠️, 🔁, etc.) — 2 cells each
     - Combining marks (0 cells)
     - ASCII (1 cell each)
     """
@@ -50,6 +51,7 @@ def _visual_width(s: str) -> int:
             or 0xFE30 <= code <= 0xFE4F  # CJK compat forms
             or 0xFF00 <= code <= 0xFF60  # Fullwidth forms
             or 0xFFE0 <= code <= 0xFFE6  # Fullwidth signs
+            or 0x2600 <= code <= 0x27BF  # Misc Symbols + Dingbats (⚠️, 🔁, etc.)
             or 0x1F000 <= code <= 0x1FFFF  # Emoji blocks (SMP)
             or 0x20000 <= code <= 0x2FFFD  # CJK ext B-F (SIP)
             or 0x30000 <= code <= 0x3FFFD  # CJK ext G (TIP)
@@ -58,7 +60,7 @@ def _visual_width(s: str) -> int:
         elif (
             0x0300 <= code <= 0x036F  # Combining diacritical marks
             or 0x200B <= code <= 0x200F  # ZWJ, etc.
-            or code == 0xFE0F  # Variation selector
+            or 0xFE00 <= code <= 0xFE0F  # Variation selectors
         ):
             # Combining marks, ZWJ, variation selectors — zero width
             pass
@@ -406,7 +408,7 @@ def render_ascii(phases: list[PhaseDict]) -> str:
         else:
             # Non-last phase: bottom border with ┬ at center
             left_dashes = center - 1
-            right_dashes = box_width - 2 - left_dashes
+            right_dashes = box_width - 3 - left_dashes
             out_lines.append("└" + "─" * left_dashes + "┬" + "─" * right_dashes + "┘")
             # ▼ line (no separate │ line)
             out_lines.append(" " * center + "▼")

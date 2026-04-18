@@ -611,3 +611,90 @@ class TestTruncateVisualEdges:
 
         # max_visual < 3 leaves no budget for content; returns all dots.
         assert _truncate_visual("hello", 2) == ".."
+
+
+class TestVisualWidthMiscSymbols:
+    """Direct tests for _visual_width handling of Misc Symbols + Dingbats."""
+
+    def test_visual_width_warning_sign_is_2(self):
+        from fx_alfred.core.ascii_graph import _visual_width
+
+        # ⚠ = U+26A0 (Misc Symbols) — 2 cells
+        assert _visual_width("⚠") == 2
+
+    def test_visual_width_variation_selector_is_0(self):
+        from fx_alfred.core.ascii_graph import _visual_width
+
+        # U+FE0F variation selector — 0 cells
+        assert _visual_width("\ufe0f") == 0
+
+    def test_visual_width_repeat_emoji_is_2(self):
+        from fx_alfred.core.ascii_graph import _visual_width
+
+        # 🔁 = U+1F501 (Emoji block) — 2 cells
+        assert _visual_width("🔁") == 2
+
+    def test_visual_width_warning_emoji_sequence_is_2(self):
+        from fx_alfred.core.ascii_graph import _visual_width
+
+        # ⚠️ = U+26A0 + U+FE0F — total 2 cells (2 + 0)
+        assert _visual_width("⚠️") == 2
+
+
+class TestEveryLineUniformVisualWidth:
+    """Invariant: every rendered line has uniform visual width (except arrow-gap lines)."""
+
+    def test_every_line_has_uniform_visual_width(self):
+        """Multi-phase + loop + gate composition: all box lines have equal visual width."""
+        from fx_alfred.core.ascii_graph import _visual_width, render_ascii
+
+        # 2 phases, 1 loop, 1 gate step (⚠️) — exercises all width-sensitive paths
+        phases = [
+            {
+                "sop_id": "COR-1500",
+                "provenance": "always",
+                "steps": [
+                    {"index": 1, "text": "Write failing test", "gate": False},
+                    {"index": 2, "text": "Write minimal impl", "gate": False},
+                    {"index": 3, "text": "Refactor if needed", "gate": False},
+                ],
+                "loops": [
+                    {
+                        "id": "tdd-cycle",
+                        "from_step": 3,
+                        "to_step": 1,
+                        "max_iterations": 5,
+                        "condition": "not green",
+                    }
+                ],
+            },
+            {
+                "sop_id": "COR-1602",
+                "provenance": "auto",
+                "steps": [
+                    {"index": 1, "text": "Collect reviews", "gate": False},
+                    {"index": 2, "text": "Gate: all >= 9.0", "gate": True},
+                ],
+                "loops": [],
+            },
+        ]
+
+        output = render_ascii(phases)
+        lines = output.splitlines()
+
+        # Find the box width from a content line (│ ... │)
+        content_lines = [ln for ln in lines if ln.startswith("│") and ln.endswith("│")]
+        assert content_lines, "no content lines found"
+        box_width = _visual_width(content_lines[0])
+
+        # Check all lines except arrow-gap lines (▼ surrounded by spaces)
+        for ln in lines:
+            # Skip arrow-gap lines (lines containing only spaces and ▼)
+            if ln.strip() == "▼":
+                continue
+            # All other lines should have the same visual width
+            line_width = _visual_width(ln)
+            assert line_width == box_width, (
+                f"Line width mismatch: expected {box_width}, got {line_width}\n"
+                f"Line: {ln!r}"
+            )
