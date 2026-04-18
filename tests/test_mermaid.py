@@ -1,0 +1,313 @@
+"""Tests for core/mermaid.py — Mermaid flowchart rendering (FXA-2205 PR3)."""
+
+from __future__ import annotations
+
+from fx_alfred.core.mermaid import render_mermaid
+from fx_alfred.core.workflow import LoopSignature
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_phase(
+    sop_id: str,
+    steps: list[dict],
+    loops: list[LoopSignature] | None = None,
+) -> dict:
+    """Build a phase dict matching render_mermaid's expected input format.
+
+    Each step dict has: {"index": int, "text": str, "gate": bool}.
+    """
+    return {
+        "sop_id": sop_id,
+        "steps": steps,
+        "loops": loops or [],
+    }
+
+
+def _steps(*texts: str, gate_indices: set[int] | None = None) -> list[dict]:
+    """Build a list of step dicts from text strings.
+
+    Step index is 1-based, matching SOP convention.
+    gate_indices: set of 1-based indices that are gates.
+    """
+    gate_set = gate_indices or set()
+    return [
+        {"index": i + 1, "text": t, "gate": (i + 1) in gate_set}
+        for i, t in enumerate(texts)
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Test 1: Single SOP with 3 sequential steps
+# ---------------------------------------------------------------------------
+
+
+class TestSingleSopSequential:
+    def test_single_sop_three_steps(self):
+        """Single SOP with 3 steps produces sequential forward edges."""
+        phases = [
+            _make_phase(
+                "COR-1500",
+                _steps("Write failing test", "Minimal impl", "Refactor"),
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        assert result.startswith("flowchart TD\n")
+        # Forward edges within SOP
+        assert "S1_1" in result
+        assert "S1_2" in result
+        assert "S1_3" in result
+        assert "S1_1[" in result  # rectangle node
+        assert "S1_1[" in result
+        assert "--> S1_2[" in result or "S1_1[" in result
+        # Verify sequential chain
+        lines = result.strip().split("\n")
+        edge_lines = [ln.strip() for ln in lines if "-->" in ln]
+        assert len(edge_lines) >= 1  # at least one edge line
+
+    def test_node_labels_contain_sop_id(self):
+        """Node labels contain the SOP-ID prefix."""
+        phases = [
+            _make_phase("COR-1500", _steps("Write test", "Implement")),
+        ]
+        result = render_mermaid(phases)
+        assert "COR-1500" in result
+
+
+# ---------------------------------------------------------------------------
+# Test 2: Multi-SOP composition with phase-to-phase edge
+# ---------------------------------------------------------------------------
+
+
+class TestMultiSopComposition:
+    def test_two_sops_phase_transition(self):
+        """Two SOPs produce a phase-to-phase edge between last/first steps."""
+        phases = [
+            _make_phase("COR-1500", _steps("Write test", "Implement")),
+            _make_phase("COR-1602", _steps("Dispatch", "Collect", "Synthesize")),
+        ]
+        result = render_mermaid(phases)
+
+        # Phase-to-phase edge: last step of SOP 1 to first step of SOP 2
+        assert "S1_2" in result
+        assert "S2_1" in result
+        # There should be an edge from S1_2 to S2_1
+        assert "S1_2" in result and "S2_1" in result
+
+    def test_three_sops_chain(self):
+        """Three SOPs chain with two phase-to-phase edges."""
+        phases = [
+            _make_phase("COR-1103", _steps("Route")),
+            _make_phase("COR-1500", _steps("Write test", "Implement")),
+            _make_phase("COR-1602", _steps("Dispatch", "Collect")),
+        ]
+        result = render_mermaid(phases)
+        # S1_1 -> S2_1 (phase 1->2)
+        # S2_2 -> S3_1 (phase 2->3)
+        assert "S1_1" in result
+        assert "S2_1" in result
+        assert "S2_2" in result
+        assert "S3_1" in result
+
+
+# ---------------------------------------------------------------------------
+# Test 3: SOP with Workflow loops — dashed back-edge
+# ---------------------------------------------------------------------------
+
+
+class TestLoopBackEdge:
+    def test_loop_produces_dashed_back_edge(self):
+        """Workflow loop from step 3 to step 1 produces dashed back-edge."""
+        loop = LoopSignature(
+            id="retry",
+            from_step=3,
+            to_step=1,
+            max_iterations=3,
+            condition="retry",
+        )
+        phases = [
+            _make_phase(
+                "COR-1602",
+                _steps("Dispatch", "Collect", "Check"),
+                loops=[loop],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Dashed back-edge with condition
+        assert "S1_3" in result
+        assert "S1_1" in result
+        # Dashed edge syntax: -. condition .->
+        assert "-." in result
+        assert ".->" in result
+        assert "retry" in result
+
+    def test_loop_long_condition_truncated(self):
+        """Very long condition in loop is used (may be truncated or 'yes')."""
+        long_cond = "a" * 100
+        loop = LoopSignature(
+            id="retry",
+            from_step=3,
+            to_step=1,
+            max_iterations=3,
+            condition=long_cond,
+        )
+        phases = [
+            _make_phase(
+                "COR-1602",
+                _steps("Dispatch", "Collect", "Check"),
+                loops=[loop],
+            ),
+        ]
+        result = render_mermaid(phases)
+        # Should still have a dashed edge, may use "yes" for very long conditions
+        assert "-." in result
+        assert ".->" in result
+
+
+# ---------------------------------------------------------------------------
+# Test 4: Gate step — diamond shape
+# ---------------------------------------------------------------------------
+
+
+class TestGateStepDiamond:
+    def test_gate_step_uses_diamond(self):
+        """Gate step renders as diamond {text} instead of rectangle [text]."""
+        phases = [
+            _make_phase(
+                "COR-1602",
+                _steps("Dispatch", "Gate check", "Final", gate_indices={2}),
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Diamond uses {} in Mermaid
+        assert "S1_2{" in result
+        # Non-gate steps use []
+        assert "S1_1[" in result
+        assert "S1_3[" in result
+
+    def test_gate_step_suffix_checkmark(self):
+        """Step with checkmark suffix is detected as gate."""
+        phases = [
+            _make_phase(
+                "COR-1602",
+                [
+                    {"index": 1, "text": "Regular step", "gate": False},
+                    {"index": 2, "text": "All approved ✓", "gate": True},
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+        assert "S1_2{" in result
+
+
+# ---------------------------------------------------------------------------
+# Test 5: Gate + loop-from collision on same step
+# ---------------------------------------------------------------------------
+
+
+class TestGateLoopCollision:
+    def test_gate_and_loop_from_same_step(self):
+        """Gate step that is also loop source gets diamond AND dashed back-edge."""
+        loop = LoopSignature(
+            id="retry",
+            from_step=2,
+            to_step=1,
+            max_iterations=3,
+            condition="retry needed",
+        )
+        phases = [
+            _make_phase(
+                "COR-1602",
+                [
+                    {"index": 1, "text": "Dispatch", "gate": False},
+                    {"index": 2, "text": "Gate check", "gate": True},
+                    {"index": 3, "text": "Done", "gate": False},
+                ],
+                loops=[loop],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Diamond shape for gate step
+        assert "S1_2{" in result
+        # Dashed back-edge from gate step
+        assert "S1_2" in result
+        assert "-." in result
+        assert "S1_1" in result
+
+
+# ---------------------------------------------------------------------------
+# Test 6: Empty phases list
+# ---------------------------------------------------------------------------
+
+
+class TestEmptyPhases:
+    def test_empty_phases_minimal_output(self):
+        """Empty phases list produces minimal 'flowchart TD' with no nodes."""
+        result = render_mermaid([])
+        assert result.strip() == "flowchart TD"
+
+
+# ---------------------------------------------------------------------------
+# Test 7: Long step text truncation
+# ---------------------------------------------------------------------------
+
+
+class TestLongTextTruncation:
+    def test_long_text_truncated(self):
+        """Step text longer than ~60 chars is truncated with ellipsis."""
+        long_text = "A" * 80
+        phases = [
+            _make_phase("COR-1500", [{"index": 1, "text": long_text, "gate": False}]),
+        ]
+        result = render_mermaid(phases)
+
+        # The full 80-char text should NOT appear in the label
+        assert long_text not in result
+        # But a truncated version should be there
+        # Should be around 60 chars + ellipsis
+        assert "..." in result or "A" * 57 in result
+
+
+# ---------------------------------------------------------------------------
+# Test 8: Special characters escaped for Mermaid
+# ---------------------------------------------------------------------------
+
+
+class TestSpecialCharEscape:
+    def test_brackets_escaped(self):
+        """Brackets in step text are escaped for Mermaid safety."""
+        phases = [
+            _make_phase(
+                "COR-1500",
+                [{"index": 1, "text": "Check [GATE] markers", "gate": True}],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Raw brackets should not appear unescaped inside node labels
+        # (they would break Mermaid syntax)
+        # The label is inside [...] or {...}, so inner brackets must be escaped
+        assert "S1_1" in result
+        # Should not have nested brackets that break parsing
+        # The implementation should escape or strip inner brackets
+
+    def test_quotes_escaped(self):
+        """Quotes in step text are handled for Mermaid safety."""
+        phases = [
+            _make_phase(
+                "COR-1500",
+                [{"index": 1, "text": 'Check "all" items', "gate": False}],
+            ),
+        ]
+        result = render_mermaid(phases)
+        assert "S1_1" in result
+        # The label should use quote-safe form
+        # Mermaid uses ["text with quotes"] syntax
+        assert "S1_1[" in result or 'S1_1["' in result

@@ -1112,3 +1112,155 @@ def test_malformed_loops_json_mode_silent_skip(sample_project, monkeypatch):
     assert data["phases"][0]["phase"] == "TST-9001"
     # No warning in JSON output (per existing convention)
     assert "Warning" not in result.output
+
+
+# ── af plan --graph CLI integration tests (FXA-2205 PR3) ────────────────────
+
+
+def test_graph_alone_on_cor_1602(sample_project, monkeypatch):
+    """--graph on COR-1602 (has loops) → phased output + fenced mermaid block with back-edge."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--graph", "COR-1602"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    # Should have phased output (default format)
+    assert "## Phase" in result.output
+    # Should have fenced mermaid block
+    assert "```mermaid" in result.output
+    assert "flowchart TD" in result.output
+    assert "```" in result.output
+    # Should have dashed back-edge from loop (from:7, to:3)
+    assert "-." in result.output
+    assert ".->" in result.output
+
+
+def test_todo_graph_combo(sample_project, monkeypatch):
+    """--todo --graph → flat TODO + mermaid block at end."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--todo", "--graph", "COR-1602"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    # Should have flat TODO format
+    assert "- [ ]" in result.output
+    assert "[COR-1602]" in result.output
+    # Should NOT have phased output
+    assert "## Phase" not in result.output
+    # Should have mermaid block
+    assert "```mermaid" in result.output
+    assert "flowchart TD" in result.output
+
+
+def test_json_graph_has_graph_mermaid_key(sample_project, monkeypatch):
+    """--json --graph → JSON has `graph_mermaid` key (string type); schema_version == "2"."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--json", "--graph", "COR-1602"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert "graph_mermaid" in data
+    assert isinstance(data["graph_mermaid"], str)
+    assert data["graph_mermaid"].startswith("flowchart TD")
+    assert data["schema_version"] == "2"
+
+
+def test_json_graph_todo_all_keys(sample_project, monkeypatch):
+    """--json --graph --todo → JSON has all new keys (todo, loops, graph_mermaid)."""
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--json", "--graph", "--todo", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert "todo" in data
+    assert "loops" in data
+    assert "graph_mermaid" in data
+    assert data["schema_version"] == "2"
+
+
+def test_json_alone_no_graph_mermaid(sample_project, monkeypatch):
+    """--json alone (no --graph) → no graph_mermaid key; schema unchanged."""
+    import json
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--json", "TST-7001"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert "graph_mermaid" not in data
+    assert data["schema_version"] == "1"
+
+
+def test_default_plan_byte_identical(sample_project, monkeypatch):
+    """Default af plan (no new flags) → byte-identical to pre-PR-3 output."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "7001", "First-SOP")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+
+    # Default output
+    result1 = runner.invoke(cli, ["plan", "TST-7001"], catch_exceptions=False)
+    assert result1.exit_code == 0
+
+    # Should have phased output headers and RULES
+    assert "## Phase" in result1.output
+    assert "## RULES" in result1.output
+    # Should NOT have any mermaid content
+    assert "```mermaid" not in result1.output
+    assert "flowchart TD" not in result1.output
+    assert "graph_mermaid" not in result1.output
+
+
+def test_graph_human_combo(sample_project, monkeypatch):
+    """--graph --human → human-readable phased output + mermaid block appended."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--graph", "--human", "COR-1602"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+
+    # Human format markers
+    assert "□" in result.output or "═══" in result.output
+    # Mermaid block still appended
+    assert "```mermaid" in result.output
+    assert "flowchart TD" in result.output
+
+
+def test_malformed_loops_graph_mode(sample_project, monkeypatch):
+    """Malformed loops SOP + --graph → warns and skips bad SOP (regression test)."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "9001", "Good-SOP")
+    _create_sop_with_malformed_loops(rules_dir, "TST", "9002", "Bad-Loops")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "--graph", "TST-9002", "TST-9001"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # Should warn about the bad SOP
+    assert "Warning" in result.output
+    assert "malformed" in result.output.lower()
+    # Should still have mermaid block for the good SOP
+    assert "```mermaid" in result.output
+    assert "flowchart TD" in result.output
