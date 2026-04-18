@@ -126,11 +126,11 @@ af plan --root . --task "implement feature" COR-1501 --todo --graph
 Expected output header (abbreviated):
 
 ```text
-# Composed from: COR-1103(always) → COR-1402(always) → COR-1500(auto)
-                → COR-1501(explicit) → COR-1602(auto) → COR-1610(auto)
+# Composed from: COR-1103(always) → COR-1402(always) → COR-1501(explicit)
+                → COR-1500(auto) → COR-1602(auto) → COR-1610(auto)
 ```
 
-COR-1501 carries the `(explicit)` marker because it was pinned positionally.
+COR-1501 carries the `(explicit)` marker because it was pinned positionally. Explicit pins precede tag-matched SOPs in the default ordering.
 
 ### 3. Empty-match recovery
 
