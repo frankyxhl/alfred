@@ -1,7 +1,7 @@
 # SOP-2102: Release To PyPI
 
 **Applies to:** FXA project
-**Last updated:** 2026-03-17
+**Last updated:** 2026-04-18
 **Last reviewed:** 2026-03-17
 **Status:** Active
 
@@ -40,6 +40,7 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
 - All tests pass (`.venv/bin/pytest -v`)
 - Ruff lint clean (`.venv/bin/ruff check .`)
 - Ruff format clean (`.venv/bin/ruff format --check .`) — if files need formatting, format + commit first
+- Pyright clean (`.venv/bin/pyright src/`) — catches type errors that the publish CI also runs
 - Dual code review passed (Codex + Gemini both ≥ 9/10)
 - README up to date (FXA-2136 Update README SOP)
 - Version bumped in `pyproject.toml`
@@ -54,6 +55,7 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
    .venv/bin/pytest -v
    .venv/bin/ruff check .
    .venv/bin/ruff format --check .    # if files need formatting, format + commit first
+   .venv/bin/pyright src/             # must be equivalent to the CI gate (`pyright src/` in .github/workflows/publish.yml)
    .venv/bin/af --version             # confirm version matches
    ```
 
@@ -128,6 +130,7 @@ If the release is broken:
 1. Yank the version on PyPI: `https://pypi.org/manage/project/fx-alfred/release/<VERSION>/`
 2. Fix the issue, bump to next patch version, re-release
 
+
 ## Examples
 
 ```bash
@@ -147,8 +150,9 @@ pipx upgrade fx-alfred                        # verify on PyPI
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-03-17 | Initial version | Claude Code |
-| 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration) | Claude Code |
-| 2026-03-21 | Added Examples section + release notes template | Claude Code |
+| Date       | Change                                                                                 | By                  |
+|------------|----------------------------------------------------------------------------------------|---------------------|
+| 2026-03-17 | Initial version                                                                        | Claude Code         |
+| 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration)              | Claude Code         |
+| 2026-03-21 | Added Examples section + release notes template                                        | Claude Code         |
+| 2026-04-18 | Add pyright to Prerequisites + Step 1 per CHG-FXA-2208 (post v1.6.0 publish incident). | Frank + Claude Code |
