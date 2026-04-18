@@ -90,7 +90,7 @@ A tagged task description resolves to a full routing → TDD → review → scor
 af plan --root . --task "implement FXA-2208 PRP" --todo --graph
 ```
 
-Expected output (abbreviated):
+Expected output (abbreviated — header + flat TODO first):
 
 ```text
 # Composed from: COR-1103(always) → COR-1402(always) → COR-1500(auto)
@@ -101,19 +101,26 @@ Expected output (abbreviated):
 - [ ] 2.1 [COR-1402] Declare active SOP
 - [ ] 3.1 [COR-1500] (TDD)
   ...
+```
+
+Then the fenced Mermaid block (for GitHub / Obsidian rendering):
 
 ```mermaid
 flowchart TD
   S1_1[...] --> S2_1[...] --> S3_1[...]
 ```
 
+Then the ASCII phase-box diagram (terminal-friendly):
+
+```text
 ┌──────────────────────────────────────────┐
 │ Phase 1: COR-1103 (always)               │
 │ [1.1] ...                                │
 └─────────────────────┬────────────────────┘
                       ▼
-(one phase box per SOP; ▼ connects them)
 ```
+
+(One phase box per SOP; `▼` arrows connect them vertically.)
 
 ### 2. Mixing tags with explicit pins
 
