@@ -75,8 +75,8 @@ Commit ────────────► af validate → Session End
 • COR-1201: Load today's Discussion Tracker — search for today's file, read max DN, auto-increment on new topics (see COR-1201 Session Start Protocol)
 • COR-1402: Declare 📋 active SOP before work and on every transition
 • COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP)
-• af plan:  Before every response — decide if task needs a checklist; if task has clear steps or spans multiple SOPs, run af plan <SOP_IDs> before proceeding
-• "Show me the plan" / "compose session plan": COR-1202 — emit ASCII + Mermaid + flat TODO for the session workflow
+• af plan: Before every response — decide if task needs a checklist. For a manual, targeted checklist from specific SOPs: `af plan <SOP_IDs>`.
+• COR-1202 (Compose Session Plan): for the full session-workflow plan — use when the user says "show me the plan" / "compose session plan" / "follow COR-1202", or when the task spans multiple SOPs and you want auto-composition (ASCII + Mermaid + flat TODO) rather than hand-picking SOP IDs.
 
 ═══ PRIMARY ROUTE (stop at first match) ═══
 

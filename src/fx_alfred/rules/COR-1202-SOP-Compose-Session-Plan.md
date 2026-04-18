@@ -72,7 +72,7 @@ Copy the flat TODO into the session's working surface: issue / Discussion Tracke
 
 ### 6. Execute
 
-Execute step by step. At each phase transition the executor (agent or human running the plan) declares the active SOP per COR-1402 and honours any `Workflow loops` `max N` bound rendered in the plan.
+Execute step by step. At each phase transition the executor (agent or human running the plan) declares the active SOP per COR-1402 and honours any `Workflow loops` `max N` bound rendered in the plan. (A `Workflow loops` entry is SOP metadata declaring a bounded retry — e.g. review loop "max 3". In the ASCII/Mermaid output it appears as a dashed back-edge; in the flat TODO it appears as `🔁 back to N.M (max K)` on the loop's `from` step. Stop the loop when `max K` is reached; escalate per the SOP's own rules.)
 
 ### 7. Close and compare
 
@@ -84,10 +84,35 @@ At session end, compare completion against the plan. Unchecked items enter the r
 
 ### 1. Standard auto-compose
 
-A tagged task description resolves to a full routing → TDD → review → scoring chain without any explicit SOP IDs.
+A tagged task description resolves to a full routing → TDD → review → scoring chain without any explicit SOP IDs. `FXA-2208` below is illustrative — substitute the real PRP ACID you are implementing.
 
 ```bash
 af plan --root . --task "implement FXA-2208 PRP" --todo --graph
+```
+
+Expected output (abbreviated):
+
+```text
+# Composed from: COR-1103(always) → COR-1402(always) → COR-1500(auto)
+                → COR-1602(auto) → COR-1608(auto) → COR-1610(auto)
+
+# Flat TODO — Follow each item in order
+- [ ] 1.1 [COR-1103] (session routing)
+- [ ] 2.1 [COR-1402] Declare active SOP
+- [ ] 3.1 [COR-1500] (TDD)
+  ...
+
+```mermaid
+flowchart TD
+  S1_1[...] --> S2_1[...] --> S3_1[...]
+```
+
+┌──────────────────────────────────────────┐
+│ Phase 1: COR-1103 (always)               │
+│ [1.1] ...                                │
+└─────────────────────┬────────────────────┘
+                      ▼
+(one phase box per SOP; ▼ connects them)
 ```
 
 ### 2. Mixing tags with explicit pins
@@ -98,6 +123,15 @@ Positional SOP IDs combine with tag-matched ones (union, de-duplicated, normalis
 af plan --root . --task "implement feature" COR-1501 --todo --graph
 ```
 
+Expected output header (abbreviated):
+
+```text
+# Composed from: COR-1103(always) → COR-1402(always) → COR-1500(auto)
+                → COR-1501(explicit) → COR-1602(auto) → COR-1610(auto)
+```
+
+COR-1501 carries the `(explicit)` marker because it was pinned positionally.
+
 ### 3. Empty-match recovery
 
 A task description with no tag matches exits 2 with a diagnostic. Workaround: add a positional SOP to proceed in-session; defer the `Task tags` backfill to retrospective.
@@ -105,10 +139,20 @@ A task description with no tag matches exits 2 with a diagnostic. Workaround: ad
 ```bash
 # first: exits 2 with diagnostic "matched 0 tagged SOPs"
 af plan --root . --task "xyzzy unmatched" --todo --graph
+```
 
-# then: proceed in-session
+```text
+Error: --task "xyzzy unmatched" matched 0 tagged SOPs. No routing fallback in v1.
+Try: af plan <SOP_ID> ... explicitly, or tag a relevant SOP with `Task tags:`.
+```
+
+Exit code 2. Workaround — add a positional SOP:
+
+```bash
 af plan --root . --task "xyzzy unmatched" COR-1500 --todo --graph
 ```
+
+Now exits 0 with `COR-1500(explicit)` in the `Composed from:` header.
 
 ---
 
