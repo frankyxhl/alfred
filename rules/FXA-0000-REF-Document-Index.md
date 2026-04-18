@@ -117,6 +117,7 @@
 | 2205 | PRP | AF Plan Auto Compose Todo And Graph |
 | 2206 | CHG | FXA 2205 Follow Ups ASCII Graph And SOP Metadata Backfills |
 | 2207 | CHG | Add COR 1202 Compose Session Plan SOP |
+| 2208 | CHG | Add Pyright To FXA 2102 Release Prerequisites |
 
 ---
 
