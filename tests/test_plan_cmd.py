@@ -1677,3 +1677,39 @@ def test_task_evolve_cli_graph_shows_both_backedges(sample_project, monkeypatch)
     # Pattern "-. ... .->" appears once per loop.
     mermaid_section = result.output[result.output.index("```mermaid") :]
     assert mermaid_section.count(".->") >= 2
+
+
+def test_plan_todo_raw_section_text_fallback(tmp_path):
+    """--todo emits raw Steps-section text when no `N. ` numbered items are found.
+
+    Pins the documented fallback at plan_cmd.py:276: when _extract_steps_section
+    returns non-None but _parse_steps_for_json returns [] (because the regex
+    `^(?:###\\s+)?(\\d+)\\.\\s+(.+)` matches no lines), the TODO emits a single
+    line `{phase}.1 [{sop_id}] {steps_section.strip()}`. This is user-observable
+    behaviour for SOPs that have a placeholder Steps section (e.g. fresh drafts).
+    """
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-2100-SOP-Prose-Steps.md").write_text(
+        "# SOP-2100: Prose Steps\n\n"
+        "**Applies to:** Test\n"
+        "**Last updated:** 2026-04-19\n"
+        "**Last reviewed:** 2026-04-19\n"
+        "**Status:** Active\n\n---\n\n"
+        "## What Is It?\n\nA test SOP.\n\n"
+        "## Why\n\nTest.\n\n"
+        "## When to Use\n\nTest.\n\n"
+        "## When NOT to Use\n\nTest.\n\n"
+        "## Steps\n\nTODO: fill in the numbered steps.\n\n"
+        "---\n\n## Change History\n\n"
+        "| Date | Change | By |\n|------|--------|----|\n"
+        "| 2026-04-19 | Initial | — |\n"
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "TST-2100", "--todo", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "[TST-2100] TODO: fill in the numbered steps." in result.output
