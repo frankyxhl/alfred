@@ -234,7 +234,13 @@ def _apply_text_markers(
 
     # 3. Loop-back suffix (loop source)
     if loop_from_sig:
-        text = f"{text} — 🔁 if {loop_from_sig.condition} → back to {phase_num}.{loop_from_sig.to_step} (max {loop_from_sig.max_iterations})"
+        # For cross-SOP loops, `to_step` is already "PREFIX-ACID.step"; intra-SOP
+        # stays `{phase}.{step}` (FXA-2218 Commit 4 output contract).
+        if isinstance(loop_from_sig.to_step, int):
+            target_ref = f"{phase_num}.{loop_from_sig.to_step}"
+        else:
+            target_ref = loop_from_sig.to_step
+        text = f"{text} — 🔁 if {loop_from_sig.condition} → back to {target_ref} (max {loop_from_sig.max_iterations})"
 
     return text
 
@@ -572,6 +578,36 @@ def plan_cmd(
                 f"'{edge.from_output}' but {edge.to_doc} expects '{edge.to_input}'"
             )
 
+    # ── Cross-SOP loop runtime checks (FXA-2218 D4) ──
+    # After composition order is fixed, every cross-SOP loop must:
+    #   (a) reference a target SOP that is part of this composed plan
+    #   (b) reference a target that comes BEFORE the source in plan order
+    #       (back-edge semantic — "on failure, retry from earlier step")
+    composed_order: dict[str, int] = {
+        f"{doc.prefix}-{doc.acid}": idx
+        for idx, (_sid, doc, _p, _sig, _lps) in enumerate(phase_info)
+    }
+    for _sid, doc, _parsed, _sig, loops in phase_info:
+        source_id = f"{doc.prefix}-{doc.acid}"
+        source_idx = composed_order[source_id]
+        for i, loop in enumerate(loops):
+            target = loop.cross_sop_target()
+            if target is None:
+                continue
+            t_prefix, t_acid, _t_step = target
+            target_id = f"{t_prefix}-{t_acid}"
+            if target_id not in composed_order:
+                raise click.ClickException(
+                    f"{source_id} Workflow loops[{i}].to = {loop.to_step!r} "
+                    f"— {target_id} not in composed plan "
+                    f"(add positionally: af plan {source_id} {target_id} ...)"
+                )
+            if composed_order[target_id] >= source_idx:
+                raise click.ClickException(
+                    f"{source_id} Workflow loops[{i}].to = {loop.to_step!r} "
+                    f"— target SOP precedes source; back-edges only"
+                )
+
     composition_valid = all(e.compatible for e in edges) if edges else True
 
     # ── Flat TODO output mode ──
@@ -638,13 +674,19 @@ def plan_cmd(
                 todo_items_json = _build_todo_json(phase_num, doc_id, body, loops)
                 todo_json.extend(todo_items_json)
 
-                # Build loops array with dotted step references
+                # Build loops array with dotted step references. Cross-SOP
+                # loops emit `to` as the raw "PREFIX-ACID.step" string — same
+                # lexical form as the authored metadata (FXA-2218 Commit 4).
                 for loop in loops:
+                    if isinstance(loop.to_step, int):
+                        loop_to_ref = f"{phase_num}.{loop.to_step}"
+                    else:
+                        loop_to_ref = loop.to_step
                     loops_json.append(
                         {
                             "id": loop.id,
                             "from": f"{phase_num}.{loop.from_step}",
-                            "to": f"{phase_num}.{loop.to_step}",
+                            "to": loop_to_ref,
                             "max_iterations": loop.max_iterations,
                             "sop": doc_id,
                         }

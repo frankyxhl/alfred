@@ -1713,3 +1713,193 @@ def test_plan_todo_raw_section_text_fallback(tmp_path):
     )
     assert result.exit_code == 0
     assert "[TST-2100] TODO: fill in the numbered steps." in result.output
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 D4 — af plan cross-SOP runtime checks + output-contract branching
+# ---------------------------------------------------------------------------
+
+
+def _write_sop_with_cross_sop_loop(
+    path: Path, prefix: str, acid: str, title: str, to_ref: str, from_step: int = 3
+):
+    """Helper: write an SOP with a cross-SOP Workflow loop."""
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+**Workflow loops:** [{{id: cx, from: {from_step}, to: "{to_ref}", max_iterations: 3, condition: "if fail"}}]
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+2. B
+3. C
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def _write_simple_sop(path: Path, prefix: str, acid: str, title: str):
+    """Helper: write a minimal-valid SOP with 3 steps and no loops."""
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+2. B
+3. C
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def test_plan_cross_sop_target_not_in_composed_plan(tmp_path):
+    """D4: af plan errors if cross-SOP target is not in the composed plan."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+    # TST-2100 NOT written to rules — cross-ref dangles at plan time.
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-2200", "--root", str(tmp_path)], catch_exceptions=False
+    )
+    assert result.exit_code != 0
+    assert "TST-2100" in result.output
+    assert "not in composed plan" in result.output
+
+
+def test_plan_cross_sop_forward_direction_rejected(tmp_path):
+    """D4: af plan errors if cross-SOP target comes AFTER source in plan order."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    # Source SOP (TST-2200) loops back to TST-2100, but we compose
+    # `TST-2200 TST-2100` — target is AFTER source, not before.
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+    _write_simple_sop(rules / "TST-2100-SOP-Target.md", "TST", "2100", "Target")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "TST-2200", "TST-2100", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "back-edges only" in result.output
+
+
+def test_plan_cross_sop_happy_path_todo_shows_dotted_ref(tmp_path):
+    """D4 happy path: --todo TODO suffix shows 'back to PREFIX-ACID.step' for cross-SOP."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-Target.md", "TST", "2100", "Target")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "TST-2100", "TST-2200", "--todo", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # The loop-back annotation should render the raw cross-SOP ref, not a
+    # malformed "{phase}.TST-2100.1" form.
+    assert "back to TST-2100.1" in result.output
+    assert "2.TST-2100.1" not in result.output
+
+
+def test_plan_cross_sop_happy_path_json_loops_shows_raw_ref(tmp_path):
+    """D4 happy path: --json loops[].to emits raw 'PREFIX-ACID.step' for cross-SOP."""
+    import json
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-Target.md", "TST", "2100", "Target")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "TST-2100",
+            "TST-2200",
+            "--todo",
+            "--json",
+            "--root",
+            str(tmp_path),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    loops = data.get("loops", [])
+    assert any(
+        loop["to"] == "TST-2100.1" and loop["sop"] == "TST-2200" for loop in loops
+    ), f"Expected cross-SOP loop with to='TST-2100.1'; got loops={loops}"
