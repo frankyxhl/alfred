@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.6.2 (2026-04-19)
+
+Test-only release: two automated evolve-CLI runs (FXA-2149) closed 7 coverage gaps by adding 5 narrow tests. Zero runtime behaviour changes, zero new dependencies, zero public CLI surface changes. Users should see no observable difference.
+
+### Tests
+
+- **FXA-2211 (PR #52)**: three tests pin edge behaviour at `list --json` empty-result `[]` contract (`list_cmd.py:66`), `atomic_write` double-failure invariant (`_helpers.py:86–87`), and `af validate` malformed Change-History early-return arms (`validate_cmd.py:60, 70`).
+- **FXA-2215 (PR #55)**: two tests pin edge behaviour at `af plan --todo` raw-section-text fallback (`plan_cmd.py:276`) and `parse_metadata` "heading-but-no-table" early return (`parser.py:194`).
+
+Both runs went through PRP → dual-reviewer scoring (Codex + Gemini on COR-1602 strict) → TDD Red (source mutation) → code review → PR. PRP FXA-2210 needed three rounds (R1 misquote, R2 pass, R3 self-caught Gap 2 scope error). PRP FXA-2214 needed two rounds (R1 caught a broken `str(area)` fix, R2 dropped C4 cleanly). Full review trail in the linked run logs.
+
+### Deferred
+
+- **FXA-2212 (PR #53)**: REF-only seed for a future opt-in `af plan --graph-layout=dag` ASCII DAG renderer. Evaluator discarded at 6.05 on first cold pass (SR=5, Nec=3). Per REF policy: stays as REF, try again next run, promote to PRP on second discard.
+
+### Stats
+
+- 0 runtime changes
+- 660 → 665 tests (+5)
+- 0 new dependencies
+- Coverage: 90 → 83 missed lines (-7)
+- 0 breaking changes
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.6.2       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.6.1 (2026-04-18)
 
 Patch release: v1.6.0's publish-to-PyPI GitHub Actions workflow failed at the `pyright src/` step with 16 type errors. The errors were static-only — all 660 tests passed — but blocked PyPI publish, so v1.6.0 exists as a GitHub tag only. v1.6.1 ships the identical feature set with the type annotations corrected.
