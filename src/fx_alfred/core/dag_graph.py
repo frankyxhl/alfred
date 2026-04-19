@@ -103,11 +103,18 @@ def _render_phase(
     phase: PhaseDict,
     step_row_index: dict[tuple[int, int], int],
     canvas_row_offset: int,
+    intra_sop_annotations: dict[int, str] | None = None,
 ) -> list[str]:
     """Render a single phase as a list of lines (each exactly ``_PHASE_BOX_WIDTH``
     cells wide). Populates ``step_row_index[(phase_num, step_index)]`` with the
     row index (in the combined canvas) of each step's content row.
+
+    ``intra_sop_annotations`` maps 1-based step index to an annotation string
+    (e.g. ``"🔁 → 2.1 max 3 if fail"``) emitted on a dedicated annotation line
+    immediately below the step-box bottom. Cross-SOP loops inline-fall-back
+    is handled separately in ``_overlay_inline_cross_sop`` (FXA-2218 R2).
     """
+    annotations = intra_sop_annotations or {}
     lines: list[str] = []
     sop_id = phase["sop_id"]
     steps = phase["steps"]
@@ -136,12 +143,38 @@ def _render_phase(
         step_row_index[(phase_num, step["index"])] = canvas_row_offset + len(lines)
         lines.append(f"│{pad_left}{middle}{pad_right}│")
         lines.append(f"│{pad_left}{bottom}{pad_right}│")
+
+        # Intra-SOP loop annotation line below the step-box (if any).
+        annotation = annotations.get(step["index"])
+        if annotation is not None:
+            ann = _truncate_visual(annotation, _PHASE_INNER - 4)
+            ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
+            lines.append(f"│ {ann_padded} │")
+
         if has_next:
             lines.append(_render_arrow_line(inside_phase=True))
 
     # Phase bottom border.
     lines.append("└" + "─" * _PHASE_INNER + "┘")
     return lines
+
+
+def _build_intra_sop_annotations(phase: PhaseDict, phase_num: int) -> dict[int, str]:
+    """Return ``{from_step: annotation_text}`` for every intra-SOP loop in
+    this phase. Used by ``render_dag`` to show intra-SOP loops as inline
+    annotation lines rather than vertical tracks inside the phase-box
+    (FXA-2218 R2 — Codex-blocked silent omission fix).
+    """
+    annotations: dict[int, str] = {}
+    for loop in phase.get("loops", []):
+        if not isinstance(loop.to_step, int):
+            continue
+        cond = loop.condition.strip() if loop.condition else ""
+        suffix = f"max {loop.max_iterations}"
+        if cond:
+            suffix += f" {cond}"
+        annotations[loop.from_step] = f"🔁 → {phase_num}.{loop.to_step} {suffix}"
+    return annotations
 
 
 # ── Cross-SOP track allocation + overlay ─────────────────────────────────────
@@ -199,12 +232,16 @@ def _overlay_cross_sop_tracks(
 ) -> list[str]:
     """Draw right-side vertical tracks for every cross-SOP back-edge loop.
 
-    Each loop gets its own track column to keep v1 implementation simple.
-    Non-overlapping column packing is a future enhancement.
+    v1 constraint: only **one** cross-SOP loop renders as a track. Two or
+    more loops fall back to inline annotation on the source step's content
+    row (FXA-2218 R2 — safer than track overlap corruption; full interval-
+    graph packing deferred to a follow-up PRP).
     """
     cross_loops = _collect_cross_sop_loops(phases)
     if not cross_loops:
         return canvas
+    if len(cross_loops) > 1:
+        return _overlay_inline_cross_sop(canvas, cross_loops, step_row_index)
 
     # Each loop reserves one track column at a fixed offset to the right of
     # the phase-box right edge. The "┐"/"┘" glyphs sit at ``track_col``; the
@@ -260,6 +297,39 @@ def _overlay_cross_sop_tracks(
     return canvas
 
 
+def _overlay_inline_cross_sop(
+    canvas: list[str],
+    cross_loops: list[tuple[int, LoopSignature, int, int]],
+    step_row_index: dict[tuple[int, int], int],
+) -> list[str]:
+    """Fallback for multi-loop cross-SOP rendering: emit an inline annotation
+    on each source step's content row instead of drawing tracks. The
+    annotation appears to the right of the phase-box, never crossing any
+    other loop's rendering.
+    """
+    # Compute max line width so every annotation fits.
+    annotations: dict[int, str] = {}
+    for _src_phase_num, loop, _tgt_phase_num, _tgt_step in cross_loops:
+        src_row = step_row_index.get((_src_phase_num, loop.from_step))
+        if src_row is None:
+            continue
+        cond = loop.condition.strip() if loop.condition else ""
+        suffix = f"max {loop.max_iterations}"
+        if cond:
+            suffix += f" {cond}"
+        annotations[src_row] = f"  🔁 → {loop.to_step} {suffix}"
+
+    if not annotations:
+        return canvas
+
+    max_ann_len = max(len(a) for a in annotations.values())
+    target_width = _PHASE_BOX_WIDTH + _TRACK_GUTTER + max_ann_len
+    canvas = [_pad_visual(line, target_width) for line in canvas]
+    for row, annotation in annotations.items():
+        canvas[row] = _overwrite_at(canvas[row], _PHASE_BOX_WIDTH, annotation)
+    return canvas
+
+
 # ── Public entry point ───────────────────────────────────────────────────────
 
 
@@ -277,25 +347,33 @@ def render_dag(
     if not phases:
         return ""
 
-    # Step 1 — render each phase; record step row positions in the final canvas.
+    # Step 1 — pre-filter phases that actually have steps; this avoids the
+    # orphan ``▼`` bug when a trailing phase has no Steps section (R2 fix).
+    renderable_phases = [
+        (idx + 1, phase) for idx, phase in enumerate(phases) if phase.get("steps")
+    ]
+
+    # Step 2 — render each renderable phase; record step row positions in the
+    # final canvas. Intra-SOP loops are collected per-phase as inline
+    # annotation lines (R2 fix — no more silent omission in nested layout).
     canvas: list[str] = []
     step_row_index: dict[tuple[int, int], int] = {}
 
-    for phase_num, phase in enumerate(phases, start=1):
-        if not phase.get("steps"):
-            continue
+    for i, (phase_num, phase) in enumerate(renderable_phases):
+        intra_annotations = _build_intra_sop_annotations(phase, phase_num)
         phase_lines = _render_phase(
             phase_num=phase_num,
             phase=phase,
             step_row_index=step_row_index,
             canvas_row_offset=len(canvas),
+            intra_sop_annotations=intra_annotations,
         )
         canvas.extend(phase_lines)
-        # Inter-phase ▼ connector (between phase boxes, not after the last).
-        if phase_num < len(phases):
+        # Inter-phase ``▼`` connector only between phases that actually render.
+        if i < len(renderable_phases) - 1:
             canvas.append(_render_arrow_line(inside_phase=False))
 
-    # Step 2 — overlay cross-SOP tracks on the right side of the canvas.
+    # Step 3 — overlay cross-SOP tracks on the right side of the canvas.
     canvas = _overlay_cross_sop_tracks(canvas, phases, step_row_index)
 
     return "\n".join(canvas)

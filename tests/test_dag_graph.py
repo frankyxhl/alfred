@@ -204,3 +204,151 @@ class TestEdgeCases:
         assert long_text not in out
         # Truncation indicator
         assert "..." in out
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 R2 fixes — multi-loop inline fallback, intra-SOP annotations,
+# orphan-arrow fix
+# ---------------------------------------------------------------------------
+
+
+class TestMultiLoopInlineFallback:
+    def test_two_cross_sop_loops_fall_back_to_inline_annotations(self):
+        """With 2+ cross-SOP loops, renderer falls back to inline
+        annotations on each source step's content row — avoiding the
+        multi-track overlap corruption bug caught at CHG review R1."""
+        phases = [
+            _phase(
+                "COR-1500",
+                [_step(1, "A"), _step(2, "B")],
+            ),
+            _phase(
+                "COR-1600",
+                [_step(1, "C")],
+                loops=[
+                    LoopSignature(
+                        id="cx1",
+                        from_step=1,
+                        to_step="COR-1500.1",
+                        max_iterations=3,
+                        condition="if fail A",
+                    )
+                ],
+            ),
+            _phase(
+                "COR-1700",
+                [_step(1, "D")],
+                loops=[
+                    LoopSignature(
+                        id="cx2",
+                        from_step=1,
+                        to_step="COR-1500.2",
+                        max_iterations=5,
+                        condition="if fail B",
+                    )
+                ],
+            ),
+        ]
+        out = render_dag(phases)
+
+        # No vertical track glyphs when falling back to inline.
+        assert "◄───┐" not in out
+        # Both annotations visible, fully intact (no overlap corruption).
+        assert "🔁 → COR-1500.1 max 3 if fail A" in out
+        assert "🔁 → COR-1500.2 max 5 if fail B" in out
+
+    def test_single_cross_sop_loop_still_uses_vertical_track(self):
+        """Single-loop case keeps the full track rendering (R1 behaviour)."""
+        phases = [
+            _phase("COR-1500", [_step(1, "A"), _step(2, "B")]),
+            _phase(
+                "COR-1600",
+                [_step(1, "C")],
+                loops=[
+                    LoopSignature(
+                        id="cx",
+                        from_step=1,
+                        to_step="COR-1500.2",
+                        max_iterations=3,
+                        condition="",
+                    )
+                ],
+            ),
+        ]
+        out = render_dag(phases)
+
+        # Vertical track glyphs present.
+        assert "◄───┐" in out
+        assert "───┘" in out
+        # No inline fallback annotation for the single-loop case.
+        assert "🔁 → COR-1500" not in out
+
+
+class TestIntraSopInlineAnnotation:
+    def test_intra_sop_loop_emits_inline_annotation_line(self):
+        """Intra-SOP loops render as a `🔁 → N.M max K cond` annotation line
+        immediately below the source step's box, inside the phase box.
+        Addresses Codex CHG R1 blocker: no silent omission in the default
+        nested layout."""
+        phases = [
+            _phase(
+                "COR-1602",
+                [_step(1, "Dispatch"), _step(2, "Score"), _step(3, "Gate", gate=True)],
+                loops=[
+                    LoopSignature(
+                        id="retry",
+                        from_step=3,
+                        to_step=1,
+                        max_iterations=3,
+                        condition="if fail",
+                    )
+                ],
+            ),
+        ]
+        out = render_dag(phases)
+        assert "🔁 → 1.1 max 3 if fail" in out
+
+    def test_intra_sop_loop_emits_inside_phase_box(self):
+        """The annotation line must be inside the phase box (between the
+        step-box bottom and the phase-box bottom border)."""
+        phases = [
+            _phase(
+                "COR-1602",
+                [_step(1, "A"), _step(2, "B")],
+                loops=[
+                    LoopSignature(
+                        id="r",
+                        from_step=2,
+                        to_step=1,
+                        max_iterations=2,
+                        condition="",
+                    )
+                ],
+            ),
+        ]
+        out = render_dag(phases)
+        lines = out.split("\n")
+        # Find the annotation line and verify it's wrapped in `│ ... │`
+        ann_line = next(line for line in lines if "🔁 →" in line)
+        assert ann_line.startswith("│")
+        assert ann_line.endswith("│")
+
+
+class TestNoOrphanArrowOnTrailingEmptyPhase:
+    def test_last_phase_with_no_steps_skipped_without_orphan_arrow(self):
+        """If the last phase has no Steps section, the inter-phase ▼ that
+        would otherwise point to it must not be emitted (R2 fix for
+        Gemini-flagged orphan-arrow bug)."""
+        phases = [
+            _phase("COR-1500", [_step(1, "A"), _step(2, "B")]),
+            _phase("COR-EMPTY", []),  # has no steps — must be skipped
+        ]
+        out = render_dag(phases)
+        lines = out.split("\n")
+        # Last non-empty line is a phase-box bottom border, not an arrow.
+        non_empty = [ln for ln in lines if ln.strip()]
+        assert non_empty[-1].startswith("└"), (
+            f"Expected phase-box close as last line; got: {non_empty[-1]!r}"
+        )
+        # The ▼ count equals the intra-phase arrows only (1 for step1->step2).
+        assert out.count("▼") == 1
