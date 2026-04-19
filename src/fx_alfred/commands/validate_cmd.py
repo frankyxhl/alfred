@@ -15,6 +15,7 @@ from fx_alfred.core.schema import (
     REQUIRED_SECTIONS,
     DocType,
 )
+from fx_alfred.core.document import Document
 from fx_alfred.core.parser import H1_PATTERN, MalformedDocumentError, parse_metadata
 from fx_alfred.core.scanner import (
     LayerValidationError,
@@ -22,7 +23,9 @@ from fx_alfred.core.scanner import (
     _scan_pkg_dir,
     scan_documents,
 )
+from fx_alfred.core.steps import _parse_steps_for_json
 from fx_alfred.core.workflow import (
+    parse_workflow_loops,
     parse_workflow_signature,
     validate_workflow_signature,
 )
@@ -112,6 +115,9 @@ def validate_cmd(ctx: click.Context, output_json: bool):
         docs = _scan_all_layers(root)
 
     issues_by_doc: dict[str, list[str]] = {}
+
+    # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
+    docs_by_id: dict[tuple[str, str], Document] = {(d.prefix, d.acid): d for d in docs}
 
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
@@ -264,6 +270,51 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                 if sig is not None:
                     wf_errors = validate_workflow_signature(sig)
                     issues.extend(wf_errors)
+
+                # Check 8: Cross-SOP workflow loop references (FXA-2218 D2/D3)
+                # For each Workflow loops entry whose `to` is a cross-SOP ref,
+                # verify the target SOP exists in the corpus and the step
+                # index is within range of the target's numbered steps.
+                loops = parse_workflow_loops(parsed)
+                for i, loop in enumerate(loops):
+                    target = loop.cross_sop_target()
+                    if target is None:
+                        continue
+                    t_prefix, t_acid, t_step = target
+                    target_doc = docs_by_id.get((t_prefix, t_acid))
+                    if target_doc is None:
+                        issues.append(
+                            f"Workflow loops[{i}].to references "
+                            f"{t_prefix}-{t_acid} — no such SOP in corpus"
+                        )
+                        continue
+                    # D3 — step index in range against target SOP's Steps section
+                    try:
+                        target_content = target_doc.resolve_resource().read_text()
+                        target_parsed = parse_metadata(target_content)
+                    except Exception:
+                        issues.append(
+                            f"Workflow loops[{i}].to = {loop.to_step!r} "
+                            f"— could not read target SOP {t_prefix}-{t_acid}"
+                        )
+                        continue
+                    from fx_alfred.core.parser import extract_section
+
+                    steps_section = extract_section(target_parsed.body, "Steps")
+                    if steps_section is None:
+                        issues.append(
+                            f"Workflow loops[{i}].to = {loop.to_step!r} "
+                            f"— target SOP {t_prefix}-{t_acid} has no Steps section"
+                        )
+                        continue
+                    target_steps = _parse_steps_for_json(steps_section)
+                    n_steps = len(target_steps)
+                    if not (1 <= t_step <= n_steps):
+                        issues.append(
+                            f"Workflow loops[{i}].to = {loop.to_step!r} "
+                            f"— step index {t_step} out of range "
+                            f"({t_prefix}-{t_acid} has {n_steps} steps)"
+                        )
         except MalformedDocumentError as e:
             # Report parsing error as an issue, don't crash
             issues.append(f"Malformed document: {e}")

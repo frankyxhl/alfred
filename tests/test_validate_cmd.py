@@ -1360,3 +1360,134 @@ def test_validate_history_header_early_return_arms():
     assert _validate_history_header("Trailing text only\nMore text\n") == [
         "Change History table header is missing"
     ]
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 D2 + D3 — Cross-SOP Workflow loops validation
+# ---------------------------------------------------------------------------
+
+
+def _write_sop_with_cross_sop_loop(path, prefix, acid, title, to_ref):
+    """Write an SOP with a cross-SOP Workflow loop referencing `to_ref`.
+
+    Body has 3 numbered steps; from_step=3, to_step=to_ref, max=3.
+    """
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+**Workflow loops:** [{{id: cx, from: 3, to: "{to_ref}", max_iterations: 3, condition: "if fail"}}]
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+2. B
+3. C
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def test_validate_cross_sop_target_missing(tmp_path):
+    """D2: af validate reports cross-SOP loop pointing to nonexistent SOP."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-9999.1",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "TST-9999" in result.output
+    assert "no such SOP in corpus" in result.output
+
+
+def test_validate_cross_sop_step_out_of_range(tmp_path):
+    """D3: af validate reports cross-SOP step index beyond target's step count."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target TST-2200 has 2 numbered steps; source references .99 (out of range).
+    _write_valid_document(
+        rules_dir / "TST-2200-SOP-Target.md",
+        "TST",
+        "2200",
+        "SOP",
+        "Target",
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.99",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "step index 99 out of range" in result.output
+    assert "2 steps" in result.output
+
+
+def test_validate_cross_sop_happy_path(tmp_path):
+    """D2+D3 green when cross-SOP target exists and step index is in range."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target TST-2200 has 2 steps; source references .1 (in range).
+    _write_valid_document(
+        rules_dir / "TST-2200-SOP-Target.md",
+        "TST",
+        "2200",
+        "SOP",
+        "Target",
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.1",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
