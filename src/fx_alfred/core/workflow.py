@@ -181,17 +181,43 @@ def check_composition(
 _STEP_INDEX_RE = re.compile(r"^(?:###\s+)?(\d+)\.\s+")
 # Required keys in a loop declaration
 _LOOP_REQUIRED_KEYS = ("id", "from", "to", "max_iterations", "condition")
+# Cross-SOP loop reference — authored as "PREFIX-ACID.step" (FXA-2218 Commit 2).
+CROSS_SOP_REF = re.compile(r"^(?P<prefix>[A-Z]{3})-(?P<acid>\d{4})\.(?P<step>\d+)$")
 
 
 @dataclass(frozen=True)
 class LoopSignature:
-    """Intra-SOP loop declaration extracted from ``Workflow loops`` metadata."""
+    """Loop declaration extracted from ``Workflow loops`` metadata.
+
+    ``to_step`` is ``int`` for intra-SOP loops (the traditional form) and
+    a ``"PREFIX-ACID.step"`` string for cross-SOP loops (FXA-2218).
+    """
 
     id: str
     from_step: int
-    to_step: int
+    to_step: int | str
     max_iterations: int
     condition: str
+
+    def is_cross_sop(self) -> bool:
+        """Return True if this loop targets a different SOP."""
+        return isinstance(self.to_step, str)
+
+    def cross_sop_target(self) -> tuple[str, str, int] | None:
+        """Return ``(prefix, acid, step_idx)`` for cross-SOP refs, else ``None``.
+
+        Parses lazily. The stored ``to_step`` string was validated during
+        ``parse_workflow_loops`` so the regex must match here.
+        """
+        if not isinstance(self.to_step, str):
+            return None
+        m = CROSS_SOP_REF.match(self.to_step)
+        if m is None:  # pragma: no cover — parser enforces the shape
+            raise MalformedDocumentError(
+                f"LoopSignature.cross_sop_target: stored to_step "
+                f"{self.to_step!r} does not match CROSS_SOP_REF"
+            )
+        return m.group("prefix"), m.group("acid"), int(m.group("step"))
 
 
 @dataclass(frozen=True)
@@ -260,9 +286,26 @@ def parse_workflow_loops(parsed: ParsedDocument) -> list[LoopSignature]:
             raise MalformedDocumentError(
                 f"Workflow loops[{loop_id}]: 'from' must be an integer"
             )
-        if isinstance(to_step, bool) or not isinstance(to_step, int):
+        if isinstance(to_step, bool):
             raise MalformedDocumentError(
-                f"Workflow loops[{loop_id}]: 'to' must be an integer"
+                f"Workflow loops[{loop_id}]: 'to' must be an integer or "
+                f"'PREFIX-ACID.step' cross-SOP reference, not bool"
+            )
+        if isinstance(to_step, int):
+            pass  # intra-SOP loop, traditional form
+        elif isinstance(to_step, str):
+            # Cross-SOP reference must match PREFIX-ACID.step (FXA-2218 Commit 2).
+            # Quoted digit strings like "27" are rejected — use int 27 for intra-SOP.
+            if not CROSS_SOP_REF.match(to_step):
+                raise MalformedDocumentError(
+                    f"Workflow loops[{loop_id}]: 'to' must be an integer or "
+                    f"'PREFIX-ACID.step' cross-SOP reference, got {to_step!r}"
+                )
+        else:
+            raise MalformedDocumentError(
+                f"Workflow loops[{loop_id}]: 'to' must be an integer or "
+                f"'PREFIX-ACID.step' cross-SOP reference, not "
+                f"{type(to_step).__name__}"
             )
         if isinstance(max_iter, bool) or not isinstance(max_iter, int):
             raise MalformedDocumentError(
@@ -317,28 +360,38 @@ def validate_loops(
 ) -> list[LoopError]:
     """Return a list of LoopError.  Empty list means valid.
 
-    Pure intra-SOP validation. No cross-SOP logic.
+    Pure intra-SOP validation. Cross-SOP references (string ``to_step``)
+    are skipped here — they are checked at ``af validate`` corpus level
+    (FXA-2218 D2/D3) and ``af plan`` composition time (FXA-2218 D4).
     """
     errors: list[LoopError] = []
     step_indices = _parse_step_indices(parsed)
 
     for loop in loops:
-        if loop.from_step <= loop.to_step:
-            errors.append(
-                LoopError(
-                    msg=(
-                        f"loop '{loop.id}': 'from' ({loop.from_step}) must be greater "
-                        f"than 'to' ({loop.to_step}) — loops are back-edges only"
-                    ),
-                    loop_id=loop.id,
-                )
-            )
         if loop.max_iterations <= 0:
             errors.append(
                 LoopError(
                     msg=(
                         f"loop '{loop.id}': 'max_iterations' "
                         f"({loop.max_iterations}) must be a positive integer"
+                    ),
+                    loop_id=loop.id,
+                )
+            )
+
+        # Skip intra-SOP back-edge direction + membership checks for cross-SOP
+        # refs: target step lives in a different SOP's corpus entry.
+        # Use isinstance rather than is_cross_sop() so pyright can narrow
+        # loop.to_step from (int | str) to int for the rest of this body.
+        if not isinstance(loop.to_step, int):
+            continue
+
+        if loop.from_step <= loop.to_step:
+            errors.append(
+                LoopError(
+                    msg=(
+                        f"loop '{loop.id}': 'from' ({loop.from_step}) must be greater "
+                        f"than 'to' ({loop.to_step}) — loops are back-edges only"
                     ),
                     loop_id=loop.id,
                 )

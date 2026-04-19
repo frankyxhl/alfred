@@ -128,8 +128,14 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
         if prev_node_id is not None:
             prev_last_node_id = prev_node_id
 
-        # Dashed back-edges for loops
+        # Dashed back-edges for loops. Cross-SOP loops (string `to_step`)
+        # are skipped — Mermaid layout is ASCII-only in FXA-2218; see PRP
+        # Component 4. A user-facing omission comment is emitted by the
+        # caller (not per-loop) once per composition if any cross-SOP loop
+        # exists.
         for step_idx, lp in loop_from_steps.items():
+            if not isinstance(lp.to_step, int):
+                continue
             from_nid = _node_id(phase_idx, lp.from_step)
             to_nid = _node_id(phase_idx, lp.to_step)
             cond = _sanitize_condition(lp.condition)

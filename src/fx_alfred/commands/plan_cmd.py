@@ -263,7 +263,9 @@ def _build_todo_items(
         return [f"{checkbox_prefix}{phase_num}.1 [{sop_id}] {steps_section.strip()}"]
 
     # Build loop marker maps
-    loop_to_steps = {loop.to_step: loop for loop in loops}
+    loop_to_steps = {
+        loop.to_step: loop for loop in loops if isinstance(loop.to_step, int)
+    }
     loop_from_steps = {loop.from_step: loop for loop in loops}
 
     for step in steps:
@@ -327,7 +329,9 @@ def _build_todo_json(
         ]
 
     # Build loop marker maps
-    loop_to_steps = {loop.to_step: loop for loop in loops}
+    loop_to_steps = {
+        loop.to_step: loop for loop in loops if isinstance(loop.to_step, int)
+    }
     loop_from_steps = {loop.from_step: loop for loop in loops}
 
     for step in steps:
