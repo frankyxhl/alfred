@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-04-19
 **Last reviewed:** 2026-04-19
-**Status:** Proposed
+**Status:** Completed
 **Date:** 2026-04-19
 **Requested by:** Frank (manually-driven PRP after FXA-2213 Evolve-CLI cold-discarded FXA-2212 at 6.05)
 **Priority:** Medium
@@ -176,5 +176,6 @@ referencing #58, monitor CI + automated reviewers up to 3 iterations.
 
 | Date       | Change                                                 | By             |
 |------------|--------------------------------------------------------|----------------|
-| 2026-04-19 | Initial version                                        | —              |
+| 2026-04-19 | Initial version | — |
 | 2026-04-19 | Fill from approved PRP FXA-2217 (R3 9.30 / 10.0 PASS) | Frank + Claude |
+| 2026-04-19 | Shipped in v1.7.0 (PR #59 → PR #60 release → PyPI 2026-04-19) | Frank + Claude |
