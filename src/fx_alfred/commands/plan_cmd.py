@@ -19,7 +19,7 @@ from fx_alfred.core.parser import (
 from fx_alfred.core.ascii_graph import render_ascii
 from fx_alfred.core.compose import resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
-from fx_alfred.core.phases import PhaseDict, StepDict
+from fx_alfred.core.phases import PhaseDict
 from fx_alfred.core.schema import TASK_TAGS
 from fx_alfred.core.workflow import (
     LoopSignature,
@@ -126,22 +126,9 @@ def _parse_numbered_items(section_text: str) -> list[str]:
     return items
 
 
-def _parse_steps_for_json(section_text: str) -> list[StepDict]:
-    """Extract steps as structured data for JSON output.
-
-    Returns list of {"index": int, "text": str, "gate": bool}.
-    Gate is true if step ends with "✓" or contains "[GATE]".
-    """
-    steps = []
-    for line in section_text.split("\n"):
-        stripped = line.strip()
-        m = re.match(r"^(?:###\s+)?(\d+)\.\s+(.+)", stripped)
-        if m:
-            index = int(m.group(1))
-            text = m.group(2)
-            gate = text.endswith("✓") or "[GATE]" in text
-            steps.append({"index": index, "text": text, "gate": gate})
-    return steps
+# _parse_steps_for_json relocated to fx_alfred.core.steps (FXA-2218 Commit 1);
+# re-exported below for backward-compatible call sites in this module.
+from fx_alfred.core.steps import _parse_steps_for_json  # noqa: E402, F401
 
 
 def _format_phase(
