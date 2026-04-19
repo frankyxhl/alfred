@@ -311,3 +311,117 @@ class TestSpecialCharEscape:
         # The label should use quote-safe form
         # Mermaid uses ["text with quotes"] syntax
         assert "S1_1[" in result or 'S1_1["' in result
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 Commit 5 — Cross-SOP loops omitted + omission comment
+# ---------------------------------------------------------------------------
+
+
+class TestCrossSopLoopOmission:
+    def test_cross_sop_loop_skipped_in_output(self):
+        """render_mermaid skips back-edges whose to_step is a cross-SOP string."""
+        phases = [
+            _make_phase(
+                "COR-1602",
+                [
+                    {"index": 1, "text": "Dispatch", "gate": False},
+                    {"index": 2, "text": "Gate", "gate": True},
+                ],
+                loops=[
+                    LoopSignature(
+                        id="cx",
+                        from_step=2,
+                        to_step="COR-1500.3",
+                        max_iterations=3,
+                        condition="if fail",
+                    )
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+        # No dashed back-edge is emitted for the cross-SOP loop.
+        assert ".->" not in result
+
+    def test_cross_sop_loop_emits_omission_comment(self):
+        """render_mermaid emits exactly one %% omission comment if any cross-SOP loop exists."""
+        phases = [
+            _make_phase(
+                "COR-1602",
+                [
+                    {"index": 1, "text": "Dispatch", "gate": False},
+                    {"index": 2, "text": "Gate", "gate": True},
+                ],
+                loops=[
+                    LoopSignature(
+                        id="cx",
+                        from_step=2,
+                        to_step="COR-1500.3",
+                        max_iterations=3,
+                        condition="if fail",
+                    )
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+        count = result.count("cross-SOP loops omitted — Mermaid layout is ASCII-only")
+        assert count == 1
+
+    def test_no_omission_comment_when_all_intra_sop(self):
+        """No omission comment is emitted when only intra-SOP loops exist."""
+        phases = [
+            _make_phase(
+                "COR-1602",
+                [
+                    {"index": 1, "text": "Dispatch", "gate": False},
+                    {"index": 2, "text": "Score", "gate": False},
+                    {"index": 3, "text": "Gate", "gate": True},
+                ],
+                loops=[
+                    LoopSignature(
+                        id="retry",
+                        from_step=3,
+                        to_step=1,
+                        max_iterations=3,
+                        condition="if fail",
+                    )
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+        assert "cross-SOP loops omitted" not in result
+        assert ".->" in result
+
+    def test_single_omission_comment_with_multiple_cross_sop_loops(self):
+        """Multiple cross-SOP loops across phases produce exactly one comment."""
+        phases = [
+            _make_phase(
+                "COR-1602",
+                [{"index": 1, "text": "Gate", "gate": True}],
+                loops=[
+                    LoopSignature(
+                        id="cx1",
+                        from_step=1,
+                        to_step="COR-1500.1",
+                        max_iterations=3,
+                        condition="fail A",
+                    )
+                ],
+            ),
+            _make_phase(
+                "COR-1608",
+                [{"index": 1, "text": "Score", "gate": True}],
+                loops=[
+                    LoopSignature(
+                        id="cx2",
+                        from_step=1,
+                        to_step="COR-1500.2",
+                        max_iterations=3,
+                        condition="fail B",
+                    )
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+        count = result.count("cross-SOP loops omitted — Mermaid layout is ASCII-only")
+        assert count == 1

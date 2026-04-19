@@ -82,6 +82,19 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
 
     lines: list[str] = ["flowchart TD"]
 
+    # Detect any cross-SOP loop across the whole composition so we can emit
+    # exactly one omission comment (FXA-2218 Commit 5 — Mermaid is ASCII-only
+    # for cross-SOP edges in this release).
+    has_cross_sop_loop = any(
+        not isinstance(lp.to_step, int)
+        for phase in phases
+        for lp in phase.get("loops", [])
+    )
+    if has_cross_sop_loop:
+        lines.append(
+            "  %% (cross-SOP loops omitted — Mermaid layout is ASCII-only in this release)"
+        )
+
     prev_last_node_id: str | None = None
 
     for phase_idx, phase in enumerate(phases, start=1):
