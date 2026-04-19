@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fx_alfred.core.ascii_graph import _pad_visual, _truncate_visual
+from fx_alfred.core.ascii_graph import _pad_visual, _truncate_visual, _visual_width
 from fx_alfred.core.workflow import CROSS_SOP_REF, LoopSignature
 
 if TYPE_CHECKING:
@@ -231,18 +231,75 @@ def _collect_cross_sop_loops(
     return result
 
 
-def _overwrite_at(line: str, col: int, text: str) -> str:
-    """Return ``line`` with ``text`` overlaid starting at column ``col``
-    (ASCII-width; caller ensures ``line`` has no double-width glyphs in the
-    overwrite span).
+def _overwrite_at(line: str, visual_col: int, text: str) -> str:
+    """Return ``line`` with ``text`` overlaid starting at VISUAL column
+    ``visual_col``.
 
-    Pads with spaces if ``col`` exceeds current length.
+    Visual-cell aware — handles double-width glyphs (CJK, emoji) by walking
+    the string and tracking visual offset rather than character index
+    (PR #59 Codex review P2 #3).
+
+    If a multi-cell glyph straddles the start or end of the overlay region,
+    it is replaced with spaces for the cells that fall inside the overlay
+    (the whole glyph is consumed — we can't split a CJK char in half).
+    Pads with spaces if ``visual_col`` exceeds the line's visual width.
     """
-    if col > len(line):
-        line = line + " " * (col - len(line))
-    prefix = line[:col]
-    suffix = line[col + len(text) :]
-    return prefix + text + suffix
+    text_width = _visual_width(text)
+    end_col = visual_col + text_width
+
+    prefix_parts: list[str] = []
+    visual = 0
+    i = 0
+    # Phase 1: consume chars that fit entirely before visual_col.
+    while i < len(line):
+        ch = line[i]
+        cw = _visual_width(ch)
+        if visual + cw > visual_col:
+            break
+        prefix_parts.append(ch)
+        visual += cw
+        i += 1
+
+    # If we stopped because the next char would straddle visual_col, fill
+    # the remaining cells with spaces and skip the straddling char entirely
+    # (its right-side cells fall inside the overlay and are replaced).
+    if visual < visual_col:
+        prefix_parts.append(" " * (visual_col - visual))
+        if i < len(line):
+            # Consume the straddling char's full width (its right-side cells
+            # are overwritten by `text`, its left-side cells already padded).
+            visual += _visual_width(line[i])
+            i += 1
+        else:
+            # visual_col is beyond line end — fully pad to visual_col.
+            visual = visual_col
+    else:
+        # Prefix landed exactly at visual_col.
+        visual = visual_col
+
+    # Phase 2: skip chars whose cells fall inside [visual_col, end_col).
+    # Straddling end: replace remainder cells with spaces in the suffix.
+    while i < len(line):
+        ch = line[i]
+        cw = _visual_width(ch)
+        if visual + cw > end_col:
+            break
+        visual += cw
+        i += 1
+
+    suffix_pad = ""
+    if visual < end_col:
+        # Straddling end — consume the straddling char, pad its right-side
+        # cells (those BEYOND end_col) with spaces in the suffix.
+        if i < len(line):
+            cw = _visual_width(line[i])
+            # Cells of this char that fall past end_col:
+            past = (visual + cw) - end_col
+            suffix_pad = " " * past
+            i += 1
+
+    suffix = suffix_pad + line[i:]
+    return "".join(prefix_parts) + text + suffix
 
 
 def _overlay_cross_sop_tracks(

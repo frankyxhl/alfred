@@ -402,6 +402,79 @@ class TestSameStepMultiLoop:
         assert " ; " in out
 
 
+class TestVisualWidthOverlay:
+    def test_cross_sop_arrow_aligned_when_target_row_has_cjk(self):
+        """Cross-SOP track arrow-in must land at the correct VISUAL column
+        even when the target step row contains double-width glyphs. Prior
+        to the visual-width-aware _overwrite_at fix, character indexing
+        collided with visual indexing and the arrow drifted right by the
+        double-width delta (PR #59 Codex review P2 #3)."""
+        phases = [
+            _phase(
+                "COR-1500",
+                [_step(1, "中文测试"), _step(2, "B")],
+            ),
+            _phase(
+                "COR-1602",
+                [_step(1, "Gate", gate=True)],
+                loops=[
+                    LoopSignature(
+                        id="cx",
+                        from_step=1,
+                        to_step="COR-1500.1",
+                        max_iterations=3,
+                        condition="",
+                    )
+                ],
+            ),
+        ]
+        out = render_dag(phases)
+        lines = out.split("\n")
+
+        # Find the CJK target row and the track pipe rows below it.
+        target_row = next(line for line in lines if "中文测试" in line)
+        # The target row must contain the arrow-in glyph.
+        assert "◄───┐" in target_row
+
+        # Compute VISUAL column of the '┐' glyph on target row — must match
+        # the visual column of '│' pipe on the following row (which we know
+        # is ASCII-only and character-aligned).
+        def _visual_col_of(line: str, ch: str) -> int:
+            from fx_alfred.core.ascii_graph import _visual_width
+
+            pos = 0
+            for c in line:
+                if c == ch:
+                    return pos
+                pos += _visual_width(c)
+            return -1
+
+        target_corner_col = _visual_col_of(target_row, "┐")
+        # The intermediate pipe row: find a line with track pipe `│` after
+        # the phase-box right edge. The very next line should have the pipe
+        # on the same column as the corner.
+        next_row_idx = lines.index(target_row) + 1
+        # Find all `│` positions in that row; the last one is the track pipe.
+        next_row = lines[next_row_idx]
+        pipe_positions = []
+        pos = 0
+        from fx_alfred.core.ascii_graph import _visual_width
+
+        for c in next_row:
+            if c == "│":
+                pipe_positions.append(pos)
+            pos += _visual_width(c)
+
+        # Track pipe is the rightmost `│` on the intermediate row.
+        assert pipe_positions, "No track pipe found on intermediate row"
+        track_pipe_col = pipe_positions[-1]
+
+        assert target_corner_col == track_pipe_col, (
+            f"Target-row '┐' at visual col {target_corner_col} but track pipe "
+            f"at visual col {track_pipe_col} — overlay is not visual-width-aware"
+        )
+
+
 class TestNoOrphanArrowOnTrailingEmptyPhase:
     def test_last_phase_with_no_steps_skipped_without_orphan_arrow(self):
         """If the last phase has no Steps section, the inter-phase ▼ that
