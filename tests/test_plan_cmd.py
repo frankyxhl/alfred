@@ -1903,3 +1903,64 @@ def test_plan_cross_sop_happy_path_json_loops_shows_raw_ref(tmp_path):
     assert any(
         loop["to"] == "TST-2100.1" and loop["sop"] == "TST-2200" for loop in loops
     ), f"Expected cross-SOP loop with to='TST-2100.1'; got loops={loops}"
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 Commit 7 — --graph-layout flag + dispatch
+# ---------------------------------------------------------------------------
+
+
+def test_graph_layout_nested_default(sample_project, monkeypatch):
+    """Default --graph output uses nested layout (inner step-boxes visible)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    # COR-1602 has a well-formed Steps section + loops so the renderer
+    # produces meaningful nested output.
+    result = runner.invoke(
+        cli,
+        ["plan", "--graph", "--graph-format", "ascii", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Nested layout renders outer phase-box + inner step-boxes. Count "┌─"
+    # occurrences — flat has 1 (outer only), nested has 1 per phase + 1 per
+    # step inside. COR-1602 has multiple steps, so >= 2 indicates nested.
+    assert result.output.count("┌─") >= 2, (
+        "Expected nested layout with inner step-boxes; got:\n" + result.output
+    )
+
+
+def test_graph_layout_flat_produces_legacy_format(sample_project, monkeypatch):
+    """--graph-layout=flat falls back to the legacy ascii_graph renderer."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "--graph",
+            "--graph-format",
+            "ascii",
+            "--graph-layout",
+            "flat",
+            "COR-1602",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Flat layout: one outer box per phase, steps as text lines inside
+    # (no inner ┌─ step-boxes). Count of "┌─" equals phase count (1 here).
+    assert result.output.count("┌─") == 1
+
+
+def test_graph_layout_without_graph_errors(sample_project, monkeypatch):
+    """--graph-layout without --graph raises UsageError (same coupling as --graph-format)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--graph-layout", "flat", "COR-1500"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "--graph-layout requires --graph" in result.output

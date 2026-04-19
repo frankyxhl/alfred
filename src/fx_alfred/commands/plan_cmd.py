@@ -17,6 +17,7 @@ from fx_alfred.core.parser import (
     parse_metadata,
 )
 from fx_alfred.core.ascii_graph import render_ascii
+from fx_alfred.core.dag_graph import render_dag
 from fx_alfred.core.compose import resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.phases import PhaseDict
@@ -418,18 +419,34 @@ def _build_provenance_map(
     return result
 
 
+def _render_layout(
+    mermaid_phases: list[PhaseDict],
+    provenance_map: dict[str, str],
+    graph_layout: str,
+) -> str:
+    """Dispatch between ``render_ascii`` (flat, legacy) and ``render_dag``
+    (nested, default) based on ``graph_layout`` (FXA-2218 Commit 7).
+    """
+    if graph_layout == "nested":
+        return render_dag(mermaid_phases, provenance_map)
+    return render_ascii(mermaid_phases)
+
+
 def _emit_graph(
     phase_info: list,
     provenance_map: dict[str, str],
     graph_format: str,
+    graph_layout: str = "nested",
 ) -> None:
     """Emit graph output for text modes (default, --todo).
 
     ``graph_format`` must be one of ``ascii``, ``mermaid``, ``both``.
+    ``graph_layout`` must be one of ``nested`` (FXA-2218 default) or ``flat``
+    (legacy ascii_graph layout).
     """
     mermaid_phases = _build_mermaid_phases(phase_info, provenance_map)
     if graph_format in ("ascii", "both"):
-        ascii_str = render_ascii(mermaid_phases)
+        ascii_str = _render_layout(mermaid_phases, provenance_map, graph_layout)
         click.echo(ascii_str, nl=False)
     if graph_format == "both":
         click.echo()
@@ -465,6 +482,17 @@ def _emit_graph(
     help="Graph rendering format (requires --graph). Default: both.",
 )
 @click.option(
+    "--graph-layout",
+    "graph_layout",
+    type=click.Choice(["nested", "flat"]),
+    default="nested",
+    help=(
+        "ASCII graph layout (requires --graph, ASCII-only): 'nested' "
+        "(default, FXA-2218 — step-boxes inside phase-boxes with cross-SOP "
+        "tracks) or 'flat' (legacy, one phase-box per SOP)."
+    ),
+)
+@click.option(
     "--task",
     "task_description",
     default=None,
@@ -479,6 +507,7 @@ def plan_cmd(
     output_todo: bool,
     output_graph: bool,
     graph_format: str,
+    graph_layout: str,
     task_description: str | None,
 ) -> None:
     """Generate workflow checklist from SOPs."""
@@ -491,6 +520,10 @@ def plan_cmd(
         param_source = ctx.get_parameter_source("graph_format")  # type: ignore[attr-defined]
         if param_source is not None and param_source.name != "DEFAULT":
             raise click.UsageError("--graph-format requires --graph")
+        # Same coupling rule for --graph-layout.
+        layout_source = ctx.get_parameter_source("graph_layout")  # type: ignore[attr-defined]
+        if layout_source is not None and layout_source.name != "DEFAULT":
+            raise click.UsageError("--graph-layout requires --graph")
 
     # Scan documents first (needed for --task resolution)
     docs = scan_or_fail(ctx)
@@ -638,7 +671,7 @@ def plan_cmd(
         if output_graph:
             provenance_map = _build_provenance_map(composed_from_provenance)
             click.echo()
-            _emit_graph(phase_info, provenance_map, graph_format)
+            _emit_graph(phase_info, provenance_map, graph_format, graph_layout)
         return
 
     # ── JSON output mode ──
@@ -726,7 +759,9 @@ def plan_cmd(
             provenance_map = _build_provenance_map(composed_from_provenance)
             mermaid_phases = _build_mermaid_phases(phase_info, provenance_map)
             if graph_format in ("ascii", "both"):
-                result["ascii_graph"] = render_ascii(mermaid_phases)
+                result["ascii_graph"] = _render_layout(
+                    mermaid_phases, provenance_map, graph_layout
+                )
             if graph_format in ("mermaid", "both"):
                 result["graph_mermaid"] = render_mermaid(mermaid_phases)
 
@@ -780,4 +815,4 @@ def plan_cmd(
 
     if output_graph:
         provenance_map = _build_provenance_map(composed_from_provenance)
-        _emit_graph(phase_info, provenance_map, graph_format)
+        _emit_graph(phase_info, provenance_map, graph_format, graph_layout)
