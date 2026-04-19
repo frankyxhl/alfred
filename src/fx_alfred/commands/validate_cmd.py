@@ -23,7 +23,10 @@ from fx_alfred.core.scanner import (
     _scan_pkg_dir,
     scan_documents,
 )
-from fx_alfred.core.steps import parse_top_level_step_indices
+from fx_alfred.core.steps import (
+    extract_steps_section,
+    parse_top_level_step_indices,
+)
 from fx_alfred.core.workflow import (
     parse_workflow_loops,
     parse_workflow_signature,
@@ -303,9 +306,10 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                             f"— could not read target SOP {t_prefix}-{t_acid}"
                         )
                         continue
-                    from fx_alfred.core.parser import extract_section
-
-                    steps_section = extract_section(target_parsed.body, "Steps")
+                    # Use the same heading-selection logic as plan rendering
+                    # so D3 and plan agree on what counts as a "Steps"
+                    # section (PR #59 Codex review P2 #2).
+                    steps_section = extract_steps_section(target_parsed.body)
                     if steps_section is None:
                         issues.append(
                             f"Workflow loops[{i}].to = {loop.to_step!r} "

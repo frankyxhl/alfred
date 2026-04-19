@@ -8,7 +8,29 @@ from __future__ import annotations
 
 import re
 
+from fx_alfred.core.parser import extract_section
 from fx_alfred.core.phases import StepDict
+
+# Heading search order for the steps section. SOPs historically used one
+# of several heading names before ``## Steps`` was standardised; the
+# planner accepts all of them, and cross-SOP validation (PR #59 Codex P2)
+# must agree with that — otherwise D3 would reject a SOP the planner can
+# render.
+_STEP_HEADINGS = ("Steps", "Rule", "Rules", "Concepts")
+
+
+def extract_steps_section(body: str) -> str | None:
+    """Return the body of the first recognised steps-like section, else ``None``.
+
+    Matches the planner's section-resolution logic (``plan_cmd._STEP_HEADINGS``)
+    exactly so validation and rendering agree on what counts as a Steps
+    section.
+    """
+    for heading in _STEP_HEADINGS:
+        section = extract_section(body, heading)
+        if section is not None:
+            return section
+    return None
 
 
 def _parse_steps_for_json(section_text: str) -> list[StepDict]:

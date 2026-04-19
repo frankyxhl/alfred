@@ -31,8 +31,10 @@ from fx_alfred.core.workflow import (
     validate_workflow_signature,
 )
 
-# Heading search order for step extraction
-_STEP_HEADINGS = ("Steps", "Rule", "Rules", "Concepts")
+# Heading search order for step extraction — authoritative list lives in
+# ``core.steps._STEP_HEADINGS`` (shared with validate_cmd D3, PR #59 P2).
+# Re-exported here for existing call sites inside this module.
+from fx_alfred.core.steps import _STEP_HEADINGS  # noqa: E402, F401
 
 
 def _gather_all_sops(
@@ -104,12 +106,14 @@ _LLM_RULES = """\
 
 
 def _extract_steps_section(body: str) -> str | None:
-    """Try each heading in order, return first match."""
-    for heading in _STEP_HEADINGS:
-        section = extract_section(body, heading)
-        if section is not None:
-            return section
-    return None
+    """Try each heading in order, return first match.
+
+    Delegates to ``core.steps.extract_steps_section`` so validate D3 and
+    plan rendering agree on the heading set (PR #59 Codex review P2).
+    """
+    from fx_alfred.core.steps import extract_steps_section
+
+    return extract_steps_section(body)
 
 
 def _parse_numbered_items(section_text: str) -> list[str]:

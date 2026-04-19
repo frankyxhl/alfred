@@ -1685,3 +1685,81 @@ Test.
     assert "does not reference an existing step" in result.output
     # Diagnostic lists top-level indices only ({1, 2}), not sub-item ones.
     assert "{1, 2}" in result.output
+
+
+def test_validate_cross_sop_accepts_target_with_legacy_heading(tmp_path):
+    """D3 must use the same heading-selection logic as plan rendering. If
+    the target SOP uses a legacy heading like '## Rule' or '## Concepts'
+    (recognised by the planner), D3 must resolve the section via the
+    shared `extract_steps_section()` helper rather than hard-coding the
+    literal string 'Steps' (PR #59 Codex review P2 #2).
+
+    Note: the *overall* `af validate` run still fails on a legacy-heading
+    SOP because the per-type REQUIRED_SECTIONS check is stricter than the
+    planner. This test only asserts D3's specific diagnostic ('has no
+    Steps section' for the cross-ref) is NOT emitted when the target has
+    a legacy heading. The overall exit code is still 1 for unrelated
+    reasons, but that's pre-existing behaviour out of this PR's scope."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    target_content = """# SOP-2200: Legacy Heading SOP
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Rule
+
+1. Rule one
+2. Rule two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.1",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    # The key D3 assertion: the cross-ref target now resolves via the shared
+    # heading helper, so D3's "has no Steps section" diagnostic must NOT
+    # appear on the SOURCE SOP.
+    assert "Workflow loops[0].to" not in result.output or (
+        "has no Steps section" not in result.output
+    )
+    # The cross-ref-specific "no such SOP in corpus" / "out of range"
+    # diagnostics must also not fire.
+    assert "no such SOP in corpus" not in result.output
+    assert "does not reference an existing step" not in result.output

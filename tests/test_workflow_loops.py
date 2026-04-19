@@ -1057,6 +1057,29 @@ def test_validate_loops_skips_membership_check_for_cross_sop():
     assert errors == []
 
 
+def test_validate_loops_still_checks_from_step_membership_for_cross_sop():
+    """validate_loops still enforces from_step membership for cross-SOP loops
+    — only to_step-dependent checks are skipped (PR #59 Codex review P1 #3)."""
+    parsed = _make_parsed(
+        [],
+        body="## Steps\n\n1. A\n2. B\n3. C\n",
+    )
+    # Cross-SOP loop with from_step=99 (does not exist locally). Must be
+    # rejected even though to_step is a cross-SOP string.
+    cross = LoopSignature(
+        id="cx",
+        from_step=99,
+        to_step="COR-1500.1",
+        max_iterations=2,
+        condition="y",
+    )
+    errors = validate_loops(parsed, [cross])
+    assert len(errors) == 1
+    assert "'from' (99)" in errors[0].msg
+    assert "does not reference an existing step" in errors[0].msg
+    assert "{1, 2, 3}" in errors[0].msg
+
+
 def test_validate_loops_still_checks_max_iterations_for_cross_sop():
     """validate_loops still enforces max_iterations > 0 for cross-SOP loops."""
     parsed = _make_parsed(

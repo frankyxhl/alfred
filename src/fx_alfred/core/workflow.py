@@ -367,6 +367,12 @@ def validate_loops(
     errors: list[LoopError] = []
     step_indices = _parse_step_indices(parsed)
 
+    # Helper for the shared "existing step" diagnostic string.
+    def _found_desc() -> str:
+        if step_indices:
+            return "{" + ", ".join(str(i) for i in sorted(step_indices)) + "}"
+        return "{}"
+
     for loop in loops:
         if loop.max_iterations <= 0:
             errors.append(
@@ -379,8 +385,27 @@ def validate_loops(
                 )
             )
 
-        # Skip intra-SOP back-edge direction + membership checks for cross-SOP
-        # refs: target step lives in a different SOP's corpus entry.
+        # `from_step` is ALWAYS intra-SOP — regardless of whether `to_step`
+        # is int (intra-SOP) or str (cross-SOP), the source step must
+        # reference an existing local step. Run this check first so the
+        # cross-SOP branch can't silently accept `from: 99` in a SOP that
+        # only has steps 1–3 (PR #59 Codex review P1 #3).
+        if step_indices is not None and loop.from_step not in step_indices:
+            errors.append(
+                LoopError(
+                    msg=(
+                        f"loop '{loop.id}': 'from' ({loop.from_step}) "
+                        f"does not reference an existing step in Steps section "
+                        f"(found: {_found_desc()})"
+                    ),
+                    loop_id=loop.id,
+                )
+            )
+
+        # Remaining checks (back-edge direction + to_step membership) are
+        # only meaningful when `to_step` is intra-SOP. Cross-SOP targets
+        # are validated at the corpus level by `af validate` D2/D3 and at
+        # composition time by `af plan` D4.
         # Use isinstance rather than is_cross_sop() so pyright can narrow
         # loop.to_step from (int | str) to int for the rest of this body.
         if not isinstance(loop.to_step, int):
@@ -397,37 +422,16 @@ def validate_loops(
                 )
             )
 
-        # Membership check: only meaningful if we know the step indices.
-        # The spec requires that 'from' and 'to' reference *existing* step
-        # indexes in the Steps section — gapped or sparse numbering means
-        # intermediate values are not valid references.
-        if step_indices is not None:
-            found_desc = (
-                "{" + ", ".join(str(i) for i in sorted(step_indices)) + "}"
-                if step_indices
-                else "{}"
+        if step_indices is not None and loop.to_step not in step_indices:
+            errors.append(
+                LoopError(
+                    msg=(
+                        f"loop '{loop.id}': 'to' ({loop.to_step}) "
+                        f"does not reference an existing step in Steps section "
+                        f"(found: {_found_desc()})"
+                    ),
+                    loop_id=loop.id,
+                )
             )
-            if loop.from_step not in step_indices:
-                errors.append(
-                    LoopError(
-                        msg=(
-                            f"loop '{loop.id}': 'from' ({loop.from_step}) "
-                            f"does not reference an existing step in Steps section "
-                            f"(found: {found_desc})"
-                        ),
-                        loop_id=loop.id,
-                    )
-                )
-            if loop.to_step not in step_indices:
-                errors.append(
-                    LoopError(
-                        msg=(
-                            f"loop '{loop.id}': 'to' ({loop.to_step}) "
-                            f"does not reference an existing step in Steps section "
-                            f"(found: {found_desc})"
-                        ),
-                        loop_id=loop.id,
-                    )
-                )
 
     return errors
