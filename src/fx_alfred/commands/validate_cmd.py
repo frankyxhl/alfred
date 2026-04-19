@@ -117,7 +117,12 @@ def validate_cmd(ctx: click.Context, output_json: bool):
     issues_by_doc: dict[str, list[str]] = {}
 
     # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
-    docs_by_id: dict[tuple[str, str], Document] = {(d.prefix, d.acid): d for d in docs}
+    # Only SOPs are valid cross-SOP targets — filter out PRP/CHG/REF/etc. so a
+    # `Workflow loops.to = "FXA-2217.3"` pointing at a PRP doesn't falsely
+    # resolve (PR #59 Codex review P2).
+    docs_by_id: dict[tuple[str, str], Document] = {
+        (d.prefix, d.acid): d for d in docs if d.type_code == "SOP"
+    }
 
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
@@ -308,12 +313,24 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                         )
                         continue
                     target_steps = _parse_steps_for_json(steps_section)
-                    n_steps = len(target_steps)
-                    if not (1 <= t_step <= n_steps):
+                    # Validate by index membership — SOP step numbering can be
+                    # sparse (e.g., 1, 3, 5), so `1..len(target_steps)` would
+                    # both reject valid high-index refs and accept invalid
+                    # gap refs (PR #59 Codex review P1).
+                    target_step_indices = {s["index"] for s in target_steps}
+                    if t_step not in target_step_indices:
+                        found_desc = (
+                            "{"
+                            + ", ".join(str(i) for i in sorted(target_step_indices))
+                            + "}"
+                            if target_step_indices
+                            else "{}"
+                        )
                         issues.append(
                             f"Workflow loops[{i}].to = {loop.to_step!r} "
-                            f"— step index {t_step} out of range "
-                            f"({t_prefix}-{t_acid} has {n_steps} steps)"
+                            f"— step index {t_step} does not reference an "
+                            f"existing step in {t_prefix}-{t_acid}'s Steps "
+                            f"section (found: {found_desc})"
                         )
         except MalformedDocumentError as e:
             # Report parsing error as an issue, don't crash

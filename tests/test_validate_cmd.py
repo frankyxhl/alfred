@@ -1461,8 +1461,11 @@ def test_validate_cross_sop_step_out_of_range(tmp_path):
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
 
     assert result.exit_code == 1
-    assert "step index 99 out of range" in result.output
-    assert "2 steps" in result.output
+    # D3 now reports by index membership (PR #59 Codex P1) — diagnostic
+    # lists the actual step indices found, not a count.
+    assert "step index 99" in result.output
+    assert "does not reference an existing step" in result.output
+    assert "{1, 2}" in result.output
 
 
 def test_validate_cross_sop_happy_path(tmp_path):
@@ -1491,3 +1494,123 @@ def test_validate_cross_sop_happy_path(tmp_path):
 
     assert result.exit_code == 0
     assert "0 issues found" in result.output
+
+
+# ---------------------------------------------------------------------------
+# PR #59 review fixes — sparse step numbering + non-SOP target filtering
+# ---------------------------------------------------------------------------
+
+
+def _write_sop_with_sparse_steps(path, prefix, acid, title):
+    """Write an SOP whose ## Steps section has SPARSE numbering (1, 3, 5)."""
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+3. C
+5. E
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def test_validate_cross_sop_accepts_sparse_but_present_index(tmp_path):
+    """D3 accepts a cross-SOP ref to a sparse but present step index
+    (PR #59 Codex P1 — old range check rejected sparse hits > len)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_sparse_steps(
+        rules_dir / "TST-2200-SOP-Target.md", "TST", "2200", "Target"
+    )
+    # Step 5 — in the sparse set {1, 3, 5}, but > len (which is 3).
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.5",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+def test_validate_cross_sop_rejects_sparse_gap_index(tmp_path):
+    """D3 rejects a cross-SOP ref to a step that's <= len but NOT in the
+    sparse set (PR #59 Codex P1 — old check accepted 2 for {1,3,5})."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_sparse_steps(
+        rules_dir / "TST-2200-SOP-Target.md", "TST", "2200", "Target"
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.2",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 2" in result.output
+    assert "does not reference an existing step" in result.output
+    assert "{1, 3, 5}" in result.output
+
+
+def test_validate_cross_sop_does_not_resolve_non_sop_target(tmp_path):
+    """D2 only resolves cross-SOP refs against SOP-type documents; a PRP
+    (or any non-SOP) sharing PREFIX-ACID must NOT count (PR #59 Codex P2)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "TST-2200-PRP-Not-A-SOP.md",
+        "TST",
+        "2200",
+        "PRP",
+        "Not A SOP",
+        status="Draft",
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.1",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "no such SOP in corpus" in result.output
