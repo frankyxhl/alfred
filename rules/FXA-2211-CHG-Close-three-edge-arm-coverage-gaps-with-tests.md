@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-04-19
 **Last reviewed:** 2026-04-19
-**Status:** Proposed
+**Status:** Completed
 **Date:** 2026-04-19
 **Requested by:** Frank (FXA-2149 automated evolve-CLI run FXA-2209)
 **Priority:** Medium
@@ -103,3 +103,4 @@ PRP FXA-2210, CHG FXA-2211, run log FXA-2209.
 |------|--------|----|
 | 2026-04-19 | Initial version | — |
 | 2026-04-19 | Fill What / Why / Impact / Plan from approved PRP FXA-2210 (R3: Codex 9.9 / Gemini 10.0) | Frank + Claude |
+| 2026-04-19 | Shipped in v1.6.2 (PR #52 → PyPI 2026-04-19) | Frank + Claude |
