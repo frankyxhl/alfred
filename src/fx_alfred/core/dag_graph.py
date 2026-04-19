@@ -206,14 +206,21 @@ def _collect_cross_sop_loops(
     """Return a list of ``(source_phase_num, loop, target_phase_num, target_step)``
     tuples for every cross-SOP loop whose target SOP is in the composed plan.
 
-    Phase numbers are 1-based. Loops whose target is not in the composition are
-    silently skipped — ``af plan`` raised a ClickException upstream (D4) so
-    reaching here with an unresolved target would be a bug; the filter here is
-    defensive.
+    Phase numbers are 1-based. When a target SOP appears more than once in
+    the composition (e.g. plan ``A, B, A`` with a loop in ``B`` → ``A.*``),
+    we bind to the **nearest preceding** occurrence — matching ``plan_cmd``'s
+    D4 semantic that accepts the back-edge if ANY occurrence precedes the
+    source (PR #59 Codex review P2 #6). Otherwise the renderer silently
+    dropped valid edges bound to the trailing occurrence.
+
+    Loops whose target is not in the composition at all are silently skipped
+    — ``af plan`` D4 already raised a ClickException, so reaching here with
+    an unresolved target is a defensive skip.
     """
-    sop_id_to_phase_num: dict[str, int] = {
-        phase["sop_id"]: idx + 1 for idx, phase in enumerate(phases)
-    }
+    sop_id_to_phase_nums: dict[str, list[int]] = {}
+    for idx, phase in enumerate(phases, start=1):
+        sop_id_to_phase_nums.setdefault(phase["sop_id"], []).append(idx)
+
     result: list[tuple[int, LoopSignature, int, int]] = []
     for src_idx, phase in enumerate(phases, start=1):
         for loop in phase.get("loops", []):
@@ -224,9 +231,14 @@ def _collect_cross_sop_loops(
                 continue
             target_sop = f"{m.group('prefix')}-{m.group('acid')}"
             target_step = int(m.group("step"))
-            target_phase_num = sop_id_to_phase_num.get(target_sop)
-            if target_phase_num is None:
+            target_positions = sop_id_to_phase_nums.get(target_sop, [])
+            # Pick the nearest target occurrence that precedes the source
+            # (max idx with idx < src_idx). If none precede, skip — either
+            # the target isn't composed or it only appears after source.
+            preceding = [p for p in target_positions if p < src_idx]
+            if not preceding:
                 continue
+            target_phase_num = max(preceding)
             result.append((src_idx, loop, target_phase_num, target_step))
     return result
 

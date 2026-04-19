@@ -475,6 +475,43 @@ class TestVisualWidthOverlay:
         )
 
 
+class TestRepeatedSopCrossSopTarget:
+    def test_cross_sop_loop_binds_to_preceding_occurrence_when_sop_repeats(self):
+        """Plan ``A, B, A`` with a loop in B targeting A.* must render the
+        track bound to the LEADING A (phase 1), not the trailing A (phase 3).
+        Mirrors D4's 'any target occurrence precedes source' semantic
+        (PR #59 Codex review P2 #6)."""
+        phases = [
+            _phase("COR-1500", [_step(1, "A step")]),
+            _phase(
+                "COR-1602",
+                [_step(1, "B step")],
+                loops=[
+                    LoopSignature(
+                        id="cx",
+                        from_step=1,
+                        to_step="COR-1500.1",
+                        max_iterations=3,
+                        condition="",
+                    )
+                ],
+            ),
+            _phase("COR-1500", [_step(1, "A again")]),
+        ]
+        out = render_dag(phases)
+        lines = out.split("\n")
+
+        # Arrow-in should land on the first A's step row ("1.1 A step"),
+        # not on the second A's step row ("3.1 A again").
+        target_row_idx = next(i for i, line in enumerate(lines) if "1.1 A step" in line)
+        other_a_row_idx = next(
+            i for i, line in enumerate(lines) if "3.1 A again" in line
+        )
+        arrow_in_row_idx = next(i for i, line in enumerate(lines) if "◄───┐" in line)
+        assert arrow_in_row_idx == target_row_idx
+        assert arrow_in_row_idx != other_a_row_idx
+
+
 class TestNoOrphanArrowOnTrailingEmptyPhase:
     def test_last_phase_with_no_steps_skipped_without_orphan_arrow(self):
         """If the last phase has no Steps section, the inter-phase ▼ that
