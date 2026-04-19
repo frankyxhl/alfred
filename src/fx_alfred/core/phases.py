@@ -26,19 +26,20 @@ class StepDict(TypedDict):
 
 
 class LoopDict(TypedDict):
-    """Intra-SOP loop declaration.
+    """Loop declaration (documentation-only shape mirror of ``LoopSignature``).
 
     Attributes:
         id: Loop identifier (e.g., "review-retry").
         from_step: Within-SOP 1-based index of the step that jumps back.
-        to_step: Within-SOP 1-based index of the loop target.
+        to_step: Int for intra-SOP loops, or ``"PREFIX-ACID.step"`` string for
+            cross-SOP loops (FXA-2218).
         max_iterations: Maximum number of loop iterations.
         condition: Condition text for the loop.
     """
 
     id: str
     from_step: int
-    to_step: int
+    to_step: int | str
     max_iterations: int
     condition: str
 

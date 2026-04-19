@@ -1713,3 +1713,322 @@ def test_plan_todo_raw_section_text_fallback(tmp_path):
     )
     assert result.exit_code == 0
     assert "[TST-2100] TODO: fill in the numbered steps." in result.output
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 D4 — af plan cross-SOP runtime checks + output-contract branching
+# ---------------------------------------------------------------------------
+
+
+def _write_sop_with_cross_sop_loop(
+    path: Path, prefix: str, acid: str, title: str, to_ref: str, from_step: int = 3
+):
+    """Helper: write an SOP with a cross-SOP Workflow loop."""
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+**Workflow loops:** [{{id: cx, from: {from_step}, to: "{to_ref}", max_iterations: 3, condition: "if fail"}}]
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+2. B
+3. C
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def _write_simple_sop(path: Path, prefix: str, acid: str, title: str):
+    """Helper: write a minimal-valid SOP with 3 steps and no loops."""
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+2. B
+3. C
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def test_plan_cross_sop_target_not_in_composed_plan(tmp_path):
+    """D4: af plan errors if cross-SOP target is not in the composed plan."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+    # TST-2100 NOT written to rules — cross-ref dangles at plan time.
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-2200", "--root", str(tmp_path)], catch_exceptions=False
+    )
+    assert result.exit_code != 0
+    assert "TST-2100" in result.output
+    assert "not in composed plan" in result.output
+
+
+def test_plan_cross_sop_forward_direction_rejected(tmp_path):
+    """D4: af plan errors if cross-SOP target comes AFTER source in plan order."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    # Source SOP (TST-2200) loops back to TST-2100, but we compose
+    # `TST-2200 TST-2100` — target is AFTER source, not before.
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+    _write_simple_sop(rules / "TST-2100-SOP-Target.md", "TST", "2100", "Target")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "TST-2200", "TST-2100", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "back-edges only" in result.output
+
+
+def test_plan_cross_sop_happy_path_todo_shows_dotted_ref(tmp_path):
+    """D4 happy path: --todo TODO suffix shows 'back to PREFIX-ACID.step' for cross-SOP."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-Target.md", "TST", "2100", "Target")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "TST-2100", "TST-2200", "--todo", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # The loop-back annotation should render the raw cross-SOP ref, not a
+    # malformed "{phase}.TST-2100.1" form.
+    assert "back to TST-2100.1" in result.output
+    assert "2.TST-2100.1" not in result.output
+
+
+def test_plan_cross_sop_happy_path_json_loops_shows_raw_ref(tmp_path):
+    """D4 happy path: --json loops[].to emits raw 'PREFIX-ACID.step' for cross-SOP."""
+    import json
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-Target.md", "TST", "2100", "Target")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-Source.md", "TST", "2200", "Source", to_ref="TST-2100.1"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "TST-2100",
+            "TST-2200",
+            "--todo",
+            "--json",
+            "--root",
+            str(tmp_path),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    loops = data.get("loops", [])
+    assert any(
+        loop["to"] == "TST-2100.1" and loop["sop"] == "TST-2200" for loop in loops
+    ), f"Expected cross-SOP loop with to='TST-2100.1'; got loops={loops}"
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 Commit 7 — --graph-layout flag + dispatch
+# ---------------------------------------------------------------------------
+
+
+def test_graph_layout_nested_default(sample_project, monkeypatch):
+    """Default --graph output uses nested layout (inner step-boxes visible)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    # COR-1602 has a well-formed Steps section + loops so the renderer
+    # produces meaningful nested output.
+    result = runner.invoke(
+        cli,
+        ["plan", "--graph", "--graph-format", "ascii", "COR-1602"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Nested layout renders outer phase-box + inner step-boxes. Count "┌─"
+    # occurrences — flat has 1 (outer only), nested has 1 per phase + 1 per
+    # step inside. COR-1602 has multiple steps, so >= 2 indicates nested.
+    assert result.output.count("┌─") >= 2, (
+        "Expected nested layout with inner step-boxes; got:\n" + result.output
+    )
+
+
+def test_graph_layout_flat_produces_legacy_format(sample_project, monkeypatch):
+    """--graph-layout=flat falls back to the legacy ascii_graph renderer."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "--graph",
+            "--graph-format",
+            "ascii",
+            "--graph-layout",
+            "flat",
+            "COR-1602",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Flat layout: one outer box per phase, steps as text lines inside
+    # (no inner ┌─ step-boxes). Count of "┌─" equals phase count (1 here).
+    assert result.output.count("┌─") == 1
+
+
+def test_plan_cross_sop_accepts_repeated_target_with_earlier_occurrence(tmp_path):
+    """D4 must accept a cross-SOP loop in `B` targeting `A` when plan is
+    `A B A` — the leading `A` precedes `B`, so the back-edge is valid
+    even though the trailing `A` does not (PR #59 Codex review P2 #5)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-A.md", "TST", "2100", "A")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-B.md",
+        "TST",
+        "2200",
+        "B",
+        to_ref="TST-2100.1",
+    )
+
+    runner = CliRunner()
+    # Compose A, B, A — A appears twice. Loop in B targets A.1.
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "TST-2100",
+            "TST-2200",
+            "TST-2100",
+            "--root",
+            str(tmp_path),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, (
+        f"D4 rejected valid back-edge across repeated SOP: {result.output}"
+    )
+
+
+def test_plan_cross_sop_still_rejects_when_all_target_occurrences_after_source(
+    tmp_path,
+):
+    """D4 still rejects a cross-SOP loop when ALL target occurrences come
+    AFTER the source (regression for the any-precedes-source semantics)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-A.md", "TST", "2100", "A")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-B.md",
+        "TST",
+        "2200",
+        "B",
+        to_ref="TST-2100.1",
+    )
+
+    runner = CliRunner()
+    # Compose B first, then A twice — A only appears AFTER B.
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "TST-2200",
+            "TST-2100",
+            "TST-2100",
+            "--root",
+            str(tmp_path),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "back-edges only" in result.output
+
+
+def test_graph_layout_without_graph_errors(sample_project, monkeypatch):
+    """--graph-layout without --graph raises UsageError (same coupling as --graph-format)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--graph-layout", "flat", "COR-1500"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "--graph-layout requires --graph" in result.output

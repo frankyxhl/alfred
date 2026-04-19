@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- **`af plan --graph-layout=nested`** (new default for ASCII) — renders a DAG: each SOP is an outer phase-box containing inner step-boxes connected by `▼` arrows; cross-SOP back-edge loops render as right-side vertical tracks (`◄───┐ / ───┘ max N`) that extend outside the phase boxes, spanning from the target step in an earlier phase down to the source step in a later phase. Matches the mock-up seeded in FXA-2212 REF. (FXA-2217 PRP / FXA-2218 CHG / issue #58)
+- **`af plan --graph-layout=flat`** — legacy ASCII renderer (v1.6.2 and earlier behaviour), preserved as an opt-in escape hatch for downstream tooling pinned on the old output shape.
+- **`Workflow loops.to` cross-SOP references** — the `to` field in a SOP's `Workflow loops:` metadata now accepts either an `int` (intra-SOP, unchanged) or a `"PREFIX-ACID.step"` string (cross-SOP, new). Cross-SOP loops express "if X fails, jump back to step M in SOP Y" semantics that couldn't be written in v1.6.2. All existing SOPs use `int` → zero migration required.
+- **New `af validate` cross-SOP pass (D2/D3)** — first time `af validate` does a cross-document check. Reports cross-SOP targets that don't exist in the corpus (`TST-2100 references COR-9999 — no such SOP in corpus`) and step indices out of range against the target SOP's `## Steps` section.
+- **`af plan` runtime checks (D4)** — errors if a cross-SOP loop references a SOP not in the composed plan (`COR-1500 not in composed plan (add positionally: af plan ...)`) or a forward direction (`target SOP precedes source; back-edges only`).
+
+### Changed
+
+- **`af plan --graph` ASCII default is now nested.** Downstream consumers pinned on the v1.6.2 flat shape should pass `--graph-layout=flat` (one flag fix).
+- **`af plan --todo` loop-back suffix** — cross-SOP loops now emit `back to PREFIX-ACID.step`; intra-SOP still emits `back to {phase}.{step}`. Previously, widening the underlying `to_step` type without this branch would have produced malformed output like `back to 2.COR-1500.3`.
+- **`af plan --json` loops[].to** — cross-SOP loops emit the raw `"PREFIX-ACID.step"` string; intra-SOP still emits `"{phase}.{step}"`.
+- **Mermaid rendering** — cross-SOP loops are skipped in Mermaid output with a single `%% (cross-SOP loops omitted — Mermaid layout is ASCII-only in this release)` comment. Extending Mermaid to render cross-SOP edges (via `subgraph` blocks) is deferred to a follow-up PRP.
+
+### Internal
+
+- `_parse_steps_for_json` relocated from `commands/plan_cmd.py` to new `core/steps.py` to avoid `commands → commands` imports from `validate_cmd.py`.
+- `LoopSignature.to_step` widened to `int | str`; new `is_cross_sop()` and `cross_sop_target()` helpers.
+- `core/phases.py` documentation-only `LoopDict.to_step` widened to match.
+- New module `core/dag_graph.py` — ~350 LOC implementing the nested renderer. Reuses only width/padding/truncation primitives from `core/ascii_graph.py`; all layout logic is net-new.
+
 ## v1.6.2 (2026-04-19)
 
 Test-only release: two automated evolve-CLI runs (FXA-2149) closed 7 coverage gaps by adding 5 narrow tests. Zero runtime behaviour changes, zero new dependencies, zero public CLI surface changes. Users should see no observable difference.

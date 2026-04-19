@@ -916,3 +916,179 @@ def test_parse_cor_1602_loop():
     # Validate the loop
     errors = validate_loops(parsed, loops)
     assert errors == [], f"COR-1602 loop validation failed: {errors}"
+
+
+# ---------------------------------------------------------------------------
+# Cross-SOP loops (FXA-2218) — parser + LoopSignature helpers + validate_loops
+# ---------------------------------------------------------------------------
+
+
+def test_cross_sop_ref_regex_accepts_valid_form():
+    """CROSS_SOP_REF matches PREFIX-ACID.step form."""
+    from fx_alfred.core.workflow import CROSS_SOP_REF
+
+    m = CROSS_SOP_REF.match("COR-1500.3")
+    assert m is not None
+    assert m.group("prefix") == "COR"
+    assert m.group("acid") == "1500"
+    assert m.group("step") == "3"
+
+
+def test_cross_sop_ref_regex_rejects_malformed():
+    """CROSS_SOP_REF rejects lower-case prefix, missing step, no prefix, wrong ACID width."""
+    from fx_alfred.core.workflow import CROSS_SOP_REF
+
+    assert CROSS_SOP_REF.match("cor-1500.3") is None  # lower-case prefix
+    assert CROSS_SOP_REF.match("COR-1500") is None  # missing .step
+    assert CROSS_SOP_REF.match("1500.3") is None  # no prefix
+    assert CROSS_SOP_REF.match("COR-150.3") is None  # 3-digit ACID
+    assert CROSS_SOP_REF.match("COR-15000.3") is None  # 5-digit ACID
+    assert CROSS_SOP_REF.match("COR-1500.") is None  # empty step
+    assert CROSS_SOP_REF.match("27") is None  # plain int-string
+
+
+def test_parse_accepts_cross_sop_to_reference():
+    """parse_workflow_loops accepts a string 'to' matching PREFIX-ACID.step form."""
+    parsed = _make_parsed(
+        [
+            (
+                "Workflow loops",
+                '[{id: review-retry, from: 3, to: "COR-1500.3", '
+                'max_iterations: 3, condition: "if review fails"}]',
+            )
+        ]
+    )
+    loops = parse_workflow_loops(parsed)
+    assert len(loops) == 1
+    assert loops[0].from_step == 3
+    assert loops[0].to_step == "COR-1500.3"
+
+
+def test_parse_rejects_cross_sop_malformed_ref():
+    """parse_workflow_loops rejects a string 'to' that does not match CROSS_SOP_REF."""
+    from fx_alfred.core.parser import MalformedDocumentError
+
+    parsed = _make_parsed(
+        [
+            (
+                "Workflow loops",
+                '[{id: bad, from: 3, to: "not-a-ref", '
+                'max_iterations: 3, condition: "oops"}]',
+            )
+        ]
+    )
+    with pytest.raises(MalformedDocumentError, match="cross-SOP reference"):
+        parse_workflow_loops(parsed)
+
+
+def test_parse_rejects_quoted_digit_string_as_to():
+    """parse_workflow_loops rejects 'to: "27"' — use int 27 for intra-SOP."""
+    from fx_alfred.core.parser import MalformedDocumentError
+
+    parsed = _make_parsed(
+        [
+            (
+                "Workflow loops",
+                '[{id: bad, from: 3, to: "27", '
+                'max_iterations: 3, condition: "quoted digits"}]',
+            )
+        ]
+    )
+    with pytest.raises(MalformedDocumentError, match="cross-SOP reference"):
+        parse_workflow_loops(parsed)
+
+
+def test_loop_signature_is_cross_sop():
+    """is_cross_sop() returns True for string to_step, False for int."""
+    intra = LoopSignature(
+        id="a", from_step=5, to_step=3, max_iterations=2, condition="x"
+    )
+    cross = LoopSignature(
+        id="b", from_step=5, to_step="COR-1500.3", max_iterations=2, condition="y"
+    )
+    assert intra.is_cross_sop() is False
+    assert cross.is_cross_sop() is True
+
+
+def test_loop_signature_cross_sop_target_parses_components():
+    """cross_sop_target() returns (prefix, acid, step_idx) tuple for cross-SOP refs."""
+    cross = LoopSignature(
+        id="b", from_step=5, to_step="COR-1500.3", max_iterations=2, condition="y"
+    )
+    target = cross.cross_sop_target()
+    assert target == ("COR", "1500", 3)
+
+
+def test_loop_signature_cross_sop_target_none_for_intra():
+    """cross_sop_target() returns None for intra-SOP (int to_step) loops."""
+    intra = LoopSignature(
+        id="a", from_step=5, to_step=3, max_iterations=2, condition="x"
+    )
+    assert intra.cross_sop_target() is None
+
+
+def test_validate_loops_skips_back_edge_direction_for_cross_sop():
+    """validate_loops does not enforce from > to for cross-SOP loops."""
+    parsed = _make_parsed(
+        [],
+        body="## Steps\n\n1. A\n2. B\n3. C\n",
+    )
+    # Cross-SOP loop — from_step could be < to_step number because they refer
+    # to different SOPs. No back-edge direction error should fire.
+    cross = LoopSignature(
+        id="cx", from_step=2, to_step="COR-1500.99", max_iterations=2, condition="y"
+    )
+    errors = validate_loops(parsed, [cross])
+    assert errors == []
+
+
+def test_validate_loops_skips_membership_check_for_cross_sop():
+    """validate_loops does not check cross-SOP to_step against local step indices."""
+    parsed = _make_parsed(
+        [],
+        body="## Steps\n\n1. A\n2. B\n",
+    )
+    # Local SOP has steps {1, 2}; cross-SOP target step 99 is fine here
+    # because it's checked in a different layer (af validate D3).
+    cross = LoopSignature(
+        id="cx", from_step=2, to_step="COR-1500.99", max_iterations=2, condition="y"
+    )
+    errors = validate_loops(parsed, [cross])
+    assert errors == []
+
+
+def test_validate_loops_still_checks_from_step_membership_for_cross_sop():
+    """validate_loops still enforces from_step membership for cross-SOP loops
+    — only to_step-dependent checks are skipped (PR #59 Codex review P1 #3)."""
+    parsed = _make_parsed(
+        [],
+        body="## Steps\n\n1. A\n2. B\n3. C\n",
+    )
+    # Cross-SOP loop with from_step=99 (does not exist locally). Must be
+    # rejected even though to_step is a cross-SOP string.
+    cross = LoopSignature(
+        id="cx",
+        from_step=99,
+        to_step="COR-1500.1",
+        max_iterations=2,
+        condition="y",
+    )
+    errors = validate_loops(parsed, [cross])
+    assert len(errors) == 1
+    assert "'from' (99)" in errors[0].msg
+    assert "does not reference an existing step" in errors[0].msg
+    assert "{1, 2, 3}" in errors[0].msg
+
+
+def test_validate_loops_still_checks_max_iterations_for_cross_sop():
+    """validate_loops still enforces max_iterations > 0 for cross-SOP loops."""
+    parsed = _make_parsed(
+        [],
+        body="## Steps\n\n1. A\n",
+    )
+    cross = LoopSignature(
+        id="cx", from_step=1, to_step="COR-1500.3", max_iterations=0, condition="y"
+    )
+    errors = validate_loops(parsed, [cross])
+    assert len(errors) == 1
+    assert "max_iterations" in errors[0].msg

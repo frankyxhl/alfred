@@ -17,9 +17,10 @@ from fx_alfred.core.parser import (
     parse_metadata,
 )
 from fx_alfred.core.ascii_graph import render_ascii
+from fx_alfred.core.dag_graph import render_dag
 from fx_alfred.core.compose import resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
-from fx_alfred.core.phases import PhaseDict, StepDict
+from fx_alfred.core.phases import PhaseDict
 from fx_alfred.core.schema import TASK_TAGS
 from fx_alfred.core.workflow import (
     LoopSignature,
@@ -30,8 +31,10 @@ from fx_alfred.core.workflow import (
     validate_workflow_signature,
 )
 
-# Heading search order for step extraction
-_STEP_HEADINGS = ("Steps", "Rule", "Rules", "Concepts")
+# Heading search order for step extraction — authoritative list lives in
+# ``core.steps._STEP_HEADINGS`` (shared with validate_cmd D3, PR #59 P2).
+# Re-exported here for existing call sites inside this module.
+from fx_alfred.core.steps import _STEP_HEADINGS  # noqa: E402, F401
 
 
 def _gather_all_sops(
@@ -103,12 +106,14 @@ _LLM_RULES = """\
 
 
 def _extract_steps_section(body: str) -> str | None:
-    """Try each heading in order, return first match."""
-    for heading in _STEP_HEADINGS:
-        section = extract_section(body, heading)
-        if section is not None:
-            return section
-    return None
+    """Try each heading in order, return first match.
+
+    Delegates to ``core.steps.extract_steps_section`` so validate D3 and
+    plan rendering agree on the heading set (PR #59 Codex review P2).
+    """
+    from fx_alfred.core.steps import extract_steps_section
+
+    return extract_steps_section(body)
 
 
 def _parse_numbered_items(section_text: str) -> list[str]:
@@ -126,22 +131,9 @@ def _parse_numbered_items(section_text: str) -> list[str]:
     return items
 
 
-def _parse_steps_for_json(section_text: str) -> list[StepDict]:
-    """Extract steps as structured data for JSON output.
-
-    Returns list of {"index": int, "text": str, "gate": bool}.
-    Gate is true if step ends with "✓" or contains "[GATE]".
-    """
-    steps = []
-    for line in section_text.split("\n"):
-        stripped = line.strip()
-        m = re.match(r"^(?:###\s+)?(\d+)\.\s+(.+)", stripped)
-        if m:
-            index = int(m.group(1))
-            text = m.group(2)
-            gate = text.endswith("✓") or "[GATE]" in text
-            steps.append({"index": index, "text": text, "gate": gate})
-    return steps
+# _parse_steps_for_json relocated to fx_alfred.core.steps (FXA-2218 Commit 1);
+# re-exported below for backward-compatible call sites in this module.
+from fx_alfred.core.steps import _parse_steps_for_json  # noqa: E402, F401
 
 
 def _format_phase(
@@ -247,7 +239,13 @@ def _apply_text_markers(
 
     # 3. Loop-back suffix (loop source)
     if loop_from_sig:
-        text = f"{text} — 🔁 if {loop_from_sig.condition} → back to {phase_num}.{loop_from_sig.to_step} (max {loop_from_sig.max_iterations})"
+        # For cross-SOP loops, `to_step` is already "PREFIX-ACID.step"; intra-SOP
+        # stays `{phase}.{step}` (FXA-2218 Commit 4 output contract).
+        if isinstance(loop_from_sig.to_step, int):
+            target_ref = f"{phase_num}.{loop_from_sig.to_step}"
+        else:
+            target_ref = loop_from_sig.to_step
+        text = f"{text} — 🔁 if {loop_from_sig.condition} → back to {target_ref} (max {loop_from_sig.max_iterations})"
 
     return text
 
@@ -276,7 +274,9 @@ def _build_todo_items(
         return [f"{checkbox_prefix}{phase_num}.1 [{sop_id}] {steps_section.strip()}"]
 
     # Build loop marker maps
-    loop_to_steps = {loop.to_step: loop for loop in loops}
+    loop_to_steps = {
+        loop.to_step: loop for loop in loops if isinstance(loop.to_step, int)
+    }
     loop_from_steps = {loop.from_step: loop for loop in loops}
 
     for step in steps:
@@ -340,7 +340,9 @@ def _build_todo_json(
         ]
 
     # Build loop marker maps
-    loop_to_steps = {loop.to_step: loop for loop in loops}
+    loop_to_steps = {
+        loop.to_step: loop for loop in loops if isinstance(loop.to_step, int)
+    }
     loop_from_steps = {loop.from_step: loop for loop in loops}
 
     for step in steps:
@@ -421,18 +423,34 @@ def _build_provenance_map(
     return result
 
 
+def _render_layout(
+    mermaid_phases: list[PhaseDict],
+    provenance_map: dict[str, str],
+    graph_layout: str,
+) -> str:
+    """Dispatch between ``render_ascii`` (flat, legacy) and ``render_dag``
+    (nested, default) based on ``graph_layout`` (FXA-2218 Commit 7).
+    """
+    if graph_layout == "nested":
+        return render_dag(mermaid_phases, provenance_map)
+    return render_ascii(mermaid_phases)
+
+
 def _emit_graph(
     phase_info: list,
     provenance_map: dict[str, str],
     graph_format: str,
+    graph_layout: str = "nested",
 ) -> None:
     """Emit graph output for text modes (default, --todo).
 
     ``graph_format`` must be one of ``ascii``, ``mermaid``, ``both``.
+    ``graph_layout`` must be one of ``nested`` (FXA-2218 default) or ``flat``
+    (legacy ascii_graph layout).
     """
     mermaid_phases = _build_mermaid_phases(phase_info, provenance_map)
     if graph_format in ("ascii", "both"):
-        ascii_str = render_ascii(mermaid_phases)
+        ascii_str = _render_layout(mermaid_phases, provenance_map, graph_layout)
         click.echo(ascii_str, nl=False)
     if graph_format == "both":
         click.echo()
@@ -468,6 +486,17 @@ def _emit_graph(
     help="Graph rendering format (requires --graph). Default: both.",
 )
 @click.option(
+    "--graph-layout",
+    "graph_layout",
+    type=click.Choice(["nested", "flat"]),
+    default="nested",
+    help=(
+        "ASCII graph layout (requires --graph, ASCII-only): 'nested' "
+        "(default, FXA-2218 — step-boxes inside phase-boxes with cross-SOP "
+        "tracks) or 'flat' (legacy, one phase-box per SOP)."
+    ),
+)
+@click.option(
     "--task",
     "task_description",
     default=None,
@@ -482,6 +511,7 @@ def plan_cmd(
     output_todo: bool,
     output_graph: bool,
     graph_format: str,
+    graph_layout: str,
     task_description: str | None,
 ) -> None:
     """Generate workflow checklist from SOPs."""
@@ -494,6 +524,10 @@ def plan_cmd(
         param_source = ctx.get_parameter_source("graph_format")  # type: ignore[attr-defined]
         if param_source is not None and param_source.name != "DEFAULT":
             raise click.UsageError("--graph-format requires --graph")
+        # Same coupling rule for --graph-layout.
+        layout_source = ctx.get_parameter_source("graph_layout")  # type: ignore[attr-defined]
+        if layout_source is not None and layout_source.name != "DEFAULT":
+            raise click.UsageError("--graph-layout requires --graph")
 
     # Scan documents first (needed for --task resolution)
     docs = scan_or_fail(ctx)
@@ -581,6 +615,42 @@ def plan_cmd(
                 f"'{edge.from_output}' but {edge.to_doc} expects '{edge.to_input}'"
             )
 
+    # ── Cross-SOP loop runtime checks (FXA-2218 D4) ──
+    # After composition order is fixed, every cross-SOP loop must:
+    #   (a) reference a target SOP that is part of this composed plan
+    #   (b) reference a target that comes BEFORE the source in plan order
+    #       (back-edge semantic — "on failure, retry from earlier step")
+    #
+    # Repeated SOP IDs are supported (e.g. plan "A B A"): all positions
+    # preserved; D4 accepts if ANY target occurrence precedes the source
+    # occurrence being evaluated (PR #59 Codex review P2 #5).
+    composed_positions: dict[str, list[int]] = {}
+    for idx, (_sid, doc, _p, _sig, _lps) in enumerate(phase_info):
+        composed_positions.setdefault(f"{doc.prefix}-{doc.acid}", []).append(idx)
+    for source_idx, (_sid, doc, _parsed, _sig, loops) in enumerate(phase_info):
+        source_id = f"{doc.prefix}-{doc.acid}"
+        for i, loop in enumerate(loops):
+            target = loop.cross_sop_target()
+            if target is None:
+                continue
+            t_prefix, t_acid, _t_step = target
+            target_id = f"{t_prefix}-{t_acid}"
+            target_positions = composed_positions.get(target_id)
+            if not target_positions:
+                raise click.ClickException(
+                    f"{source_id} Workflow loops[{i}].to = {loop.to_step!r} "
+                    f"— {target_id} not in composed plan "
+                    f"(add positionally: af plan {source_id} {target_id} ...)"
+                )
+            # Back-edge if ANY target occurrence precedes this source
+            # occurrence. Rejected only when ALL target positions are >=
+            # source_idx.
+            if not any(tp < source_idx for tp in target_positions):
+                raise click.ClickException(
+                    f"{source_id} Workflow loops[{i}].to = {loop.to_step!r} "
+                    f"— target SOP precedes source; back-edges only"
+                )
+
     composition_valid = all(e.compatible for e in edges) if edges else True
 
     # ── Flat TODO output mode ──
@@ -611,7 +681,7 @@ def plan_cmd(
         if output_graph:
             provenance_map = _build_provenance_map(composed_from_provenance)
             click.echo()
-            _emit_graph(phase_info, provenance_map, graph_format)
+            _emit_graph(phase_info, provenance_map, graph_format, graph_layout)
         return
 
     # ── JSON output mode ──
@@ -647,13 +717,19 @@ def plan_cmd(
                 todo_items_json = _build_todo_json(phase_num, doc_id, body, loops)
                 todo_json.extend(todo_items_json)
 
-                # Build loops array with dotted step references
+                # Build loops array with dotted step references. Cross-SOP
+                # loops emit `to` as the raw "PREFIX-ACID.step" string — same
+                # lexical form as the authored metadata (FXA-2218 Commit 4).
                 for loop in loops:
+                    if isinstance(loop.to_step, int):
+                        loop_to_ref = f"{phase_num}.{loop.to_step}"
+                    else:
+                        loop_to_ref = loop.to_step
                     loops_json.append(
                         {
                             "id": loop.id,
                             "from": f"{phase_num}.{loop.from_step}",
-                            "to": f"{phase_num}.{loop.to_step}",
+                            "to": loop_to_ref,
                             "max_iterations": loop.max_iterations,
                             "sop": doc_id,
                         }
@@ -693,7 +769,9 @@ def plan_cmd(
             provenance_map = _build_provenance_map(composed_from_provenance)
             mermaid_phases = _build_mermaid_phases(phase_info, provenance_map)
             if graph_format in ("ascii", "both"):
-                result["ascii_graph"] = render_ascii(mermaid_phases)
+                result["ascii_graph"] = _render_layout(
+                    mermaid_phases, provenance_map, graph_layout
+                )
             if graph_format in ("mermaid", "both"):
                 result["graph_mermaid"] = render_mermaid(mermaid_phases)
 
@@ -747,4 +825,4 @@ def plan_cmd(
 
     if output_graph:
         provenance_map = _build_provenance_map(composed_from_provenance)
-        _emit_graph(phase_info, provenance_map, graph_format)
+        _emit_graph(phase_info, provenance_map, graph_format, graph_layout)

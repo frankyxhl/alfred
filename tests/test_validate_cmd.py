@@ -1360,3 +1360,629 @@ def test_validate_history_header_early_return_arms():
     assert _validate_history_header("Trailing text only\nMore text\n") == [
         "Change History table header is missing"
     ]
+
+
+# ---------------------------------------------------------------------------
+# FXA-2218 D2 + D3 — Cross-SOP Workflow loops validation
+# ---------------------------------------------------------------------------
+
+
+def _write_sop_with_cross_sop_loop(path, prefix, acid, title, to_ref):
+    """Write an SOP with a cross-SOP Workflow loop referencing `to_ref`.
+
+    Body has 3 numbered steps; from_step=3, to_step=to_ref, max=3.
+    """
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+**Workflow loops:** [{{id: cx, from: 3, to: "{to_ref}", max_iterations: 3, condition: "if fail"}}]
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+2. B
+3. C
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def test_validate_cross_sop_target_missing(tmp_path):
+    """D2: af validate reports cross-SOP loop pointing to nonexistent SOP."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-9999.1",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "TST-9999" in result.output
+    assert "no such SOP in corpus" in result.output
+
+
+def test_validate_cross_sop_step_out_of_range(tmp_path):
+    """D3: af validate reports cross-SOP step index beyond target's step count."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target TST-2200 has 2 numbered steps; source references .99 (out of range).
+    _write_valid_document(
+        rules_dir / "TST-2200-SOP-Target.md",
+        "TST",
+        "2200",
+        "SOP",
+        "Target",
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.99",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    # D3 now reports by index membership (PR #59 Codex P1) — diagnostic
+    # lists the actual step indices found, not a count.
+    assert "step index 99" in result.output
+    assert "does not reference an existing step" in result.output
+    assert "{1, 2}" in result.output
+
+
+def test_validate_cross_sop_happy_path(tmp_path):
+    """D2+D3 green when cross-SOP target exists and step index is in range."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target TST-2200 has 2 steps; source references .1 (in range).
+    _write_valid_document(
+        rules_dir / "TST-2200-SOP-Target.md",
+        "TST",
+        "2200",
+        "SOP",
+        "Target",
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.1",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+# ---------------------------------------------------------------------------
+# PR #59 review fixes — sparse step numbering + non-SOP target filtering
+# ---------------------------------------------------------------------------
+
+
+def _write_sop_with_sparse_steps(path, prefix, acid, title):
+    """Write an SOP whose ## Steps section has SPARSE numbering (1, 3, 5)."""
+    content = f"""# SOP-{acid}: {title}
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. A
+3. C
+5. E
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    path.write_text(content)
+
+
+def test_validate_cross_sop_accepts_sparse_but_present_index(tmp_path):
+    """D3 accepts a cross-SOP ref to a sparse but present step index
+    (PR #59 Codex P1 — old range check rejected sparse hits > len)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_sparse_steps(
+        rules_dir / "TST-2200-SOP-Target.md", "TST", "2200", "Target"
+    )
+    # Step 5 — in the sparse set {1, 3, 5}, but > len (which is 3).
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.5",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output
+
+
+def test_validate_cross_sop_rejects_sparse_gap_index(tmp_path):
+    """D3 rejects a cross-SOP ref to a step that's <= len but NOT in the
+    sparse set (PR #59 Codex P1 — old check accepted 2 for {1,3,5})."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_with_sparse_steps(
+        rules_dir / "TST-2200-SOP-Target.md", "TST", "2200", "Target"
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.2",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 2" in result.output
+    assert "does not reference an existing step" in result.output
+    assert "{1, 3, 5}" in result.output
+
+
+def test_validate_cross_sop_does_not_resolve_non_sop_target(tmp_path):
+    """D2 only resolves cross-SOP refs against SOP-type documents; a PRP
+    (or any non-SOP) sharing PREFIX-ACID must NOT count (PR #59 Codex P2)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "TST-2200-PRP-Not-A-SOP.md",
+        "TST",
+        "2200",
+        "PRP",
+        "Not A SOP",
+        status="Draft",
+    )
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.1",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "no such SOP in corpus" in result.output
+
+
+def test_validate_cross_sop_ignores_indented_sub_items(tmp_path):
+    """D3 must count only flush-left top-level steps, not indented sub-items
+    or numbered lines inside indented blocks (PR #59 Codex P1 #2)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target SOP has 2 top-level steps (1, 2) plus indented numbered sub-
+    # items (1, 2 under step 1). The old `_parse_steps_for_json` would have
+    # accepted a ref to step "3" (counting sub-items), "4" etc. Ref to
+    # step 3 here must be rejected.
+    target_content = """# SOP-2200: Target With Sub Items
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Top-level A
+  1. Sub-step of A
+  2. Another sub-step of A
+2. Top-level B
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    # Reference step 3 — does not exist at top level (only 1, 2 do;
+    # sub-items numbered 1, 2 don't count).
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.3",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 3" in result.output
+    assert "does not reference an existing step" in result.output
+    # Diagnostic lists top-level indices only ({1, 2}), not sub-item ones.
+    assert "{1, 2}" in result.output
+
+
+def test_validate_cross_sop_accepts_target_with_legacy_heading(tmp_path):
+    """D3 must use the same heading-selection logic as plan rendering. If
+    the target SOP uses a legacy heading like '## Rule' or '## Concepts'
+    (recognised by the planner), D3 must resolve the section via the
+    shared `extract_steps_section()` helper rather than hard-coding the
+    literal string 'Steps' (PR #59 Codex review P2 #2).
+
+    Note: the *overall* `af validate` run still fails on a legacy-heading
+    SOP because the per-type REQUIRED_SECTIONS check is stricter than the
+    planner. This test only asserts D3's specific diagnostic ('has no
+    Steps section' for the cross-ref) is NOT emitted when the target has
+    a legacy heading. The overall exit code is still 1 for unrelated
+    reasons, but that's pre-existing behaviour out of this PR's scope."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    target_content = """# SOP-2200: Legacy Heading SOP
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Rule
+
+1. Rule one
+2. Rule two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.1",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    # The key D3 assertion: the cross-ref target now resolves via the shared
+    # heading helper, so D3's "has no Steps section" diagnostic must NOT
+    # appear on the SOURCE SOP.
+    assert "Workflow loops[0].to" not in result.output or (
+        "has no Steps section" not in result.output
+    )
+    # The cross-ref-specific "no such SOP in corpus" / "out of range"
+    # diagnostics must also not fire.
+    assert "no such SOP in corpus" not in result.output
+    assert "does not reference an existing step" not in result.output
+
+
+def test_validate_cross_sop_ignores_fenced_code_step_numbers(tmp_path):
+    """D3 must not count numbered lines inside fenced code blocks as valid
+    steps (PR #59 Codex review P2 #4). Cross-SOP ref to a fence-only
+    index must be rejected."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target SOP has 2 real top-level steps (1, 2) plus fenced code
+    # containing lines that LOOK like numbered items (3., 4.).
+    target_content = """# SOP-2200: Target With Fenced Code
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Real step one
+
+```python
+3. fake step in code
+4. another fake step
+```
+
+2. Real step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    # Ref to step 3 — only appears inside the fence, not a real step.
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.3",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 3" in result.output
+    assert "does not reference an existing step" in result.output
+    # Found set is {1, 2}, the fence lines don't contribute.
+    assert "{1, 2}" in result.output
+
+
+def test_validate_cross_sop_fence_delimiter_must_match(tmp_path):
+    """D3 must track fence delimiters by type — a ``` fence is NOT closed
+    by a literal ~~~ line inside it, and vice versa (PR #59 Codex review
+    P2 #7). Before the fix, my simple `in_fence = not in_fence` toggle
+    exited the fence prematurely on mismatched delimiters."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target SOP: ```-fenced block contains a literal ~~~ line AND numbered
+    # lines. Real top-level steps are {1, 2}. Lines "3." and "4." inside the
+    # ```-fence must NOT be counted, even though a mismatched "~~~" appears
+    # between them.
+    target_content = """# SOP-2200: Mismatched Fence
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Real step one
+
+```python
+3. fake step in code
+~~~ not a closer
+4. another fake step
+```
+
+2. Real step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    # Ref to step 3 — inside the mismatched-fence block. Must still be
+    # rejected (the ~~~ does not close the ``` fence).
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.3",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 3" in result.output
+    # Found set is still {1, 2} — all fence contents ignored.
+    assert "{1, 2}" in result.output
+
+
+def test_validate_cross_sop_fence_length_must_match_or_exceed(tmp_path):
+    """D3 must honor CommonMark fence-length rules: a fence opened with 4
+    backticks is NOT closed by 3 backticks inside it (PR #59 Codex review
+    P2 #8). Closer must be the same delimiter char AND have length >=
+    opener length."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target SOP: ````-fenced block (4 backticks) with a 3-backtick line
+    # inside. Real steps are {1, 2}. "3. fake" between the 3-tick line
+    # and the 4-tick closer must not count.
+    target_content = """# SOP-2200: 4-Tick Fence
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Real step one
+
+````markdown
+3. fake step inside the 4-tick fence
+```
+4. still inside fence (3-tick line is content)
+````
+
+2. Real step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.3",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 3" in result.output
+    assert "{1, 2}" in result.output

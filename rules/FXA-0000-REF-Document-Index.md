@@ -125,6 +125,9 @@
 | 2213 | REF | Evolve Run 20260419 094124 |
 | 2214 | PRP | Bundle N2 N3 C4 plan cmd parser area int edges |
 | 2215 | CHG | Bundle N2 N3 plan cmd parser edge tests |
+| 2216 | REF | Discussion Tracker 2026 04 19 |
+| 2217 | PRP | ASCII DAG nested graph layout for af plan graph |
+| 2218 | CHG | ASCII DAG nested graph layout implementation |
 
 ---
 
