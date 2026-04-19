@@ -392,6 +392,45 @@ class TestCrossSopLoopOmission:
         assert "cross-SOP loops omitted" not in result
         assert ".->" in result
 
+    def test_same_step_intra_plus_cross_sop_intra_preserved(self):
+        """When one step has BOTH an intra-SOP loop and a cross-SOP loop,
+        the intra-SOP back-edge must still render (PR #59 Codex review P2).
+        Previously `loop_from_steps` was a dict keyed on from_step, so
+        if the cross-SOP loop won the dict key, the intra-SOP edge was
+        silently dropped."""
+        phases = [
+            _make_phase(
+                "COR-1602",
+                [
+                    {"index": 1, "text": "Start", "gate": False},
+                    {"index": 2, "text": "Gate", "gate": True},
+                ],
+                loops=[
+                    # Same from_step=2 for both loops — cross-SOP first so
+                    # the old dict-build would have dropped the intra.
+                    LoopSignature(
+                        id="escalate",
+                        from_step=2,
+                        to_step="COR-1500.1",
+                        max_iterations=3,
+                        condition="if high severity",
+                    ),
+                    LoopSignature(
+                        id="retry",
+                        from_step=2,
+                        to_step=1,
+                        max_iterations=3,
+                        condition="if fail",
+                    ),
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+        # Intra-SOP back-edge must still be drawn.
+        assert "S1_2 -. " in result and ".-> S1_1" in result
+        # Cross-SOP omission comment also emitted.
+        assert "cross-SOP loops omitted — Mermaid layout is ASCII-only" in result
+
     def test_single_omission_comment_with_multiple_cross_sop_loops(self):
         """Multiple cross-SOP loops across phases produce exactly one comment."""
         phases = [

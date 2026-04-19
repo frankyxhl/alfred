@@ -105,8 +105,10 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
         if not steps:
             continue
 
-        # Build sets for gate detection and loop endpoint lookup
-        loop_from_steps: dict[int, LoopSignature] = {lp.from_step: lp for lp in loops}
+        # (No per-step dict here — iterating `loops` directly below avoids
+        # silently dropping a loop when two share the same from_step, e.g.
+        # one intra-SOP retry plus one cross-SOP escalation from the same
+        # gate step. PR #59 Codex review P2.)
 
         # Build node definitions and forward edges
         prev_node_id: str | None = None
@@ -141,12 +143,13 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
         if prev_node_id is not None:
             prev_last_node_id = prev_node_id
 
-        # Dashed back-edges for loops. Cross-SOP loops (string `to_step`)
-        # are skipped — Mermaid layout is ASCII-only in FXA-2218; see PRP
-        # Component 4. A user-facing omission comment is emitted by the
-        # caller (not per-loop) once per composition if any cross-SOP loop
-        # exists.
-        for step_idx, lp in loop_from_steps.items():
+        # Dashed back-edges for every intra-SOP loop (cross-SOP loops —
+        # string `to_step` — are skipped; Mermaid layout is ASCII-only in
+        # FXA-2218; see PRP Component 4). A user-facing omission comment
+        # is emitted by the caller once per composition if any cross-SOP
+        # loop exists. Iterate `loops` directly so multiple loops from the
+        # same source step all render (PR #59 Codex review P2 fix).
+        for lp in loops:
             if not isinstance(lp.to_step, int):
                 continue
             from_nid = _node_id(phase_idx, lp.from_step)

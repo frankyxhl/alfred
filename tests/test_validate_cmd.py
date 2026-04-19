@@ -1614,3 +1614,74 @@ def test_validate_cross_sop_does_not_resolve_non_sop_target(tmp_path):
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
     assert result.exit_code == 1
     assert "no such SOP in corpus" in result.output
+
+
+def test_validate_cross_sop_ignores_indented_sub_items(tmp_path):
+    """D3 must count only flush-left top-level steps, not indented sub-items
+    or numbered lines inside indented blocks (PR #59 Codex P1 #2)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target SOP has 2 top-level steps (1, 2) plus indented numbered sub-
+    # items (1, 2 under step 1). The old `_parse_steps_for_json` would have
+    # accepted a ref to step "3" (counting sub-items), "4" etc. Ref to
+    # step 3 here must be rejected.
+    target_content = """# SOP-2200: Target With Sub Items
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Top-level A
+  1. Sub-step of A
+  2. Another sub-step of A
+2. Top-level B
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    # Reference step 3 — does not exist at top level (only 1, 2 do;
+    # sub-items numbered 1, 2 don't count).
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.3",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 3" in result.output
+    assert "does not reference an existing step" in result.output
+    # Diagnostic lists top-level indices only ({1, 2}), not sub-item ones.
+    assert "{1, 2}" in result.output

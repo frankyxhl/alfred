@@ -27,3 +27,30 @@ def _parse_steps_for_json(section_text: str) -> list[StepDict]:
             gate = text.endswith("✓") or "[GATE]" in text
             steps.append({"index": index, "text": text, "gate": gate})
     return steps
+
+
+# Flush-left top-level step matcher — matches only lines that begin at column
+# zero (no leading whitespace). Indented numbered sub-items and numbered
+# lines inside indented code fences are **not** counted, keeping this
+# consistent with `workflow._parse_step_indices`. Shared via this module so
+# validate_cmd can use the same definition of "top-level step" (PR #59 P1).
+_TOP_LEVEL_STEP_RE = re.compile(r"^(?:###\s+)?(\d+)\.\s+")
+
+
+def parse_top_level_step_indices(section_text: str) -> frozenset[int]:
+    """Return the set of top-level step indices declared in a Steps section.
+
+    Only lines flush-left (no leading whitespace) that match
+    ``^(?:###\\s+)?\\d+\\.\\s+`` contribute. Sub-items and code-fenced
+    numbered lines are ignored.
+
+    Used by ``validate_loops`` (via workflow._parse_step_indices) and by
+    ``af validate`` D3 (FXA-2218 + PR #59 P1 fix) so both enforce the same
+    notion of "existing step".
+    """
+    indices: set[int] = set()
+    for line in section_text.split("\n"):
+        m = _TOP_LEVEL_STEP_RE.match(line)
+        if m:
+            indices.add(int(m.group(1)))
+    return frozenset(indices)

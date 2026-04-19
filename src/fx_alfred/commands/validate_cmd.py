@@ -23,7 +23,7 @@ from fx_alfred.core.scanner import (
     _scan_pkg_dir,
     scan_documents,
 )
-from fx_alfred.core.steps import _parse_steps_for_json
+from fx_alfred.core.steps import parse_top_level_step_indices
 from fx_alfred.core.workflow import (
     parse_workflow_loops,
     parse_workflow_signature,
@@ -312,12 +312,12 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                             f"— target SOP {t_prefix}-{t_acid} has no Steps section"
                         )
                         continue
-                    target_steps = _parse_steps_for_json(steps_section)
-                    # Validate by index membership — SOP step numbering can be
-                    # sparse (e.g., 1, 3, 5), so `1..len(target_steps)` would
-                    # both reject valid high-index refs and accept invalid
-                    # gap refs (PR #59 Codex review P1).
-                    target_step_indices = {s["index"] for s in target_steps}
+                    # Validate by index membership using flush-left top-level
+                    # step parsing (consistent with workflow.validate_loops
+                    # for intra-SOP refs). SOP step numbering can be sparse
+                    # and sub-items / code-fence lines must not count as
+                    # steps (PR #59 Codex reviews P1 #1 + #2).
+                    target_step_indices = parse_top_level_step_indices(steps_section)
                     if t_step not in target_step_indices:
                         found_desc = (
                             "{"
