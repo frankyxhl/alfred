@@ -68,19 +68,29 @@ def parse_top_level_step_indices(section_text: str) -> frozenset[int]:
     explicitly so numbered lines inside ``` / ~~~ fences don't count as
     steps (PR #59 Codex review P2 #4).
 
+    Fence delimiters must match: a ``` fence only closes on a subsequent
+    ``` line; a ~~~ fence only closes on ~~~. Mixing (e.g. a ``` fence
+    containing a literal ~~~ line) does not prematurely close the fence
+    (PR #59 Codex review P2 #7).
+
     Used by ``validate_loops`` (intra-SOP) and by ``af validate`` D3
     (cross-SOP) so both enforce the same notion of "existing step".
     """
     indices: set[int] = set()
-    in_fence = False
+    fence_delim: str | None = None  # currently-open fence delimiter, or None
     for line in section_text.split("\n"):
         stripped = line.lstrip()
-        # Toggle fence state on lines that begin with ``` or ~~~ (at any
-        # indent — indented code fences are still fences for our purposes).
-        if stripped.startswith("```") or stripped.startswith("~~~"):
-            in_fence = not in_fence
+        if fence_delim is not None:
+            # Inside a fence — only the matching delimiter closes it.
+            if stripped.startswith(fence_delim):
+                fence_delim = None
             continue
-        if in_fence:
+        # Outside any fence — check for an opener.
+        if stripped.startswith("```"):
+            fence_delim = "```"
+            continue
+        if stripped.startswith("~~~"):
+            fence_delim = "~~~"
             continue
         m = _TOP_LEVEL_STEP_RE.match(line)
         if m:
