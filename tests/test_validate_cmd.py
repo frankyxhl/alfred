@@ -1763,3 +1763,76 @@ Test.
     # diagnostics must also not fire.
     assert "no such SOP in corpus" not in result.output
     assert "does not reference an existing step" not in result.output
+
+
+def test_validate_cross_sop_ignores_fenced_code_step_numbers(tmp_path):
+    """D3 must not count numbered lines inside fenced code blocks as valid
+    steps (PR #59 Codex review P2 #4). Cross-SOP ref to a fence-only
+    index must be rejected."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target SOP has 2 real top-level steps (1, 2) plus fenced code
+    # containing lines that LOOK like numbered items (3., 4.).
+    target_content = """# SOP-2200: Target With Fenced Code
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Real step one
+
+```python
+3. fake step in code
+4. another fake step
+```
+
+2. Real step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    # Ref to step 3 — only appears inside the fence, not a real step.
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.3",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 3" in result.output
+    assert "does not reference an existing step" in result.output
+    # Found set is {1, 2}, the fence lines don't contribute.
+    assert "{1, 2}" in result.output

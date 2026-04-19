@@ -620,26 +620,32 @@ def plan_cmd(
     #   (a) reference a target SOP that is part of this composed plan
     #   (b) reference a target that comes BEFORE the source in plan order
     #       (back-edge semantic — "on failure, retry from earlier step")
-    composed_order: dict[str, int] = {
-        f"{doc.prefix}-{doc.acid}": idx
-        for idx, (_sid, doc, _p, _sig, _lps) in enumerate(phase_info)
-    }
-    for _sid, doc, _parsed, _sig, loops in phase_info:
+    #
+    # Repeated SOP IDs are supported (e.g. plan "A B A"): all positions
+    # preserved; D4 accepts if ANY target occurrence precedes the source
+    # occurrence being evaluated (PR #59 Codex review P2 #5).
+    composed_positions: dict[str, list[int]] = {}
+    for idx, (_sid, doc, _p, _sig, _lps) in enumerate(phase_info):
+        composed_positions.setdefault(f"{doc.prefix}-{doc.acid}", []).append(idx)
+    for source_idx, (_sid, doc, _parsed, _sig, loops) in enumerate(phase_info):
         source_id = f"{doc.prefix}-{doc.acid}"
-        source_idx = composed_order[source_id]
         for i, loop in enumerate(loops):
             target = loop.cross_sop_target()
             if target is None:
                 continue
             t_prefix, t_acid, _t_step = target
             target_id = f"{t_prefix}-{t_acid}"
-            if target_id not in composed_order:
+            target_positions = composed_positions.get(target_id)
+            if not target_positions:
                 raise click.ClickException(
                     f"{source_id} Workflow loops[{i}].to = {loop.to_step!r} "
                     f"— {target_id} not in composed plan "
                     f"(add positionally: af plan {source_id} {target_id} ...)"
                 )
-            if composed_order[target_id] >= source_idx:
+            # Back-edge if ANY target occurrence precedes this source
+            # occurrence. Rejected only when ALL target positions are >=
+            # source_idx.
+            if not any(tp < source_idx for tp in target_positions):
                 raise click.ClickException(
                     f"{source_id} Workflow loops[{i}].to = {loop.to_step!r} "
                     f"— target SOP precedes source; back-edges only"

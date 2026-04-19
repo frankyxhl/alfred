@@ -1953,6 +1953,74 @@ def test_graph_layout_flat_produces_legacy_format(sample_project, monkeypatch):
     assert result.output.count("┌─") == 1
 
 
+def test_plan_cross_sop_accepts_repeated_target_with_earlier_occurrence(tmp_path):
+    """D4 must accept a cross-SOP loop in `B` targeting `A` when plan is
+    `A B A` — the leading `A` precedes `B`, so the back-edge is valid
+    even though the trailing `A` does not (PR #59 Codex review P2 #5)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-A.md", "TST", "2100", "A")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-B.md",
+        "TST",
+        "2200",
+        "B",
+        to_ref="TST-2100.1",
+    )
+
+    runner = CliRunner()
+    # Compose A, B, A — A appears twice. Loop in B targets A.1.
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "TST-2100",
+            "TST-2200",
+            "TST-2100",
+            "--root",
+            str(tmp_path),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, (
+        f"D4 rejected valid back-edge across repeated SOP: {result.output}"
+    )
+
+
+def test_plan_cross_sop_still_rejects_when_all_target_occurrences_after_source(
+    tmp_path,
+):
+    """D4 still rejects a cross-SOP loop when ALL target occurrences come
+    AFTER the source (regression for the any-precedes-source semantics)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_simple_sop(rules / "TST-2100-SOP-A.md", "TST", "2100", "A")
+    _write_sop_with_cross_sop_loop(
+        rules / "TST-2200-SOP-B.md",
+        "TST",
+        "2200",
+        "B",
+        to_ref="TST-2100.1",
+    )
+
+    runner = CliRunner()
+    # Compose B first, then A twice — A only appears AFTER B.
+    result = runner.invoke(
+        cli,
+        [
+            "plan",
+            "TST-2200",
+            "TST-2100",
+            "TST-2100",
+            "--root",
+            str(tmp_path),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0
+    assert "back-edges only" in result.output
+
+
 def test_graph_layout_without_graph_errors(sample_project, monkeypatch):
     """--graph-layout without --graph raises UsageError (same coupling as --graph-format)."""
     monkeypatch.chdir(sample_project)
