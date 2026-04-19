@@ -1,16 +1,31 @@
 """Nested-layout ASCII DAG renderer for `af plan --graph` (FXA-2218).
 
-Default under ``--graph-layout=nested`` (flag added in Commit 7). Emits an
-ASCII DAG: each SOP is an outer phase-box containing inner step-boxes with
-``▼`` connectors; intra-SOP loops render as right-side vertical tracks
-inside the phase box; cross-SOP loops render as right-side vertical tracks
-that extend **outside** the phase boxes, in a dedicated track column per
-loop, spanning from the target step's box in an earlier phase down to the
-source step's box in a later phase.
+Default under ``--graph-layout=nested``. Emits an ASCII DAG: each SOP is an
+outer phase-box containing inner step-boxes with ``▼`` connectors.
+
+Loop rendering (v1, FXA-2218):
+
+- **Intra-SOP loops** render as a dedicated ``🔁 → N.M max K cond``
+  annotation line inside the phase box, immediately below the source
+  step's box.
+- **Cross-SOP loops** (exactly one in the composed plan) render as a
+  right-side vertical track that leaves the source phase box, traverses
+  the inter-phase gutter, and re-enters the target phase box at the
+  target step's row. ``◄───┐`` at target, ``│`` at intermediate rows,
+  ``───┘ max N cond`` at source.
+- **Multiple cross-SOP loops** (≥ 2 in the composed plan) fall back to
+  inline ``🔁 → PREFIX-ACID.step max N cond`` annotations on each
+  source step's content row, to the right of the phase-box border. This
+  avoids the multi-track overlap corruption where later tracks' vertical
+  pipes would clobber earlier tracks' suffix text. Full interval-graph
+  column packing is deferred to a follow-up PRP.
+- **Same-step multi-loop**: when a single step has more than one
+  outbound loop (intra or cross), annotations are joined with `` ; ``
+  on the same row — no silent data loss (R3 fix).
 
 Reuses only the visual-width / padding / truncation primitives from
 ``core.ascii_graph``; all layout logic (nested boxes, cross-SOP track
-routing, track column allocation) is net-new.
+routing, inline fallback) is net-new.
 """
 
 from __future__ import annotations
@@ -103,16 +118,16 @@ def _render_phase(
     phase: PhaseDict,
     step_row_index: dict[tuple[int, int], int],
     canvas_row_offset: int,
-    intra_sop_annotations: dict[int, str] | None = None,
+    intra_sop_annotations: dict[int, list[str]] | None = None,
 ) -> list[str]:
     """Render a single phase as a list of lines (each exactly ``_PHASE_BOX_WIDTH``
     cells wide). Populates ``step_row_index[(phase_num, step_index)]`` with the
     row index (in the combined canvas) of each step's content row.
 
-    ``intra_sop_annotations`` maps 1-based step index to an annotation string
-    (e.g. ``"🔁 → 2.1 max 3 if fail"``) emitted on a dedicated annotation line
-    immediately below the step-box bottom. Cross-SOP loops inline-fall-back
-    is handled separately in ``_overlay_inline_cross_sop`` (FXA-2218 R2).
+    ``intra_sop_annotations`` maps 1-based step index to a **list** of
+    annotation strings — one per intra-SOP loop originating at that step.
+    Multiple loops from the same step are joined with `` ; `` on the
+    annotation line (FXA-2218 R3 — no silent data loss).
     """
     annotations = intra_sop_annotations or {}
     lines: list[str] = []
@@ -144,10 +159,13 @@ def _render_phase(
         lines.append(f"│{pad_left}{middle}{pad_right}│")
         lines.append(f"│{pad_left}{bottom}{pad_right}│")
 
-        # Intra-SOP loop annotation line below the step-box (if any).
-        annotation = annotations.get(step["index"])
-        if annotation is not None:
-            ann = _truncate_visual(annotation, _PHASE_INNER - 4)
+        # Intra-SOP loop annotation line below the step-box. Multiple loops
+        # on the same source step join with " ; " so none are silently lost
+        # (FXA-2218 R3 — same-source multi-loop fix).
+        step_annotations = annotations.get(step["index"], [])
+        if step_annotations:
+            joined = " ; ".join(step_annotations)
+            ann = _truncate_visual(joined, _PHASE_INNER - 4)
             ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
             lines.append(f"│ {ann_padded} │")
 
@@ -159,13 +177,14 @@ def _render_phase(
     return lines
 
 
-def _build_intra_sop_annotations(phase: PhaseDict, phase_num: int) -> dict[int, str]:
-    """Return ``{from_step: annotation_text}`` for every intra-SOP loop in
-    this phase. Used by ``render_dag`` to show intra-SOP loops as inline
-    annotation lines rather than vertical tracks inside the phase-box
-    (FXA-2218 R2 — Codex-blocked silent omission fix).
+def _build_intra_sop_annotations(
+    phase: PhaseDict, phase_num: int
+) -> dict[int, list[str]]:
+    """Return ``{from_step: [annotation_text, ...]}`` for every intra-SOP
+    loop in this phase. Multiple loops from the same step accumulate into
+    the list (FXA-2218 R3 — no silent data loss).
     """
-    annotations: dict[int, str] = {}
+    annotations: dict[int, list[str]] = {}
     for loop in phase.get("loops", []):
         if not isinstance(loop.to_step, int):
             continue
@@ -173,7 +192,8 @@ def _build_intra_sop_annotations(phase: PhaseDict, phase_num: int) -> dict[int, 
         suffix = f"max {loop.max_iterations}"
         if cond:
             suffix += f" {cond}"
-        annotations[loop.from_step] = f"🔁 → {phase_num}.{loop.to_step} {suffix}"
+        text = f"🔁 → {phase_num}.{loop.to_step} {suffix}"
+        annotations.setdefault(loop.from_step, []).append(text)
     return annotations
 
 
@@ -303,12 +323,13 @@ def _overlay_inline_cross_sop(
     step_row_index: dict[tuple[int, int], int],
 ) -> list[str]:
     """Fallback for multi-loop cross-SOP rendering: emit an inline annotation
-    on each source step's content row instead of drawing tracks. The
-    annotation appears to the right of the phase-box, never crossing any
-    other loop's rendering.
+    on each source step's content row instead of drawing tracks. Multiple
+    loops originating at the same source step are joined with `` ; `` so
+    none are silently lost (FXA-2218 R3).
     """
-    # Compute max line width so every annotation fits.
-    annotations: dict[int, str] = {}
+    # Accumulate annotations keyed by source row — a list per row to
+    # preserve all loops that share a source step.
+    annotations_by_row: dict[int, list[str]] = {}
     for _src_phase_num, loop, _tgt_phase_num, _tgt_step in cross_loops:
         src_row = step_row_index.get((_src_phase_num, loop.from_step))
         if src_row is None:
@@ -317,15 +338,22 @@ def _overlay_inline_cross_sop(
         suffix = f"max {loop.max_iterations}"
         if cond:
             suffix += f" {cond}"
-        annotations[src_row] = f"  🔁 → {loop.to_step} {suffix}"
+        annotations_by_row.setdefault(src_row, []).append(
+            f"🔁 → {loop.to_step} {suffix}"
+        )
 
-    if not annotations:
+    if not annotations_by_row:
         return canvas
 
-    max_ann_len = max(len(a) for a in annotations.values())
+    # Render each row's annotation list as a " ; "-joined string prefixed
+    # by gutter spacing.
+    rendered: dict[int, str] = {
+        row: "  " + " ; ".join(texts) for row, texts in annotations_by_row.items()
+    }
+    max_ann_len = max(len(a) for a in rendered.values())
     target_width = _PHASE_BOX_WIDTH + _TRACK_GUTTER + max_ann_len
     canvas = [_pad_visual(line, target_width) for line in canvas]
-    for row, annotation in annotations.items():
+    for row, annotation in rendered.items():
         canvas[row] = _overwrite_at(canvas[row], _PHASE_BOX_WIDTH, annotation)
     return canvas
 

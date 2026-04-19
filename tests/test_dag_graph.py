@@ -334,6 +334,74 @@ class TestIntraSopInlineAnnotation:
         assert ann_line.endswith("│")
 
 
+class TestSameStepMultiLoop:
+    def test_same_step_two_intra_sop_loops_both_render(self):
+        """A single step with two outbound intra-SOP loops renders both —
+        no silent data loss (FXA-2218 R3 fix for the dict-overwrite bug)."""
+        phases = [
+            _phase(
+                "COR-1602",
+                [_step(1, "Start"), _step(2, "Verify"), _step(3, "Gate", gate=True)],
+                loops=[
+                    LoopSignature(
+                        id="r1",
+                        from_step=3,
+                        to_step=1,
+                        max_iterations=3,
+                        condition="if code fail",
+                    ),
+                    LoopSignature(
+                        id="r2",
+                        from_step=3,
+                        to_step=2,
+                        max_iterations=5,
+                        condition="if verify fail",
+                    ),
+                ],
+            ),
+        ]
+        out = render_dag(phases)
+        # Both loops present in the output (may be truncated for display
+        # but the "target step" portion of each should remain visible).
+        assert "🔁 → 1.1 max 3" in out
+        # Second loop's target + max shows up (condition may truncate).
+        assert "🔁 → 1.2 max 5" in out
+        # Joiner between the two annotations
+        assert " ; " in out
+
+    def test_same_step_two_cross_sop_loops_both_render(self):
+        """Same step with two cross-SOP loops → inline fallback preserves
+        both via " ; " joiner (FXA-2218 R3 fix)."""
+        phases = [
+            _phase("COR-1500", [_step(1, "A"), _step(2, "B")]),
+            _phase(
+                "COR-1602",
+                [_step(1, "Gate", gate=True)],
+                loops=[
+                    LoopSignature(
+                        id="cx1",
+                        from_step=1,
+                        to_step="COR-1500.1",
+                        max_iterations=3,
+                        condition="if code fail",
+                    ),
+                    LoopSignature(
+                        id="cx2",
+                        from_step=1,
+                        to_step="COR-1500.2",
+                        max_iterations=5,
+                        condition="if review fail",
+                    ),
+                ],
+            ),
+        ]
+        out = render_dag(phases)
+        assert "🔁 → COR-1500.1 max 3 if code fail" in out
+        assert "🔁 → COR-1500.2 max 5 if review fail" in out
+        # Joined on same row with " ; "
+        assert " ; " in out
+
+
 class TestNoOrphanArrowOnTrailingEmptyPhase:
     def test_last_phase_with_no_steps_skipped_without_orphan_arrow(self):
         """If the last phase has no Steps section, the inter-phase ▼ that
