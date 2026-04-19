@@ -122,6 +122,9 @@
 | 2210 | PRP | Close three edge arm coverage gaps with tests |
 | 2211 | CHG | Close three edge arm coverage gaps with tests |
 | 2212 | REF | Evolve Seed ASCII DAG Graph Layout |
+| 2213 | REF | Evolve Run 20260419 094124 |
+| 2214 | PRP | Bundle N2 N3 C4 plan cmd parser area int edges |
+| 2215 | CHG | Bundle N2 N3 plan cmd parser edge tests |
 
 ---
 
