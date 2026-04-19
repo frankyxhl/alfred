@@ -1913,3 +1913,76 @@ Test.
     assert "step index 3" in result.output
     # Found set is still {1, 2} — all fence contents ignored.
     assert "{1, 2}" in result.output
+
+
+def test_validate_cross_sop_fence_length_must_match_or_exceed(tmp_path):
+    """D3 must honor CommonMark fence-length rules: a fence opened with 4
+    backticks is NOT closed by 3 backticks inside it (PR #59 Codex review
+    P2 #8). Closer must be the same delimiter char AND have length >=
+    opener length."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Target SOP: ````-fenced block (4 backticks) with a 3-backtick line
+    # inside. Real steps are {1, 2}. "3. fake" between the 3-tick line
+    # and the 4-tick closer must not count.
+    target_content = """# SOP-2200: 4-Tick Fence
+
+**Applies to:** Test
+**Last updated:** 2026-04-19
+**Last reviewed:** 2026-04-19
+**Status:** Active
+
+---
+
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Real step one
+
+````markdown
+3. fake step inside the 4-tick fence
+```
+4. still inside fence (3-tick line is content)
+````
+
+2. Real step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-19 | Initial | — |
+"""
+    (rules_dir / "TST-2200-SOP-Target.md").write_text(target_content)
+
+    _write_sop_with_cross_sop_loop(
+        rules_dir / "TST-2100-SOP-Source.md",
+        "TST",
+        "2100",
+        "Source",
+        to_ref="TST-2200.3",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "step index 3" in result.output
+    assert "{1, 2}" in result.output
