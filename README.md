@@ -92,6 +92,15 @@ baseline (e.g., COR-1103 routing), and topologically orders the result via
 terminal-friendly) and a fenced Mermaid block (pasteable into GitHub / Obsidian).
 Use `--graph-format={ascii,mermaid,both}` to pick one.
 
+**`--graph-layout={nested,flat}`** (v1.7.0+, ASCII-only) chooses the DAG shape.
+The default **`nested`** layout draws each SOP as an outer phase-box containing
+inner step-boxes with `▼` connectors. Intra-SOP loops render as a `🔁 → N.M max K`
+annotation line inside the phase box. Cross-SOP loops — declared via
+`Workflow loops: [{from: N, to: "PREFIX-ACID.step", ...}]` metadata — render as a
+right-side vertical track (`◄───┐ ... ───┘ max N`) that spans phase boundaries.
+**`flat`** restores the v1.6.x layout (one phase-box per SOP, steps listed inside,
+intra-SOP loops only) for downstream tooling pinned on the legacy shape.
+
 See [COR-1202 (Compose Session Plan)](src/fx_alfred/rules/COR-1202-SOP-Compose-Session-Plan.md)
 for the canonical usage procedure.
 

@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.7.0 (2026-04-19)
+
+Feature release: ASCII DAG nested graph layout becomes the new default for `af plan --graph`, with cross-SOP loop metadata expressible for the first time. Full design trail in PRP FXA-2217 and CHG FXA-2218; 720 tests passing including 46+ new ones covering the widening surface and every edge caught during PR #59 review (12 rounds of GitHub bot feedback, all fixed with regression tests).
 
 ### New
 
