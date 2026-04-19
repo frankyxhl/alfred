@@ -199,3 +199,23 @@ def test_list_json_with_type_filter(sample_project, monkeypatch):
     # Should include ALF-2202 (SOP doc)
     acids = [d["acid"] for d in data]
     assert "2202" in acids
+
+
+def test_list_json_empty_result(sample_project, monkeypatch):
+    """--json emits exactly `[]` when filters match no documents.
+
+    Locks the public JSON contract — consumers rely on --json always producing
+    valid JSON, and an empty-array shape is the documented way to signal
+    zero matches. Closes coverage gap at list_cmd.py:66.
+    """
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    # "ZZ" is not a valid type_code, so filter matches nothing
+    result = runner.invoke(
+        cli, ["list", "--json", "--type", "ZZ"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert result.output == "[]\n"
+    assert json.loads(result.output) == []

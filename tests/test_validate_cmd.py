@@ -1336,3 +1336,27 @@ Missing Last reviewed.
     output = json.loads(result.output)
     invalid_doc_ids = [r["doc_id"] for r in output["results"] if not r["valid"]]
     assert "SOP-1000" in invalid_doc_ids
+
+
+def test_validate_history_header_early_return_arms():
+    """_validate_history_header returns the documented diagnostic on malformed input.
+
+    Exercises two early-return arms that user-visible behaviour depends on:
+    - len(lines) < 2 (validate_cmd.py:60): header text is empty / single-line only.
+    - not header_line (validate_cmd.py:70): multiple lines but no line starts with `|`.
+
+    Pins the exact diagnostic strings so a regression that replaces them with an
+    empty list (silently accepting malformed documents) is caught. Closes coverage
+    gap at validate_cmd.py:60, 70.
+    """
+    from fx_alfred.commands.validate_cmd import _validate_history_header
+
+    # Arm 1: empty input — .strip().split("\n") yields [""] (len == 1 < 2).
+    assert _validate_history_header("") == [
+        "Change History table header is missing or incomplete"
+    ]
+
+    # Arm 2: >= 2 lines but no line starts with `|`.
+    assert _validate_history_header("Trailing text only\nMore text\n") == [
+        "Change History table header is missing"
+    ]

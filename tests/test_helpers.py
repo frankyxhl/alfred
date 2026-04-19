@@ -172,6 +172,34 @@ def test_atomic_write_cleanup_on_failure(tmp_path):
         assert not Path(temp_path).exists(), f"Temp file {temp_path} should be removed"
 
 
+def test_atomic_write_double_failure_preserves_original_error(tmp_path):
+    """When both os.replace and os.unlink raise, the original replace error propagates.
+
+    The inner `except OSError: pass` arm at _helpers.py:86-87 swallows a failing
+    cleanup (os.unlink) so the ORIGINAL exception from os.replace is what reaches
+    the caller — not the unlink failure. Breaking this would silently change
+    which error an operator sees, masking the real cause of an atomic-write failure.
+    Closes coverage gap at _helpers.py:86-87.
+    """
+    from unittest.mock import patch
+
+    from fx_alfred.commands._helpers import atomic_write
+
+    file_path = tmp_path / "test.md"
+    content = "test content"
+
+    with (
+        patch("os.replace", side_effect=OSError("replace failed")),
+        patch("os.unlink", side_effect=OSError("unlink failed")) as mock_unlink,
+    ):
+        # Must match "replace failed" — the original error wins, not "unlink failed".
+        with pytest.raises(OSError, match="replace failed"):
+            atomic_write(file_path, content)
+
+    # Cleanup was attempted exactly once — proves the inner try/except arm ran.
+    mock_unlink.assert_called_once()
+
+
 def test_atomic_write_preserves_existing(tmp_path):
     """atomic_write preserves existing file content when os.replace fails."""
     from unittest.mock import patch
