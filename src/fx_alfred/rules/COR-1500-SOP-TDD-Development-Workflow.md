@@ -416,4 +416,4 @@ npm test -- --coverage --coverageThreshold='{"global":{"lines":80}}'
 | 2026-03-10 | Added --cov-fail-under to CI examples, clarified import omission in worked example (final 0.5 polish per GPT-5.2) | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1004 to ALF-2100 | Claude Code |
 | 2026-03-15 | Added Definition of Done (Cycle DoD + Phase DoD) and Progress Tracker template | Claude Code |
-| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why section per FXA-2223 | Claude Code |

@@ -80,4 +80,4 @@ Read the **What Is It?** section first for a quick summary, then drill into spec
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-14 | Initial version | Claude Code |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |

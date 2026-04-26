@@ -251,4 +251,4 @@ Prefix: FXA, Area: 21
 | 2026-03-19 | Initial version, based on FXA-2104/2105 PRP experience | Frank + Claude |
 | 2026-03-19 | Round 1 revision: added document type decision table, naming convention, full template, strict approval rules, COR-1606 reference | Frank + Claude |
 | 2026-03-19 | Round 2 revision: fixed strict-mode contradiction (Leader cannot approve-override), unified status to Implemented, fixed naming terminology | Frank + Claude |
-| 2026-03-20 | Added Why/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When NOT to Use sections per FXA-2223 | Claude Code |

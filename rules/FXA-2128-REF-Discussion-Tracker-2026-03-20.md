@@ -17,7 +17,7 @@ Discussion tracker for 2026-03-20 session.
 
 | # | Topic | Status | Outcome |
 |---|-------|--------|---------|
-| D1 | Team agent session resume after accidental stop | Done | ALF-2209 PRP created: /team resume + auto-detect + 30min window |
+| D1 | Team agent session resume after accidental stop | Done | FXA-2222 PRP created: /team resume + auto-detect + 30min window |
 | D2 | How to present COR-1201 commands in decision tree | Done | Added to FXA-2125 branch 7 with full command list |
 | D3 | Enforce review gate before commit | Done | FXA-2134 PRP approved: `af plan` command generates checklist from SOPs, making review steps visible and unskippable |
 | D4 | Gemini still gives 10/10 despite noting advisories | Done | COR-1611 Rule 5 strengthened: advisory → max 9.8, blocking → max 9.0, 10.0 only if zero notes on all dimensions |
@@ -33,7 +33,7 @@ Discussion tracker for 2026-03-20 session.
 - Gap: /team skill doesn't check for existing sessions before dispatch
 - Need PRP to design resume logic
 
-**Next:** Create ALF-level PRP after ALF-2208 review completes
+**Next:** Create PRJ-level PRP after FXA-2221 review completes
 
 ---
 

@@ -53,4 +53,4 @@ Shared calibration guide for all COR-1602 reviewers (Codex, Gemini, or any futur
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-03-20 | Initial version per ALF-2208. Merged from separate Codex/Gemini guides into single shared guide. | Frank + Claude Code |
+| 2026-03-20 | Initial version per FXA-2221. Merged from separate Codex/Gemini guides into single shared guide. | Frank + Claude Code |

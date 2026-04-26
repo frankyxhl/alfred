@@ -75,4 +75,4 @@ If both are yes → use the interactive selection tool.
 |------|--------|----|
 | 2026-03-17 | Initial version | Claude Code |
 | 2026-03-17 | Generalized to platform-agnostic principle, moved Claude Code specifics to COR-1404 | Claude Code |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |

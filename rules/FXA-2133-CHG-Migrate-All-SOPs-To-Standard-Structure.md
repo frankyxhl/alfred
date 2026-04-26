@@ -8,7 +8,7 @@
 **Requested by:** Frank
 **Priority:** Medium
 **Change Type:** Normal
-**Related:** ALF-2210, FXA-2131, FXA-2132
+**Related:** FXA-2223, FXA-2131, FXA-2132
 
 ---
 

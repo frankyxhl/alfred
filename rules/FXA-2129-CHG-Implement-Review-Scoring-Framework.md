@@ -8,13 +8,13 @@
 **Requested by:** Frank
 **Priority:** High
 **Change Type:** Normal
-**Related:** ALF-2208, COR-1602, COR-1102, COR-1103
+**Related:** FXA-2221, COR-1602, COR-1102, COR-1103
 
 ---
 
 ## What
 
-Create 4 new COR-level SOPs and update 3 existing ones per ALF-2208 PRP:
+Create 4 new COR-level SOPs and update 3 existing ones per FXA-2221 PRP:
 
 1. Create COR-1608-SOP-PRP-Review-Scoring.md
 2. Create COR-1609-SOP-CHG-Review-Scoring.md

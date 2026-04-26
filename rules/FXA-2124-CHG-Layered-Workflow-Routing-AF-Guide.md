@@ -8,13 +8,13 @@
 **Requested by:** Frank
 **Priority:** High
 **Change Type:** Normal
-**Related:** ALF-2206, COR-1103
+**Related:** FXA-2220, COR-1103
 
 ---
 
 ## What
 
-Implement ALF-2206 PRP: layered workflow routing with enhanced `af guide`. Four deliverables:
+Implement FXA-2220 PRP: layered workflow routing with enhanced `af guide`. Four deliverables:
 
 1. **Enhance `af guide`** — Change from static quick-start to dynamic routing output that scans PKG → USR → PRJ for `*-SOP-Workflow-Routing*.md` documents, filters by `Status: Active`, and outputs full content per layer
 2. **Move quick-start to `af --help`** — Current `templates/guide.md` content becomes CLI epilog

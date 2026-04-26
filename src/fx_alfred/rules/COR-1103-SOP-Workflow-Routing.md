@@ -198,7 +198,7 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 |------|--------|----|
 | 2026-03-20 | Initial version, replaces COR-1607. Intent-based router + golden rules per ALF-2205 PRP | Frank + Claude Code |
 | 2026-03-20 | Added USR/PRJ routing doc creation guide | Frank + Claude Code |
-| 2026-03-20 | Added Why/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When NOT to Use sections per FXA-2223 | Claude Code |
 | 2026-03-21 | Added workflow sequence diagram, af plan to ALWAYS, new SOP review overlay | Claude Code |
 | 2026-03-22 | Clarified af plan ALWAYS rule: per-response decision, not just session-start | Frank + Claude Code |
 | 2026-03-22 | Reduced "Creating Routing Documents" section to pointer → COR-1004 | GLM |

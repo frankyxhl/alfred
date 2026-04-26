@@ -121,4 +121,4 @@ All documents must be written in English. Discussions may happen in any language
 |------|--------|----|
 | 2026-03-08 | Initial version, converted from TEMPLATE-SOP.md | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1000 to COR-1001, removed template (moved to COR-1000), updated numbering system | Claude Code |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |

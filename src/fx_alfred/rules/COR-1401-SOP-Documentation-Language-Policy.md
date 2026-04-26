@@ -65,4 +65,4 @@ This policy applies to:
 |------|--------|----|
 | 2026-03-12 | Initial version | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1006 to ALF-2400 | Claude Code |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |

@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-03-21
 **Status:** Implemented
 **Reviewed by:** Codex 9.0, Gemini 9.9 (Round 3)
-**Related:** COR-1103, COR-1402, ALF-2210, D3 (FXA-2128)
+**Related:** COR-1103, COR-1402, FXA-2223, D3 (FXA-2128)
 
 ---
 

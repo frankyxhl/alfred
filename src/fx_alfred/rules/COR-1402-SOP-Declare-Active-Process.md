@@ -86,4 +86,4 @@ The declaration must include all applicable dimensions:
 |------|--------|----|
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-16 | Added plan-driven declaration format (SOP + PLN + Phase) based on field usage | Claude Code |
-| 2026-03-20 | Added When to Use/When NOT to Use sections, reordered Why section per ALF-2210 | Claude Code |
+| 2026-03-20 | Added When to Use/When NOT to Use sections, reordered Why section per FXA-2223 | Claude Code |

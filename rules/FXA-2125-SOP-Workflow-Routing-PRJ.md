@@ -118,7 +118,7 @@ This is a routing SOP — no procedural steps. The Project Decision Tree above i
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-03-20 | Initial version per ALF-2206 | Frank + Claude Code |
+| 2026-03-20 | Initial version per FXA-2220 | Frank + Claude Code |
 | 2026-03-20 | Rewritten: added project decision tree, project context, expanded golden rules | Frank + Claude Code |
 | 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration) | Claude Code |
 | 2026-03-21 | Added Steps section (routing SOP, no procedural steps) | Claude Code |
