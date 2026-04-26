@@ -1,6 +1,6 @@
-# PRP-2208: Standardized Review Scoring Framework
+# PRP-2221: Standardized Review Scoring Framework
 
-**Applies to:** ALF project
+**Applies to:** FXA project
 **Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-20
 **Status:** Implemented
@@ -16,7 +16,7 @@ A standardized scoring framework for COR-1602 reviews, with per-artifact-type sc
 
 ## Problem
 
-During today's session implementing FXA-2116, ALF-2205, and ALF-2206, we observed:
+During today's session implementing FXA-2116, ALF-2205, and FXA-2220, we observed:
 
 1. **Inconsistent dimensions** — Gemini used 7 weighted dimensions one round, 4 the next. Codex used 5 dimensions with a different schema. No two reviews used the same rubric.
 2. **Score inflation** — Gemini frequently gave 10/10 across all dimensions, while Codex scored the same artifact 5-8/10. The gap isn't about strictness — it's about undefined standards.

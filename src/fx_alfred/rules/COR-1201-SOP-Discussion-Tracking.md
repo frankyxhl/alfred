@@ -253,7 +253,7 @@ Before running COR-1200 (Session Retrospective):
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version | Frank + Claude |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |
 | 2026-04-02 | Added Session Start Protocol (Mandatory): always-on tracker loading, auto-increment algorithm, example; removed single-topic exception from When NOT to Use; updated When to Use to mandate every-session activation | Frank + Claude Code |
 | 2026-04-02 | R1 fix: Step 1 use content search (spaces not hyphens); Step 2a scan both Active+Archived for max DN; Step 2b clarify prefix/area lookup, concrete deferred carry-forward with import-first numbering; Step 3 handle bare D<n> edge case; reframe When NOT to Use as artifact precedence | Frank + Claude Code |
 | 2026-04-02 | R2 fix: Step 2a add empty-tracker fallback (next_d=1); fix format example (D1 no longer in both Active and Archived); carry-forward status explicitly Open | Frank + Claude Code |

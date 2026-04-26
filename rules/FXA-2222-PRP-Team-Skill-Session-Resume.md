@@ -1,10 +1,10 @@
-# PRP-2209: Team Skill Session Resume
+# PRP-2222: Team Skill Session Resume
 
-**Applies to:** ALF project
+**Applies to:** FXA project
 **Last updated:** 2026-03-22
 **Last reviewed:** 2026-03-20
 **Status:** Rejected
-**Related:** ALF-2202, ALF-2204
+**Related:** ALF-2202 (USR), ALF-2204 (USR)
 
 ---
 
@@ -57,7 +57,7 @@ Update `.team/sessions.json` schema to track session status:
   "codex": {
     "session_id": "019d...",
     "last_used": "2026-03-20T13:31:54",
-    "task_summary": "COR-1602 review of ALF-2208",
+    "task_summary": "COR-1602 review of FXA-2221",
     "status": "stopped"
   }
 }

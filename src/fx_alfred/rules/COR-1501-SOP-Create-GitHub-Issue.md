@@ -149,4 +149,4 @@ gh issue list
 |------|--------|----|
 | 2026-03-08 | Initial version | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1003 to ALF-2101 | Claude Code |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |

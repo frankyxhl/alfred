@@ -4,7 +4,7 @@
 **Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-20
 **Status:** Rejected
-**Related:** ALF-2206, FXA-2124, COR-1103
+**Related:** FXA-2220, FXA-2124, COR-1103
 
 ---
 
@@ -16,7 +16,7 @@ Add a shortcut command to quickly create workflow routing documents for USR and 
 
 ## Problem
 
-After ALF-2206, `af guide` scans three layers for routing documents (`*-SOP-Workflow-Routing*.md`). PKG is bundled in the package, but USR and PRJ need to be created manually on each machine/project:
+After FXA-2220, `af guide` scans three layers for routing documents (`*-SOP-Workflow-Routing*.md`). PKG is bundled in the package, but USR and PRJ need to be created manually on each machine/project:
 
 1. User must know the naming convention (`*-SOP-Workflow-Routing*.md`)
 2. User must know to set `Status: Active`

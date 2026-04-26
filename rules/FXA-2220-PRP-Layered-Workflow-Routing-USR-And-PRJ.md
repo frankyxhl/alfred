@@ -1,10 +1,10 @@
-# PRP-2206: Layered Workflow Routing USR And PRJ
+# PRP-2220: Layered Workflow Routing USR And PRJ
 
-**Applies to:** ALF project
+**Applies to:** FXA project
 **Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-20
 **Status:** Implemented
-**Related:** ALF-2205, COR-1103
+**Related:** ALF-2205 (USR), COR-1103
 
 ---
 

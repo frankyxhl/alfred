@@ -1,6 +1,6 @@
-# PRP-2210: Standardized SOP Section Structure
+# PRP-2223: Standardized SOP Section Structure
 
-**Applies to:** ALF project
+**Applies to:** FXA project
 **Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-20
 **Status:** Implemented

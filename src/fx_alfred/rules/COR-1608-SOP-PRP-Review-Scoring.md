@@ -68,4 +68,4 @@ Before scoring dimensions, check: **Are all Open Questions resolved?**
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-03-20 | Initial version per ALF-2208 | Frank + Claude Code |
+| 2026-03-20 | Initial version per FXA-2221 | Frank + Claude Code |

@@ -137,6 +137,6 @@ None — all resolved.
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-22 | Initial version | Frank + Claude Code |
-| 2026-03-22 | Round 1 fixes: resolved all OQs (Mermaid support, COR-1004 target, OQ-2 moved to Out of Scope), removed broken ALF-2206 reference | Frank + Claude Code |
+| 2026-03-22 | Round 1 fixes: resolved all OQs (Mermaid support, COR-1004 target, OQ-2 moved to Out of Scope), removed broken FXA-2220 reference | Frank + Claude Code |
 | 2026-03-22 | Round 2 fixes: added COR-1103 relationship + pointer strategy, normalized Mermaid rules, defined Steps content, justified COR-1004 vs COR-1103 expansion, added Risks section | Frank + Claude Code |
 | 2026-03-22 | Approved — Codex 9.23/10, Gemini 10.0/10, COR-1602 strict passed | Codex + Gemini |

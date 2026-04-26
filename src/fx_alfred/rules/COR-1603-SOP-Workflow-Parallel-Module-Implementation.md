@@ -179,5 +179,5 @@ Phase 3 (review):
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), output_retention: composable (D6), Workflow prefix (D5) | Claude Code |
-| 2026-03-20 | Added Why section per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |

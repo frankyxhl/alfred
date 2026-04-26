@@ -91,4 +91,4 @@ Reply with the number.
 |------|--------|----|
 | 2026-03-17 | Initial version, split from COR-1403 | Claude Code |
 | 2026-03-17 | Corrected: distinguish documented prompt-file tooling from open feature requests; clarify CLI behavior is environment-dependent | Claude Code |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |

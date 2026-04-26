@@ -257,7 +257,7 @@ pipx upgrade fx-alfred
 
 ## v0.11.0 (2026-03-20)
 
-### Standardized SOP Section Structure (ALF-2210)
+### Standardized SOP Section Structure (FXA-2223)
 - **SOP template updated** — 5W1H pattern: What Is It?, Why, When to Use, When NOT to Use, Steps
 - **`af validate` SOP section checking** — Validates required sections for SOP documents (USR/PRJ layers)
 - **COR-1103 updated** — "How to Read an SOP" golden rule + SOP section compliance overlay
@@ -274,7 +274,7 @@ pipx upgrade fx-alfred
 
 ## v0.10.0 (2026-03-20)
 
-### Review Scoring Framework (ALF-2208)
+### Review Scoring Framework (FXA-2221)
 - **COR-1608** — PRP Review Scoring rubric (6 weighted dimensions + OQ hard gate)
 - **COR-1609** — CHG Review Scoring rubric (5 dimensions, fallback for PLN/ADR)
 - **COR-1610** — Code Review Scoring rubric (5 dimensions)
@@ -294,7 +294,7 @@ pipx upgrade fx-alfred
 
 ## v0.9.0 (2026-03-20)
 
-### Layered Workflow Routing (ALF-2206)
+### Layered Workflow Routing (FXA-2220)
 - **`af guide` enhanced** — Dynamically scans PKG → USR → PRJ for routing documents (`*-SOP-Workflow-Routing*.md`), filters by `Status: Active`, outputs full content per layer with separator headers
 - **Quick-start moved** — Document naming, layer system, and create examples now in `af --help` epilog
 - **Failure handling** — Graceful handling of missing layers, deprecated docs, malformed docs, and multiple active docs per layer

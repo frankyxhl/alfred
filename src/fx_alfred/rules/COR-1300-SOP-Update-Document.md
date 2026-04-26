@@ -59,4 +59,4 @@ Consistent update procedures keep the document system auditable and prevent sile
 | Date | Change | By |
 |------|--------|----|
 | 2026-03-14 | Initial version | Claude Code |
-| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per ALF-2210 | Claude Code |
+| 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |

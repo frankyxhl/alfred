@@ -1,6 +1,6 @@
-# PRP-2211: Workflow Enforcement From Advisory To Mandatory
+# PRP-2224: Workflow Enforcement From Advisory To Mandatory
 
-**Applies to:** ALF project
+**Applies to:** FXA project
 **Last updated:** 2026-03-22
 **Last reviewed:** 2026-03-22
 **Status:** Approved
