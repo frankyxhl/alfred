@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.7.1 (2026-04-26)
+
+Patch release: housekeeping migration to resolve a duplicate-ACID block and consolidate the PRJ document namespace. No CLI behavior changes.
+
+### Changed
+
+- **PKG `COR-0002` (Document Format Contract)** — added Section Rule 4 clarifying that author-project ID attributions in `## Change History` rows (e.g. `per FXA-2223`) are PRJ-layer provenance from the document's authoring project and are not bundled in the package. Informational, not a broken reference. (FXA-2219 CHG)
+- **PKG `COR-*` Change-History attribution rewrites** — 29 historical attribution rows that previously cited `ALF-2210` / `ALF-2208` / `ALF-2206` (renamed PRJ docs in the `fx-alfred` repo) now cite `FXA-2223` / `FXA-2221` / `FXA-2220`. Same opacity to downstream users as before — these were always PRJ-only references — but consistent with the migration. (FXA-2219 CHG)
+
+### Internal (not in PyPI but part of the same release branch)
+
+- Migrated 6 ALF-prefixed PRJ docs in `fx_alfred/rules/` to the `FXA` prefix (PR #63). Resolves a duplicate-ACID error between USR `~/.alfred/ALF-2206` and PRJ `ALF-2206` that was blocking `af guide` / `af plan` / `af read`. PRJ now uses `FXA` exclusively; USR retains the `ALF` namespace.
+- Multi-model review (COR-1602): Codex 9.2 PASS, Gemini 9.9 PASS.
+
 ## v1.7.0 (2026-04-19)
 
 Feature release: ASCII DAG nested graph layout becomes the new default for `af plan --graph`, with cross-SOP loop metadata expressible for the first time. Full design trail in PRP FXA-2217 and CHG FXA-2218; 720 tests passing including 46+ new ones covering the widening surface and every edge caught during PR #59 review (12 rounds of GitHub bot feedback, all fixed with regression tests).
