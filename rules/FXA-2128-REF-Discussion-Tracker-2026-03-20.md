@@ -33,7 +33,7 @@ Discussion tracker for 2026-03-20 session.
 - Gap: /team skill doesn't check for existing sessions before dispatch
 - Need PRP to design resume logic
 
-**Next:** Create ALF-level PRP after FXA-2221 review completes
+**Next:** Create PRJ-level PRP after FXA-2221 review completes
 
 ---
 

@@ -81,6 +81,7 @@ Optional fields are allowed but not required. Templates pre-populate type-defaul
 1. Every document must have `## Change History` as the last section
 2. Change History must have a table with columns: Date, Change, By
 3. Body must be separated from metadata by `---`
+4. Change History entries may attribute changes to author-project IDs (e.g. `per FXA-2223`). These are PRJ-layer provenance from the document's authoring project and are not bundled in the package; downstream users will not find them via `af read`. This is informational, not a broken reference.
 
 ## Language
 
@@ -96,3 +97,4 @@ All documents must be written in English. See COR-1401 (Documentation Language P
 | 2026-03-22 | Added Language section referencing COR-1401 | GLM |
 | 2026-04-04 | Added Tags optional field for all types per FXA-2200 | Claude Code |
 | 2026-04-05 | Added Workflow input/output/requires/provides optional fields (SOP only) per FXA-2204 | GLM |
+| 2026-04-26 | Added Section Rule 4 clarifying author-project ID attribution in Change History per FXA-2219 | Claude Code |
