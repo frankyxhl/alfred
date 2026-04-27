@@ -382,29 +382,59 @@ def _render_lines(
     return "\n".join(out.lines)
 
 
+def _assert_uniform_width(out) -> None:
+    """Per Gemini PR #69 R2 advisory: hoist the I2 width-uniformity check
+    into a single helper so every golden inherits the guard for free."""
+    widths = {wcwidth.wcswidth(line) for line in out.lines}
+    assert len(widths) == 1, f"non-uniform line widths: {widths}\n" + "\n".join(
+        f"  ({wcwidth.wcswidth(line)}) {line!r}" for line in out.lines
+    )
+
+
+def _render_out(
+    siblings: list[tuple[int, str, str]],
+    *,
+    sibling_texts: list[str] | None = None,
+    converges_to: int | None = 4,
+    converges_to_text: str | None = "Continue",
+    box_width: int = 12,
+):
+    return render_branch(
+        _make_input(
+            siblings=siblings,
+            sibling_texts=sibling_texts,
+            converges_to=converges_to,
+            converges_to_text=converges_to_text,
+            box_width=box_width,
+        )
+    )
+
+
 def test_golden_2way_simple() -> None:
     """Golden: 2-way branch sanity check."""
-    rendered = _render_lines(siblings=[(3, "a", "ok"), (3, "b", "no")])
+    out = _render_out(siblings=[(3, "a", "ok"), (3, "b", "no")])
+    rendered = "\n".join(out.lines)
     # Must contain key topology markers.
     assert "┬" in rendered
     assert "ok" in rendered and "no" in rendered
     assert "┼" in rendered  # convergence
+    _assert_uniform_width(out)
 
 
 def test_golden_3way_simple() -> None:
     """Golden: 3-way branch matches PRP-2225 §Geometry algorithm sketch shape."""
-    rendered = _render_lines(
-        siblings=[(3, "a", "pass"), (3, "b", "fail"), (3, "c", "esc")]
-    )
+    out = _render_out(siblings=[(3, "a", "pass"), (3, "b", "fail"), (3, "c", "esc")])
+    rendered = "\n".join(out.lines)
     # Three tees in parent row, three labels, three sibling boxes, one join.
     assert rendered.count("┬") == 3
     assert "pass" in rendered and "fail" in rendered and "esc" in rendered
     assert "┼" in rendered
+    _assert_uniform_width(out)
 
 
 def test_golden_4way_at_hard_cap() -> None:
     """Golden: 4-way (the renderer's hard cap) renders without raising."""
-    rendered = _render_lines(
+    out = _render_out(
         siblings=[
             (3, "a", "p"),
             (3, "b", "f"),
@@ -412,28 +442,34 @@ def test_golden_4way_at_hard_cap() -> None:
             (3, "d", "x"),
         ]
     )
+    rendered = "\n".join(out.lines)
     assert rendered.count("┬") == 4
     assert "┼" in rendered
+    _assert_uniform_width(out)
 
 
 def test_golden_dangling() -> None:
     """Golden: terminal branch (no convergence) renders without join row."""
-    rendered = _render_lines(
+    out = _render_out(
         siblings=[(3, "a", "end1"), (3, "b", "end2")],
         converges_to=None,
         converges_to_text=None,
     )
+    rendered = "\n".join(out.lines)
     assert "┼" not in rendered  # no join
     assert "end1" in rendered and "end2" in rendered
+    _assert_uniform_width(out)
 
 
 def test_golden_cjk_truncation() -> None:
     """Golden: CJK label visibly truncated via wcwidth-aware cap."""
     long_cjk = "通过失败处理理理"  # 8×2 = 16 cells, exceeds 12 cap
-    rendered = _render_lines(siblings=[(3, "a", long_cjk), (3, "b", "ok")])
+    out = _render_out(siblings=[(3, "a", long_cjk), (3, "b", "ok")])
+    rendered = "\n".join(out.lines)
     # Original full label not present; truncation marker present.
     assert long_cjk not in rendered
     assert "ok" in rendered
+    _assert_uniform_width(out)
 
 
 def test_golden_audit_ledger_fixture() -> None:
