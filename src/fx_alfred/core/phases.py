@@ -11,18 +11,30 @@ if TYPE_CHECKING:
     from fx_alfred.core.workflow import LoopSignature
 
 
-class StepDict(TypedDict):
-    """A single step within a phase.
-
-    Attributes:
-        index: 1-based within-SOP step index.
-        text: Step text (already gate-markers-cleaned per PR 2).
-        gate: True if this step is a gate (⚠️).
-    """
+class _StepRequired(TypedDict):
+    """Required keys for StepDict — always present."""
 
     index: int
     text: str
     gate: bool
+
+
+class StepDict(_StepRequired, total=False):
+    """A single step within a phase.
+
+    Attributes:
+        index: 1-based within-SOP step index. For sub-stepped siblings
+            (e.g. `3a`, `3b`), all siblings share the parent integer (3).
+        text: Step text (already gate-markers-cleaned per PR 2).
+        gate: True if this step is a gate (⚠️).
+        sub_branch: Optional single letter (`"a"`, `"b"`, ...) for branch
+            siblings under FXA-2226 ``Workflow branches:`` schema. The key
+            is OMITTED for plain steps (Path B convention; never set to
+            ``None`` or any sentinel). Use ``step.get("sub_branch", "")`` for
+            deterministic format string concatenation.
+    """
+
+    sub_branch: str
 
 
 class LoopDict(TypedDict):

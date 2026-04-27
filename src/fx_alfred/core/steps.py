@@ -36,18 +36,27 @@ def extract_steps_section(body: str) -> str | None:
 def _parse_steps_for_json(section_text: str) -> list[StepDict]:
     """Extract steps as structured data for JSON output.
 
-    Returns list of {"index": int, "text": str, "gate": bool}.
-    Gate is true if step ends with "✓" or contains "[GATE]".
+    Returns list of StepDict shapes. Plain steps have keys
+    ``{"index", "text", "gate"}``; sub-stepped siblings (FXA-2226 Path B)
+    additionally carry ``"sub_branch"`` set to the suffix letter (``"a"``,
+    ``"b"``, ...). Gate is true if step ends with "✓" or contains "[GATE]".
+
+    Path B convention: plain steps OMIT the ``sub_branch`` key entirely;
+    it is never set to ``None`` or any sentinel.
     """
     steps: list[StepDict] = []
     for line in section_text.split("\n"):
         stripped = line.strip()
-        m = re.match(r"^(?:###\s+)?(\d+)\.\s+(.+)", stripped)
+        m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+(.+)", stripped)
         if m:
             index = int(m.group(1))
-            text = m.group(2)
+            sub_branch = m.group(2)  # None for plain; "a"/"b"/... for sub-steps
+            text = m.group(3)
             gate = text.endswith("✓") or "[GATE]" in text
-            steps.append({"index": index, "text": text, "gate": gate})
+            step: StepDict = {"index": index, "text": text, "gate": gate}
+            if sub_branch is not None:
+                step["sub_branch"] = sub_branch
+            steps.append(step)
     return steps
 
 
@@ -56,7 +65,11 @@ def _parse_steps_for_json(section_text: str) -> list[StepDict]:
 # lines inside indented code fences are **not** counted, keeping this
 # consistent with `workflow._parse_step_indices`. Shared via this module so
 # validate_cmd can use the same definition of "top-level step" (PR #59 P1).
-_TOP_LEVEL_STEP_RE = re.compile(r"^(?:###\s+)?(\d+)\.\s+")
+# FXA-2226 Path B: regex extended to also match sub-step lines like ``3a.`` so
+# ``parse_top_level_step_indices`` injects the parent integer (3) from each
+# sibling. The optional ``[a-z]?`` is OUTSIDE the int-capturing group, so the
+# captured group always yields a pure integer for ``int()`` casting.
+_TOP_LEVEL_STEP_RE = re.compile(r"^(?:###\s+)?(\d+)[a-z]?\.\s+")
 
 
 def _fence_run_length(stripped: str, ch: str) -> int:

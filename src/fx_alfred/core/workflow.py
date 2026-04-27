@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 import yaml
 
@@ -19,6 +20,7 @@ from fx_alfred.core.schema import (
     WORKFLOW_PROVIDES,
     WORKFLOW_REQUIRES,
     WORKFLOW_LOOPS,
+    WORKFLOW_BRANCHES,
 )
 
 # Token format per the CHG-2204 contract.
@@ -177,8 +179,11 @@ def check_composition(
 # FXA-2205: Loop metadata parsing and validation
 # ---------------------------------------------------------------------------
 
-# Regex to match numbered steps: "1. text" or "### 1. text"
-_STEP_INDEX_RE = re.compile(r"^(?:###\s+)?(\d+)\.\s+")
+# Regex to match numbered steps. FXA-2226 Path B: extended to also match
+# sub-step lines like ``3a.`` so ``_parse_step_indices`` injects the parent
+# integer (3) from each sibling. The optional ``[a-z]?`` is OUTSIDE the
+# int-capturing group, so ``int(m.group(1))`` always yields a clean int.
+_STEP_INDEX_RE = re.compile(r"^(?:###\s+)?(\d+)[a-z]?\.\s+")
 # Required keys in a loop declaration
 _LOOP_REQUIRED_KEYS = ("id", "from", "to", "max_iterations", "condition")
 # Cross-SOP loop reference — authored as "PREFIX-ACID.step" (FXA-2218 Commit 2).
@@ -218,6 +223,132 @@ class LoopSignature:
                 f"{self.to_step!r} does not match CROSS_SOP_REF"
             )
         return m.group("prefix"), m.group("acid"), int(m.group("step"))
+
+
+# ---------------------------------------------------------------------------
+# FXA-2226 Path B: Branch metadata parsing.
+#
+# `Workflow branches:` declares forward branches with edge labels. Schema:
+#
+#     Workflow branches:
+#       - from: 2
+#         to:
+#           - {id: 3a, label: pass}
+#           - {id: 3b, label: fail}
+#
+# Sub-step `id` values are split into ``parent`` (int — leading digits) and
+# ``branch`` (str — single trailing letter). Path B keeps types int-stable;
+# the branch suffix is exposed via a separate field.
+# ---------------------------------------------------------------------------
+
+# Sub-step ID format: one or more digits followed by a single letter.
+_BRANCH_TO_ID_RE = re.compile(r"^(?P<parent>\d+)(?P<branch>[a-z])$")
+
+
+class BranchTarget(NamedTuple):
+    """A single sibling of a forward branch.
+
+    ``parent`` is the integer step (e.g. ``3`` for ``3a``); ``branch`` is the
+    suffix letter (``"a"``); ``label`` is the edge label printed above the
+    branch arrow.
+    """
+
+    parent: int
+    branch: str
+    label: str
+
+
+@dataclass(frozen=True)
+class BranchSignature:
+    """Forward-branch declaration extracted from ``Workflow branches:`` metadata."""
+
+    from_step: int
+    to: tuple[BranchTarget, ...]
+
+
+def parse_workflow_branches(parsed: ParsedDocument) -> list[BranchSignature]:
+    """Parse the optional ``Workflow branches:`` metadata into BranchSignatures.
+
+    Returns ``[]`` when the field is absent or its value is empty.
+
+    Raises :class:`MalformedDocumentError` if the YAML is not a list, if any
+    entry is not a dict, if a required key is missing, or if any sub-step
+    ``id`` does not match ``\\d+[a-z]``.
+    """
+    field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
+    raw = field_map.get(WORKFLOW_BRANCHES)
+    if raw is None or not raw.strip():
+        return []
+
+    try:
+        data = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise MalformedDocumentError(
+            f"Workflow branches: invalid YAML — {exc}"
+        ) from exc
+
+    if data is None:
+        return []
+    if not isinstance(data, list):
+        raise MalformedDocumentError(
+            "Workflow branches: expected a YAML list of branch objects"
+        )
+
+    branches: list[BranchSignature] = []
+    for i, entry in enumerate(data):
+        if not isinstance(entry, dict):
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: expected a YAML mapping, got {type(entry).__name__}"
+            )
+        if "from" not in entry or "to" not in entry:
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: missing required key 'from' or 'to'"
+            )
+        from_step_raw = entry["from"]
+        if isinstance(from_step_raw, bool) or not isinstance(from_step_raw, int):
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: 'from' must be an integer step index"
+            )
+        to_raw = entry["to"]
+        if not isinstance(to_raw, list) or not to_raw:
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: 'to' must be a non-empty list of "
+                f"{{id, label}} entries"
+            )
+        targets: list[BranchTarget] = []
+        for j, target_raw in enumerate(to_raw):
+            if not isinstance(target_raw, dict):
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: expected a mapping"
+                )
+            target_id = target_raw.get("id")
+            if not isinstance(target_id, str):
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: 'id' must be a string "
+                    f"matching '\\d+[a-z]'"
+                )
+            m = _BRANCH_TO_ID_RE.match(target_id)
+            if m is None:
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: 'id' {target_id!r} "
+                    f"does not match '\\d+[a-z]'"
+                )
+            label = target_raw.get("label", "")
+            if not isinstance(label, str):
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: 'label' must be a string"
+                )
+            targets.append(
+                BranchTarget(
+                    parent=int(m.group("parent")),
+                    branch=m.group("branch"),
+                    label=label,
+                )
+            )
+        branches.append(
+            BranchSignature(from_step=int(from_step_raw), to=tuple(targets))
+        )
+    return branches
 
 
 @dataclass(frozen=True)
