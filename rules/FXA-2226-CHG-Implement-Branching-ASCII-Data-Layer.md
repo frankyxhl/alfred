@@ -26,21 +26,45 @@ PRP-2225 was approved 2026-04-27 (Codex 9.2 + Gemini 9.30 PASS). The original CH
 
 The split also surfaces a fact issue worth recording (see "Supersedes" below): PRP-2225 described the `--json` step-ID change as "int → str breaking" — but `af plan --json` already emits `"index"` as a string (e.g. `"1.1"`, `"2.1"`) since v1.6.x. There is no breaking change to public output; the int → str migration is purely internal type widening.
 
-## Supersedes (PRP-2225 fact correction)
+## JSON output schema delta (this CHG)
 
-PRP-2225 §"Migration Impact Table" and §"Risks" describe the `--json` step-ID type change as a breaking output change requiring a `--json-legacy-step-ids` shim and a deprecation runway. **Empirical verification on v1.7.1 contradicts this:**
+Round 2 review (Gemini) caught a factual defect in the prior "Supersedes" framing: `af plan --json` has **two distinct `index` fields**, not one, and they have different current types. Empirical verification on v1.7.1:
 
+| JSON path | Current type (v1.7.1) | After this CHG |
+|---|---|---|
+| `phases[].steps[].index` | **`int`** (raw `StepDict.index`) | `int` for legacy SOPs (all integer steps); `str` for sub-stepped SOPs only — **shim at JSON emit boundary**, see below |
+| `todo[].index` | `str` (e.g. `"1.1"`, dotted form) | `str` (format extended to `"2.3a"` for sub-stepped SOPs) |
+
+`plan_cmd.py:322/334/369` emits `todo[].index` via `f"{phase_num}.{step_idx}"` — already a string. That field's behavior is unchanged.
+
+`phases[].steps[].index` IS currently `int`. Naively widening the internal `StepDict.index` to `str` (Phase 1A) would cause `phases[].steps[].index` to flip type for legacy consumers, which IS a breaking change.
+
+### Resolution: JSON-emit-boundary shim (preserves backward compatibility)
+
+The internal type widening is needed (sub-step IDs like `"3a"` can't fit in `int`). But the JSON emit path can preserve `int` output for legacy step IDs:
+
+```python
+# In plan_cmd.py, where StepDict.index is serialized to JSON:
+def _emit_step_index(idx: str) -> int | str:
+    return int(idx) if idx.isdigit() else idx
 ```
-$ af plan --task "..." COR-1500 --todo --json
-{"index": "1.1", "sop": "COR-1103", ...}
-{"index": "2.1", "sop": "COR-1402", ...}
-```
 
-`plan_cmd.py:322/334/369` emits `"index"` via `f"{phase_num}.{step_idx}"` — already a string. After this CHG's type widening, sub-stepped plans emit `"index": "2.3a"` — still a string, format extended from `"phase.step"` to `"phase.stepLetter"`. **Any consumer correctly parsing the current string format auto-handles the new format.** No SemVer issue; no shim needed.
+Result:
+- Legacy SOPs (all integer steps `1`, `2`, `3`) emit `phases[].steps[].index = 1` (int) — **identical to v1.7.1**
+- Sub-stepped SOPs (introducing `3a`/`3b`) emit `phases[].steps[].index = "3a"` (str) — **only paths newly capable of producing sub-step IDs see strings**
 
-This CHG therefore drops the `--json-legacy-step-ids` shim entirely. v1.8.0 (CHG-2227 release) ships as a regular minor version with no breaking-change disclaimer.
+Since no SOP currently uses `Workflow branches:` (the schema doesn't exist yet until this CHG), no existing consumer ever sees a string in `phases[].steps[].index` until it explicitly opts into the new schema. Backward-compatible by construction.
 
-The `StepDict.index: int → str` widening is real but it's an *internal* TypedDict field, not a JSON output contract. Migration Impact Table covers the internal sites; nothing leaks to the CLI surface.
+CHG-2227 (Presentation Layer) keeps this shim through v1.8.0 release; v1.9.0 (or later) can remove it once consumers migrate.
+
+This CHG therefore does NOT introduce a breaking change to `--json` output. v1.8.0 (CHG-2227 release) ships as a regular minor version. PRP-2225's original "int → str breaking" framing was located on the wrong field (`todo[].index` is unchanged); this CHG corrects the location and adds the boundary shim.
+
+## Supersedes / corrects PRP-2225
+
+| PRP-2225 said | Corrected here |
+|---|---|
+| `--json` step-ID change is breaking, requires shim + deprecation runway | Two distinct fields. `todo[].index` is unchanged. `phases[].steps[].index` is preserved-int for legacy SOPs via emit-boundary shim; only sub-stepped SOPs (which require explicit opt-in via new `Workflow branches:` schema) see new string form. No breaking change for existing consumers. |
+| Migration Impact Table marks JSON output as a breaking surface | Migration Impact Table is correct on internal type widening; JSON output preserves backward compat via shim. |
 
 ## Impact
 
@@ -48,16 +72,17 @@ The `StepDict.index: int → str` widening is real but it's an *internal* TypedD
 
 | File | Nature | Estimated LOC |
 |---|---|---|
-| `src/fx_alfred/core/steps.py` | Extend regex `(\d+)\.` → `(\d+[a-z]?)\.` (parser/storage form, optional suffix); drop `int()` cast on line 47; `parse_top_level_step_indices` returns `frozenset[str]` | ~30 |
-| `src/fx_alfred/core/phases.py` | `StepDict.index: int → str` (internal TypedDict; not user-facing) | ~5 |
-| `src/fx_alfred/core/workflow.py` | `_parse_step_indices` returns `frozenset[str]`; `CROSS_SOP_REF` regex extends to `\d+[a-z]?`; `LoopSignature.from_step` / `to_step` typed `int → str`; `parse_workflow_loops` accepts both legacy int and new str (canonicalizing to str internally); new `parse_workflow_branches` parser; new `BranchSignature` dataclass; new `validate_branches` for the validator | ~80 |
-| `src/fx_alfred/commands/plan_cmd.py` | `_classify_step(step_idx: str)`; loop dict keys `dict[int, ...] → dict[str, ...]` at lines 191/208/209/278/283/344. **`--json` emit path unchanged** — `f"{phase_num}.{step_idx}"` already produces strings; sub-stepped output naturally extends to `"2.3a"` form. | ~25 |
+| `src/fx_alfred/core/steps.py` | Extend regex `(\d+)\.` → `(\d+[a-z]?)\.` (parser/storage form, optional suffix); drop `int()` cast (line `:48` on main HEAD); `parse_top_level_step_indices` returns `frozenset[str]` | ~30 |
+| `src/fx_alfred/core/phases.py` | `StepDict.index: int → str` (internal TypedDict; backward-compat preserved at JSON emit boundary — see "JSON output schema delta" above) | ~5 |
+| `src/fx_alfred/core/workflow.py` | `_parse_step_indices` returns `frozenset[str]`; `CROSS_SOP_REF` regex extends to `\d+[a-z]?`; new `parse_workflow_branches` parser; new `BranchSignature` dataclass; new `validate_branches` for the validator. **`LoopSignature.from_step / to_step` REMAIN `int`** in this CHG — Codex Round 2 caught that widening them would break renderer call sites at `dag_graph.py:189`, `mermaid.py:153`, `ascii_graph.py:266` that filter loops via `isinstance(int)` or numeric comparison. The `Workflow branches:` schema and sub-step IDs are independent of the loop schema, so this CHG can ship branches support without touching loops. CHG-2227 widens loop types alongside the renderer touches that consume them. | ~60 |
+| `src/fx_alfred/commands/plan_cmd.py` | `_classify_step(step_idx: str)` for plain-step parameter typing; loop dict keys remain `dict[int, ...]` (loop types unchanged in this CHG). **JSON emit path:** add `_emit_step_index(idx)` shim at `phases[].steps[].index` serialization point — preserves `int` for legacy step IDs, emits `str` only for sub-step IDs (which can only exist when `Workflow branches:` is declared, opt-in by definition). `todo[].index` field unchanged (already string via `f"{phase_num}.{step_idx}"`). | ~25 |
 | `src/fx_alfred/commands/validate_cmd.py` | New cross-checks for `Workflow branches` (per PRP §7); call site at line 324 already string-vs-string after steps.py change | ~30 |
 
 **Not modified in this CHG** (deferred to CHG-2227):
-- `core/dag_graph.py`, `core/ascii_graph.py`, `core/mermaid.py` — renderer-side `step_idx` audit
+- `core/dag_graph.py`, `core/ascii_graph.py`, `core/mermaid.py` — renderer-side `step_idx` audit AND `LoopSignature.to_step` consumer migration (`dag_graph.py:189`, `mermaid.py:153`, `ascii_graph.py:266` — three call sites that currently use `isinstance(int)` or numeric comparison)
+- `LoopSignature.from_step` / `to_step` widening — moves to CHG-2227 alongside the renderer touches that consume them (avoids the silent loop-rendering regression Codex Round 2 caught)
 - New file `core/branch_geometry.py` — branch+convergence rendering primitive
-- Any user-visible behavior change
+- Any user-visible behavior change to loop or branch rendering
 
 ### New files
 
@@ -108,21 +133,22 @@ Per COR-1500 (TDD Development Workflow). Phase 1 split into 1A/1B per Codex Roun
 
 **Exit:** All tests pass; `pyright src/` clean; commit boundary: `parser: widen step IDs to str (1A)`.
 
-### Phase 1B — Workflow + branches schema (`workflow.py`)
+### Phase 1B — Workflow branches schema + step-indices widening (`workflow.py`)
 
 **RED:**
 - `tests/test_workflow.py::test_step_indices_returns_frozenset_str` — sub-stepped fixture returns `{"1","2","3a","3b","4"}`
 - `tests/test_workflow.py::test_legacy_int_step_indices_unchanged` — all-integer fixture returns `{"1","2","3"}` (str-form)
-- `tests/test_workflow.py::test_loop_signature_accepts_str_steps` — `LoopSignature.from_step` / `to_step` round-trip through str
 - `tests/test_workflow.py::test_cross_sop_ref_accepts_substep` — `CROSS_SOP_REF` regex matches `COR-1500.3a`
+- `tests/test_workflow.py::test_loop_signature_unchanged` — `LoopSignature.from_step` / `to_step` types and parsing unchanged from v1.7.1 (path A constraint)
+- `tests/test_workflow.py::test_existing_loop_rendering_regression_suite` — full nested + flat + Mermaid loop fixtures stay byte-identical to pre-CHG output
 - `tests/test_workflow_branches.py::test_parse_simple_3way` — load `branches_3way.md`; `parse_workflow_branches(parsed)` returns `[BranchSignature(from_step="2", to=[("3a","pass"),("3b","fail"),("3c","escalate")])]`
 - `tests/test_workflow_branches.py::test_branches_legacy_int_loops_unchanged` — SOPs without `Workflow branches:` parse identically; loop parsing unaffected
 
-**GREEN:** Implement `BranchSignature` dataclass; `parse_workflow_branches`; widen `LoopSignature` step types to `str`; canonicalize int → `str(int)` on parse. Update `_parse_step_indices` and `CROSS_SOP_REF`.
+**GREEN:** Implement `BranchSignature` dataclass; `parse_workflow_branches`; update `_parse_step_indices` to return `frozenset[str]`; extend `CROSS_SOP_REF` regex to `\d+[a-z]?`. **Do NOT widen `LoopSignature.from_step` / `to_step`** — they remain `int` per Codex Round 2. Loop parsing, validation, and renderer consumption are byte-identical to v1.7.1.
 
-**REFACTOR:** Sweep `src/fx_alfred/core/workflow.py` for `int(step` and `isinstance(.*step.*int)` patterns; audit any consumer not in the plan.
+**REFACTOR:** Sweep `src/fx_alfred/core/workflow.py` for `int(step` and `isinstance(.*step.*int)` patterns; audit any consumer not in the plan. Confirm no `LoopSignature` field types changed.
 
-**Exit:** All tests pass; commit boundary: `workflow: widen step types + add branches parser (1B)`.
+**Exit:** All tests pass; existing nested/flat/Mermaid loop fixtures byte-identical; commit boundary: `workflow: widen step indices to str + add branches parser (1B; loop types unchanged)`.
 
 ### Phase 2 — Validator (`validate_cmd.py` + `workflow.py::validate_branches`)
 
@@ -139,19 +165,21 @@ Per COR-1500 (TDD Development Workflow). Phase 1 split into 1A/1B per Codex Roun
 
 **Exit:** All tests pass; existing 720 + ~7 new = ~727 green; commit boundary: `validate: add Workflow branches cross-checks`.
 
-### Phase 6 (renamed from original) — Plan-builder type widening (`plan_cmd.py`)
+### Phase 6 (renamed from original) — Plan-builder + JSON-emit-boundary shim (`plan_cmd.py`)
 
-This is **not** a CLI surface change — `plan_cmd.py` consumes the new `LoopSignature` types and re-keys its internal dicts. `--json` output's `"index"` field is unchanged (already a string per `f"{phase_num}.{step_idx}"`); sub-stepped plans naturally produce `"2.3a"` form.
+`plan_cmd.py` consumes the widened `StepDict.index: str` and the new `BranchSignature` type. **Loop dict keys remain `dict[int, ...]`** since `LoopSignature` step types are unchanged in this CHG. `--json` output preserves backward compatibility via the JSON-emit-boundary shim documented in §"JSON output schema delta".
 
 **RED:**
-- `tests/test_plan_cmd.py::test_classify_step_accepts_str_idx` — function signature accepts `step_idx: str`
-- `tests/test_plan_cmd.py::test_loop_to_steps_str_keys` — `loop_to_steps.get("3a")` works after re-keying
-- `tests/test_plan_cmd.py::test_json_output_substep_index` — `--json` emits `{"index": "2.3a", "sop": "...", ...}` for sub-stepped plan
-- `tests/test_plan_cmd.py::test_json_output_legacy_unchanged` — all-integer plans emit `{"index": "1.1", ...}` unchanged from v1.7.1
+- `tests/test_plan_cmd.py::test_classify_step_accepts_str_idx` — `_classify_step(step_idx: str)` parameter typing
+- `tests/test_plan_cmd.py::test_loop_to_steps_int_keys_unchanged` — `loop_to_steps.get(3)` (int key) still works (LoopSignature unchanged)
+- `tests/test_plan_cmd.py::test_emit_step_index_int_for_legacy` — `_emit_step_index("1")` returns `1` (int, backward-compat for legacy SOPs)
+- `tests/test_plan_cmd.py::test_emit_step_index_str_for_substep` — `_emit_step_index("3a")` returns `"3a"` (str, only for sub-step IDs)
+- `tests/test_plan_cmd.py::test_json_output_legacy_byte_identical` — all-integer plans emit `phases[].steps[].index` as `int` AND `todo[].index` as `str` (`"1.1"`) — byte-identical to v1.7.1 snapshot
+- `tests/test_plan_cmd.py::test_json_output_substep_index` — sub-stepped plan emits `phases[].steps[].index = "3a"` (str) AND `todo[].index = "2.3a"` (str)
 
-**GREEN:** Update `_classify_step` signature; rekey loop dicts at `plan_cmd.py:191/208/209/278/283/344`.
+**GREEN:** Update `_classify_step` parameter typing; add `_emit_step_index(idx: str) -> int | str` helper at the JSON serialization point. Loop dicts unchanged.
 
-**Exit:** Full test suite green (~735 total); commit boundary: `plan: widen step idx to str through plan-builder`.
+**Exit:** Full test suite green (~735 total); commit boundary: `plan: step-index parameter typing + JSON-emit shim (legacy-compat preserved)`.
 
 ### No Phase 8/9/10 in this CHG
 
@@ -179,11 +207,12 @@ Coverage gates: every new public function has at least one test; every fixture i
 
 | Risk | Mitigation |
 |---|---|
-| Phase 1A widening breaks existing tests due to `int → str` ripple beyond enumerated sites | Self-audit grep before commit boundary; existing test suite is the safety net (any silent int-vs-str comparison surfaces as a failure) |
-| `LoopSignature.from_step` type change breaks FXA-2218 cross-SOP loop validator | Unit tests in Phase 1B cover `LoopSignature.cross_sop_target()` round-trip + cross-SOP membership check at `workflow.py:393` |
-| CHG-2227 (renderer) needs the data-layer types but lands on a different schedule | Per-phase commit boundaries in this CHG mean main always has a coherent type contract; CHG-2227 simply consumes whatever has merged |
+| Phase 1A widening breaks existing tests due to `int → str` ripple beyond enumerated sites | Self-audit grep (per MEMORY note `feedback_widening_refactor_self_audit.md`) before commit boundary: `git grep -nE "step_idx\|step_indices\|isinstance.*int.*step\|range\(.*step"` over `src/fx_alfred/`; audit any consumer not in the enumerated plan. Existing test suite is the secondary safety net. |
+| Phase 1B widening of `step_indices` to `frozenset[str]` breaks call-site behavior | Phase 1B specifically does NOT widen `LoopSignature.from_step` / `to_step` (kept as `int`) per Codex Round 2 — would otherwise break `dag_graph.py:189`, `mermaid.py:153`, `ascii_graph.py:266` consumers. Loop typing migration moves to CHG-2227 alongside the renderer touches. The Phase 1B regression test (`test_existing_loop_rendering_regression_suite`) asserts byte-identical loop output before/after this CHG. |
+| `phases[].steps[].index` JSON output type changes from `int` to `str` (Gemini Round 2) | JSON-emit-boundary shim in Phase 6: `_emit_step_index(idx)` returns `int(idx)` for legacy `\d+` IDs, `str` for sub-step IDs (only emitted when `Workflow branches:` opted in — schema doesn't exist for legacy SOPs). Existing consumers see byte-identical JSON; test `test_json_output_legacy_byte_identical` asserts this. Shim removable in v1.9.0+ once consumers migrate. |
+| CHG-2227 (renderer) needs the data-layer types but lands on a different schedule | Per-phase commit boundaries in this CHG mean main always has a coherent type contract; CHG-2227 picks up `LoopSignature` widening + renderer touches in one coordinated change |
 | Phase 2 validator surfaces invalid SOPs in the existing corpus | None expected (no SOP currently uses `Workflow branches:` since it doesn't exist yet); validator strict-mode default could miss edge cases — fix is to add the surfaced fixture to test suite |
-| Test-suite size grows ~21 tests; CI time creeps up | Negligible (existing 720 tests run in 5.7s; ~21 more is < 0.5s) |
+| Test-suite size grows ~22 tests; CI time creeps up | Negligible (existing 720 tests run in 5.7s; ~22 more is < 0.5s) |
 
 ---
 
@@ -199,3 +228,4 @@ Coverage gates: every new public function has at least one test; every fixture i
 |------|--------|----|
 | 2026-04-27 | Initial CHG drafted as 10-phase execution plan derived from PRP-2225. | Frank + Claude Code |
 | 2026-04-27 | Round 1 review: Codex 8.5 FIX, Gemini 8.5 FIX. Both reviewers independently endorsed splitting the 10-phase monolith into Data Layer + Presentation Layer CHGs. Empirical verification of `af plan --json` output on v1.7.1 also revealed PRP-2225's "int → str breaking" framing was based on an incorrect premise: `--json` already emits string `"index"` (e.g. `"1.1"`), so sub-stepped extension to `"2.3a"` is non-breaking. CHG rewritten as Data Layer only (Phases 1A, 1B, 2, 6); SemVer/disclaimer/JSON-shim discussion removed entirely. Phase 1 split into 1A/1B per Codex feedback. Per-phase commit boundaries replace original "single commit boundary" framing. Renderer + release deferred to CHG-2227. | Frank + Claude Code |
+| 2026-04-27 | Round 2 review: Codex 8.4 FIX, Gemini 6.7 FIX. Two factual defects caught (the second of which dropped Gemini's score by -1.8): (1) Gemini — Round 1's "Supersedes" overcorrection: `phases[].steps[].index` IS currently `int` (only `todo[].index` was already string); naive widening IS breaking. (2) Codex — Phase 1B widening `LoopSignature.from_step / to_step` to `str` would break 3 renderer call sites NOT modified in this CHG (`dag_graph.py:189`, `mermaid.py:153`, `ascii_graph.py:266` use `isinstance(int)` or numeric comparison) — silent loop-rendering regression between Phase 1B landing and CHG-2227 shipping. **Round 3 fixes (this revision):** (a) "Supersedes" rewritten as "JSON output schema delta" with both fields documented and a JSON-emit-boundary shim (`_emit_step_index`) in Phase 6 that preserves `int` for legacy step IDs and emits `str` only for sub-step IDs (which require explicit `Workflow branches:` opt-in). Backward-compatible by construction. (b) `LoopSignature` widening REMOVED from this CHG — moves to CHG-2227 alongside the renderer touches that consume it. Phase 1B test list adds `test_loop_signature_unchanged` and `test_existing_loop_rendering_regression_suite` to enforce the constraint. Risk table rewritten. Should fail self-audit grep WAS THE ROUND 1 PROCESS BUG (per MEMORY `feedback_widening_refactor_self_audit.md`); Phase 1A REFACTOR step now mandates the grep. Line-drift fix: `steps.py:47` → `:48`. | Frank + Claude Code |
