@@ -1,0 +1,145 @@
+"""Tests for FXA-2226 Phase 3 — plan_cmd.py todo[].index format extension.
+
+Phase 3 extends the dotted ``todo[].index`` format from
+``"phase.step"`` (e.g. ``"1.1"``) to ``"phase.stepLetter"`` (e.g.
+``"2.3a"``) for sub-stepped plans. The change is at
+``plan_cmd.py:286`` and ``:352``: the format string adds
+``step.get('sub_branch', '')`` so plain steps emit unchanged and
+sub-steps emit with the suffix appended.
+
+Plain plans must remain byte-identical to v1.7.1 for the
+``todo[].index`` field (legacy compatibility).
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from click.testing import CliRunner
+
+from fx_alfred.cli import cli
+
+
+def _create_sop_with_branches(rules_dir: Path) -> Path:
+    """Create a SOP that uses Workflow branches: schema (sub-stepped)."""
+    filename = "TST-9001-SOP-Branchy.md"
+    content = """# TST-9001: Branchy
+
+**Applies to:** Test
+**Status:** Active
+**Workflow branches:** [{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]
+---
+## What Is It?
+A test SOP exercising Workflow branches.
+## Steps
+1. Setup
+2. Decision
+3a. Pass branch
+3b. Fail branch
+4. Continue
+"""
+    filepath = rules_dir / filename
+    filepath.write_text(content)
+    return filepath
+
+
+def _create_sop_legacy(rules_dir: Path) -> Path:
+    filename = "TST-9002-SOP-Legacy.md"
+    content = """# TST-9002: Legacy
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+A test SOP without branches.
+## Steps
+1. Alpha
+2. Bravo
+3. Charlie
+"""
+    filepath = rules_dir / filename
+    filepath.write_text(content)
+    return filepath
+
+
+def test_todo_index_substep_format_in_json(sample_project, monkeypatch):
+    """Sub-stepped plan emits todo[].index = '<phase>.3a' for sub-steps."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_branches(rules_dir)
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    todo = data.get("todo", [])
+    indices = [item.get("index") for item in todo]
+    # Plain steps share `phase.N` form; sub-steps share `phase.Na` form.
+    assert any(idx.endswith(".3a") for idx in indices), (
+        f"expected at least one '*.3a' index, got {indices}"
+    )
+    assert any(idx.endswith(".3b") for idx in indices)
+    # All indices remain strings (Path B contract).
+    assert all(isinstance(idx, str) for idx in indices)
+
+
+def test_todo_index_legacy_unchanged_in_json(sample_project, monkeypatch):
+    """All-integer SOP emits todo[].index identical to pre-CHG format."""
+    rules_dir = sample_project / "rules"
+    _create_sop_legacy(rules_dir)
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(cli, ["plan", "TST-9002", "--todo", "--json"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    todo = data.get("todo", [])
+    indices = [item.get("index") for item in todo]
+    # Legacy SOPs: every index matches `^\d+\.\d+$` exactly (no suffix).
+    import re
+
+    legacy_pattern = re.compile(r"^\d+\.\d+$")
+    for idx in indices:
+        assert legacy_pattern.match(idx), (
+            f"legacy plan emitted non-legacy index {idx!r} — Path B byte-identity violated"
+        )
+
+
+def test_phases_steps_index_int_unchanged(sample_project, monkeypatch):
+    """phases[].steps[].index remains int (Path B contract)."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_branches(rules_dir)
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    phases = data.get("phases", [])
+    assert phases
+    for ph in phases:
+        for step in ph.get("steps", []):
+            assert isinstance(step["index"], int), (
+                f"Path B violated: phases[].steps[].index must stay int, got {type(step['index']).__name__}"
+            )
+
+
+def test_phases_steps_sub_branch_emitted(sample_project, monkeypatch):
+    """phases[].steps[].sub_branch is emitted ONLY for sub-stepped entries."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_branches(rules_dir)
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    phases = data.get("phases", [])
+    assert phases
+    seen_sub_branches: list[str] = []
+    seen_plain_steps_with_no_sub_branch = 0
+    for ph in phases:
+        for step in ph.get("steps", []):
+            if "sub_branch" in step:
+                seen_sub_branches.append(step["sub_branch"])
+            else:
+                seen_plain_steps_with_no_sub_branch += 1
+    # Branchy SOP: should have at least 'a' and 'b' sub_branch entries.
+    assert sorted(seen_sub_branches) == ["a", "b"], (
+        f"expected sub_branches ['a','b'], got {seen_sub_branches}"
+    )
+    # Plain steps must NOT carry sub_branch key (Path B convention).
+    assert seen_plain_steps_with_no_sub_branch >= 1

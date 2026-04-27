@@ -283,7 +283,9 @@ def _build_todo_items(
         step_idx = step["index"]
         text = step["text"]
         gate = step["gate"]
-        dotted = f"{phase_num}.{step_idx}"
+        # FXA-2226 Path B: append optional sub_branch suffix for sibling
+        # sub-steps so dotted index goes from "1.3" → "1.3a".
+        dotted = f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"
 
         # Classify step (gate and loop markers are independent)
         is_gate, loop_to_sig, loop_from_sig = _classify_step(
@@ -349,7 +351,8 @@ def _build_todo_json(
         step_idx = step["index"]
         text = step["text"]
         gate = step["gate"]
-        dotted = f"{phase_num}.{step_idx}"
+        # FXA-2226 Path B: append optional sub_branch suffix.
+        dotted = f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"
 
         # Classify step (gate and loop markers are independent)
         is_gate, loop_to_sig, loop_from_sig = _classify_step(
