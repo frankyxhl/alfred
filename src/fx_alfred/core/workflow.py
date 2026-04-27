@@ -417,7 +417,6 @@ def validate_branches(
     from fx_alfred.core.parser import extract_section as _extract_section
 
     section = _extract_section(parsed.body, "Steps") if parsed.body else None
-    step_indices = _parse_step_indices(parsed) or frozenset()
     sub_steps_in_order: list[tuple[int, str]] = []  # [(parent, branch), ...]
     plain_step_positions: dict[int, int] = {}  # int_index -> first occurrence
     if section is not None:
@@ -466,9 +465,18 @@ def validate_branches(
         for tgt in sig.to:
             declared.add((tgt.parent, tgt.branch))
 
+    # Plain-step ints only (excluding parent ints injected from sub-step
+    # lines) — used by Rule 2 below per PR #68 Codex F1 finding. The
+    # spec says `from` must reference an EXISTING INTEGER step in
+    # `## Steps`; sub-stepped-only parents (no bare `2.` line) should
+    # NOT satisfy `from: 2`.
+    plain_only_ints = frozenset(plain_step_positions.keys())
+
     for i, sig in enumerate(branches):
-        # Rule 2: from references existing integer step
-        if sig.from_step not in step_indices:
+        # Rule 2: from references existing INTEGER step (must be a bare
+        # plain step line — not satisfied solely by parent-int injection
+        # from sub-step siblings).
+        if sig.from_step not in plain_only_ints:
             errors.append(
                 BranchError(
                     msg=(

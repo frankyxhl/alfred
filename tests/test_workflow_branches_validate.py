@@ -62,6 +62,31 @@ def test_renderer_readiness_gate_default_blocks() -> None:
     assert any("CHG-2227" in e.msg for e in errors)
 
 
+def test_branches_from_must_be_plain_int_not_substep_only() -> None:
+    """Per PR #68 Codex F1: `from: 2` requires a BARE `2.` line in ## Steps.
+
+    A SOP with `2a.`/`2b.` lines but no plain `2.` line should NOT satisfy
+    `from: 2` — even though `_parse_step_indices` injects parent integer 2
+    from the sub-step lines (Phase 1 design). Path B keeps step_indices
+    int-stable, but the `from` validator must only accept *plain* integer
+    parents.
+
+    Note: this fixture is somewhat artificial because in practice any
+    branchy SOP authored as `Workflow branches: from: 2` would have a
+    bare `2.` decision step. The defensive check guards against the
+    silent false-negative class.
+    """
+    body = _doc(
+        "[{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]",
+        "1. Setup\n2a. ORPHAN-as-from\n2b. ORPHAN\n3a. Pass\n3b. Fail\n",
+    )
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    # Should reject `from: 2` because there's no bare `2.` line — only `2a/2b`.
+    assert any("from = 2" in e.msg for e in errors)
+
+
 def test_branches_from_must_exist() -> None:
     """`from` referencing a nonexistent step rejected."""
     body = _doc(

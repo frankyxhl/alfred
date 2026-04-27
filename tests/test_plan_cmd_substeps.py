@@ -64,10 +64,15 @@ A test SOP without branches.
 
 
 def test_todo_index_substep_format_in_json(sample_project, monkeypatch):
-    """Sub-stepped plan emits todo[].index = '<phase>.3a' for sub-steps."""
+    """Sub-stepped plan emits todo[].index = '<phase>.3a' for sub-steps.
+
+    Bypasses the renderer-readiness gate (Path B intermediate-state guardrail)
+    because this test verifies the format extension that ships in CHG-2227.
+    """
     rules_dir = sample_project / "rules"
     _create_sop_with_branches(rules_dir)
     monkeypatch.chdir(sample_project)
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd._BRANCHES_RENDERER_READY", True)
     result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
     assert result.exit_code == 0, result.output
     data = json.loads(result.output)
@@ -107,6 +112,7 @@ def test_phases_steps_index_int_unchanged(sample_project, monkeypatch):
     rules_dir = sample_project / "rules"
     _create_sop_with_branches(rules_dir)
     monkeypatch.chdir(sample_project)
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd._BRANCHES_RENDERER_READY", True)
     result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
     assert result.exit_code == 0, result.output
     data = json.loads(result.output)
@@ -119,11 +125,53 @@ def test_phases_steps_index_int_unchanged(sample_project, monkeypatch):
             )
 
 
+def test_plan_blocked_by_gate_when_branches_present(sample_project, monkeypatch):
+    """Per PR #68 Gemini F2: `af plan` must reject branchy SOPs while gate is closed.
+
+    Otherwise the renderer-readiness gate is `af validate`-only and `af plan`
+    silently emits sub-stepped surface (`"index": "1.3a"`, ASCII collisions)
+    before CHG-2227 ships. The test fixture's `_BRANCHES_RENDERER_READY` is
+    False at module level (Path B default), so this should fail with a
+    ClickException directing the author to wait for CHG-2227.
+    """
+    rules_dir = sample_project / "rules"
+    _create_sop_with_branches(rules_dir)
+    monkeypatch.chdir(sample_project)
+    # NO monkeypatch of the flag — exercise the default-closed gate.
+    result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
+    assert result.exit_code != 0, (
+        "Expected af plan to reject Workflow branches: while gate closed; "
+        f"got exit 0 with output:\n{result.output}"
+    )
+    assert "CHG-2227" in result.output
+
+
+def test_plan_human_branchy_renders_substeps(sample_project, monkeypatch):
+    """Per PR #68 Gemini F3: `af plan --human` must NOT silently drop 3a/3b.
+
+    Pre-fix, `_parse_numbered_items` regex was `^(?:###\\s+)?(\\d+)\\.\\s+`
+    which only matched plain `3.` lines, dropping `3a/3b`. Test asserts the
+    human output for a branchy SOP includes both sub-step entries.
+    """
+    rules_dir = sample_project / "rules"
+    _create_sop_with_branches(rules_dir)
+    monkeypatch.chdir(sample_project)
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd._BRANCHES_RENDERER_READY", True)
+    result = CliRunner().invoke(cli, ["plan", "TST-9001", "--human"])
+    assert result.exit_code == 0, result.output
+    # Sub-step lines must appear in the human checklist (preceded by "3a." / "3b.").
+    assert "3a." in result.output, (
+        f"--human output silently dropped sub-step 3a:\n{result.output}"
+    )
+    assert "3b." in result.output
+
+
 def test_phases_steps_sub_branch_emitted(sample_project, monkeypatch):
     """phases[].steps[].sub_branch is emitted ONLY for sub-stepped entries."""
     rules_dir = sample_project / "rules"
     _create_sop_with_branches(rules_dir)
     monkeypatch.chdir(sample_project)
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd._BRANCHES_RENDERER_READY", True)
     result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
     assert result.exit_code == 0, result.output
     data = json.loads(result.output)
