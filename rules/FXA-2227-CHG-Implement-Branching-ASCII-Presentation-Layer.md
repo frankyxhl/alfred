@@ -97,6 +97,10 @@ class BranchRenderOutput:
     lines: list[str]                # the full ASCII render, one string per terminal row
     parent_anchor_row: int          # row index where the parent box's bottom edge sits
     convergence_anchor_row: int | None  # row index where the convergence step's top edge sits, or None for dangling
+    step_anchor_rows: dict[str, int]  # {sub_step_id: middle_row_of_that_sibling_box}; e.g. {"3a": 5, "3b": 5, "3c": 5}
+                                      # Required by dag_graph.py to place loop right-side tracks against sibling rows.
+                                      # Caller (renderer) MUST use these row indices to anchor any annotations
+                                      # (loops, gates, ⚠ markers) at the correct vertical position.
 
 def render_branch(input: BranchRenderInput) -> BranchRenderOutput: ...
 
@@ -105,6 +109,23 @@ def compute_column_offsets(n_siblings: int, box_width: int, gutter: int = 2) -> 
 def render_label_row(labels: list[str], offsets: list[int], box_width: int) -> str: ...
 def render_join_row(offsets: list[int]) -> str: ...
 ```
+
+### Label-slot semantics (clarified per Codex Round 1 #2)
+
+There are **N labels for N edges** (one per outgoing branch arrow). The geometry has N column offsets `c_1..c_N`, with `┬` connectors at each. Labels print on the row between the parent's bottom border and the sibling boxes' top borders:
+
+```
+            parent box
+└──┬──────┬──────┬──┘    ← parent_anchor_row
+   │      │      │
+  pass   fail  retry     ← label row: N labels, one per edge
+   ▼      ▼      ▼
+ [3a]   [3b]   [3c]      ← sibling boxes
+```
+
+**Each label centers at column `c_i`** (above the `┬` directly under it). Max-width per label = `min(c_i - prev_boundary, next_boundary - c_i) * 2 - 2` cells via `wcwidth`, where `prev_boundary` is `0` for the first label and `c_{i-1}` for subsequent labels (mid-point between adjacent tees), and `next_boundary` is `c_{i+1}` mid-point or right edge for the last. Empty labels render as blank in their slot. All labels empty → label row omitted entirely (one fewer row in output).
+
+The earlier "centered between adjacent tees" framing is replaced: labels center *under* their tees, with collision avoidance against neighbors limiting the max-width. This matches mermaid-ascii's typography (which CHG-2227 borrows visually).
 
 ### Invariants (asserted in `tests/test_branch_geometry.py`)
 
@@ -115,25 +136,52 @@ These replace ~half of the originally-planned brittle golden ASCII tests. Golden
 | I1 | `compute_column_offsets(n, w)` returns `n` strictly-increasing offsets | `test_offsets_strictly_increasing` |
 | I2 | All output lines have the same visible-cell width (per `wcwidth.wcswidth`) | `test_lines_uniform_cell_width` |
 | I3 | For every sibling `i`, the column at `offsets[i]` in `parent_anchor_row` is a `┬` connector | `test_tee_at_each_offset` |
-| I4 | Labels are centered between adjacent tees `┬`; max-width = `(c_{i+1} - c_i) - 2` cells | `test_label_centered_between_tees` |
+| I4 | **N labels for N edges:** each label centers at column `c_i` (above the `┬`); max-width per label = `min(c_i - prev_boundary, next_boundary - c_i) * 2 - 2` cells via `wcwidth`. Empty label leaves slot blank; all-empty labels collapse the label row entirely. | `test_n_labels_centered_at_tees`, `test_empty_label_blank_slot`, `test_all_empty_labels_collapse_row` |
 | I5 | Labels truncate at 12 cells with `…`; CJK chars count 2 cells via `wcwidth` | `test_cjk_label_truncation` |
 | I6 | When `converges_to is None`, no `└──┼──┘` row is emitted (dangling tails) | `test_dangling_no_join` |
 | I7 | When `converges_to` is set, `┼` sits at column `(offsets[0] + offsets[-1]) // 2` | `test_join_centered_on_offsets_span` |
 | I8 | `parent_anchor_row` equals `0` (top of returned lines); `convergence_anchor_row` equals `len(lines) - 2` if join present | `test_anchor_rows` |
 | I9 | Renderer-agnostic: function does not import or reference `dag_graph` or `ascii_graph` | `test_no_renderer_imports` |
 | I10 | 4-way is the hard cap: `len(siblings) > 4` raises `ValueError` | `test_four_way_cap` |
+| I11 | `step_anchor_rows` contains exactly one entry per sibling, keyed by sub-step ID; each value points to the middle row of that sibling's box (where `│ text │` body sits) | `test_step_anchor_rows_one_per_sibling`, `test_step_anchor_row_is_box_middle` |
+
+### ASCII coordinate diagram (per Codex advisory)
+
+The geometry math above maps to this layout (for a 3-way branch with offsets `c_1=4, c_2=11, c_3=18`):
+
+```
+col:   0    4         11          18
+       └────┬─────────┬───────────┬────┘   ← parent_anchor_row (┬ at c_1, c_2, c_3)
+            │         │           │
+           pass     fail        retry      ← label row (centered at each c_i)
+            ▼         ▼           ▼        ← arrow row
+          ┌───┐    ┌────┐       ┌─────┐
+          │3a │    │ 3b │       │ 3c  │    ← sibling boxes (top borders)
+          │...│    │... │       │...  │    ← sibling middle rows = step_anchor_rows
+          └─┬─┘    └──┬─┘       └──┬──┘    ← sibling bottom borders
+            │         │            │
+            └─────────┼────────────┘       ← join row: ┼ at (c_1+c_3)//2 = 11
+                      ▼
+                 [convergence step]        ← convergence_anchor_row
+```
+
+`step_anchor_rows = {"3a": 5, "3b": 5, "3c": 5}` if all sibling box bodies are single-row; varies if any sibling has multi-row body content.
 
 ### Phase 3 Spike Exit Criteria
 
 Phase 3 exits only when:
 
-1. All 10 invariant tests pass
+1. All 11 invariant tests pass (I1–I11)
 2. `pyright src/fx_alfred/core/branch_geometry.py` clean
-3. The 2-way and 3-way golden ASCII tests match expected output (1 each = 2 goldens, hand-crafted from PRP-2225 §"Geometry algorithm sketch")
-4. The CJK-truncation golden test matches (1 golden)
-5. Manually run the primitive on the Audit Ledger 3-way fixture from PRP-2225 — does the output look like the PRP's sketched diagram? If no, redesign before Phase 4.
+3. **5 hand-crafted golden tests match** (replaces the original 3 + manual eyeball; per Codex Round 1 #3 + Gemini smoke-test critique):
+   - 2-way simple (`branches_2way.golden.txt`)
+   - 3-way simple (`branches_3way.golden.txt`)
+   - 4-way at hard cap (`branches_4way.golden.txt`) — newly added per Codex
+   - Dangling tails (`branches_dangling.golden.txt`) — newly added per Codex
+   - CJK truncation (`branches_cjk.golden.txt`)
+4. **PRP Audit Ledger fixture as programmatic golden** (`branches_audit_ledger.golden.txt`) — promoted from "manual eyeball" to a full diff-asserting golden, hand-crafted from PRP-2225 §"Worked example" output. If the rendered primitive output doesn't match the golden, the test fails and a discussion happens before Phase 4 commits.
 
-If item 5 reveals a primitive-shape problem, this CHG pauses (no Phase 4 commit) and a discussion happens. Per-phase commit boundaries mean the primitive can land alone in main even if integration takes a follow-up PR.
+If item 4 reveals a primitive-shape problem, this CHG pauses (no Phase 4 commit). Per-phase commit boundaries mean the primitive can land alone in main even if integration takes a follow-up PR.
 
 ---
 
@@ -198,7 +246,7 @@ Codex + Gemini in parallel against the implementation PR diff; both must score �
 
 ### Phase 10 — Release (FXA-2102)
 
-Per FXA-2102: tests + lint + pyright clean → `gh release create v1.8.0 --title "v1.8.0" --notes "..."` → GH Actions PyPI publish → `pipx upgrade fx-alfred` to verify.
+Per FXA-2102: tests + lint + pyright clean → **manual smoke test** (per Gemini Round 1 advisory): run `af plan --task "..." COR-1500 COR-1602 --todo --graph --root .` in a real interactive terminal (iTerm2 / macOS Terminal / Linux gnome-terminal), confirm the branching output renders correctly with the locally-installed pre-release wheel before tagging. Specifically eyeball: (a) the 3-way Audit Ledger fixture output matches the goldens, (b) CJK terminal handles label truncation visibly, (c) flat layout produces the same branch shape sans phase-box borders. Only if smoke test passes → `gh release create v1.8.0 --title "v1.8.0" --notes "..."` → GH Actions PyPI publish → `pipx upgrade fx-alfred` to verify.
 
 ---
 
@@ -207,12 +255,12 @@ Per FXA-2102: tests + lint + pyright clean → `gh release create v1.8.0 --title
 | Phase | New tests | Total at end of phase |
 |---|---:|---:|
 | Pre-CHG baseline (assumes CHG-2226 merged: ~741) | — | ~741 |
-| Phase 3 (geometry primitive) | ~13 (10 invariants + 3 goldens) | ~754 |
-| Phase 4 (nested integration) | ~4 | ~758 |
-| Phase 5 (flat integration) | ~2 | ~760 |
-| Phase 7 (Mermaid) | ~2 | ~762 |
+| Phase 3 (geometry primitive) | ~17 (11 invariants + 6 goldens — 2-way / 3-way / 4-way / dangling / CJK / Audit Ledger) | ~758 |
+| Phase 4 (nested integration) | ~4 | ~762 |
+| Phase 5 (flat integration) | ~2 | ~764 |
+| Phase 7 (Mermaid) | ~2 | ~766 |
 
-**Total estimated new tests in this CHG: ~21.** Combined with CHG-2226's ~21, total new tests: ~42. (Original 10-phase plan estimated ~48; the 2-CHG split is slightly more parsimonious because the spike exit criteria replace some golden tests with structural invariants.)
+**Total estimated new tests in this CHG: ~25.** Combined with CHG-2226's ~21, total new tests: ~46. (Round 2 added 4 tests over Round 1: 1 invariant for `step_anchor_rows` plus its sub-tests, 4-way and dangling goldens, Audit Ledger programmatic golden replacing manual eyeball.)
 
 ---
 
@@ -221,7 +269,7 @@ Per FXA-2102: tests + lint + pyright clean → `gh release create v1.8.0 --title
 | Risk | Mitigation |
 |---|---|
 | Phase 3 primitive shape proves wrong during Phase 4 integration | Spike exit criteria (above) require manual verification before Phase 4 commits; the primitive can land alone in main if the integration takes a follow-up PR |
-| Goldens-against-hand-crafted-ASCII are brittle to formatting tweaks (Gemini Round 1 critique) | 10 of 13 Phase-3 tests are *invariant* assertions (offsets, cell widths, connector presence, label centering rule), not full-string goldens. Only 3 goldens remain — for the most basic sanity checks |
+| Goldens-against-hand-crafted-ASCII are brittle to formatting tweaks (Gemini Round 1 critique) | 11 of 17 Phase-3 tests are *invariant* assertions (offsets, cell widths, connector presence, label centering rule, anchor rows, etc.), not full-string goldens. 6 goldens remain — basic sanity (2-way, 3-way), edge cases (4-way cap, dangling), CJK truncation, and the Audit Ledger PRP fixture (replaces R1's manual-eyeball spike exit). |
 | `wcwidth` adds runtime dep that some downstream environments lack | `wcwidth` is pure-Python with zero deps of its own; pip-installable in any environment that already runs `fx-alfred`. Codex Round 1 explicitly endorsed this dep |
 | `dag_graph.py` + `ascii_graph.py` integrations conflict (shared primitive, two consumers) | Phase 5 refactors any duplication back into the primitive itself; primitive's Phase-3 invariant I9 (no renderer imports) prevents accidental coupling |
 | v1.8.0 release fails on PyPI (build/publish flake) | FXA-2102 has explicit recovery steps; pre-release runs lint+pyright+tests on commit, so failure surfaces before tagging |
@@ -240,3 +288,4 @@ Per FXA-2102: tests + lint + pyright clean → `gh release create v1.8.0 --title
 | Date | Change | By |
 |------|--------|----|
 | 2026-04-27 | Initial CHG drafted as the second of two staged CHGs implementing PRP-2225. Covers branch geometry primitive (new file), nested + flat ASCII renderer integration, Mermaid output, docs + CHANGELOG, version bump v1.7.1 → v1.8.0, and PyPI release. Phase 3 primitive API contract locked here so Round 2 reviewers can score it independently of integration. ~13 new tests in Phase 3 (10 invariants + 3 goldens) replace the original "many hand-crafted golden ASCII tests" (Gemini Round 1 critique). Spike exit criteria explicit. Per-phase commit boundaries throughout. | Frank + Claude Code |
+| 2026-04-27 | Round 1 review: Codex 8.4 FIX, Gemini 9.6 PASS. Round 2 revisions per Codex feedback: (1) `BranchRenderOutput` extended with `step_anchor_rows: dict[str, int]` for loop-track placement; (2) label-slot semantics rewritten — N labels for N edges (not N-1 between tees); each label centers at column `c_i` with collision-avoidance max-width; empty/all-empty handled; (3) 4-way and dangling goldens added (was 3 goldens, now 6); (4) Phase 3 spike exit criterion #5 ("manual eyeball") promoted to programmatic golden against PRP-2225's Audit Ledger fixture; (5) ASCII coordinate diagram added beside invariants for visual clarity. Plus Gemini advisory: manual smoke test added to Phase 10 before `gh release create`. Test count grows from ~21 to ~25 in this CHG (~46 across both CHGs). | Frank + Claude Code |
