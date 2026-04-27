@@ -153,16 +153,36 @@ def _box_lines(text: str, box_width: int) -> list[str]:
 def _paint_into_row(row: list[str], start: int, text: str) -> None:
     """Paint ``text`` into ``row`` starting at column ``start``, wcwidth-aware.
 
-    Each character is placed at the cell its visible width consumes; wide
-    chars (cw=2) blank the trailing cell ("") so the join later filters
-    them out and total visible width stays correct. Caller filters ``""``
-    via ``"".join(c for c in row if c != "")``.
+    Each character is placed at the cell its visible width consumes:
+    - Wide chars (cw=2) blank the trailing cell (``""``) so total visible
+      width stays correct after caller filters.
+    - Zero-width chars (cw=0 — combining marks, ZWJ, variation selectors)
+      attach to the previous base cell rather than overwriting the current
+      one; preserves "Café" written as ``"Cafe\\u0301"`` etc. (Codex PR #69
+      bot review on commit 1dd32f0).
+    - Unprintable (cw<0) treated as 1 cell.
+
+    Caller filters ``""`` via ``"".join(c for c in row if c != "")``.
     """
     col = start
     for ch in text:
         cw = wcwidth.wcwidth(ch)
         if cw < 0:
             cw = 1
+        if cw == 0:
+            # Combining mark / ZWJ / variation selector — attach to the
+            # previous base cell without consuming a new cell. Walk back
+            # past any wide-char trailing-blanks ("") to find the base.
+            prev_col = col - 1
+            while (
+                prev_col >= start and 0 <= prev_col < len(row) and row[prev_col] == ""
+            ):
+                prev_col -= 1
+            if prev_col >= start and 0 <= prev_col < len(row) and row[prev_col]:
+                row[prev_col] = row[prev_col] + ch
+            # If no base cell exists yet (combining mark first char), drop
+            # the mark — there's nothing to attach to.
+            continue
         if 0 <= col < len(row):
             row[col] = ch
             if cw == 2 and col + 1 < len(row):

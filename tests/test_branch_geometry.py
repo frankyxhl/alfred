@@ -93,6 +93,36 @@ def test_I2_uniform_width_with_cjk_bodies() -> None:
     )
 
 
+def test_paint_combining_marks_attach_to_base_char() -> None:
+    """Per Codex PR #69 bot review on 1dd32f0: combining marks (cw=0) must
+    attach to the preceding base cell, not overwrite a new cell.
+
+    "Café" written as 'C', 'a', 'f', 'e', '\\u0301' (combining acute) must
+    render with the accent attached to 'e'. Pre-fix, the accent landed in
+    a separate cell and was dropped or floated.
+    """
+    out = render_branch(
+        _make_input(
+            siblings=[(3, "a", ""), (3, "b", "")],
+            sibling_texts=["Café", "ok"],
+            converges_to=None,
+            converges_to_text=None,
+        )
+    )
+    rendered = "\n".join(out.lines)
+    # The body should contain the combined "é" (e + combining acute) — assert
+    # that the combining mark is present AND is attached to 'e' (i.e. they
+    # appear together rather than separated).
+    assert "́" in rendered, "combining acute U+0301 should be present"
+    # The string "é" (e then combining) should be a substring — they're
+    # in adjacent cells / same cell, not split across separate cells with
+    # other content between them.
+    assert "é" in rendered, "combining mark should attach to preceding base char 'e'"
+    # Width invariant still holds.
+    widths = {wcwidth.wcswidth(line) for line in out.lines}
+    assert len(widths) == 1
+
+
 def test_I2_uniform_width_with_cjk_convergence_text() -> None:
     """I2 holds when the convergence step has CJK text (e.g. Audit Ledger)."""
     out = render_branch(
