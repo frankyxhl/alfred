@@ -60,7 +60,7 @@ Adds a feature-release entry with this shape:
 >
 > **New runtime dep:** `wcwidth` (cell-width-correct label truncation; required for CJK).
 >
-> **Internal:** sub-step IDs (`3a`, `3b`, etc.) now flow through parser, validator, and plan-builder. `--json` output's `"index"` field format extends from `"phase.step"` (e.g. `"1.1"`) to `"phase.stepLetter"` (e.g. `"2.3a"`) — string-to-string, no schema break.
+> **Internal:** sub-step IDs (`3a`, `3b`, etc.) flow through parser, validator, and plan-builder via the additive `StepDict.sub_branch` field landed in CHG-2226 (Path B / two-field architecture). No type-widening migration; `phases[].steps[].index` remains `int`. `todo[].index` format extends from `"phase.step"` (e.g. `"1.1"`) to `"phase.stepLetter"` (e.g. `"2.3a"`) — string-to-string, non-breaking.
 
 ### Documentation
 
@@ -86,9 +86,12 @@ Public API (5 functions, all pure — no I/O, no global state):
 @dataclass(frozen=True)
 class BranchRenderInput:
     parent_step_text: str           # the parent step's body (already truncated to box width)
-    siblings: list[tuple[str, str]] # [(sub_step_id, label), ...] e.g. [("3a", "pass"), ("3b", "fail")]
-    sibling_texts: list[str]        # body text for each sibling box
-    converges_to: str | None        # next-sequential integer step ID if auto-convergence applies; None for dangling
+    siblings: list[BranchTarget]    # from core/workflow.py (CHG-2226): NamedTuple(parent: int, branch: str, label: str)
+                                    # e.g. [BranchTarget(3, "a", "pass"), BranchTarget(3, "b", "fail")]
+                                    # The primitive composes the display ID f"{parent}{branch}" → "3a" internally.
+    sibling_texts: list[str]        # body text for each sibling box (positional with siblings)
+    converges_to: int | None        # next-sequential integer step number if auto-convergence applies; None for dangling
+                                    # (str sub-step convergence targets are out of scope per PRP-2225 + CHG-2226)
     converges_to_text: str | None   # body text for the convergence step (only when converges_to is not None)
     box_width: int                  # the surrounding renderer's per-step box width (e.g. _STEP_BOX_WIDTH)
 
@@ -123,7 +126,14 @@ There are **N labels for N edges** (one per outgoing branch arrow). The geometry
  [3a]   [3b]   [3c]      ← sibling boxes
 ```
 
-**Each label centers at column `c_i`** (above the `┬` directly under it). Max-width per label = `min(c_i - prev_boundary, next_boundary - c_i) * 2 - 2` cells via `wcwidth`, where `prev_boundary` is `0` for the first label and `c_{i-1}` for subsequent labels (mid-point between adjacent tees), and `next_boundary` is `c_{i+1}` mid-point or right edge for the last. Empty labels render as blank in their slot. All labels empty → label row omitted entirely (one fewer row in output).
+**Each label centers at column `c_i`** (above the `┬` directly under it). Max-width per label = `min(c_i - prev_boundary, next_boundary - c_i) * 2 - 2` cells via `wcwidth`, with **concrete boundary formulas** (per Codex Round 2 #4):
+
+```
+prev_boundary[i] = (c_{i-1} + c_i) // 2    if i ≥ 2   else 0                        # mid-point with previous tee, or left edge
+next_boundary[i] = (c_i + c_{i+1}) // 2    if i < N   else box_total_width - 1      # mid-point with next tee, or right edge of render
+```
+
+`box_total_width` = the full render width (length in cells of any line in `BranchRenderOutput.lines`; per invariant I2, all lines have uniform cell width). Empty labels render as blank in their slot. All labels empty → label row omitted entirely (one fewer row in output).
 
 The earlier "centered between adjacent tees" framing is replaced: labels center *under* their tees, with collision avoidance against neighbors limiting the max-width. This matches mermaid-ascii's typography (which CHG-2227 borrows visually).
 
@@ -173,13 +183,15 @@ Phase 3 exits only when:
 
 1. All 11 invariant tests pass (I1–I11)
 2. `pyright src/fx_alfred/core/branch_geometry.py` clean
-3. **5 hand-crafted golden tests match** (replaces the original 3 + manual eyeball; per Codex Round 1 #3 + Gemini smoke-test critique):
+3. **6 hand-crafted golden tests match** (per Codex Round 1 #3 — replaces R1's 3 goldens + manual eyeball):
    - 2-way simple (`branches_2way.golden.txt`)
-   - 3-way simple (`branches_3way.golden.txt`)
-   - 4-way at hard cap (`branches_4way.golden.txt`) — newly added per Codex
-   - Dangling tails (`branches_dangling.golden.txt`) — newly added per Codex
+   - 3-way simple (`branches_3way.golden.txt`) — Audit Ledger pattern from PRP-2225 §"Problem"
+   - 4-way at hard cap (`branches_4way.golden.txt`)
+   - Dangling tails (`branches_dangling.golden.txt`)
    - CJK truncation (`branches_cjk.golden.txt`)
-4. **PRP Audit Ledger fixture as programmatic golden** (`branches_audit_ledger.golden.txt`) — promoted from "manual eyeball" to a full diff-asserting golden, hand-crafted from PRP-2225 §"Worked example" output. If the rendered primitive output doesn't match the golden, the test fails and a discussion happens before Phase 4 commits.
+   - Audit Ledger end-to-end (`branches_audit_ledger.golden.txt`) — full pipeline output, hand-crafted from PRP-2225 §"Geometry algorithm sketch" (PRP-2225:105–109) with siblings/labels/convergence as authored in the worked example. Note: PRP-2225 does NOT contain a rendered "after" output (only the "before" linearization at PRP-2225:27–40 + the algorithm sketch); this golden is the implementer's first commitment of what the rendered output looks like, validated against the algorithm rules. Phase 4's nested-integration test re-asserts the same output through the full renderer stack.
+
+If any of the 6 goldens fail, Phase 3 pauses and a discussion happens before Phase 4 commits. **No "manual eyeball" gate.**
 
 If item 4 reveals a primitive-shape problem, this CHG pauses (no Phase 4 commit). Per-phase commit boundaries mean the primitive can land alone in main even if integration takes a follow-up PR.
 
@@ -192,19 +204,19 @@ Per COR-1500 (TDD Development Workflow). Phases 3, 4, 5, 7 from the original 10-
 ### Phase 3 — Branch geometry primitive (`core/branch_geometry.py` — NEW)
 
 **RED:**
-- 10 invariant tests above (`tests/test_branch_geometry.py`)
+- 11 invariant tests above (`tests/test_branch_geometry.py` — I1 through I11)
 - 3 hand-crafted golden tests (2-way simple, 3-way simple, CJK truncation)
 
 **GREEN:** Implement the 5 public functions per the API contract above. Hand-craft goldens from PRP-2225 §"Geometry algorithm sketch".
 
 **REFACTOR:** Run invariant I9 (no renderer imports) — primitive must be standalone. Sweep for any accidentally-leaked global state.
 
-**Exit:** All 13 tests pass; spike-exit-criteria item 5 manually verified; commit: `branch_geometry: primitive with invariants + 3 goldens`.
+**Exit:** All 17 tests pass (11 invariants I1–I11 + 6 goldens listed in §"Phase 3 Spike Exit Criteria"); commit: `branch_geometry: primitive with invariants + 6 goldens`.
 
 ### Phase 4 — `dag_graph.py` nested integration
 
 **RED:**
-- `tests/test_dag_graph.py::test_nested_3way_with_convergence` — full SOP → ASCII golden file matching the Audit Ledger example from PRP §"Worked example"
+- `tests/test_dag_graph.py::test_nested_3way_with_convergence` — full SOP → ASCII golden file matching `branches_audit_ledger.golden.txt` (Phase 3 commits the golden; Phase 4 re-asserts identical output through the full renderer stack)
 - `tests/test_dag_graph.py::test_nested_branches_plus_loops` — branch + loop in same SOP (no interaction; loops still render as right-side tracks)
 - `tests/test_dag_graph.py::test_nested_dangling_branch` — terminal branch (no convergence) renders correctly inside phase box
 - `tests/test_dag_graph.py::test_nested_legacy_unchanged` — every existing nested-layout test stays green
@@ -268,7 +280,7 @@ Per FXA-2102: tests + lint + pyright clean → **manual smoke test** (per Gemini
 
 | Risk | Mitigation |
 |---|---|
-| Phase 3 primitive shape proves wrong during Phase 4 integration | Spike exit criteria (above) require manual verification before Phase 4 commits; the primitive can land alone in main if the integration takes a follow-up PR |
+| Phase 3 primitive shape proves wrong during Phase 4 integration | Spike exit criteria (above) require all 17 tests (11 invariants + 6 goldens) to pass before Phase 4 commits; the Audit Ledger end-to-end golden (`branches_audit_ledger.golden.txt`) commits Phase 3 to a concrete output shape that Phase 4 re-asserts. The primitive can land alone in main if the integration takes a follow-up PR. No manual-verification gate. |
 | Goldens-against-hand-crafted-ASCII are brittle to formatting tweaks (Gemini Round 1 critique) | 11 of 17 Phase-3 tests are *invariant* assertions (offsets, cell widths, connector presence, label centering rule, anchor rows, etc.), not full-string goldens. 6 goldens remain — basic sanity (2-way, 3-way), edge cases (4-way cap, dangling), CJK truncation, and the Audit Ledger PRP fixture (replaces R1's manual-eyeball spike exit). |
 | `wcwidth` adds runtime dep that some downstream environments lack | `wcwidth` is pure-Python with zero deps of its own; pip-installable in any environment that already runs `fx-alfred`. Codex Round 1 explicitly endorsed this dep |
 | `dag_graph.py` + `ascii_graph.py` integrations conflict (shared primitive, two consumers) | Phase 5 refactors any duplication back into the primitive itself; primitive's Phase-3 invariant I9 (no renderer imports) prevents accidental coupling |
@@ -289,3 +301,4 @@ Per FXA-2102: tests + lint + pyright clean → **manual smoke test** (per Gemini
 |------|--------|----|
 | 2026-04-27 | Initial CHG drafted as the second of two staged CHGs implementing PRP-2225. Covers branch geometry primitive (new file), nested + flat ASCII renderer integration, Mermaid output, docs + CHANGELOG, version bump v1.7.1 → v1.8.0, and PyPI release. Phase 3 primitive API contract locked here so Round 2 reviewers can score it independently of integration. ~13 new tests in Phase 3 (10 invariants + 3 goldens) replace the original "many hand-crafted golden ASCII tests" (Gemini Round 1 critique). Spike exit criteria explicit. Per-phase commit boundaries throughout. | Frank + Claude Code |
 | 2026-04-27 | Round 1 review: Codex 8.4 FIX, Gemini 9.6 PASS. Round 2 revisions per Codex feedback: (1) `BranchRenderOutput` extended with `step_anchor_rows: dict[str, int]` for loop-track placement; (2) label-slot semantics rewritten — N labels for N edges (not N-1 between tees); each label centers at column `c_i` with collision-avoidance max-width; empty/all-empty handled; (3) 4-way and dangling goldens added (was 3 goldens, now 6); (4) Phase 3 spike exit criterion #5 ("manual eyeball") promoted to programmatic golden against PRP-2225's Audit Ledger fixture; (5) ASCII coordinate diagram added beside invariants for visual clarity. Plus Gemini advisory: manual smoke test added to Phase 10 before `gh release create`. Test count grows from ~21 to ~25 in this CHG (~46 across both CHGs). | Frank + Claude Code |
+| 2026-04-27 | Round 2 review: Codex 8.7 FIX, Gemini 9.8 PASS. Round 3 revisions per Codex 8.7 feedback (Gemini already PASS, no regression-risk changes): (1) test count drift reconciled across §"Phase 3 Spike Exit Criteria" (11 inv + 6 goldens), §"Phase 3 RED" (11 invariants), §"Phase 3 Exit" (17 tests), §"Risks" (no manual verification); (2) stale "manual verification" wording removed from Risks row; (3) "PRP-2225 §Worked example" was fictional — replaced with explicit attribution: golden is hand-crafted from PRP-2225 §"Geometry algorithm sketch" (PRP-2225:105–109), Phase 4 re-asserts the same output through the full renderer stack; (4) label-slot boundary formula made concrete: `prev_boundary[i] = (c_{i-1}+c_i)//2 if i≥2 else 0; next_boundary[i] = (c_i+c_{i+1})//2 if i<N else box_total_width-1`. Plus rearchitecture sync with CHG-2226 Path B: `BranchRenderInput.siblings` now uses `BranchTarget` NamedTuple (`parent: int`, `branch: str`, `label: str`) from CHG-2226; primitive composes display ID `f"{parent}{branch}"` internally. `converges_to: int | None` (was `str | None`) since sub-step cross-SOP convergence targets remain out of scope. CHANGELOG entry's "Internal" note rewritten to reflect Path B (additive `sub_branch` field, no type-widening migration). | Frank + Claude Code |
