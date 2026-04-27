@@ -71,6 +71,42 @@ def test_I2_lines_uniform_cell_width() -> None:
     assert len(widths) == 1, f"non-uniform line widths: {widths}"
 
 
+def test_I2_uniform_width_with_cjk_bodies() -> None:
+    """I2 with CJK body texts (Gemini PR #69 R1 review — caught real bug).
+
+    Pre-fix: sibling-box and convergence-box placement loops used plain
+    enumerate without blanking trailing cells for wide chars, so any CJK
+    body broke the uniform-width invariant. This test would have failed.
+    """
+    out = render_branch(
+        _make_input(
+            siblings=[(3, "a", "ok"), (3, "b", "ok")],
+            sibling_texts=["完整性测试", "ok"],
+            converges_to=None,
+            converges_to_text=None,
+        )
+    )
+    widths = {wcwidth.wcswidth(line) for line in out.lines}
+    assert len(widths) == 1, (
+        f"non-uniform line widths with CJK body: {widths}\n"
+        + "\n".join(f"  ({wcwidth.wcswidth(line)}) {line!r}" for line in out.lines)
+    )
+
+
+def test_I2_uniform_width_with_cjk_convergence_text() -> None:
+    """I2 holds when the convergence step has CJK text (e.g. Audit Ledger)."""
+    out = render_branch(
+        _make_input(
+            siblings=[(3, "a", "x"), (3, "b", "y")],
+            sibling_texts=["A", "B"],
+            converges_to=4,
+            converges_to_text="审核账本入账",
+        )
+    )
+    widths = {wcwidth.wcswidth(line) for line in out.lines}
+    assert len(widths) == 1, f"non-uniform widths with CJK convergence: {widths}"
+
+
 def test_I3_tee_at_each_offset() -> None:
     """I3: For each sibling i, the column at offsets[i] in parent_anchor_row is `┬`."""
     out = render_branch(
@@ -220,6 +256,28 @@ def test_I9_no_renderer_imports() -> None:
     assert "import fx_alfred.core.ascii_graph" not in content
 
 
+def test_I10_lower_arity_cap() -> None:
+    """I10: 0 or 1 siblings raise ValueError (lower arity bound — Codex PR #69 R1)."""
+    import pytest
+
+    # 1 sibling — degenerate "branch", contract requires >= 2.
+    with pytest.raises(ValueError, match="at least 2"):
+        render_branch(_make_input(siblings=[(3, "a", "only")]))
+
+
+def test_sibling_texts_length_mismatch_raises() -> None:
+    """sibling_texts length must match siblings count (Codex PR #69 R1)."""
+    import pytest
+
+    with pytest.raises(ValueError, match="sibling_texts length"):
+        render_branch(
+            _make_input(
+                siblings=[(3, "a", "x"), (3, "b", "y")],
+                sibling_texts=["only-one"],  # 1 vs 2 siblings
+            )
+        )
+
+
 def test_I10_four_way_cap() -> None:
     """I10: 5+ siblings raises ValueError (hard cap at 4)."""
     import pytest
@@ -353,24 +411,38 @@ def test_golden_audit_ledger_fixture() -> None:
 
     Hand-crafted from PRP-2225 §"Geometry algorithm sketch" (PRP-2225:105-109).
     Phase 4 re-asserts the same output through the full nested renderer stack.
+
+    Tightened per Gemini PR #69 R1 advisory: also asserts uniform line
+    widths. Pre-fix the CJK sibling texts produced rows 5 cells too wide
+    on the body row, breaking I2 — this test (with width assertion) would
+    have caught the bug that Gemini found via manual render.
     """
-    rendered = _render_lines(
-        siblings=[
-            (3, "a", "通过"),  # CJK label — pass
-            (3, "b", "失败"),  # CJK label — fail
-            (3, "c", "升级"),  # CJK label — escalate
-        ],
-        sibling_texts=[
-            "五类 No Silent",
-            "Entry 完整性",
-            "Challenge 入口",
-        ],
-        converges_to=4,
-        converges_to_text="Audit Ledger Entry",
+    out = render_branch(
+        _make_input(
+            siblings=[
+                (3, "a", "通过"),  # CJK label — pass
+                (3, "b", "失败"),  # CJK label — fail
+                (3, "c", "升级"),  # CJK label — escalate
+            ],
+            sibling_texts=[
+                "五类 No Silent",
+                "Entry 完整性",
+                "Challenge 入口",
+            ],
+            converges_to=4,
+            converges_to_text="Audit Ledger Entry",
+        )
     )
-    # Three tees + three labels + three sibling boxes + join + convergence
+    rendered = "\n".join(out.lines)
+    # Three tees + three labels + three sibling boxes + join + convergence.
     assert rendered.count("┬") == 3
     assert "通过" in rendered
     assert "失败" in rendered
     assert "升级" in rendered
     assert "┼" in rendered
+    # Width-uniformity assertion — the regression guard for Gemini's bug.
+    widths = {wcwidth.wcswidth(line) for line in out.lines}
+    assert len(widths) == 1, (
+        f"Audit Ledger render has non-uniform line widths: {widths}\n"
+        + "\n".join(f"  ({wcwidth.wcswidth(line)}) {line}" for line in out.lines)
+    )

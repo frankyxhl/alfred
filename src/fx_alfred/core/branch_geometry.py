@@ -49,7 +49,12 @@ class BranchRenderInput:
 
     Attributes:
         parent_step_text: Body text of the parent step (already truncated to
-            ``box_width``). Rendered above the branch as a single-row box.
+            ``box_width``). **Currently unused by the primitive** — per
+            invariant I8, the primitive owns geometry from the parent's
+            bottom border downward; callers (`dag_graph`/`ascii_graph`)
+            render the parent step's body+top-border above the primitive's
+            output. The field is retained on the input for forward-compat
+            if a future renderer wants to delegate parent rendering here.
         siblings: Ordered tuple of ``BranchTarget`` (parent: int, branch: str,
             label: str). The primitive composes the display ID
             ``f"{parent}{branch}"`` internally.
@@ -145,22 +150,31 @@ def _box_lines(text: str, box_width: int) -> list[str]:
     return [top, middle, bottom]
 
 
-def _box_lines_with_tees(box_width: int, tee_offsets_local: list[int]) -> str:
-    """Return the BOTTOM border of a box with `┬` at given local column offsets."""
-    inner = box_width - 2
-    chars = ["─"] * inner
-    for off in tee_offsets_local:
-        # Local offsets are within the inner area (0 .. inner-1).
-        if 0 <= off < inner:
-            chars[off] = "┬"
-    return "└" + "".join(chars) + "┘"
+def _paint_into_row(row: list[str], start: int, text: str) -> None:
+    """Paint ``text`` into ``row`` starting at column ``start``, wcwidth-aware.
+
+    Each character is placed at the cell its visible width consumes; wide
+    chars (cw=2) blank the trailing cell ("") so the join later filters
+    them out and total visible width stays correct. Caller filters ``""``
+    via ``"".join(c for c in row if c != "")``.
+    """
+    col = start
+    for ch in text:
+        cw = wcwidth.wcwidth(ch)
+        if cw < 0:
+            cw = 1
+        if 0 <= col < len(row):
+            row[col] = ch
+            if cw == 2 and col + 1 < len(row):
+                row[col + 1] = ""
+        col += cw
 
 
 def render_label_row(labels: list[str], offsets: list[int], box_width: int) -> str:
     """Render the label row: each label centers above its tee at offsets[i].
 
-    Empty labels yield blank slots. Returned string padded to total render
-    width via ``_pad_to_cells``.
+    Empty labels yield blank slots. Returned string is exactly
+    ``total_width`` cells wide (no extra padding required by callers).
     """
     n = len(labels)
     total_width = box_width + (n - 1) * (box_width + _GUTTER) if n > 0 else box_width
@@ -180,20 +194,10 @@ def render_label_row(labels: list[str], offsets: list[int], box_width: int) -> s
             continue
         truncated = _truncate_to_cells(label, max_w)
         truncated_w = wcwidth.wcswidth(truncated)
-        # Center the truncated label at column offsets[i].
+        # Center the truncated label at column offsets[i] using the shared
+        # wcwidth-aware painter (single source of truth).
         start = offsets[i] - (truncated_w - 1) // 2
-        # Place character-by-character, advancing by cell width.
-        col = start
-        for ch in truncated:
-            cw = wcwidth.wcwidth(ch)
-            if cw < 0:
-                cw = 1
-            if 0 <= col < total_width:
-                row[col] = ch
-                # Wide chars occupy 2 cells; blank the next cell.
-                if cw == 2 and col + 1 < total_width:
-                    row[col + 1] = ""
-            col += cw
+        _paint_into_row(row, start, truncated)
     # Drop empty placeholders (used for wide-char trailing cells).
     return "".join(c for c in row if c != "")
 
@@ -217,19 +221,33 @@ def render_join_row(offsets: list[int]) -> str:
     return "".join(chars)
 
 
-def render_branch(input: BranchRenderInput) -> BranchRenderOutput:
+def render_branch(inp: BranchRenderInput) -> BranchRenderOutput:
     """Render a forward branch with optional auto-detected convergence.
 
     See module docstring + invariants I1–I11 for the contract. Raises
-    ``ValueError`` if ``len(input.siblings) > 4`` (invariant I10).
+    ``ValueError`` if ``len(inp.siblings) > 4`` (invariant I10), if
+    ``< 2`` (lower arity bound), or if ``len(sibling_texts)`` doesn't
+    match the sibling count.
+
+    Note: ``inp.parent_step_text`` is currently unused — the primitive
+    only owns the geometry from the parent's bottom edge downward (per
+    I8 ``parent_anchor_row == 0``); the caller is responsible for
+    rendering the parent step's body/top-border above this output.
+    The field is retained on ``BranchRenderInput`` for forward-compat
+    if a future renderer wants to delegate parent rendering here.
     """
-    n = len(input.siblings)
+    n = len(inp.siblings)
     if n > _MAX_SIBLINGS:
         raise ValueError(f"branch_geometry hard cap is 4 siblings; got {n}")
-    if n == 0:
-        raise ValueError("branch_geometry requires >= 2 siblings")
+    if n < 2:
+        raise ValueError(f"branch_geometry requires at least 2 siblings; got {n}")
+    if len(inp.sibling_texts) != n:
+        raise ValueError(
+            f"sibling_texts length ({len(inp.sibling_texts)}) must equal "
+            f"siblings count ({n})"
+        )
 
-    box_width = input.box_width
+    box_width = inp.box_width
     offsets = compute_column_offsets(n_siblings=n, box_width=box_width)
     total_width = offsets[-1] + (box_width - box_width // 2)  # right edge
 
@@ -241,7 +259,6 @@ def render_branch(input: BranchRenderInput) -> BranchRenderOutput:
     # only owns the geometry from the parent's bottom edge downward, so
     # both `dag_graph` (nested phase-box wrapping) and `ascii_graph` (no
     # wrapping) can drop the primitive's lines under their own parent rows.
-    parent_box = _box_lines(input.parent_step_text, total_width)  # noqa: F841 — kept for parity
     bottom_chars = list("└" + "─" * (total_width - 2) + "┘")
     for off in offsets:
         if 0 < off < total_width - 1:
@@ -250,7 +267,7 @@ def render_branch(input: BranchRenderInput) -> BranchRenderOutput:
     parent_anchor_row = 0
 
     # Optional label row.
-    labels = [t.label for t in input.siblings]
+    labels = [t.label for t in inp.siblings]
     if any(label for label in labels):
         lines.append(render_label_row(labels, offsets, box_width))
 
@@ -261,39 +278,32 @@ def render_branch(input: BranchRenderInput) -> BranchRenderOutput:
             arrow_row[off] = "▼"
     lines.append("".join(arrow_row))
 
-    # Sibling boxes — three rows each, side-by-side.
+    # Sibling boxes — three rows each, side-by-side. wcwidth-aware via
+    # `_paint_into_row` so CJK body content keeps total cell width uniform
+    # (invariant I2; bug caught by Gemini PR #69 R1 review).
     sibling_box_top = list(" " * total_width)
     sibling_box_middle = list(" " * total_width)
     sibling_box_bottom = list(" " * total_width)
     step_anchor_rows: dict[str, int] = {}
     middle_row_idx = len(lines) + 1  # row where text body sits
-    for i, (target, body) in enumerate(zip(input.siblings, input.sibling_texts)):
-        bw = box_width
-        b = _box_lines(body, bw)
-        # Place the box centered at offsets[i].
-        start = offsets[i] - bw // 2
-        for j, ch in enumerate(b[0]):
-            if 0 <= start + j < total_width:
-                sibling_box_top[start + j] = ch
-        for j, ch in enumerate(b[1]):
-            if 0 <= start + j < total_width:
-                sibling_box_middle[start + j] = ch
-        for j, ch in enumerate(b[2]):
-            if 0 <= start + j < total_width:
-                sibling_box_bottom[start + j] = ch
+    for i, (target, body) in enumerate(zip(inp.siblings, inp.sibling_texts)):
+        b = _box_lines(body, box_width)
+        start = offsets[i] - box_width // 2
+        _paint_into_row(sibling_box_top, start, b[0])
+        _paint_into_row(sibling_box_middle, start, b[1])
+        _paint_into_row(sibling_box_bottom, start, b[2])
         step_anchor_rows[f"{target.parent}{target.branch}"] = middle_row_idx
-    lines.append("".join(sibling_box_top))
-    lines.append("".join(sibling_box_middle))
-    lines.append("".join(sibling_box_bottom))
+    lines.append("".join(c for c in sibling_box_top if c != ""))
+    lines.append("".join(c for c in sibling_box_middle if c != ""))
+    lines.append("".join(c for c in sibling_box_bottom if c != ""))
 
     convergence_anchor_row: int | None = None
-    if input.converges_to is not None:
+    if inp.converges_to is not None:
         # Join row spanning offsets[0] to offsets[-1].
         join_str = render_join_row(offsets)
         join_row_full = list(" " * total_width)
-        for j, ch in enumerate(join_str):
-            join_row_full[offsets[0] + j] = ch
-        lines.append("".join(join_row_full))
+        _paint_into_row(join_row_full, offsets[0], join_str)
+        lines.append("".join(c for c in join_row_full if c != ""))
 
         # Single arrow row from `┼` down to convergence step.
         join_col = (offsets[0] + offsets[-1]) // 2
@@ -302,26 +312,20 @@ def render_branch(input: BranchRenderInput) -> BranchRenderOutput:
             arrow_row2[join_col] = "▼"
         lines.append("".join(arrow_row2))
 
-        # Convergence box centered at join_col.
-        conv_text = input.converges_to_text or ""
+        # Convergence box centered at join_col (wcwidth-aware).
+        conv_text = inp.converges_to_text or ""
         conv_box = _box_lines(conv_text, box_width)
         start = join_col - box_width // 2
         conv_top = list(" " * total_width)
         conv_mid = list(" " * total_width)
         conv_bot = list(" " * total_width)
-        for j, ch in enumerate(conv_box[0]):
-            if 0 <= start + j < total_width:
-                conv_top[start + j] = ch
-        for j, ch in enumerate(conv_box[1]):
-            if 0 <= start + j < total_width:
-                conv_mid[start + j] = ch
-        for j, ch in enumerate(conv_box[2]):
-            if 0 <= start + j < total_width:
-                conv_bot[start + j] = ch
-        lines.append("".join(conv_top))
+        _paint_into_row(conv_top, start, conv_box[0])
+        _paint_into_row(conv_mid, start, conv_box[1])
+        _paint_into_row(conv_bot, start, conv_box[2])
+        lines.append("".join(c for c in conv_top if c != ""))
         convergence_anchor_row = len(lines) - 1
-        lines.append("".join(conv_mid))
-        lines.append("".join(conv_bot))
+        lines.append("".join(c for c in conv_mid if c != ""))
+        lines.append("".join(c for c in conv_bot if c != ""))
 
     # Pad every line to uniform total_width via wcwidth (invariant I2).
     lines = [_pad_to_cells(line, total_width) for line in lines]
