@@ -27,7 +27,7 @@ from fx_alfred.core.workflow import (
     WorkflowSignature,
     _BRANCHES_RENDERER_READY,
     check_composition,
-    parse_workflow_branches,
+    has_workflow_branches_field,
     parse_workflow_loops,
     parse_workflow_signature,
     validate_workflow_signature,
@@ -592,15 +592,17 @@ def plan_cmd(
             # `Workflow branches:` is rejected here so `af plan` never emits
             # sub-stepped surface (`"1.3a"` indices, ASCII collisions, etc.)
             # before the renderer ships.
-            if not _BRANCHES_RENDERER_READY:
-                branches = parse_workflow_branches(parsed)
-                if branches:
-                    raise click.ClickException(
-                        f"{doc.prefix}-{doc.acid}: Workflow branches: schema "
-                        "is parsed but renderer support is not yet shipped "
-                        "(CHG-2227 pending). Production SOPs MUST NOT author "
-                        "this field until CHG-2227 lands."
-                    )
+            # Per Codex PR #68 R2 review: gate on FIELD PRESENCE (including
+            # `Workflow branches: []` / `null`), not on parsed-list non-emptiness.
+            # The spec is "MUST NOT author this field" — authoring empty still
+            # authors the field.
+            if not _BRANCHES_RENDERER_READY and has_workflow_branches_field(parsed):
+                raise click.ClickException(
+                    f"{doc.prefix}-{doc.acid}: Workflow branches: schema "
+                    "is parsed but renderer support is not yet shipped "
+                    "(CHG-2227 pending). Production SOPs MUST NOT author "
+                    "this field until CHG-2227 lands."
+                )
         except MalformedDocumentError as e:
             if not output_json:
                 click.echo(

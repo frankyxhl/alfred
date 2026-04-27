@@ -170,6 +170,24 @@ def test_branches_valid_3way_passes_when_gate_open() -> None:
     assert errors == []
 
 
+def test_gate_fires_on_empty_field_authored() -> None:
+    """Per Codex PR #68 R2 review: ``Workflow branches: []`` (or ``null``)
+    must trigger the gate too.
+
+    Spec is "MUST NOT author this field until CHG-2227 lands" — authoring an
+    empty list still authors the field. Pre-fix, the gate only fired when
+    `parse_workflow_branches()` returned a non-empty list, so an SOP could
+    sneak past the gate by writing `Workflow branches: []`.
+    """
+    body = _doc("[]", "1. A\n2. B\n3. C\n")
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    assert branches == []  # parsed-empty
+    # Gate should still fire on field presence even though branches=[].
+    errors = validate_branches(parsed, branches)
+    assert any("renderer support is not yet shipped" in e.msg for e in errors)
+
+
 def test_branches_legacy_loops_unaffected() -> None:
     """SOPs without Workflow branches: produce no branch errors regardless of gate."""
     body = textwrap.dedent(

@@ -146,6 +146,39 @@ def test_plan_blocked_by_gate_when_branches_present(sample_project, monkeypatch)
     assert "CHG-2227" in result.output
 
 
+def test_plan_gate_fires_on_empty_workflow_branches_field(sample_project, monkeypatch):
+    """Per Codex PR #68 R2 review: ``Workflow branches: []`` triggers the
+    plan-time gate too.
+
+    Pre-fix, the plan_cmd.py gate only fired when `parse_workflow_branches`
+    returned a non-empty list — an SOP authoring `Workflow branches: []`
+    would sneak past. Spec: MUST NOT author the field at all.
+    """
+    rules_dir = sample_project / "rules"
+    filename = "TST-9003-SOP-EmptyBranches.md"
+    content = """# TST-9003: Empty Branches
+
+**Applies to:** Test
+**Status:** Active
+**Workflow branches:** []
+---
+## What Is It?
+A test SOP authoring an empty Workflow branches: list.
+## Steps
+1. Setup
+2. Done
+"""
+    (rules_dir / filename).write_text(content)
+    monkeypatch.chdir(sample_project)
+    # NO monkeypatch of the flag — exercise default-closed gate.
+    result = CliRunner().invoke(cli, ["plan", "TST-9003", "--todo", "--json"])
+    assert result.exit_code != 0, (
+        f"Expected af plan to reject empty Workflow branches: field; "
+        f"got exit 0:\n{result.output}"
+    )
+    assert "CHG-2227" in result.output
+
+
 def test_plan_human_branchy_renders_substeps(sample_project, monkeypatch):
     """Per PR #68 Gemini F3: `af plan --human` must NOT silently drop 3a/3b.
 

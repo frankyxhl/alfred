@@ -264,7 +264,13 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                 next_heading = steps_section.find("\n## ")
                 if next_heading > 0:
                     steps_section = steps_section[:next_heading]
-                step_count = len(re.findall(r"^\d+\.", steps_section, re.MULTILINE))
+                # FXA-2226 Path B: count both plain steps (`3.`) and sub-steps
+                # (`3a.`) toward the > 5 → require ## Examples heuristic. The
+                # legacy regex `^\d+\.` undercounted branchy SOPs; per PR #68
+                # multi-model code review F4 (Codex 9.1, Gemini 9.6).
+                step_count = len(
+                    re.findall(r"^\d+[a-z]?\.", steps_section, re.MULTILINE)
+                )
 
                 if (has_prerequisites or step_count > 5) and not re.search(
                     r"^## Examples\s*$", body_text, re.MULTILINE

@@ -283,6 +283,17 @@ class BranchError:
 _BRANCHES_RENDERER_READY = False
 
 
+def has_workflow_branches_field(parsed: ParsedDocument) -> bool:
+    """Return True if the SOP authors the ``Workflow branches:`` field at all.
+
+    True even for empty values (``Workflow branches: []`` or ``null``). Used by
+    the renderer-readiness gate to enforce the spec rule "MUST NOT author this
+    field until CHG-2227 lands" — authoring an empty list still counts as
+    authoring the field (per Codex PR #68 R2 review).
+    """
+    return any(mf.key == WORKFLOW_BRANCHES for mf in parsed.metadata_fields)
+
+
 def parse_workflow_branches(parsed: ParsedDocument) -> list[BranchSignature]:
     """Parse the optional ``Workflow branches:`` metadata into BranchSignatures.
 
@@ -399,8 +410,12 @@ def validate_branches(
     """
     errors: list[BranchError] = []
 
-    # Rule 1: gate
-    if branches and not (_BRANCHES_RENDERER_READY or _gate_open_for_test):
+    # Rule 1: gate. Per Codex PR #68 R2 review, fire on FIELD PRESENCE
+    # (including `Workflow branches: []` / `null`), not on parsed-list
+    # non-emptiness. The spec is "MUST NOT author this field until
+    # CHG-2227 lands" — authoring an empty list still authors the field.
+    field_present = has_workflow_branches_field(parsed)
+    if field_present and not (_BRANCHES_RENDERER_READY or _gate_open_for_test):
         errors.append(
             BranchError(
                 msg=(

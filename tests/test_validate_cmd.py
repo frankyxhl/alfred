@@ -868,6 +868,49 @@ Do not use when not needed.
     assert "SOP missing required section: '## Examples'" in result.output
 
 
+def test_validate_sop_with_substeps_counted_for_examples_rule(tmp_path):
+    """Per PR #68 R2 review F4: sub-step lines (`3a.`, `3b.`) must count
+    toward the > 5 → require ## Examples heuristic.
+
+    Pre-fix, the regex `^\\d+\\.` undercounted branchy SOPs: a 3-plain +
+    3-substep SOP (6 step-equivalents) was counted as 3 and silently
+    bypassed the rule.
+    """
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    body = """## What Is It?
+
+A SOP with branches.
+
+## Why
+
+Branches need testing.
+
+## When to Use
+
+When deciding.
+
+## When NOT to Use
+
+Never.
+
+## Steps
+
+1. Setup
+2. Decision
+3a. Pass branch
+3b. Fail branch
+3c. Escalate branch
+4. After"""
+    _write_sop_with_body(rules_dir / "SOP-1000-SOP-Substep-Count.md", "1000", body)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    # 6 numbered lines (1, 2, 3a, 3b, 3c, 4) — exceeds threshold of 5.
+    # Should require ## Examples.
+    assert result.exit_code == 1
+    assert "SOP missing required section: '## Examples'" in result.output
+
+
 def test_validate_sop_few_steps_no_examples_no_issue(tmp_path):
     """SOP with 5 or fewer steps and no Examples should pass."""
     rules_dir = tmp_path / "rules"
