@@ -179,6 +179,44 @@ A test SOP authoring an empty Workflow branches: list.
     assert "CHG-2227" in result.output
 
 
+def test_plan_gate_fires_on_undeclared_substep_lines(sample_project, monkeypatch):
+    """Per Codex PR #68 R3 inline review: gate must also fire when an author
+    writes `3a./3b.` lines directly in ## Steps WITHOUT the Workflow branches:
+    metadata field.
+
+    Pre-fix, the gate fired only on metadata field presence. An author could
+    bypass it by writing sub-step lines in the body — Phase 1's
+    `_parse_steps_for_json` would extract `sub_branch="a"` from `3a.`, and
+    Phase 3's `dotted` format would emit `"1.3a"` in `todo[].index`,
+    leaking Path B surface before the renderer ships.
+    """
+    rules_dir = sample_project / "rules"
+    filename = "TST-9004-SOP-UndeclaredSubsteps.md"
+    content = """# TST-9004: Undeclared Substeps
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+A test SOP with sub-step lines in body but no Workflow branches: metadata.
+## Steps
+1. Setup
+2. Decision
+3a. Bypass-attempt branch a
+3b. Bypass-attempt branch b
+4. After
+"""
+    (rules_dir / filename).write_text(content)
+    monkeypatch.chdir(sample_project)
+    # NO monkeypatch of the flag — exercise default-closed gate.
+    result = CliRunner().invoke(cli, ["plan", "TST-9004", "--todo", "--json"])
+    assert result.exit_code != 0, (
+        f"Expected af plan to reject undeclared sub-step lines; "
+        f"got exit 0:\n{result.output}"
+    )
+    assert "CHG-2227" in result.output
+
+
 def test_plan_human_branchy_renders_substeps(sample_project, monkeypatch):
     """Per PR #68 Gemini F3: `af plan --human` must NOT silently drop 3a/3b.
 

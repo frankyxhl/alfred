@@ -594,15 +594,29 @@ def plan_cmd(
             # before the renderer ships.
             # Per Codex PR #68 R2 review: gate on FIELD PRESENCE (including
             # `Workflow branches: []` / `null`), not on parsed-list non-emptiness.
-            # The spec is "MUST NOT author this field" — authoring empty still
-            # authors the field.
-            if not _BRANCHES_RENDERER_READY and has_workflow_branches_field(parsed):
-                raise click.ClickException(
-                    f"{doc.prefix}-{doc.acid}: Workflow branches: schema "
-                    "is parsed but renderer support is not yet shipped "
-                    "(CHG-2227 pending). Production SOPs MUST NOT author "
-                    "this field until CHG-2227 lands."
-                )
+            # Per Codex PR #68 R3 review: also gate on undeclared sub-step lines
+            # (`3a./3b.` written directly in `## Steps` without the metadata
+            # field). The Phase 1 parser surfaces those into StepDict.sub_branch
+            # and Phase 3's `dotted` format emits `"1.3a"` — so even without
+            # the metadata field, an author can produce Path B surface.
+            # Detection: any parsed step has a `sub_branch` key set.
+            if not _BRANCHES_RENDERER_READY:
+                _gate_trip = has_workflow_branches_field(parsed)
+                if not _gate_trip:
+                    _steps_section = _extract_steps_section(parsed.body)
+                    if _steps_section is not None:
+                        _gate_trip = any(
+                            "sub_branch" in s
+                            for s in _parse_steps_for_json(_steps_section)
+                        )
+                if _gate_trip:
+                    raise click.ClickException(
+                        f"{doc.prefix}-{doc.acid}: Workflow branches: schema "
+                        "(or sub-step lines like `3a./3b.`) parsed but renderer "
+                        "support is not yet shipped (CHG-2227 pending). "
+                        "Production SOPs MUST NOT author this field or use "
+                        "sub-step syntax until CHG-2227 lands."
+                    )
         except MalformedDocumentError as e:
             if not output_json:
                 click.echo(

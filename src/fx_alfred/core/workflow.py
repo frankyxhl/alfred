@@ -728,25 +728,23 @@ def _parse_step_indices(parsed: ParsedDocument) -> frozenset[int] | None:
 
     Returns ``None`` if no ``Steps`` heading is present; otherwise a frozenset
     of the step indices parsed from top-level numbered Markdown lines (e.g.
-    ``1. First``) and ``### 1. First``-style headings.
+    ``1. First``, ``### 1. First``, or ``3a. Sub-step``).
 
-    The regex is applied to the *raw* line (not stripped), so indented
-    sub-items (e.g. ``    1. Sub-item``) and numbered lines inside fenced
-    code blocks are **not** counted as top-level steps — top-level Markdown
-    numbered items are flush-left by convention.
+    Delegates to :func:`fx_alfred.core.steps.parse_top_level_step_indices`,
+    which is fence-aware: numbered lines inside ```` ``` ```` / ``~~~``
+    fenced code blocks are skipped. Fence-awareness is critical for FXA-2226
+    Path B because the widened regex (``\\d+[a-z]?``) matches sub-step
+    lines too, and a fenced ``3a. example`` line would otherwise inject
+    parent step 3 into existence checks for `Workflow loops.from/to: 3`
+    (Codex PR #68 R3 inline review).
     """
     from fx_alfred.core.parser import extract_section
+    from fx_alfred.core.steps import parse_top_level_step_indices
 
     section = extract_section(parsed.body, "Steps")
     if section is None:
         return None
-
-    indices: set[int] = set()
-    for line in section.split("\n"):
-        m = _STEP_INDEX_RE.match(line)
-        if m:
-            indices.add(int(m.group(1)))
-    return frozenset(indices)
+    return parse_top_level_step_indices(section)
 
 
 def validate_loops(
