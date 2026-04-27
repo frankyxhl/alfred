@@ -126,3 +126,44 @@ def parse_top_level_step_indices(section_text: str) -> frozenset[int]:
         if m:
             indices.add(int(m.group(1)))
     return frozenset(indices)
+
+
+# Flush-left top-level sub-step matcher — same shape as `_TOP_LEVEL_STEP_RE`
+# but requires the trailing letter, so it matches ONLY sub-step lines like
+# `3a.` (not plain `3.`). Used by `has_top_level_substep_lines` for the
+# FXA-2226 Path B renderer-readiness gate.
+_TOP_LEVEL_SUBSTEP_RE = re.compile(r"^(?:###\s+)?(\d+)([a-z])\.\s+")
+
+
+def has_top_level_substep_lines(section_text: str) -> bool:
+    """Return True if the Steps section contains any flush-left top-level
+    sub-step line (e.g. ``3a.``) outside of fenced code blocks.
+
+    Used by the FXA-2226 Path B plan-time gate to detect undeclared sub-step
+    surface (sub-step lines authored directly in ``## Steps`` without the
+    ``Workflow branches:`` metadata field). Mirrors the flush-left + fence
+    tracking discipline of :func:`parse_top_level_step_indices` so the gate
+    cannot be falsely tripped by indented or fenced ``3a.`` lines (Codex
+    PR #68 R4 inline review).
+    """
+    fence_char: str | None = None
+    fence_len = 0
+    for line in section_text.split("\n"):
+        stripped = line.lstrip()
+        if fence_char is not None:
+            if stripped and stripped[0] == fence_char:
+                run = _fence_run_length(stripped, fence_char)
+                if run >= fence_len:
+                    fence_char = None
+                    fence_len = 0
+            continue
+        if stripped and stripped[0] in ("`", "~"):
+            ch = stripped[0]
+            run = _fence_run_length(stripped, ch)
+            if run >= 3:
+                fence_char = ch
+                fence_len = run
+                continue
+        if _TOP_LEVEL_SUBSTEP_RE.match(line):
+            return True
+    return False

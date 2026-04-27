@@ -217,6 +217,74 @@ A test SOP with sub-step lines in body but no Workflow branches: metadata.
     assert "CHG-2227" in result.output
 
 
+def test_plan_gate_does_not_trip_on_indented_substep_line(sample_project, monkeypatch):
+    """Per Codex PR #68 R4 inline review: indented `3a.` lines (sub-items
+    nested under another step) MUST NOT trip the gate.
+
+    `has_top_level_substep_lines` scans flush-left only; sub-items at any
+    indent level are ignored. This SOP has no real sub-step surface, so
+    `af plan` should succeed despite the `3a.` text.
+    """
+    rules_dir = sample_project / "rules"
+    filename = "TST-9005-SOP-IndentedSubstep.md"
+    content = """# TST-9005: Indented Substep
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+A test SOP with `3a.` text appearing only as an indented sub-item.
+## Steps
+1. Setup
+2. Decision
+3. Discuss the format. Maybe label paths:
+    3a. like this (indented sub-item, not a top-level step)
+    3b. or this
+4. Continue
+"""
+    (rules_dir / filename).write_text(content)
+    monkeypatch.chdir(sample_project)
+    # Default-closed gate; should NOT fire because the only `3a./3b.` lines
+    # are indented (sub-items, not top-level).
+    result = CliRunner().invoke(cli, ["plan", "TST-9005", "--todo", "--json"])
+    assert result.exit_code == 0, (
+        f"Indented sub-item lines should NOT trip the gate; got exit "
+        f"{result.exit_code}:\n{result.output}"
+    )
+
+
+def test_plan_gate_does_not_trip_on_fenced_substep_line(sample_project, monkeypatch):
+    """Per Codex PR #68 R4 inline review: `3a.` lines inside fenced code
+    blocks MUST NOT trip the gate (they're examples, not authored steps).
+    """
+    rules_dir = sample_project / "rules"
+    filename = "TST-9006-SOP-FencedSubstep.md"
+    content = """# TST-9006: Fenced Substep
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+A test SOP demonstrating substep syntax inside a code fence (example only).
+## Steps
+1. Setup
+2. Decision
+3. Show what FXA-2226 substep syntax looks like:
+```
+3a. Pass branch
+3b. Fail branch
+```
+4. Continue
+"""
+    (rules_dir / filename).write_text(content)
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(cli, ["plan", "TST-9006", "--todo", "--json"])
+    assert result.exit_code == 0, (
+        f"Fenced sub-step example should NOT trip the gate; got exit "
+        f"{result.exit_code}:\n{result.output}"
+    )
+
+
 def test_plan_human_branchy_renders_substeps(sample_project, monkeypatch):
     """Per PR #68 Gemini F3: `af plan --human` must NOT silently drop 3a/3b.
 

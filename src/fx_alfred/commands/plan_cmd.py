@@ -603,12 +603,16 @@ def plan_cmd(
             if not _BRANCHES_RENDERER_READY:
                 _gate_trip = has_workflow_branches_field(parsed)
                 if not _gate_trip:
+                    # Per Codex PR #68 R4 inline review: use a flush-left,
+                    # fence-aware scan (mirrors validate_branches discipline).
+                    # `_parse_steps_for_json` strips indentation and skips
+                    # fence tracking, so it would falsely trip the gate on
+                    # indented or fenced `3a.` lines.
+                    from fx_alfred.core.steps import has_top_level_substep_lines
+
                     _steps_section = _extract_steps_section(parsed.body)
                     if _steps_section is not None:
-                        _gate_trip = any(
-                            "sub_branch" in s
-                            for s in _parse_steps_for_json(_steps_section)
-                        )
+                        _gate_trip = has_top_level_substep_lines(_steps_section)
                 if _gate_trip:
                     raise click.ClickException(
                         f"{doc.prefix}-{doc.acid}: Workflow branches: schema "
