@@ -25,7 +25,9 @@ from fx_alfred.core.schema import TASK_TAGS
 from fx_alfred.core.workflow import (
     LoopSignature,
     WorkflowSignature,
+    _BRANCHES_RENDERER_READY,
     check_composition,
+    has_workflow_branches_field,
     parse_workflow_loops,
     parse_workflow_signature,
     validate_workflow_signature,
@@ -124,10 +126,12 @@ def _parse_numbered_items(section_text: str) -> list[str]:
     items: list[str] = []
     for line in section_text.split("\n"):
         stripped = line.strip()
-        # Match "### 1. text" or "1. text"
-        m = re.match(r"^(?:###\s+)?(\d+)\.\s+(.+)", stripped)
+        # Match "### 1. text", "1. text", "3a. text" (FXA-2226 Path B sub-step)
+        m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+(.+)", stripped)
         if m:
-            items.append(f"{m.group(1)}. {m.group(2)}")
+            number = m.group(1)
+            sub_branch = m.group(2) or ""
+            items.append(f"{number}{sub_branch}. {m.group(3)}")
     return items
 
 
@@ -283,7 +287,9 @@ def _build_todo_items(
         step_idx = step["index"]
         text = step["text"]
         gate = step["gate"]
-        dotted = f"{phase_num}.{step_idx}"
+        # FXA-2226 Path B: append optional sub_branch suffix for sibling
+        # sub-steps so dotted index goes from "1.3" → "1.3a".
+        dotted = f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"
 
         # Classify step (gate and loop markers are independent)
         is_gate, loop_to_sig, loop_from_sig = _classify_step(
@@ -349,7 +355,8 @@ def _build_todo_json(
         step_idx = step["index"]
         text = step["text"]
         gate = step["gate"]
-        dotted = f"{phase_num}.{step_idx}"
+        # FXA-2226 Path B: append optional sub_branch suffix.
+        dotted = f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"
 
         # Classify step (gate and loop markers are independent)
         is_gate, loop_to_sig, loop_from_sig = _classify_step(
@@ -579,6 +586,41 @@ def plan_cmd(
             parsed = parse_metadata(content)
             sig = parse_workflow_signature(parsed)
             loops = parse_workflow_loops(parsed)
+            # FXA-2226 Path B: enforce renderer-readiness gate at plan time too
+            # (per Gemini PR #68 review F2). Until CHG-2227 Phase 8a flips
+            # `_BRANCHES_RENDERER_READY` to True, any SOP authoring
+            # `Workflow branches:` is rejected here so `af plan` never emits
+            # sub-stepped surface (`"1.3a"` indices, ASCII collisions, etc.)
+            # before the renderer ships.
+            # Per Codex PR #68 R2 review: gate on FIELD PRESENCE (including
+            # `Workflow branches: []` / `null`), not on parsed-list non-emptiness.
+            # Per Codex PR #68 R3 review: also gate on undeclared sub-step lines
+            # (`3a./3b.` written directly in `## Steps` without the metadata
+            # field). The Phase 1 parser surfaces those into StepDict.sub_branch
+            # and Phase 3's `dotted` format emits `"1.3a"` — so even without
+            # the metadata field, an author can produce Path B surface.
+            # Detection: any parsed step has a `sub_branch` key set.
+            if not _BRANCHES_RENDERER_READY:
+                _gate_trip = has_workflow_branches_field(parsed)
+                if not _gate_trip:
+                    # Per Codex PR #68 R4 inline review: use a flush-left,
+                    # fence-aware scan (mirrors validate_branches discipline).
+                    # `_parse_steps_for_json` strips indentation and skips
+                    # fence tracking, so it would falsely trip the gate on
+                    # indented or fenced `3a.` lines.
+                    from fx_alfred.core.steps import has_top_level_substep_lines
+
+                    _steps_section = _extract_steps_section(parsed.body)
+                    if _steps_section is not None:
+                        _gate_trip = has_top_level_substep_lines(_steps_section)
+                if _gate_trip:
+                    raise click.ClickException(
+                        f"{doc.prefix}-{doc.acid}: Workflow branches: schema "
+                        "(or sub-step lines like `3a./3b.`) parsed but renderer "
+                        "support is not yet shipped (CHG-2227 pending). "
+                        "Production SOPs MUST NOT author this field or use "
+                        "sub-step syntax until CHG-2227 lands."
+                    )
         except MalformedDocumentError as e:
             if not output_json:
                 click.echo(

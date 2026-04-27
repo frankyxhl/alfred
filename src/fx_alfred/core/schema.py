@@ -55,6 +55,9 @@ WORKFLOW_PROVIDES = "Workflow provides"
 # FXA-2205: Loop metadata key — SOP-only, optional.
 WORKFLOW_LOOPS = "Workflow loops"
 
+# FXA-2226 Path B: Branch metadata key — SOP-only, optional.
+WORKFLOW_BRANCHES = "Workflow branches"
+
 # FXA-2205: Always-included flag — SOP-only, optional.
 ALWAYS_INCLUDED = "Always included"
 
@@ -70,7 +73,7 @@ _WORKFLOW_FIELDS = [
 
 OPTIONAL_METADATA: dict[DocType, list[str]] = {
     DocType.SOP: _WORKFLOW_FIELDS
-    + [WORKFLOW_LOOPS, ALWAYS_INCLUDED, TASK_TAGS, "Tags"],
+    + [WORKFLOW_LOOPS, WORKFLOW_BRANCHES, ALWAYS_INCLUDED, TASK_TAGS, "Tags"],
     **{dt: ["Tags"] for dt in DocType if dt != DocType.SOP},
 }
 

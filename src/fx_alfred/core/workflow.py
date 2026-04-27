@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 import yaml
 
@@ -19,6 +20,7 @@ from fx_alfred.core.schema import (
     WORKFLOW_PROVIDES,
     WORKFLOW_REQUIRES,
     WORKFLOW_LOOPS,
+    WORKFLOW_BRANCHES,
 )
 
 # Token format per the CHG-2204 contract.
@@ -177,8 +179,11 @@ def check_composition(
 # FXA-2205: Loop metadata parsing and validation
 # ---------------------------------------------------------------------------
 
-# Regex to match numbered steps: "1. text" or "### 1. text"
-_STEP_INDEX_RE = re.compile(r"^(?:###\s+)?(\d+)\.\s+")
+# Regex to match numbered steps. FXA-2226 Path B: extended to also match
+# sub-step lines like ``3a.`` so ``_parse_step_indices`` injects the parent
+# integer (3) from each sibling. The optional ``[a-z]?`` is OUTSIDE the
+# int-capturing group, so ``int(m.group(1))`` always yields a clean int.
+_STEP_INDEX_RE = re.compile(r"^(?:###\s+)?(\d+)[a-z]?\.\s+")
 # Required keys in a loop declaration
 _LOOP_REQUIRED_KEYS = ("id", "from", "to", "max_iterations", "condition")
 # Cross-SOP loop reference — authored as "PREFIX-ACID.step" (FXA-2218 Commit 2).
@@ -218,6 +223,395 @@ class LoopSignature:
                 f"{self.to_step!r} does not match CROSS_SOP_REF"
             )
         return m.group("prefix"), m.group("acid"), int(m.group("step"))
+
+
+# ---------------------------------------------------------------------------
+# FXA-2226 Path B: Branch metadata parsing.
+#
+# `Workflow branches:` declares forward branches with edge labels. Schema:
+#
+#     Workflow branches:
+#       - from: 2
+#         to:
+#           - {id: 3a, label: pass}
+#           - {id: 3b, label: fail}
+#
+# Sub-step `id` values are split into ``parent`` (int — leading digits) and
+# ``branch`` (str — single trailing letter). Path B keeps types int-stable;
+# the branch suffix is exposed via a separate field.
+# ---------------------------------------------------------------------------
+
+# Sub-step ID format: one or more digits followed by a single letter.
+_BRANCH_TO_ID_RE = re.compile(r"^(?P<parent>\d+)(?P<branch>[a-z])$")
+
+
+class BranchTarget(NamedTuple):
+    """A single sibling of a forward branch.
+
+    ``parent`` is the integer step (e.g. ``3`` for ``3a``); ``branch`` is the
+    suffix letter (``"a"``); ``label`` is the edge label printed above the
+    branch arrow.
+    """
+
+    parent: int
+    branch: str
+    label: str
+
+
+@dataclass(frozen=True)
+class BranchSignature:
+    """Forward-branch declaration extracted from ``Workflow branches:`` metadata."""
+
+    from_step: int
+    to: tuple[BranchTarget, ...]
+
+
+@dataclass(frozen=True)
+class BranchError:
+    """Validation error for a Workflow branches: entry (or a file-level issue)."""
+
+    msg: str
+    branch_idx: int | None = None
+
+
+# CHG-2226 Path B intermediate-state guardrail. The parser+schema land in
+# this CHG (Phase 1) but the renderer support arrives in CHG-2227. Until
+# CHG-2227 Phase 8a flips this flag to ``True`` as a separately-reviewable
+# commit, ``af validate`` rejects any SOP authoring ``Workflow branches:``
+# so production SOPs cannot land branchy declarations that misrender in
+# nested/flat/Mermaid output.
+_BRANCHES_RENDERER_READY = False
+
+
+def has_workflow_branches_field(parsed: ParsedDocument) -> bool:
+    """Return True if the SOP authors the ``Workflow branches:`` field at all.
+
+    True even for empty values (``Workflow branches: []`` or ``null``). Used by
+    the renderer-readiness gate to enforce the spec rule "MUST NOT author this
+    field until CHG-2227 lands" — authoring an empty list still counts as
+    authoring the field (per Codex PR #68 R2 review).
+    """
+    return any(mf.key == WORKFLOW_BRANCHES for mf in parsed.metadata_fields)
+
+
+def parse_workflow_branches(parsed: ParsedDocument) -> list[BranchSignature]:
+    """Parse the optional ``Workflow branches:`` metadata into BranchSignatures.
+
+    Returns ``[]`` when the field is absent or its value is empty.
+
+    Raises :class:`MalformedDocumentError` if the YAML is not a list, if any
+    entry is not a dict, if a required key is missing, or if any sub-step
+    ``id`` does not match ``\\d+[a-z]``.
+    """
+    field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
+    raw = field_map.get(WORKFLOW_BRANCHES)
+    if raw is None or not raw.strip():
+        return []
+
+    try:
+        data = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise MalformedDocumentError(
+            f"Workflow branches: invalid YAML — {exc}"
+        ) from exc
+
+    if data is None:
+        return []
+    if not isinstance(data, list):
+        raise MalformedDocumentError(
+            "Workflow branches: expected a YAML list of branch objects"
+        )
+
+    branches: list[BranchSignature] = []
+    for i, entry in enumerate(data):
+        if not isinstance(entry, dict):
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: expected a YAML mapping, got {type(entry).__name__}"
+            )
+        if "from" not in entry or "to" not in entry:
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: missing required key 'from' or 'to'"
+            )
+        from_step_raw = entry["from"]
+        if isinstance(from_step_raw, bool) or not isinstance(from_step_raw, int):
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: 'from' must be an integer step index"
+            )
+        to_raw = entry["to"]
+        if not isinstance(to_raw, list) or not to_raw:
+            raise MalformedDocumentError(
+                f"Workflow branches[{i}]: 'to' must be a non-empty list of "
+                f"{{id, label}} entries"
+            )
+        targets: list[BranchTarget] = []
+        for j, target_raw in enumerate(to_raw):
+            if not isinstance(target_raw, dict):
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: expected a mapping"
+                )
+            target_id = target_raw.get("id")
+            if not isinstance(target_id, str):
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: 'id' must be a string "
+                    f"matching '\\d+[a-z]'"
+                )
+            m = _BRANCH_TO_ID_RE.match(target_id)
+            if m is None:
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: 'id' {target_id!r} "
+                    f"does not match '\\d+[a-z]'"
+                )
+            label = target_raw.get("label", "")
+            if not isinstance(label, str):
+                raise MalformedDocumentError(
+                    f"Workflow branches[{i}].to[{j}]: 'label' must be a string"
+                )
+            targets.append(
+                BranchTarget(
+                    parent=int(m.group("parent")),
+                    branch=m.group("branch"),
+                    label=label,
+                )
+            )
+        branches.append(
+            BranchSignature(from_step=int(from_step_raw), to=tuple(targets))
+        )
+    return branches
+
+
+def validate_branches(
+    parsed: ParsedDocument,
+    branches: list[BranchSignature],
+    *,
+    _gate_open_for_test: bool = False,
+) -> list[BranchError]:
+    """Validate ``Workflow branches:`` declarations against the SOP body.
+
+    Returns a list of :class:`BranchError`.  Empty list means valid.
+
+    Validation rules:
+
+    1. **Renderer-readiness gate** — if ``_BRANCHES_RENDERER_READY`` is False
+       (the default in CHG-2226 until CHG-2227 Phase 8a flips it), the
+       presence of *any* branch declaration is a hard error directing
+       authors to wait for CHG-2227. ``_gate_open_for_test`` bypasses this
+       gate for tests that need to exercise the structural rules below.
+    2. **`from` exists** — must reference an existing integer step in
+       ``## Steps``.
+    3. **`to.parent == from + 1`** — every sibling's parent integer must
+       equal ``from + 1`` (the convention is that branches fork from step
+       N to siblings ``(N+1)a``, ``(N+1)b``, ...).
+    4. **Sub-step exists** — every ``to.id`` (e.g. ``3a``) must appear in
+       ``## Steps`` as an actual sub-step line.
+    5. **Siblings contiguous** — sibling lines must appear consecutively in
+       ``## Steps`` (no integer step interleaved between them).
+    6. **No orphan sub-steps** — every sub-step letter present in ``## Steps``
+       must appear in some ``branches.to`` declaration.
+    """
+    errors: list[BranchError] = []
+
+    # Rule 1: gate. Per Codex PR #68 R2 review, fire on FIELD PRESENCE
+    # (including `Workflow branches: []` / `null`), not on parsed-list
+    # non-emptiness. The spec is "MUST NOT author this field until
+    # CHG-2227 lands" — authoring an empty list still authors the field.
+    field_present = has_workflow_branches_field(parsed)
+    if field_present and not (_BRANCHES_RENDERER_READY or _gate_open_for_test):
+        errors.append(
+            BranchError(
+                msg=(
+                    "Workflow branches: schema is parsed but renderer support is "
+                    "not yet shipped (CHG-2227 pending). Production SOPs MUST NOT "
+                    "author this field until CHG-2227 lands."
+                ),
+            )
+        )
+        # Continue running structural checks too — useful for early authors.
+
+    # Pull the actual ## Steps lines (in document order) for sub-step
+    # presence and contiguity checks.
+    from fx_alfred.core.parser import extract_section as _extract_section
+
+    section = _extract_section(parsed.body, "Steps") if parsed.body else None
+    sub_steps_in_order: list[tuple[int, str]] = []  # [(parent, branch), ...]
+    plain_step_positions: dict[int, int] = {}  # int_index -> first occurrence
+    if section is not None:
+        position = 0  # logical position counting ALL parsed step lines
+        fence_char: str | None = None
+        fence_len = 0
+        for raw in section.split("\n"):
+            stripped = raw.lstrip()
+            # Skip fenced code blocks (mirrors parse_top_level_step_indices).
+            if fence_char is not None:
+                if stripped and stripped[0] == fence_char:
+                    run = 0
+                    while run < len(stripped) and stripped[run] == fence_char:
+                        run += 1
+                    if run >= fence_len:
+                        fence_char = None
+                        fence_len = 0
+                continue
+            if stripped and stripped[0] in ("`", "~"):
+                ch = stripped[0]
+                run = 0
+                while run < len(stripped) and stripped[run] == ch:
+                    run += 1
+                if run >= 3:
+                    fence_char = ch
+                    fence_len = run
+                    continue
+            # Match either "3." (plain) or "3a." (sub-step).
+            m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+", raw)
+            if not m:
+                continue
+            parent = int(m.group(1))
+            sub = m.group(2)
+            if sub is None:
+                if parent not in plain_step_positions:
+                    plain_step_positions[parent] = position
+            else:
+                sub_steps_in_order.append((parent, sub))
+            position += 1
+
+    # Build a lookup set of (parent, branch) pairs that exist in ## Steps.
+    sub_steps_set = set(sub_steps_in_order)
+    # Build a lookup set of (parent, branch) pairs DECLARED across all branches.
+    declared: set[tuple[int, str]] = set()
+    for sig in branches:
+        for tgt in sig.to:
+            declared.add((tgt.parent, tgt.branch))
+
+    # Plain-step ints only (excluding parent ints injected from sub-step
+    # lines) — used by Rule 2 below per PR #68 Codex F1 finding. The
+    # spec says `from` must reference an EXISTING INTEGER step in
+    # `## Steps`; sub-stepped-only parents (no bare `2.` line) should
+    # NOT satisfy `from: 2`.
+    plain_only_ints = frozenset(plain_step_positions.keys())
+
+    for i, sig in enumerate(branches):
+        # Rule 2: from references existing INTEGER step (must be a bare
+        # plain step line — not satisfied solely by parent-int injection
+        # from sub-step siblings).
+        if sig.from_step not in plain_only_ints:
+            errors.append(
+                BranchError(
+                    msg=(
+                        f"Workflow branches[{i}]: from = {sig.from_step} does "
+                        f"not reference an existing step in ## Steps"
+                    ),
+                    branch_idx=i,
+                )
+            )
+        for j, tgt in enumerate(sig.to):
+            # Rule 3: parent must equal from + 1
+            if tgt.parent != sig.from_step + 1:
+                errors.append(
+                    BranchError(
+                        msg=(
+                            f"Workflow branches[{i}].to[{j}]: id "
+                            f"{tgt.parent}{tgt.branch!r} parent must be "
+                            f"{sig.from_step + 1} (from + 1), got {tgt.parent}"
+                        ),
+                        branch_idx=i,
+                    )
+                )
+            # Rule 4: sub-step exists
+            if (tgt.parent, tgt.branch) not in sub_steps_set:
+                errors.append(
+                    BranchError(
+                        msg=(
+                            f"Workflow branches[{i}].to[{j}]: id "
+                            f"{tgt.parent}{tgt.branch} does not reference "
+                            f"an existing sub-step in ## Steps"
+                        ),
+                        branch_idx=i,
+                    )
+                )
+
+        # Rule 5: siblings contiguous in ## Steps. Find positions of declared
+        # siblings; assert they are consecutive (allowing only sub-step lines
+        # between them).
+        sibling_positions = [
+            idx
+            for idx, (parent, branch) in enumerate(sub_steps_in_order)
+            if (parent, branch) in {(t.parent, t.branch) for t in sig.to}
+        ]
+        if sibling_positions:
+            expected_parent = sig.from_step + 1
+            interleaved_plain = False
+            # Build a unified ordered list of (kind, parent, branch_or_None)
+            # and verify no plain integer step appears between the first and
+            # last declared sibling.
+            unified: list[tuple[str, int, str | None]] = []
+            if section is not None:
+                fence_char = None
+                fence_len = 0
+                for raw in section.split("\n"):
+                    stripped = raw.lstrip()
+                    if fence_char is not None:
+                        if stripped and stripped[0] == fence_char:
+                            run = 0
+                            while run < len(stripped) and stripped[run] == fence_char:
+                                run += 1
+                            if run >= fence_len:
+                                fence_char = None
+                                fence_len = 0
+                        continue
+                    if stripped and stripped[0] in ("`", "~"):
+                        ch = stripped[0]
+                        run = 0
+                        while run < len(stripped) and stripped[run] == ch:
+                            run += 1
+                        if run >= 3:
+                            fence_char = ch
+                            fence_len = run
+                            continue
+                    m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+", raw)
+                    if not m:
+                        continue
+                    p = int(m.group(1))
+                    s = m.group(2)
+                    unified.append(("sub" if s else "plain", p, s))
+            sibling_set = {(t.parent, t.branch) for t in sig.to}
+            sib_unified_positions = [
+                u_idx
+                for u_idx, (kind, p, s) in enumerate(unified)
+                if kind == "sub" and (p, s) in sibling_set
+            ]
+            if sib_unified_positions and len(sib_unified_positions) >= 2:
+                lo = min(sib_unified_positions)
+                hi = max(sib_unified_positions)
+                for u_idx in range(lo + 1, hi):
+                    kind, p, s = unified[u_idx]
+                    if kind == "plain":
+                        interleaved_plain = True
+                        break
+            if interleaved_plain:
+                errors.append(
+                    BranchError(
+                        msg=(
+                            f"Workflow branches[{i}]: siblings must be "
+                            f"contiguous in ## Steps (parent {expected_parent}); "
+                            f"found a plain integer step interleaved between "
+                            f"sub-step siblings"
+                        ),
+                        branch_idx=i,
+                    )
+                )
+
+    # Rule 6: no orphan sub-steps (sub-steps in ## Steps not declared).
+    for parent, branch in sub_steps_in_order:
+        if (parent, branch) not in declared:
+            errors.append(
+                BranchError(
+                    msg=(
+                        f"sub-step {parent}{branch} appears in ## Steps but "
+                        f"is an orphan — not declared in any "
+                        f"Workflow branches.to entry"
+                    ),
+                )
+            )
+
+    return errors
 
 
 @dataclass(frozen=True)
@@ -334,25 +728,23 @@ def _parse_step_indices(parsed: ParsedDocument) -> frozenset[int] | None:
 
     Returns ``None`` if no ``Steps`` heading is present; otherwise a frozenset
     of the step indices parsed from top-level numbered Markdown lines (e.g.
-    ``1. First``) and ``### 1. First``-style headings.
+    ``1. First``, ``### 1. First``, or ``3a. Sub-step``).
 
-    The regex is applied to the *raw* line (not stripped), so indented
-    sub-items (e.g. ``    1. Sub-item``) and numbered lines inside fenced
-    code blocks are **not** counted as top-level steps — top-level Markdown
-    numbered items are flush-left by convention.
+    Delegates to :func:`fx_alfred.core.steps.parse_top_level_step_indices`,
+    which is fence-aware: numbered lines inside ```` ``` ```` / ``~~~``
+    fenced code blocks are skipped. Fence-awareness is critical for FXA-2226
+    Path B because the widened regex (``\\d+[a-z]?``) matches sub-step
+    lines too, and a fenced ``3a. example`` line would otherwise inject
+    parent step 3 into existence checks for `Workflow loops.from/to: 3`
+    (Codex PR #68 R3 inline review).
     """
     from fx_alfred.core.parser import extract_section
+    from fx_alfred.core.steps import parse_top_level_step_indices
 
     section = extract_section(parsed.body, "Steps")
     if section is None:
         return None
-
-    indices: set[int] = set()
-    for line in section.split("\n"):
-        m = _STEP_INDEX_RE.match(line)
-        if m:
-            indices.add(int(m.group(1)))
-    return frozenset(indices)
+    return parse_top_level_step_indices(section)
 
 
 def validate_loops(

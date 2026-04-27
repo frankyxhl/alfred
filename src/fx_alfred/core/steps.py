@@ -36,18 +36,27 @@ def extract_steps_section(body: str) -> str | None:
 def _parse_steps_for_json(section_text: str) -> list[StepDict]:
     """Extract steps as structured data for JSON output.
 
-    Returns list of {"index": int, "text": str, "gate": bool}.
-    Gate is true if step ends with "✓" or contains "[GATE]".
+    Returns list of StepDict shapes. Plain steps have keys
+    ``{"index", "text", "gate"}``; sub-stepped siblings (FXA-2226 Path B)
+    additionally carry ``"sub_branch"`` set to the suffix letter (``"a"``,
+    ``"b"``, ...). Gate is true if step ends with "✓" or contains "[GATE]".
+
+    Path B convention: plain steps OMIT the ``sub_branch`` key entirely;
+    it is never set to ``None`` or any sentinel.
     """
     steps: list[StepDict] = []
     for line in section_text.split("\n"):
         stripped = line.strip()
-        m = re.match(r"^(?:###\s+)?(\d+)\.\s+(.+)", stripped)
+        m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+(.+)", stripped)
         if m:
             index = int(m.group(1))
-            text = m.group(2)
+            sub_branch = m.group(2)  # None for plain; "a"/"b"/... for sub-steps
+            text = m.group(3)
             gate = text.endswith("✓") or "[GATE]" in text
-            steps.append({"index": index, "text": text, "gate": gate})
+            step: StepDict = {"index": index, "text": text, "gate": gate}
+            if sub_branch is not None:
+                step["sub_branch"] = sub_branch
+            steps.append(step)
     return steps
 
 
@@ -56,7 +65,11 @@ def _parse_steps_for_json(section_text: str) -> list[StepDict]:
 # lines inside indented code fences are **not** counted, keeping this
 # consistent with `workflow._parse_step_indices`. Shared via this module so
 # validate_cmd can use the same definition of "top-level step" (PR #59 P1).
-_TOP_LEVEL_STEP_RE = re.compile(r"^(?:###\s+)?(\d+)\.\s+")
+# FXA-2226 Path B: regex extended to also match sub-step lines like ``3a.`` so
+# ``parse_top_level_step_indices`` injects the parent integer (3) from each
+# sibling. The optional ``[a-z]?`` is OUTSIDE the int-capturing group, so the
+# captured group always yields a pure integer for ``int()`` casting.
+_TOP_LEVEL_STEP_RE = re.compile(r"^(?:###\s+)?(\d+)[a-z]?\.\s+")
 
 
 def _fence_run_length(stripped: str, ch: str) -> int:
@@ -113,3 +126,44 @@ def parse_top_level_step_indices(section_text: str) -> frozenset[int]:
         if m:
             indices.add(int(m.group(1)))
     return frozenset(indices)
+
+
+# Flush-left top-level sub-step matcher — same shape as `_TOP_LEVEL_STEP_RE`
+# but requires the trailing letter, so it matches ONLY sub-step lines like
+# `3a.` (not plain `3.`). Used by `has_top_level_substep_lines` for the
+# FXA-2226 Path B renderer-readiness gate.
+_TOP_LEVEL_SUBSTEP_RE = re.compile(r"^(?:###\s+)?(\d+)([a-z])\.\s+")
+
+
+def has_top_level_substep_lines(section_text: str) -> bool:
+    """Return True if the Steps section contains any flush-left top-level
+    sub-step line (e.g. ``3a.``) outside of fenced code blocks.
+
+    Used by the FXA-2226 Path B plan-time gate to detect undeclared sub-step
+    surface (sub-step lines authored directly in ``## Steps`` without the
+    ``Workflow branches:`` metadata field). Mirrors the flush-left + fence
+    tracking discipline of :func:`parse_top_level_step_indices` so the gate
+    cannot be falsely tripped by indented or fenced ``3a.`` lines (Codex
+    PR #68 R4 inline review).
+    """
+    fence_char: str | None = None
+    fence_len = 0
+    for line in section_text.split("\n"):
+        stripped = line.lstrip()
+        if fence_char is not None:
+            if stripped and stripped[0] == fence_char:
+                run = _fence_run_length(stripped, fence_char)
+                if run >= fence_len:
+                    fence_char = None
+                    fence_len = 0
+            continue
+        if stripped and stripped[0] in ("`", "~"):
+            ch = stripped[0]
+            run = _fence_run_length(stripped, ch)
+            if run >= 3:
+                fence_char = ch
+                fence_len = run
+                continue
+        if _TOP_LEVEL_SUBSTEP_RE.match(line):
+            return True
+    return False
