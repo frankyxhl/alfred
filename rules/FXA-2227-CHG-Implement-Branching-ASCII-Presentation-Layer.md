@@ -80,7 +80,7 @@ Both Round 1 reviewers flagged that "Phase 3 builds a primitive; Phase 4+5 integ
 
 ### Module: `src/fx_alfred/core/branch_geometry.py`
 
-Public API (5 functions, all pure — no I/O, no global state):
+Public API (2 dataclasses + 4 functions, all pure — no I/O, no global state):
 
 ```python
 @dataclass(frozen=True)
@@ -207,7 +207,7 @@ Per COR-1500 (TDD Development Workflow). Phases 3, 4, 5, 7 from the original 10-
 - 11 invariant tests above (`tests/test_branch_geometry.py` — I1 through I11)
 - 6 hand-crafted golden tests: 2-way simple, 3-way simple, 4-way at hard cap, dangling tails, CJK truncation, Audit Ledger end-to-end (per §"Phase 3 Spike Exit Criteria")
 
-**GREEN:** Implement the 5 public functions per the API contract above. Hand-craft goldens from PRP-2225 §"Geometry algorithm sketch" (PRP-2225:105–109).
+**GREEN:** Implement the 2 dataclasses (`BranchRenderInput`, `BranchRenderOutput`) and 4 functions (`render_branch`, `compute_column_offsets`, `render_label_row`, `render_join_row`) per the API contract above. Hand-craft goldens from PRP-2225 §"Geometry algorithm sketch" (PRP-2225:105–109).
 
 **REFACTOR:** Run invariant I9 (no renderer imports) — primitive must be standalone. Sweep for any accidentally-leaked global state.
 
@@ -221,7 +221,7 @@ Per COR-1500 (TDD Development Workflow). Phases 3, 4, 5, 7 from the original 10-
 - `tests/test_dag_graph.py::test_nested_dangling_branch` — terminal branch (no convergence) renders correctly inside phase box
 - `tests/test_dag_graph.py::test_nested_legacy_unchanged` — every existing nested-layout test stays green
 
-**GREEN:** Detect a branch group in the phase's step list (sub-step `index` matches `Workflow branches.from + 1` AND `step.get("sub_branch")` is set); when detected, call `render_branch(...)` from `branch_geometry` with `BranchTarget` siblings constructed from the matching step entries; wrap result in phase-box borders. **`step_row_index` keys remain int-typed by `step['index']`** — siblings are rendered as a group (occupying their parent integer's row range) rather than as individual rows. **No widening of int-keyed structures.** Per CHG-2226's renderer-readiness gate (`_BRANCHES_RENDERER_READY = False`), Phase 4 also flips this flag to `True` as a deliverable so `af validate` accepts `Workflow branches:` once renderer ships.
+**GREEN:** Detect a branch group in the phase's step list (sub-step `index` matches `Workflow branches.from + 1` AND `step.get("sub_branch")` is set); when detected, call `render_branch(...)` from `branch_geometry` with `BranchTarget` siblings constructed from the matching step entries; wrap result in phase-box borders. **`step_row_index` keys remain int-typed by `step['index']`** — siblings are rendered as a group (occupying their parent integer's row range) rather than as individual rows. **No widening of int-keyed structures.** **The renderer-readiness flag flip is deferred to Phase 8** (see below) — flipping it here would let `af validate` accept `Workflow branches:` SOPs while flat (`--graph-layout=flat`) and Mermaid (`--graph-format=mermaid` or default `both`) outputs are still unimplemented and would misrender. Codex PR review #67 P1 caught this sequencing bug; flag must flip only after ALL graph output modes support branches.
 
 **Exit:** Nested-layout tests pass; existing v1.7.0 nested tests stay green.
 
@@ -245,9 +245,19 @@ Per COR-1500 (TDD Development Workflow). Phases 3, 4, 5, 7 from the original 10-
 
 **Exit:** Mermaid tests pass; existing tests green.
 
-### Phase 8 — Documentation + version bump
+### Phase 8 — Documentation + version bump + renderer-readiness flag flip
 
-- v1.8.0 entry in `src/fx_alfred/CHANGELOG.md` (per "CHANGELOG" subsection above)
+**This phase has two atomic commits** (per Codex R4 advisory + Codex PR review #67 P1):
+
+**Commit 8a — Flip renderer-readiness flag (separately reviewable):**
+- Edit `core/workflow.py`: `_BRANCHES_RENDERER_READY = False` → `_BRANCHES_RENDERER_READY = True`
+- Update test that asserted the gate blocks `Workflow branches:` (now asserts gate accepts it)
+- Add new test: `test_branches_validates_after_renderer_ready` — load `branches_3way.md` SOP, run `af validate`, assert no errors
+- Commit message: `feat(FXA-2227): flip _BRANCHES_RENDERER_READY = True (renderer support complete in Phases 3-7)`
+- This commit is the cross-CHG handoff with CHG-2226. Lands ONLY after Phases 3+4+5+7 are all in main, so flat + nested + Mermaid all support branches before validation accepts authoring `Workflow branches:`.
+
+**Commit 8b — Docs + version + dep:**
+- v1.8.0 entry in `src/fx_alfred/CHANGELOG.md` (per "CHANGELOG" subsection above) — **must include `⚠ Breaking — todo[].index format` entry per CHG-2226 §Risks**: documents that strict-numeric-regex consumers (`^\d+\.\d+$`) need to update to `^\d+\.\d+[a-z]?$` to handle sub-stepped output
 - `pyproject.toml`: `version = "1.7.1" → "1.8.0"`; add `"wcwidth"` to `dependencies`
 - `CLAUDE.md`: one-paragraph note about `Workflow branches:`
 - `COR-1202`: one-line mention in "What Is It?"
@@ -303,3 +313,4 @@ Per FXA-2102: tests + lint + pyright clean → **manual smoke test** (per Gemini
 | 2026-04-27 | Round 1 review: Codex 8.4 FIX, Gemini 9.6 PASS. Round 2 revisions per Codex feedback: (1) `BranchRenderOutput` extended with `step_anchor_rows: dict[str, int]` for loop-track placement; (2) label-slot semantics rewritten — N labels for N edges (not N-1 between tees); each label centers at column `c_i` with collision-avoidance max-width; empty/all-empty handled; (3) 4-way and dangling goldens added (was 3 goldens, now 6); (4) Phase 3 spike exit criterion #5 ("manual eyeball") promoted to programmatic golden against PRP-2225's Audit Ledger fixture; (5) ASCII coordinate diagram added beside invariants for visual clarity. Plus Gemini advisory: manual smoke test added to Phase 10 before `gh release create`. Test count grows from ~21 to ~25 in this CHG (~46 across both CHGs). | Frank + Claude Code |
 | 2026-04-27 | Round 2 review: Codex 8.7 FIX, Gemini 9.8 PASS. Round 3 revisions per Codex 8.7 feedback (Gemini already PASS, no regression-risk changes): (1) test count drift reconciled across §"Phase 3 Spike Exit Criteria" (11 inv + 6 goldens), §"Phase 3 RED" (11 invariants), §"Phase 3 Exit" (17 tests), §"Risks" (no manual verification); (2) stale "manual verification" wording removed from Risks row; (3) "PRP-2225 §Worked example" was fictional — replaced with explicit attribution: golden is hand-crafted from PRP-2225 §"Geometry algorithm sketch" (PRP-2225:105–109), Phase 4 re-asserts the same output through the full renderer stack; (4) label-slot boundary formula made concrete: `prev_boundary[i] = (c_{i-1}+c_i)//2 if i≥2 else 0; next_boundary[i] = (c_i+c_{i+1})//2 if i<N else box_total_width-1`. Plus rearchitecture sync with CHG-2226 Path B: `BranchRenderInput.siblings` now uses `BranchTarget` NamedTuple (`parent: int`, `branch: str`, `label: str`) from CHG-2226; primitive composes display ID `f"{parent}{branch}"` internally. `converges_to: int | None` (was `str | None`) since sub-step cross-SOP convergence targets remain out of scope. CHANGELOG entry's "Internal" note rewritten to reflect Path B (additive `sub_branch` field, no type-widening migration). | Frank + Claude Code |
 | 2026-04-27 | Round 3 review: Codex 9.1 PASS, Gemini 7.8 FIX (regressed -2.0 from R2). Gemini caught a critical Path B sync defect — Round 3 updated the API contract + CHANGELOG to match Path B but **left the §Files-modified table + Phase 4/5/7 GREEN steps describing the rejected Path A migration** ("step_idx: str", "str-keyed step_row_index", "Audit per CHG-2226 Migration Impact Table" — Path B has no such table). Internal contradiction: implementer following CHG literally would execute the migration the architecture rejects. **Round 4 fixes (this revision):** (1) Files-modified rows for `dag_graph.py`, `ascii_graph.py`, `mermaid.py` rewritten — display ID composed at render time as `f"{step['index']}{step.get('sub_branch', '')}"`; existing int-keyed structures unchanged. (2) Phase 4 GREEN — keeps `step_row_index` int-keyed; siblings rendered as a group via `render_branch()`; Phase 4 also flips CHG-2226's `_BRANCHES_RENDERER_READY` flag to `True` as a deliverable so `af validate` accepts `Workflow branches:` once renderer ships. (3) Phase 5 GREEN — explicitly states no `step_idx` widening; existing call sites at `ascii_graph.py:174/176/266/360` continue reading int. (4) Phase 7 GREEN — `step_idx: int` typing at `mermaid.py:117` unchanged; sub-step suffix appended at node-ID emit time only. (5) Phase 3 RED text updated from "3 goldens" to "6 goldens" matching Spike Exit Criteria. (6) Stale "item 4" reference at line 196 fixed. (7) R2 parenthetical in Test Plan Summary updated. | Frank + Claude Code |
+| 2026-04-27 | Round 4 review: Codex 9.4 PASS, Gemini 10.0 PASS (both PASS). Round 5 — addressed Codex GitHub PR review on PR #67 per COR-1612: **(P1) `_BRANCHES_RENDERER_READY` flip moved from Phase 4 to Phase 8 as a separately-reviewable commit (Commit 8a)**. Phase 4's flip would have admitted `Workflow branches:` SOPs while flat (Phase 5) and Mermaid (Phase 7) were still missing branch support — `af plan --graph-format=both` (default) and `--graph-layout=flat` would misrender. Now flag flips only after Phases 3+4+5+7 are all green in main. **(P2) "5 public functions" → "2 dataclasses + 4 functions"** to match the actual API surface (`BranchRenderInput`/`BranchRenderOutput` dataclasses + `render_branch`/`compute_column_offsets`/`render_label_row`/`render_join_row`). | Frank + Claude Code |
