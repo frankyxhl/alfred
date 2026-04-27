@@ -112,9 +112,9 @@ Per COR-1500 (TDD Development Workflow). Three phases (was four; LoopSignature w
 
 **RED:**
 - `tests/test_steps.py::test_extract_step_substep_format` — `## Steps` containing `3a. Foo` parses to step with `index=3`, `sub_branch="a"`, `gate=False`
-- `tests/test_steps.py::test_legacy_int_steps_unchanged` — every existing all-integer fixture parses identically with `sub_branch` absent (NotRequired key)
+- `tests/test_steps.py::test_legacy_int_steps_unchanged` — every existing all-integer fixture parses identically with `sub_branch` absent (optional key via `total=False`)
 - `tests/test_steps.py::test_substep_with_gate` — `3a. Foo [GATE]` correctly detects gate while preserving `sub_branch="a"`
-- `tests/test_phases.py::test_stepdict_sub_branch_optional` — type-check fixture confirms `sub_branch: NotRequired[str]` (existing call sites pass without `sub_branch` and continue to type-check)
+- `tests/test_phases.py::test_stepdict_sub_branch_optional` — type-check fixture confirms `sub_branch` is optional via the `_StepRequired + total=False` subclass pattern (existing call sites pass without `sub_branch` and continue to type-check; `step.get("sub_branch")` returns `None` for plain steps)
 - `tests/test_workflow.py::test_step_indices_with_bare_parent` — sub-stepped fixture `1, 2, 3, 3a, 3b, 4` (with bare `3.` parent line — see authoring convention below) returns `frozenset[int] = {1, 2, 3, 4}` (sub-step lines also contribute their parent int; suffix lives in separate field)
 - `tests/test_workflow.py::test_step_indices_substeps_only` — sub-stepped fixture `1, 2, 3a, 3b, 4` (without bare `3.` line) ALSO returns `{1, 2, 3, 4}` (parser injects parent int from each sub-step)
 - `tests/test_workflow_branches.py::test_parse_simple_3way` — load `branches_3way.md`; `parse_workflow_branches(parsed)` returns `[BranchSignature(from_step=2, to=[BranchTarget(parent=3, branch="a", label="pass"), BranchTarget(parent=3, branch="b", label="fail"), BranchTarget(parent=3, branch="c", label="escalate")])]`
@@ -163,7 +163,7 @@ This is the smallest user-visible surface change in this CHG: the dotted form in
 - `tests/test_plan_cmd.py::test_phases_steps_index_int_unchanged` — `phases[].steps[].index` remains int for both legacy and sub-stepped plans (sub-step shares parent's int)
 - `tests/test_plan_cmd.py::test_phases_steps_sub_branch_emitted` — sub-stepped plan emits `phases[].steps[].sub_branch = "a"` (additive new field)
 
-**GREEN:** Update `plan_cmd.py:322/334/369` formatting: `f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"` instead of `f"{phase_num}.{step_idx}"`. JSON `phases[].steps[].index` emit path is unchanged (still emits int from `step["index"]`). Add `sub_branch` to the emitted dict if present.
+**GREEN:** Update `plan_cmd.py:286` and `:352` formatting (the actual `dotted = f"..."` sites verified by `grep -n 'dotted = f' src/fx_alfred/commands/plan_cmd.py`): `f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"` instead of `f"{phase_num}.{step_idx}"`. JSON `phases[].steps[].index` emit path is unchanged (still emits int from `step["index"]`). Add `sub_branch` to the emitted dict if present.
 
 **Exit:** Full test suite green (~741 total); commit boundary: `plan: extend todo[].index format for sub-steps + emit sub_branch (Phase 3)`.
 
@@ -193,7 +193,7 @@ Coverage gates: every new public function has at least one test; every fixture i
 | Risk | Mitigation |
 |---|---|
 | Phase 1 self-audit grep surfaces an unexpected consumer that behaves differently when `sub_branch` is set | Path B's additivity means consumers reading `step["index"]` are unaffected. Any consumer that *also* reads `sub_branch` is opting in. Worst case: log + defer to CHG-2227. The grep is mandatory before commit. |
-| `StepDict.sub_branch: NotRequired[str]` (TypedDict) — pyright behavior on the boundary | `NotRequired[str]` is the standard idiom for backward-compatible optional TypedDict fields (Python 3.11+; we use 3.10+ via `typing_extensions`). Existing call sites that don't pass `sub_branch` keep type-checking. |
+| `StepDict.sub_branch` optional TypedDict field — pyright behavior on the boundary | `_StepRequired + total=False` is the repo's established idiom for backward-compatible optional TypedDict fields (matches `_PhaseRequired + PhaseDict(total=False)` precedent at `phases.py:47-75`; battle-tested per FXA-2206 `reportTypedDictNotRequiredAccess` history in `src/fx_alfred/CHANGELOG.md:80`). No new runtime dep needed. Existing call sites that don't pass `sub_branch` keep type-checking; `step.get("sub_branch")` returns `None` for plain steps. |
 | Sub-stepped SOPs share parent's int in `step_indices`, which collapses sibling identity | This is intentional. `step_indices` is a *workflow-loops contract* — cross-SOP loops target integer steps. Sibling identity for branches is tracked in the new `Workflow branches` schema, not in `step_indices`. The two schemas are orthogonal. |
 | Phase 3 `todo[].index` format extension (`"2.3a"`) breaks downstream consumers parsing string IDs | The format was always documented as opaque string in `plan_cmd.py`. Any consumer regex-matching `^\d+\.\d+$` would be tolerant (the new form `^\d+\.\d+[a-z]?$` is a strict superset that still parses fine for legacy input). Sub-stepped output only appears for SOPs that opted in via `Workflow branches:` (none today). |
 | Branch + loop combined SOP exercises new schema and old schema together | `tests/fixtures/branches_loops_combined.md` covers; Phase 1 regression suite asserts loop rendering byte-identical. |
