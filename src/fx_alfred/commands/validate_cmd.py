@@ -28,8 +28,10 @@ from fx_alfred.core.steps import (
     parse_top_level_step_indices,
 )
 from fx_alfred.core.workflow import (
+    parse_workflow_branches,
     parse_workflow_loops,
     parse_workflow_signature,
+    validate_branches,
     validate_workflow_signature,
 )
 
@@ -278,6 +280,17 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                 if sig is not None:
                     wf_errors = validate_workflow_signature(sig)
                     issues.extend(wf_errors)
+
+                # Check 8b: Workflow branches (FXA-2226 Path B). Parse + validate.
+                # Until CHG-2227 Phase 8a flips the renderer-readiness gate,
+                # any production SOP authoring this field is rejected.
+                try:
+                    branches = parse_workflow_branches(parsed)
+                except MalformedDocumentError as exc:
+                    issues.append(str(exc))
+                    branches = []
+                for berr in validate_branches(parsed, branches):
+                    issues.append(berr.msg)
 
                 # Check 8: Cross-SOP workflow loop references (FXA-2218 D2/D3)
                 # For each Workflow loops entry whose `to` is a cross-SOP ref,

@@ -266,6 +266,23 @@ class BranchSignature:
     to: tuple[BranchTarget, ...]
 
 
+@dataclass(frozen=True)
+class BranchError:
+    """Validation error for a Workflow branches: entry (or a file-level issue)."""
+
+    msg: str
+    branch_idx: int | None = None
+
+
+# CHG-2226 Path B intermediate-state guardrail. The parser+schema land in
+# this CHG (Phase 1) but the renderer support arrives in CHG-2227. Until
+# CHG-2227 Phase 8a flips this flag to ``True`` as a separately-reviewable
+# commit, ``af validate`` rejects any SOP authoring ``Workflow branches:``
+# so production SOPs cannot land branchy declarations that misrender in
+# nested/flat/Mermaid output.
+_BRANCHES_RENDERER_READY = False
+
+
 def parse_workflow_branches(parsed: ParsedDocument) -> list[BranchSignature]:
     """Parse the optional ``Workflow branches:`` metadata into BranchSignatures.
 
@@ -349,6 +366,229 @@ def parse_workflow_branches(parsed: ParsedDocument) -> list[BranchSignature]:
             BranchSignature(from_step=int(from_step_raw), to=tuple(targets))
         )
     return branches
+
+
+def validate_branches(
+    parsed: ParsedDocument,
+    branches: list[BranchSignature],
+    *,
+    _gate_open_for_test: bool = False,
+) -> list[BranchError]:
+    """Validate ``Workflow branches:`` declarations against the SOP body.
+
+    Returns a list of :class:`BranchError`.  Empty list means valid.
+
+    Validation rules:
+
+    1. **Renderer-readiness gate** — if ``_BRANCHES_RENDERER_READY`` is False
+       (the default in CHG-2226 until CHG-2227 Phase 8a flips it), the
+       presence of *any* branch declaration is a hard error directing
+       authors to wait for CHG-2227. ``_gate_open_for_test`` bypasses this
+       gate for tests that need to exercise the structural rules below.
+    2. **`from` exists** — must reference an existing integer step in
+       ``## Steps``.
+    3. **`to.parent == from + 1`** — every sibling's parent integer must
+       equal ``from + 1`` (the convention is that branches fork from step
+       N to siblings ``(N+1)a``, ``(N+1)b``, ...).
+    4. **Sub-step exists** — every ``to.id`` (e.g. ``3a``) must appear in
+       ``## Steps`` as an actual sub-step line.
+    5. **Siblings contiguous** — sibling lines must appear consecutively in
+       ``## Steps`` (no integer step interleaved between them).
+    6. **No orphan sub-steps** — every sub-step letter present in ``## Steps``
+       must appear in some ``branches.to`` declaration.
+    """
+    errors: list[BranchError] = []
+
+    # Rule 1: gate
+    if branches and not (_BRANCHES_RENDERER_READY or _gate_open_for_test):
+        errors.append(
+            BranchError(
+                msg=(
+                    "Workflow branches: schema is parsed but renderer support is "
+                    "not yet shipped (CHG-2227 pending). Production SOPs MUST NOT "
+                    "author this field until CHG-2227 lands."
+                ),
+            )
+        )
+        # Continue running structural checks too — useful for early authors.
+
+    # Pull the actual ## Steps lines (in document order) for sub-step
+    # presence and contiguity checks.
+    from fx_alfred.core.parser import extract_section as _extract_section
+
+    section = _extract_section(parsed.body, "Steps") if parsed.body else None
+    step_indices = _parse_step_indices(parsed) or frozenset()
+    sub_steps_in_order: list[tuple[int, str]] = []  # [(parent, branch), ...]
+    plain_step_positions: dict[int, int] = {}  # int_index -> first occurrence
+    if section is not None:
+        position = 0  # logical position counting ALL parsed step lines
+        fence_char: str | None = None
+        fence_len = 0
+        for raw in section.split("\n"):
+            stripped = raw.lstrip()
+            # Skip fenced code blocks (mirrors parse_top_level_step_indices).
+            if fence_char is not None:
+                if stripped and stripped[0] == fence_char:
+                    run = 0
+                    while run < len(stripped) and stripped[run] == fence_char:
+                        run += 1
+                    if run >= fence_len:
+                        fence_char = None
+                        fence_len = 0
+                continue
+            if stripped and stripped[0] in ("`", "~"):
+                ch = stripped[0]
+                run = 0
+                while run < len(stripped) and stripped[run] == ch:
+                    run += 1
+                if run >= 3:
+                    fence_char = ch
+                    fence_len = run
+                    continue
+            # Match either "3." (plain) or "3a." (sub-step).
+            m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+", raw)
+            if not m:
+                continue
+            parent = int(m.group(1))
+            sub = m.group(2)
+            if sub is None:
+                if parent not in plain_step_positions:
+                    plain_step_positions[parent] = position
+            else:
+                sub_steps_in_order.append((parent, sub))
+            position += 1
+
+    # Build a lookup set of (parent, branch) pairs that exist in ## Steps.
+    sub_steps_set = set(sub_steps_in_order)
+    # Build a lookup set of (parent, branch) pairs DECLARED across all branches.
+    declared: set[tuple[int, str]] = set()
+    for sig in branches:
+        for tgt in sig.to:
+            declared.add((tgt.parent, tgt.branch))
+
+    for i, sig in enumerate(branches):
+        # Rule 2: from references existing integer step
+        if sig.from_step not in step_indices:
+            errors.append(
+                BranchError(
+                    msg=(
+                        f"Workflow branches[{i}]: from = {sig.from_step} does "
+                        f"not reference an existing step in ## Steps"
+                    ),
+                    branch_idx=i,
+                )
+            )
+        for j, tgt in enumerate(sig.to):
+            # Rule 3: parent must equal from + 1
+            if tgt.parent != sig.from_step + 1:
+                errors.append(
+                    BranchError(
+                        msg=(
+                            f"Workflow branches[{i}].to[{j}]: id "
+                            f"{tgt.parent}{tgt.branch!r} parent must be "
+                            f"{sig.from_step + 1} (from + 1), got {tgt.parent}"
+                        ),
+                        branch_idx=i,
+                    )
+                )
+            # Rule 4: sub-step exists
+            if (tgt.parent, tgt.branch) not in sub_steps_set:
+                errors.append(
+                    BranchError(
+                        msg=(
+                            f"Workflow branches[{i}].to[{j}]: id "
+                            f"{tgt.parent}{tgt.branch} does not reference "
+                            f"an existing sub-step in ## Steps"
+                        ),
+                        branch_idx=i,
+                    )
+                )
+
+        # Rule 5: siblings contiguous in ## Steps. Find positions of declared
+        # siblings; assert they are consecutive (allowing only sub-step lines
+        # between them).
+        sibling_positions = [
+            idx
+            for idx, (parent, branch) in enumerate(sub_steps_in_order)
+            if (parent, branch) in {(t.parent, t.branch) for t in sig.to}
+        ]
+        if sibling_positions:
+            expected_parent = sig.from_step + 1
+            interleaved_plain = False
+            # Build a unified ordered list of (kind, parent, branch_or_None)
+            # and verify no plain integer step appears between the first and
+            # last declared sibling.
+            unified: list[tuple[str, int, str | None]] = []
+            if section is not None:
+                fence_char = None
+                fence_len = 0
+                for raw in section.split("\n"):
+                    stripped = raw.lstrip()
+                    if fence_char is not None:
+                        if stripped and stripped[0] == fence_char:
+                            run = 0
+                            while run < len(stripped) and stripped[run] == fence_char:
+                                run += 1
+                            if run >= fence_len:
+                                fence_char = None
+                                fence_len = 0
+                        continue
+                    if stripped and stripped[0] in ("`", "~"):
+                        ch = stripped[0]
+                        run = 0
+                        while run < len(stripped) and stripped[run] == ch:
+                            run += 1
+                        if run >= 3:
+                            fence_char = ch
+                            fence_len = run
+                            continue
+                    m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+", raw)
+                    if not m:
+                        continue
+                    p = int(m.group(1))
+                    s = m.group(2)
+                    unified.append(("sub" if s else "plain", p, s))
+            sibling_set = {(t.parent, t.branch) for t in sig.to}
+            sib_unified_positions = [
+                u_idx
+                for u_idx, (kind, p, s) in enumerate(unified)
+                if kind == "sub" and (p, s) in sibling_set
+            ]
+            if sib_unified_positions and len(sib_unified_positions) >= 2:
+                lo = min(sib_unified_positions)
+                hi = max(sib_unified_positions)
+                for u_idx in range(lo + 1, hi):
+                    kind, p, s = unified[u_idx]
+                    if kind == "plain":
+                        interleaved_plain = True
+                        break
+            if interleaved_plain:
+                errors.append(
+                    BranchError(
+                        msg=(
+                            f"Workflow branches[{i}]: siblings must be "
+                            f"contiguous in ## Steps (parent {expected_parent}); "
+                            f"found a plain integer step interleaved between "
+                            f"sub-step siblings"
+                        ),
+                        branch_idx=i,
+                    )
+                )
+
+    # Rule 6: no orphan sub-steps (sub-steps in ## Steps not declared).
+    for parent, branch in sub_steps_in_order:
+        if (parent, branch) not in declared:
+            errors.append(
+                BranchError(
+                    msg=(
+                        f"sub-step {parent}{branch} appears in ## Steps but "
+                        f"is an orphan — not declared in any "
+                        f"Workflow branches.to entry"
+                    ),
+                )
+            )
+
+    return errors
 
 
 @dataclass(frozen=True)

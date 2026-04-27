@@ -25,8 +25,6 @@ from __future__ import annotations
 
 import textwrap
 
-import pytest
-
 from fx_alfred.core.parser import parse_metadata
 from fx_alfred.core.workflow import (
     BranchSignature,
