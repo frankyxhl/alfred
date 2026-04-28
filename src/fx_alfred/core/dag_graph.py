@@ -162,8 +162,18 @@ def _identify_branch_group(
         if sibling_count == 0:
             continue
         # The sibling group is steps[parent_idx+1 : parent_idx+1+sibling_count].
-        # Convergence (if any) is the next plain step.
-        if i < len(steps) and "sub_branch" not in steps[i]:
+        # Convergence (if any) is the next plain step — but NOT if that
+        # plain step is itself another branch's parent (chained-branch case).
+        # Without this guard, a back-to-back branch like
+        #   from_step=2 (siblings 3a/3b), then from_step=4 (siblings 5a/5b)
+        # would silently consume step 4 as the first branch's "convergence"
+        # and skip it from rendering, dropping the second branch entirely.
+        other_branch_starts = {b.from_step for b in branches if b is not bsig}
+        if (
+            i < len(steps)
+            and "sub_branch" not in steps[i]
+            and steps[i]["index"] not in other_branch_starts
+        ):
             end_idx = i + 1
         else:
             end_idx = i
@@ -180,6 +190,7 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
     step_row_index: dict[tuple[int, int], int],
     canvas_row_offset: int,
     pre_lines_count: int,
+    parent_annotations: list[str] | None = None,
 ) -> list[str]:
     """Render a branch group inside the phase box.
 
@@ -207,6 +218,16 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
         canvas_row_offset + pre_lines_count + len(out_lines)
     )
     out_lines.append(f"│{pad_left}{parent_middle}{pad_right}│")
+
+    # Parent-step intra-SOP loop annotations sit adjacent to the parent
+    # middle row (matching the legacy non-branch path's annotation placement
+    # — annotation goes immediately after the source step's content row,
+    # not after the whole branch block).
+    if parent_annotations:
+        joined = " ; ".join(parent_annotations)
+        ann = _truncate_visual(joined, _PHASE_INNER - 4)
+        ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
+        out_lines.append(f"│ {ann_padded} │")
 
     # Build BranchRenderInput.
     n = len(branch_signature.to)
@@ -352,10 +373,12 @@ def _render_phase(
                 step_row_index=step_row_index,
                 canvas_row_offset=canvas_row_offset,
                 pre_lines_count=len(lines),
+                parent_annotations=annotations.get(step["index"], []),
             )
             lines.extend(group_lines)
-            # Insert intra-SOP loop annotations attached to the convergence
-            # step (if any) — same pattern as regular steps below.
+            # Convergence-step annotations sit after the convergence box
+            # (same pattern as regular steps below — annotation row follows
+            # the step's content row).
             if conv_step is not None:
                 step_annotations = annotations.get(conv_step["index"], [])
                 if step_annotations:
@@ -363,13 +386,6 @@ def _render_phase(
                     ann = _truncate_visual(joined, _PHASE_INNER - 4)
                     ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
                     lines.append(f"│ {ann_padded} │")
-            # Annotations attached to the parent step.
-            parent_anns = annotations.get(step["index"], [])
-            if parent_anns:
-                joined = " ; ".join(parent_anns)
-                ann = _truncate_visual(joined, _PHASE_INNER - 4)
-                ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
-                lines.append(f"│ {ann_padded} │")
             # Primitive already provides arrows internally; no inter-step
             # arrow needed here.
             continue
