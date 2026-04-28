@@ -418,7 +418,10 @@ def _build_mermaid_phases(
             prov = provenance_map.get(doc_id)
             if prov:
                 entry["provenance"] = prov
-        branches: list[BranchSignature] = parse_workflow_branches(parsed)
+        try:
+            branches: list[BranchSignature] = parse_workflow_branches(parsed)
+        except MalformedDocumentError as e:
+            raise click.ClickException(f"{doc_id}: malformed Workflow branches: {e}")
         if branches:
             entry["branches"] = branches
         mermaid_phases.append(entry)

@@ -2193,3 +2193,68 @@ Test.
     assert "branches" not in phases[0], (
         "PhaseDict must NOT have 'branches' key for legacy SOP (optional-field discipline)"
     )
+
+
+def test_plan_handles_malformed_branches_gracefully():
+    """_build_mermaid_phases raises ClickException (not MalformedDocumentError) for invalid Workflow branches: YAML.
+
+    Mirrors the loop-parsing guard: a single bad SOP must not propagate a bare
+    MalformedDocumentError to the caller.  The ClickException message must
+    include the document's prefix-ACID so the user knows which SOP failed.
+    """
+    content = """\
+# TST-9902: Malformed Branches SOP
+
+**Applies to:** Test
+**Last updated:** 2026-04-28
+**Last reviewed:** 2026-04-28
+**Status:** Active
+**Workflow branches:** [{from: not-an-int, to: [{id: 3a, label: pass}]}]
+
+---
+
+## What Is It?
+
+A test SOP with malformed branches.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Step one
+2. Step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-28 | Initial | — |
+"""
+    parsed = parse_metadata(content)
+    doc = Document(
+        prefix="TST",
+        acid="9902",
+        type_code="SOP",
+        title="Malformed Branches SOP",
+        directory="rules",
+        source="prj",
+    )
+    sig = WorkflowSignature(input="", output="")
+    phase_info = [("TST-9902", doc, parsed, sig, [])]
+
+    with pytest.raises(click.ClickException) as exc_info:
+        _build_mermaid_phases(phase_info)
+
+    assert "TST-9902" in str(exc_info.value.format_message())
