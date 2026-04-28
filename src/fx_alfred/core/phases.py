@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
-    from fx_alfred.core.workflow import LoopSignature
+    from fx_alfred.core.workflow import BranchSignature, LoopSignature
 
 
 class _StepRequired(TypedDict):
@@ -82,6 +82,9 @@ class PhaseDict(_PhaseRequired, total=False):
         steps: List of steps in this phase.
         loops: List of intra-SOP loops.
         provenance: How this SOP was selected ("always" | "auto" | "explicit").
+        branches: List of forward-branch declarations (FXA-2227 Path B).
+            Optional; absent for legacy SOPs without ``Workflow branches:``.
     """
 
     provenance: str  # Optional - added by plan_cmd for ASCII rendering
+    branches: list[BranchSignature]  # Optional — FXA-2227 Path B

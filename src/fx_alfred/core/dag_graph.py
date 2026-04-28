@@ -36,7 +36,8 @@ from fx_alfred.core.ascii_graph import _pad_visual, _truncate_visual, _visual_wi
 from fx_alfred.core.workflow import CROSS_SOP_REF, LoopSignature
 
 if TYPE_CHECKING:
-    from fx_alfred.core.phases import PhaseDict
+    from fx_alfred.core.phases import PhaseDict, StepDict
+    from fx_alfred.core.workflow import BranchSignature
 
 # ── Geometry constants ───────────────────────────────────────────────────────
 
@@ -113,6 +114,149 @@ def _render_step_bottom_connector(has_next: bool) -> str:
 # ── Per-phase rendering ──────────────────────────────────────────────────────
 
 
+def _identify_branch_group(
+    steps: list["StepDict"],
+    branches: list["BranchSignature"],
+) -> tuple[int, int, "BranchSignature"] | None:
+    """Find the index range of a branch group in ``steps``.
+
+    Returns ``(parent_idx, end_idx, branch_signature)`` where:
+    - ``parent_idx`` is the index of the parent step in ``steps`` (whose
+      ``step["index"] == branch.from_step``);
+    - ``end_idx`` is the index *after* the last step consumed by the branch
+      group (parent + siblings + optional convergence). Use as ``end_idx``
+      in slicing.
+    - ``branch_signature`` is the matching :class:`BranchSignature`.
+
+    Returns ``None`` if no branch group is present.
+
+    Per FXA-2227 Phase 4 GREEN, only the FIRST branch group is detected
+    here; the caller iterates and may invoke this repeatedly on the
+    remainder of the steps list. (For Mid scope, SOPs typically have at
+    most one branch group; multi-branch is supported by the schema but
+    rare in practice.)
+    """
+    if not branches:
+        return None
+    for bsig in branches:
+        from_step = bsig.from_step
+        # Locate parent step.
+        parent_idx = None
+        for i, s in enumerate(steps):
+            if s["index"] == from_step and "sub_branch" not in s:
+                parent_idx = i
+                break
+        if parent_idx is None:
+            continue
+        # Walk forward: collect contiguous sub-step siblings with
+        # index == from_step + 1.
+        i = parent_idx + 1
+        sibling_count = 0
+        while (
+            i < len(steps)
+            and steps[i].get("sub_branch") is not None
+            and steps[i]["index"] == from_step + 1
+        ):
+            sibling_count += 1
+            i += 1
+        if sibling_count == 0:
+            continue
+        # The sibling group is steps[parent_idx+1 : parent_idx+1+sibling_count].
+        # Convergence (if any) is the next plain step.
+        if i < len(steps) and "sub_branch" not in steps[i]:
+            end_idx = i + 1
+        else:
+            end_idx = i
+        return parent_idx, end_idx, bsig
+    return None
+
+
+def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence rendering
+    phase_num: int,
+    parent_step: "StepDict",
+    sibling_steps: list["StepDict"],
+    convergence_step: "StepDict | None",
+    branch_signature: "BranchSignature",
+    step_row_index: dict[tuple[int, int], int],
+    canvas_row_offset: int,
+    pre_lines_count: int,
+) -> list[str]:
+    """Render a branch group inside the phase box.
+
+    Returns the list of lines (each padded to ``_PHASE_BOX_WIDTH``). Renders
+    parent step's TOP + MIDDLE box rows normally, then delegates to
+    ``branch_geometry.render_branch`` for the connector + label + sibling
+    boxes + (optional) convergence. Each primitive line is centered within
+    the phase inner area and wrapped in `│ ... │` borders.
+    """
+    from fx_alfred.core.branch_geometry import (
+        BranchRenderInput,
+        render_branch,
+    )
+
+    out_lines: list[str] = []
+
+    # Render parent step's TOP + MIDDLE rows normally.
+    parent_text = f"{phase_num}.{parent_step['index']} {parent_step['text']}"
+    parent_top, parent_middle, _parent_bottom = _render_step_box(parent_text)
+    pad_left = "  "
+    pad_right = " " * (_PHASE_INNER - _STEP_BOX_WIDTH - len(pad_left))
+    out_lines.append(f"│{pad_left}{parent_top}{pad_right}│")
+    # Record parent step's content row.
+    step_row_index[(phase_num, parent_step["index"])] = (
+        canvas_row_offset + pre_lines_count + len(out_lines)
+    )
+    out_lines.append(f"│{pad_left}{parent_middle}{pad_right}│")
+
+    # Build BranchRenderInput.
+    n = len(branch_signature.to)
+    # Pick a sibling box width that fits inside _STEP_BOX_WIDTH alignment.
+    # For 2/3 siblings: 12 cells; for 4: 10 cells. Total widths:
+    # 2-way: 12 + 1*(12+2) = 26; 3-way: 12 + 2*(12+2) = 40; 4-way: 10 + 3*(10+2) = 46.
+    # All fit within _STEP_BOX_WIDTH = 49 cells.
+    sibling_box_width = 12 if n <= 3 else 10
+
+    sibling_texts = [s["text"] for s in sibling_steps]
+    primitive_input = BranchRenderInput(
+        parent_step_text=parent_text,
+        siblings=branch_signature.to,
+        sibling_texts=sibling_texts,
+        converges_to=(convergence_step["index"] if convergence_step else None),
+        converges_to_text=(convergence_step["text"] if convergence_step else None),
+        box_width=sibling_box_width,
+    )
+    primitive_out = render_branch(primitive_input)
+
+    # Each primitive line is `total_width` cells wide; pad to _STEP_BOX_WIDTH
+    # then wrap in phase borders. Center the primitive output within the
+    # step-box-equivalent column band so it visually aligns with the parent
+    # step's top/middle rows.
+    primitive_width = _visual_width(primitive_out.lines[0])
+    indent = max(0, (_STEP_BOX_WIDTH - primitive_width) // 2)
+    indent_pad = " " * indent
+    line_pad_after = _STEP_BOX_WIDTH - primitive_width - indent
+
+    for prim_idx, prim_line in enumerate(primitive_out.lines):
+        wrapped = (
+            f"│{pad_left}{indent_pad}{prim_line}"
+            + " " * line_pad_after
+            + f"{pad_right}│"
+        )
+        out_lines.append(wrapped)
+        # Track convergence step row for cross-SOP loop overlay.
+        if (
+            convergence_step is not None
+            and primitive_out.convergence_anchor_row is not None
+            and prim_idx == primitive_out.convergence_anchor_row
+        ):
+            # The "anchor row" in primitive output is convergence box top
+            # border; the content (text body) row is one below.
+            step_row_index[(phase_num, convergence_step["index"])] = (
+                canvas_row_offset + pre_lines_count + len(out_lines)
+            )
+    return out_lines
+
+
 def _render_phase(
     phase_num: int,
     phase: PhaseDict,
@@ -133,6 +277,7 @@ def _render_phase(
     lines: list[str] = []
     sop_id = phase["sop_id"]
     steps = phase["steps"]
+    branches = phase.get("branches", [])
 
     # Header line: "Phase N: SOP-ID"
     header_text = f"Phase {phase_num}: {sop_id}"
@@ -143,8 +288,91 @@ def _render_phase(
     # Blank line under header.
     lines.append("│" + " " * _PHASE_INNER + "│")
 
+    # FXA-2227 Phase 4: detect branch groups and replace the per-step
+    # rendering for those step ranges with branch_geometry primitive output.
+    skip_indices: set[int] = set()
+    branch_groups: dict[
+        int, tuple[list["StepDict"], "StepDict | None", "BranchSignature"]
+    ] = {}
+    if branches:
+        # Find ALL branch groups (one pass per branch).
+        remaining = steps
+        offset = 0
+        while True:
+            result = _identify_branch_group(remaining, branches)
+            if result is None:
+                break
+            parent_local_idx, end_local_idx, bsig = result
+            parent_global_idx = offset + parent_local_idx
+            sibling_global_start = parent_global_idx + 1
+            # Convergence is the last entry in the group if it's a plain step.
+            sibling_global_end = offset + end_local_idx
+            sibling_steps_global = list(range(sibling_global_start, sibling_global_end))
+            # Determine convergence.
+            convergence_global_idx: int | None = None
+            if (
+                end_local_idx > parent_local_idx + 1
+                and "sub_branch" not in remaining[end_local_idx - 1]
+            ):
+                convergence_global_idx = offset + end_local_idx - 1
+                sibling_steps_global = list(
+                    range(sibling_global_start, convergence_global_idx)
+                )
+            sib_steps = [steps[i] for i in sibling_steps_global]
+            conv_step = (
+                steps[convergence_global_idx]
+                if convergence_global_idx is not None
+                else None
+            )
+            branch_groups[parent_global_idx] = (sib_steps, conv_step, bsig)
+            for i in sibling_steps_global:
+                skip_indices.add(i)
+            if convergence_global_idx is not None:
+                skip_indices.add(convergence_global_idx)
+            # Continue scanning past this group.
+            offset += end_local_idx
+            remaining = remaining[end_local_idx:]
+            # Remove the consumed branch from candidate list to avoid
+            # re-matching the same branch.
+            branches = [b for b in branches if b is not bsig]
+
     step_count = len(steps)
     for s_idx, step in enumerate(steps):
+        if s_idx in skip_indices:
+            continue
+        # Branch group: render the whole group here, then advance past it.
+        if s_idx in branch_groups:
+            sib_steps, conv_step, bsig = branch_groups[s_idx]
+            group_lines = _render_branch_group(
+                phase_num=phase_num,
+                parent_step=step,
+                sibling_steps=sib_steps,
+                convergence_step=conv_step,
+                branch_signature=bsig,
+                step_row_index=step_row_index,
+                canvas_row_offset=canvas_row_offset,
+                pre_lines_count=len(lines),
+            )
+            lines.extend(group_lines)
+            # Insert intra-SOP loop annotations attached to the convergence
+            # step (if any) — same pattern as regular steps below.
+            if conv_step is not None:
+                step_annotations = annotations.get(conv_step["index"], [])
+                if step_annotations:
+                    joined = " ; ".join(step_annotations)
+                    ann = _truncate_visual(joined, _PHASE_INNER - 4)
+                    ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
+                    lines.append(f"│ {ann_padded} │")
+            # Annotations attached to the parent step.
+            parent_anns = annotations.get(step["index"], [])
+            if parent_anns:
+                joined = " ; ".join(parent_anns)
+                ann = _truncate_visual(joined, _PHASE_INNER - 4)
+                ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
+                lines.append(f"│ {ann_padded} │")
+            # Primitive already provides arrows internally; no inter-step
+            # arrow needed here.
+            continue
         step_text = f"{phase_num}.{step['index']} {step['text']}"
         top, middle, bottom = _render_step_box(step_text)
         has_next = s_idx < step_count - 1
