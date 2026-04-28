@@ -107,7 +107,7 @@ def discover_branch_groups(
             i < len(steps)
             and steps[i].get("sub_branch") is not None
             and steps[i]["index"] == from_step + 1
-            and steps[i]["sub_branch"] in declared_letters
+            and steps[i].get("sub_branch") in declared_letters
         ):
             sibling_indices.append(i)
             i += 1

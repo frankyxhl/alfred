@@ -178,7 +178,7 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
     # validation does not enforce identical order. Without this lookup,
     # mis-paired labels/targets produce wrong branch semantics in the
     # rendered graph (Codex P2 review finding).
-    sibling_text_by_letter = {s["sub_branch"]: s["text"] for s in sibling_steps}
+    sibling_text_by_letter = {s.get("sub_branch", ""): s["text"] for s in sibling_steps}
     sibling_texts = [sibling_text_by_letter[bt.branch] for bt in branch_signature.to]
     primitive_input = BranchRenderInput(
         parent_step_text=parent_text,
