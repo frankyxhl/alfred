@@ -118,6 +118,13 @@ def discover_branch_groups(
         # on accepted inputs (Codex P1/N4 review findings).
         if not (2 <= len(sibling_indices) <= 4):
             continue
+        # Reject if collected sibling letters don't exactly match declared
+        # letters. A mismatch means metadata declares a letter absent from
+        # the steps list; the renderer would KeyError on the missing text
+        # lookup (Codex N5). ``declared_letters`` is already in scope.
+        collected_letters = {steps[i].get("sub_branch") for i in sibling_indices}
+        if collected_letters != declared_letters:
+            continue
         # Convergence: next plain step, unless it's another *renderable*
         # branch's parent. Restrict to branches with 2<=len(to)<=4 so that
         # skipped (malformed/oversized) declarations don't ghost-block a

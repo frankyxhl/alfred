@@ -233,6 +233,29 @@ def test_skipped_branch_does_not_block_earlier_convergence() -> None:
     )
 
 
+def test_partial_sibling_coverage_rejected() -> None:
+    """Branch declares a letter that has no matching sibling step → group
+    is skipped rather than crashing the renderer with a KeyError on the
+    missing letter (Codex N5).
+    """
+    steps = [
+        _step(1),
+        _step(2),  # parent
+        _step(3, sub_branch="a"),
+        _step(3, sub_branch="b"),
+        # missing 3c — declared but not present
+    ]
+    bsig = BranchSignature(
+        from_step=2,
+        to=(
+            BranchTarget(parent=3, branch="a", label="A"),
+            BranchTarget(parent=3, branch="b", label="B"),
+            BranchTarget(parent=3, branch="c", label="C"),  # orphan
+        ),
+    )
+    assert discover_branch_groups(steps, [bsig]) == []
+
+
 def test_sibling_collection_constrained_to_declared_letters() -> None:
     """Discovery only consumes siblings whose ``sub_branch`` letter is
     declared in the active branch's ``to`` tuple.
