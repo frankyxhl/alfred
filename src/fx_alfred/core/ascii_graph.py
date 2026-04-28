@@ -171,13 +171,33 @@ def _apply_loop_track(
             continue
 
         # Find step line indices (lines[0] is header, steps start at lines[1]).
+        # to_step: first occurrence is the step's text body row (correct for
+        #   ◄──────┐ placement).
+        # from_step: the ─────┘ suffix must land on a text body row, not a
+        #   box-drawing border.  When from_step appears on multiple rows (e.g.
+        #   it is a convergence step whose box occupies top/mid/bot rows), pick
+        #   the LAST occurrence whose underlying line is NOT pure box-drawing.
         to_line_idx = None
-        from_line_idx = None
+        from_candidates: list[int] = []
         for i, step_idx in enumerate(step_indices):
-            if step_idx == to_step:
-                to_line_idx = i + 1  # +1 for header line
+            if step_idx == to_step and to_line_idx is None:
+                to_line_idx = i + 1  # +1 for header line; first occurrence
             if step_idx == from_step:
-                from_line_idx = i + 1
+                from_candidates.append(i + 1)  # +1 for header line
+
+        # Resolve from_line_idx: prefer the last candidate whose line is a
+        # text body row (not box-drawing geometry).
+        from_line_idx: int | None = None
+        if from_candidates:
+            from_line_idx = next(
+                (
+                    c
+                    for c in reversed(from_candidates)
+                    if c < len(result_lines)
+                    and not _is_box_drawing_line(result_lines[c])
+                ),
+                from_candidates[-1],
+            )
 
         if to_line_idx is None or from_line_idx is None:
             continue
@@ -263,16 +283,22 @@ def _render_vertical_track(
     base = _shrink_for_track(lines[to_line_idx], track_col)
     lines[to_line_idx] = _pad_visual(base, track_col) + to_suffix
 
-    # Intermediate rows: place `│` under the ┐ glyph.
+    # Intermediate rows: place `│` under the ┐ glyph on EVERY row between
+    # to_step and from_step.  For rows that are pure box-drawing geometry
+    # (branch borders, join rows, arrow rows) we pad to pipe_col and append │
+    # WITHOUT calling _shrink_for_track, which would truncate the geometry
+    # with "..." and mangle the visual output.  For text rows we shrink as
+    # usual so the prose content stays within the track column.
     pipe_col = track_col + corner_offset
-    for step_idx in step_indices:
-        if to_step < step_idx < from_step:
-            pos_in_steps = step_indices.index(step_idx)
-            line_idx = pos_in_steps + 1  # +1 for header
-            if line_idx >= len(lines):
-                continue
-            mid = _shrink_for_track(lines[line_idx], pipe_col)
-            lines[line_idx] = _pad_visual(mid, pipe_col) + "│"
+    for i in range(to_line_idx + 1, from_line_idx):
+        if i >= len(lines):
+            break
+        if _is_box_drawing_line(lines[i]):
+            # Geometry row: pad only, never truncate.
+            lines[i] = _pad_visual(lines[i], pipe_col) + "│"
+        else:
+            mid = _shrink_for_track(lines[i], pipe_col)
+            lines[i] = _pad_visual(mid, pipe_col) + "│"
 
     # from_step row: append the arrow-out marker.
     base = _shrink_for_track(lines[from_line_idx], track_col)
@@ -280,6 +306,22 @@ def _render_vertical_track(
     suffix = cond_from_suffix if use_condition else base_from_suffix
     lines[from_line_idx] = padded + suffix
     return True
+
+
+_BOX_DRAW_CHARS = set("┌┐└┘─┴┬┼│▼◄►")
+
+
+def _is_box_drawing_line(s: str) -> bool:
+    """Return True if ``s`` is composed entirely of box-drawing chars and spaces.
+
+    Used to detect rows that belong to branch geometry primitives (sibling box
+    borders, join rows, arrow rows) where calling _shrink_for_track would mangle
+    the geometry rather than safely truncating prose text.
+    """
+    stripped = s.strip()
+    if not stripped:
+        return False
+    return all(ch in _BOX_DRAW_CHARS or ch == " " for ch in stripped)
 
 
 def _shrink_for_track(line: str, limit: int) -> str:
