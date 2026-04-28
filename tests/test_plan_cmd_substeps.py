@@ -128,16 +128,13 @@ def test_phases_steps_index_int_unchanged(sample_project, monkeypatch):
 def test_plan_blocked_by_gate_when_branches_present(sample_project, monkeypatch):
     """Per PR #68 Gemini F2: `af plan` must reject branchy SOPs while gate is closed.
 
-    Otherwise the renderer-readiness gate is `af validate`-only and `af plan`
-    silently emits sub-stepped surface (`"index": "1.3a"`, ASCII collisions)
-    before CHG-2227 ships. The test fixture's `_BRANCHES_RENDERER_READY` is
-    False at module level (Path B default), so this should fail with a
-    ClickException directing the author to wait for CHG-2227.
+    CHG-2227 Phase 8a flips the default to True; this test patches back to
+    False to retain coverage of the blocking path.
     """
     rules_dir = sample_project / "rules"
     _create_sop_with_branches(rules_dir)
     monkeypatch.chdir(sample_project)
-    # NO monkeypatch of the flag — exercise the default-closed gate.
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd._BRANCHES_RENDERER_READY", False)
     result = CliRunner().invoke(cli, ["plan", "TST-9001", "--todo", "--json"])
     assert result.exit_code != 0, (
         "Expected af plan to reject Workflow branches: while gate closed; "
@@ -170,7 +167,9 @@ A test SOP authoring an empty Workflow branches: list.
 """
     (rules_dir / filename).write_text(content)
     monkeypatch.chdir(sample_project)
-    # NO monkeypatch of the flag — exercise default-closed gate.
+    # Patch flag to False to retain coverage of the blocking path (default is
+    # now True after CHG-2227 Phase 8a).
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd._BRANCHES_RENDERER_READY", False)
     result = CliRunner().invoke(cli, ["plan", "TST-9003", "--todo", "--json"])
     assert result.exit_code != 0, (
         f"Expected af plan to reject empty Workflow branches: field; "
@@ -208,7 +207,9 @@ A test SOP with sub-step lines in body but no Workflow branches: metadata.
 """
     (rules_dir / filename).write_text(content)
     monkeypatch.chdir(sample_project)
-    # NO monkeypatch of the flag — exercise default-closed gate.
+    # Patch flag to False to retain coverage of the blocking path (default is
+    # now True after CHG-2227 Phase 8a).
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd._BRANCHES_RENDERER_READY", False)
     result = CliRunner().invoke(cli, ["plan", "TST-9004", "--todo", "--json"])
     assert result.exit_code != 0, (
         f"Expected af plan to reject undeclared sub-step lines; "

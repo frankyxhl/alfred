@@ -7,9 +7,13 @@ import pytest
 from click.testing import CliRunner
 from fx_alfred.cli import cli
 from fx_alfred.commands.plan_cmd import (
+    _build_mermaid_phases,
     _format_phase,
     _parse_steps_for_json,
 )
+from fx_alfred.core.document import Document
+from fx_alfred.core.parser import parse_metadata
+from fx_alfred.core.workflow import BranchSignature, WorkflowSignature
 
 
 def _create_sop_with_steps(rules_dir: Path, prefix: str, acid: str, title: str) -> Path:
@@ -2032,3 +2036,225 @@ def test_graph_layout_without_graph_errors(sample_project, monkeypatch):
     )
     assert result.exit_code != 0
     assert "--graph-layout requires --graph" in result.output
+
+
+# ── FXA-2227 Phase 8a: _build_mermaid_phases branch propagation ─────────────
+
+
+def _make_branchy_phase_info(prefix: str = "TST", acid: str = "9900"):
+    """Build a minimal phase_info tuple for a 3-way fan-out SOP fixture."""
+    content = """\
+# TST-9900: Branchy SOP
+
+**Applies to:** Test
+**Last updated:** 2026-04-28
+**Last reviewed:** 2026-04-28
+**Status:** Active
+**Workflow branches:** [{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}, {id: 3c, label: esc}]}]
+---
+
+## What Is It?
+
+A test SOP with 3-way branch.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Setup
+2. Decision
+3a. Pass path
+3b. Fail path
+3c. Escalate path
+4. Continue
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-28 | Initial | — |
+"""
+    parsed = parse_metadata(content)
+    doc = Document(
+        prefix=prefix,
+        acid=acid,
+        type_code="SOP",
+        title="Branchy SOP",
+        directory="rules",
+        source="prj",
+    )
+    sig = WorkflowSignature(input="", output="")
+    loops = []
+    return [(f"{prefix}-{acid}", doc, parsed, sig, loops)]
+
+
+def test_plan_propagates_branches_to_phase_payload():
+    """_build_mermaid_phases sets 'branches' key when SOP has Workflow branches:.
+
+    Asserts:
+    - The PhaseDict has a 'branches' key.
+    - branches is a list with one BranchSignature entry.
+    - branches[0].from_step == 2.
+    - branches[0].to has 3 BranchTarget entries with labels pass/fail/esc.
+    """
+    phase_info = _make_branchy_phase_info()
+    phases = _build_mermaid_phases(phase_info)
+
+    assert len(phases) == 1
+    phase = phases[0]
+    assert "branches" in phase, "PhaseDict missing 'branches' key for branchy SOP"
+
+    branches = phase["branches"]
+    assert isinstance(branches, list)
+    assert len(branches) == 1
+
+    sig = branches[0]
+    assert isinstance(sig, BranchSignature)
+    assert sig.from_step == 2
+
+    targets = sig.to
+    assert len(targets) == 3
+    labels = {t.label for t in targets}
+    assert labels == {"pass", "fail", "esc"}
+
+
+def test_plan_no_branches_key_for_legacy_sop():
+    """_build_mermaid_phases does NOT set 'branches' key for a legacy SOP.
+
+    Preserves the optional-field discipline: PhaseDict shape stays minimal
+    for SOPs that have no Workflow branches: field.
+    """
+    content = """\
+# TST-9901: Legacy SOP
+
+**Applies to:** Test
+**Last updated:** 2026-04-28
+**Last reviewed:** 2026-04-28
+**Status:** Active
+
+---
+
+## What Is It?
+
+A legacy SOP with no branches.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Step one
+2. Step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-28 | Initial | — |
+"""
+    parsed = parse_metadata(content)
+    doc = Document(
+        prefix="TST",
+        acid="9901",
+        type_code="SOP",
+        title="Legacy SOP",
+        directory="rules",
+        source="prj",
+    )
+    sig = WorkflowSignature(input="", output="")
+    phase_info = [("TST-9901", doc, parsed, sig, [])]
+
+    phases = _build_mermaid_phases(phase_info)
+
+    assert len(phases) == 1
+    assert "branches" not in phases[0], (
+        "PhaseDict must NOT have 'branches' key for legacy SOP (optional-field discipline)"
+    )
+
+
+def test_plan_handles_malformed_branches_gracefully():
+    """_build_mermaid_phases raises ClickException (not MalformedDocumentError) for invalid Workflow branches: YAML.
+
+    Mirrors the loop-parsing guard: a single bad SOP must not propagate a bare
+    MalformedDocumentError to the caller.  The ClickException message must
+    include the document's prefix-ACID so the user knows which SOP failed.
+    """
+    content = """\
+# TST-9902: Malformed Branches SOP
+
+**Applies to:** Test
+**Last updated:** 2026-04-28
+**Last reviewed:** 2026-04-28
+**Status:** Active
+**Workflow branches:** [{from: not-an-int, to: [{id: 3a, label: pass}]}]
+
+---
+
+## What Is It?
+
+A test SOP with malformed branches.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Step one
+2. Step two
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-28 | Initial | — |
+"""
+    parsed = parse_metadata(content)
+    doc = Document(
+        prefix="TST",
+        acid="9902",
+        type_code="SOP",
+        title="Malformed Branches SOP",
+        directory="rules",
+        source="prj",
+    )
+    sig = WorkflowSignature(input="", output="")
+    phase_info = [("TST-9902", doc, parsed, sig, [])]
+
+    with pytest.raises(click.ClickException) as exc_info:
+        _build_mermaid_phases(phase_info)
+
+    assert "TST-9902" in str(exc_info.value.format_message())

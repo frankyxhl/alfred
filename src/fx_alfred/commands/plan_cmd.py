@@ -23,11 +23,13 @@ from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.phases import PhaseDict
 from fx_alfred.core.schema import TASK_TAGS
 from fx_alfred.core.workflow import (
+    BranchSignature,
     LoopSignature,
     WorkflowSignature,
     _BRANCHES_RENDERER_READY,
     check_composition,
     has_workflow_branches_field,
+    parse_workflow_branches,
     parse_workflow_loops,
     parse_workflow_signature,
     validate_workflow_signature,
@@ -397,6 +399,9 @@ def _build_mermaid_phases(
     Each entry is ``{"sop_id": str, "steps": list[dict], "loops": list}``.
     When ``provenance_map`` is provided, each entry also gets
     ``"provenance"`` set to the matching marker ("always" / "auto" / "explicit").
+    When the SOP declares ``Workflow branches:``, each entry also gets
+    ``"branches"`` set to the parsed list of :class:`BranchSignature` objects.
+    Legacy SOPs without the field do not get the key (optional-field discipline).
     """
     mermaid_phases: list[PhaseDict] = []
     for sop_id, doc, parsed, sig, loops in phase_info:
@@ -413,6 +418,12 @@ def _build_mermaid_phases(
             prov = provenance_map.get(doc_id)
             if prov:
                 entry["provenance"] = prov
+        try:
+            branches: list[BranchSignature] = parse_workflow_branches(parsed)
+        except MalformedDocumentError as e:
+            raise click.ClickException(f"{doc_id}: malformed Workflow branches: {e}")
+        if branches:
+            entry["branches"] = branches
         mermaid_phases.append(entry)
     return mermaid_phases
 
