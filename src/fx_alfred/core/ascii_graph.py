@@ -11,8 +11,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from fx_alfred.core.branch_layout import discover_branch_groups
+
 if TYPE_CHECKING:
     from fx_alfred.core.phases import PhaseDict, StepDict
+    from fx_alfred.core.workflow import BranchSignature
 
 # Minimum inner content width (fits in 50-wide box: '│ ' + 46 + ' │' = 50)
 INNER_MIN = 46
@@ -327,6 +330,134 @@ def _render_inline_loop(
         lines[from_line_idx] = marker
 
 
+def _build_phase_lines(
+    phase_idx: int,
+    phase: "PhaseDict",
+) -> tuple[list[str], list[int]]:
+    """Build inner content lines and step_indices for one phase.
+
+    Handles branch groups via ``discover_branch_groups``: branch parents emit
+    the primitive's geometry lines (no inner step-boxes); siblings and
+    convergence steps are skipped in the regular per-step iteration.
+
+    Returns:
+        lines: header line + per-step content lines (no box borders yet).
+        step_indices: parallel list of int step indices for loop-track machinery.
+            For branch groups, the parent index, sibling integer, and
+            convergence integer are appended in row order so loop annotations
+            attach to the right rows.
+    """
+    from fx_alfred.core.branch_geometry import BranchRenderInput, render_branch
+
+    sop_id = phase.get("sop_id", "UNKNOWN")
+    prov = phase.get("provenance")
+    steps = phase.get("steps", [])
+    branches_raw = phase.get("branches", [])
+
+    header = f"Phase {phase_idx}: {sop_id}"
+    if prov:
+        header += f" ({prov})"
+
+    lines: list[str] = [header]
+    step_indices: list[int] = [-1]  # placeholder for header; loop track skips -1
+
+    # Guard: only discover branch groups when branches are declared.
+    # Phases without `branches` skip this entirely, preserving pre-Phase-5 output.
+    skip_indices: set[int] = set()
+    branch_groups: dict[
+        int, tuple[list["StepDict"], "StepDict | None", "BranchSignature"]
+    ] = {}
+    if branches_raw:
+        for group in discover_branch_groups(steps, branches_raw):
+            sib_steps = [steps[i] for i in group.sibling_indices]
+            conv_step = (
+                steps[group.convergence_idx]
+                if group.convergence_idx is not None
+                else None
+            )
+            branch_groups[group.parent_idx] = (
+                sib_steps,
+                conv_step,
+                group.branch_signature,
+            )
+            skip_indices.update(group.sibling_indices)
+            if group.convergence_idx is not None:
+                skip_indices.add(group.convergence_idx)
+
+    for s_idx, step in enumerate(steps):
+        if s_idx in skip_indices:
+            continue
+
+        if s_idx in branch_groups:
+            sib_steps, conv_step, bsig = branch_groups[s_idx]
+            # Render the parent step's base text as a regular line first.
+            parent_text = _build_step_base_text(phase_idx, step)
+            lines.append(parent_text)
+            step_indices.append(step["index"])
+
+            n = len(bsig.to)
+            sibling_box_width = 12 if n <= 3 else 10
+
+            # Pair sibling body text by sub_branch letter, not positional zip.
+            sibling_text_by_letter = {
+                s.get("sub_branch", ""): s["text"] for s in sib_steps
+            }
+            sibling_texts = [sibling_text_by_letter[bt.branch] for bt in bsig.to]
+
+            primitive_input = BranchRenderInput(
+                parent_step_text=parent_text,
+                siblings=bsig.to,
+                sibling_texts=sibling_texts,
+                converges_to=(conv_step["index"] if conv_step else None),
+                converges_to_text=(conv_step["text"] if conv_step else None),
+                box_width=sibling_box_width,
+            )
+            primitive_out = render_branch(primitive_input)
+
+            # Sibling integer index: used by loop-track to find the sibling rows.
+            # Append it once, pointing at the first primitive line (parent bottom
+            # border row) — close enough for the loop track's row lookup.
+            sibling_int = sib_steps[0]["index"]
+
+            for prim_line in primitive_out.lines:
+                lines.append(prim_line)
+                step_indices.append(sibling_int)
+
+            # Convergence step: append its integer index at the convergence row
+            # (primitive_out.convergence_anchor_row points at the top border of
+            # the convergence box; the text body is one row later). Record the
+            # convergence integer at the convergence-box top-border row so the
+            # loop track can find it.
+            if (
+                conv_step is not None
+                and primitive_out.convergence_anchor_row is not None
+            ):
+                conv_int = conv_step["index"]
+                # Walk back from the end and re-stamp convergence rows with conv_int.
+                # The convergence block occupies the last 3 lines of primitive_out
+                # (top, middle, bottom borders) preceded by the join row and arrow.
+                # We identify the anchor row in the already-appended lines.
+                # lines[-1] is prim_out.lines[-1] (conv box bottom); work backward.
+                prim_len = len(primitive_out.lines)
+                # convergence_anchor_row in primitive is 0-based within primitive_out.lines.
+                # Map to lines[] offset: lines has header + parent + prim_len lines so far.
+                # First primitive line index in lines = len(lines) - prim_len.
+                prim_start_in_lines = len(lines) - prim_len
+                conv_line_in_lines = (
+                    prim_start_in_lines + primitive_out.convergence_anchor_row
+                )
+                # Overwrite step_indices entries from convergence_anchor_row onward
+                # with conv_int (top, middle, bottom of convergence box).
+                for ci in range(conv_line_in_lines, len(lines)):
+                    step_indices[ci] = conv_int
+        else:
+            base = _build_step_base_text(phase_idx, step)
+            lines.append(base)
+            step_indices.append(step["index"])
+
+    return lines, step_indices
+
+
 def render_ascii(phases: list[PhaseDict]) -> str:
     """Render phases as ASCII box-and-arrow diagram.
 
@@ -345,25 +476,9 @@ def render_ascii(phases: list[PhaseDict]) -> str:
     all_phase_data: list[tuple[list[str], list, list[int]]] = []
 
     for phase_idx, phase in enumerate(phases, 1):
-        sop_id = phase.get("sop_id", "UNKNOWN")
-        prov = phase.get("provenance")
-        steps = phase.get("steps", [])
         loops = phase.get("loops", [])
-
-        # Header line
-        header = f"Phase {phase_idx}: {sop_id}"
-        if prov:
-            header += f" ({prov})"
-
-        # Build step base texts WITHOUT loop annotations
-        step_lines: list[str] = []
-        step_indices: list[int] = []
-        for step in steps:
-            step_indices.append(step["index"])
-            base = _build_step_base_text(phase_idx, step)
-            step_lines.append(base)
-
-        all_phase_data.append(([header] + step_lines, loops, step_indices))
+        lines, step_indices = _build_phase_lines(phase_idx, phase)
+        all_phase_data.append((lines, loops, step_indices))
 
     # Phase 2: determine global box width (before loop track)
     max_inner = INNER_MIN
@@ -385,6 +500,10 @@ def render_ascii(phases: list[PhaseDict]) -> str:
     n_phases = len(all_phase_data)
 
     for p_idx, (lines, loops, step_indices) in enumerate(all_phase_data):
+        # step_indices[0] is -1 (header placeholder); _apply_loop_track uses
+        # the indices starting at position 1 (step lines), so -1 is never matched
+        # against a real step number and is harmless.
+
         # Step A: truncate base lines to inner_width (ellipsis-aware).
         truncated_lines = [
             _truncate_visual(ln, inner_width) if _visual_width(ln) > inner_width else ln
@@ -393,8 +512,9 @@ def render_ascii(phases: list[PhaseDict]) -> str:
 
         # Step B: layer the loop track on top. The track renderer owns
         # further shrinkage of base text so the track column stays clear.
+        # Pass step_indices[1:] to skip the header placeholder (-1).
         lines_with_track = _apply_loop_track(
-            truncated_lines, loops, p_idx + 1, inner_width, step_indices
+            truncated_lines, loops, p_idx + 1, inner_width, step_indices[1:]
         )
 
         # Step C: pad every line to exactly inner_width for box alignment.
