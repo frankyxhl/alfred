@@ -547,3 +547,137 @@ class TestSubStepNodeIds:
         assert not _re.search(r"S1_\d+[a-z]", result), (
             f"Unexpected sub-step suffix in legacy output:\n{result}"
         )
+
+
+# ---------------------------------------------------------------------------
+# FXA-2227 Phase 7 — Phantom-node bug: loop edges with sub-stepped targets
+# ---------------------------------------------------------------------------
+
+
+class TestLoopSubStepPhantomNode:
+    def test_mermaid_loop_from_substepped_step_references_first_sibling(self):
+        """Loop from_step pointing at a sub-stepped integer anchors to first sibling.
+
+        Steps: 1, 2, 3a, 3b. Loop from_step=3 -> to_step=2.
+        Must emit S1_3a -. ... .-> S1_2, NOT phantom S1_3.
+        """
+        import re as _re
+
+        loop = LoopSignature(
+            id="retry",
+            from_step=3,
+            to_step=2,
+            max_iterations=3,
+            condition="retry",
+        )
+        phases = [
+            _make_phase(
+                "COR-1500",
+                [
+                    {"index": 1, "text": "Step one", "gate": False},
+                    {"index": 2, "text": "Step two", "gate": False},
+                    {
+                        "index": 3,
+                        "text": "Sub-step alpha",
+                        "gate": False,
+                        "sub_branch": "a",
+                    },
+                    {
+                        "index": 3,
+                        "text": "Sub-step beta",
+                        "gate": False,
+                        "sub_branch": "b",
+                    },
+                ],
+                loops=[loop],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Loop edge must reference first sibling (S1_3a), not phantom S1_3
+        assert "S1_3a -. " in result and ".-> S1_2" in result
+        # Phantom node must NOT appear as loop source
+        assert "S1_3 -." not in result
+        # Phantom node must NOT be defined as a standalone node
+        assert _re.search(r"\bS1_3\[", result) is None, (
+            f"Phantom S1_3 node definition found in output:\n{result}"
+        )
+
+    def test_mermaid_loop_to_substepped_step_references_first_sibling(self):
+        """Loop to_step pointing at a sub-stepped integer anchors to first sibling.
+
+        Steps: 1, 2, 3a, 3b, 4. Loop from_step=4 -> to_step=3.
+        Must emit S1_4 -. ... .-> S1_3a, NOT phantom S1_3.
+        """
+        import re as _re
+
+        loop = LoopSignature(
+            id="retry",
+            from_step=4,
+            to_step=3,
+            max_iterations=3,
+            condition="retry",
+        )
+        phases = [
+            _make_phase(
+                "COR-1500",
+                [
+                    {"index": 1, "text": "Step one", "gate": False},
+                    {"index": 2, "text": "Step two", "gate": False},
+                    {
+                        "index": 3,
+                        "text": "Sub-step alpha",
+                        "gate": False,
+                        "sub_branch": "a",
+                    },
+                    {
+                        "index": 3,
+                        "text": "Sub-step beta",
+                        "gate": False,
+                        "sub_branch": "b",
+                    },
+                    {"index": 4, "text": "Step four", "gate": False},
+                ],
+                loops=[loop],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Loop edge must reference first sibling (S1_3a), not phantom S1_3
+        assert "S1_4 -. " in result and ".-> S1_3a" in result
+        # Phantom node must NOT appear as loop target
+        assert (
+            ".-> S1_3\n" not in result
+            and result.rstrip().endswith("S1_3a")
+            or ".-> S1_3\n" not in result
+        )
+        assert _re.search(r"\.-> S1_3(?![a-z])", result) is None, (
+            f"Phantom S1_3 target found in output:\n{result}"
+        )
+
+    def test_mermaid_loop_between_plain_steps_unchanged(self):
+        """Loop between two plain (non-sub-stepped) steps is unchanged by the fix."""
+        phases = [
+            _make_phase(
+                "COR-1500",
+                [
+                    {"index": 1, "text": "Step one", "gate": False},
+                    {"index": 2, "text": "Step two", "gate": False},
+                    {"index": 3, "text": "Step three", "gate": False},
+                    {"index": 4, "text": "Step four", "gate": False},
+                ],
+                loops=[
+                    LoopSignature(
+                        id="retry",
+                        from_step=4,
+                        to_step=1,
+                        max_iterations=3,
+                        condition="retry",
+                    )
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Plain loop edge must be byte-identical to pre-fix behavior
+        assert "S1_4 -. retry .-> S1_1" in result

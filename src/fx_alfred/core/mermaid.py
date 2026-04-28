@@ -144,6 +144,17 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
         if prev_node_id is not None:
             prev_last_node_id = prev_node_id
 
+        # Build int→first-sibling-letter map for this phase so loop edges
+        # can anchor to a real node when from_step/to_step is a sub-stepped
+        # integer (FXA-2227 Phase 7 phantom-node fix).  Only the first
+        # occurrence of each integer with a sub_branch key is recorded.
+        int_to_first_sibling_letter: dict[int, str] = {}
+        for step in steps:
+            idx = step["index"]
+            letter = step.get("sub_branch", "")
+            if letter and idx not in int_to_first_sibling_letter:
+                int_to_first_sibling_letter[idx] = letter
+
         # Dashed back-edges for every intra-SOP loop (cross-SOP loops —
         # string `to_step` — are skipped; Mermaid layout is ASCII-only in
         # FXA-2218; see PRP Component 4). A user-facing omission comment
@@ -153,8 +164,8 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
         for lp in loops:
             if not isinstance(lp.to_step, int):
                 continue
-            from_nid = _node_id(phase_idx, lp.from_step)
-            to_nid = _node_id(phase_idx, lp.to_step)
+            from_nid = f"{_node_id(phase_idx, lp.from_step)}{int_to_first_sibling_letter.get(lp.from_step, '')}"
+            to_nid = f"{_node_id(phase_idx, lp.to_step)}{int_to_first_sibling_letter.get(lp.to_step, '')}"
             cond = _sanitize_condition(lp.condition)
             lines.append(f"  {from_nid} -. {cond} .-> {to_nid}")
 
