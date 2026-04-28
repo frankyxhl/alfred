@@ -83,12 +83,21 @@ def discover_branch_groups(
     groups: list[BranchGroup] = []
     consumed: set[int] = set()
     for bsig in sorted_branches:
+        # Hoist declared_letters before the len guards — needed by both the
+        # dedup check (N7) below and the sibling-collection loop further down.
+        declared_letters = {bt.branch for bt in bsig.to}
         # Reject branches whose declared `to` length is unsupported by the
         # renderer primitive (`branch_geometry.render_branch` requires 2-4
         # siblings). Validator currently allows any non-empty `to`, so we
         # guard here. Catches duplicates that pass the collected-letters
         # set-equality check but exceed the renderer's hard cap (Codex N6).
         if not (2 <= len(bsig.to) <= 4):
+            continue
+        # Reject branches where `to` contains duplicate target IDs. Even
+        # though len(bsig.to) is within 2-4, the renderer iterates
+        # bsig.to directly and would draw a phantom lane for each duplicate
+        # entry (Codex N7).
+        if len(declared_letters) != len(bsig.to):
             continue
         from_step = bsig.from_step
         # Locate parent step (must be plain, not already consumed).
@@ -107,7 +116,6 @@ def discover_branch_groups(
         # the parser currently allows. Without this guard, the first
         # branch absorbs all siblings and the primitive raises ValueError
         # on length mismatch (Codex P2 review finding).
-        declared_letters = {bt.branch for bt in bsig.to}
         sibling_indices: list[int] = []
         i = parent_idx + 1
         while (
@@ -140,7 +148,9 @@ def discover_branch_groups(
         other_branch_starts = {
             b.from_step
             for b in sorted_branches
-            if b is not bsig and 2 <= len(b.to) <= 4
+            if b is not bsig
+            and 2 <= len(b.to) <= 4
+            and len({bt.branch for bt in b.to}) == len(b.to)  # no duplicates (N7)
         }
         if (
             i < len(steps)

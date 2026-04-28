@@ -283,6 +283,29 @@ def test_duplicate_target_ids_in_to_rejected() -> None:
     assert discover_branch_groups(steps, [bsig]) == []
 
 
+def test_duplicate_to_letters_rejected_within_bounds() -> None:
+    """Branch with duplicate target IDs in `to` (within len 2-4 bounds —
+    e.g., (a, a, b) is 3 entries, 2 unique) is rejected by the dedup
+    guard. Without the guard, the renderer draws phantom lanes for the
+    duplicate (Codex N7).
+    """
+    steps = [
+        _step(1),
+        _step(2),
+        _step(3, sub_branch="a"),
+        _step(3, sub_branch="b"),
+    ]
+    bsig = BranchSignature(
+        from_step=2,
+        to=(
+            BranchTarget(parent=3, branch="a", label="A1"),
+            BranchTarget(parent=3, branch="a", label="A2"),  # duplicate
+            BranchTarget(parent=3, branch="b", label="B"),
+        ),
+    )
+    assert discover_branch_groups(steps, [bsig]) == []
+
+
 def test_sibling_collection_constrained_to_declared_letters() -> None:
     """Discovery only consumes siblings whose ``sub_branch`` letter is
     declared in the active branch's ``to`` tuple.
