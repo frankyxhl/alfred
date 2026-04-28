@@ -138,7 +138,12 @@ def discover_branch_groups(
         # the steps list; the renderer would KeyError on the missing text
         # lookup (Codex N5). ``declared_letters`` is already in scope.
         collected_letters = {steps[i].get("sub_branch") for i in sibling_indices}
-        if collected_letters != declared_letters:
+        # Sibling rows must (a) cover all declared letters exactly, and (b) have
+        # no internal duplicates (e.g., authoring `3a, 3a, 3b` for `to: (a, b)`
+        # would silently drop a row in the renderer's letter-keyed text lookup).
+        if collected_letters != declared_letters or len(collected_letters) != len(
+            sibling_indices
+        ):
             continue
         # Convergence: next plain step, unless it's another *renderable*
         # branch's parent. Restrict to branches with 2<=len(to)<=4 so that
