@@ -284,6 +284,61 @@ def test_nested_chained_branches() -> None:
     assert out.count("┬") >= 2, f"expected tees from both branches:\n{out}"
 
 
+def test_nested_chained_branches_reverse_listed_order() -> None:
+    """Same scenario as chained-branches, but with branches listed in
+    REVERSE step order (later from_step first).
+
+    Regression guard: ``discover_branch_groups`` must sort by ``from_step``
+    so list order in the parser output cannot cause silent misrender.
+    Without the sort, the later-listed earlier branch's siblings would
+    be left rendered as plain steps because the later from_step branch
+    consumes step indices first.
+    """
+    # Same SOP as test_nested_chained_branches but branches list reversed.
+    branches = [
+        BranchSignature(
+            from_step=4,
+            to=(
+                BranchTarget(parent=5, branch="a", label="A2"),
+                BranchTarget(parent=5, branch="b", label="B2"),
+            ),
+        ),
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="A1"),
+                BranchTarget(parent=3, branch="b", label="B1"),
+            ),
+        ),
+    ]
+    phases = [
+        _phase(
+            "TST-9008",
+            [
+                _step(1, "Setup"),
+                _step(2, "DecisionOne"),
+                _step(3, "First A", sub_branch="a"),
+                _step(3, "First B", sub_branch="b"),
+                _step(4, "DecisionTwo"),
+                _step(5, "Second A", sub_branch="a"),
+                _step(5, "Second B", sub_branch="b"),
+                _step(6, "End"),
+            ],
+            branches=branches,
+        )
+    ]
+    out = render_dag(phases)
+    # Both groups must render correctly regardless of branches list order.
+    assert "A1" in out and "B1" in out, (
+        f"first branch (from_step=2) dropped due to list-order dependence:\n{out}"
+    )
+    assert "A2" in out and "B2" in out, f"second branch (from_step=4) dropped:\n{out}"
+    # Two distinct branch-group blocks ⇒ at least 4 tees (two per group).
+    assert out.count("┬") >= 4, (
+        f"expected 4+ tees (2 per group); got {out.count('┬')}:\n{out}"
+    )
+
+
 def test_nested_4way_max_fanout() -> None:
     """Maximum supported fanout (4 siblings) renders within phase-box width."""
     branches = [

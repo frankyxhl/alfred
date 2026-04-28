@@ -33,6 +33,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from fx_alfred.core.ascii_graph import _pad_visual, _truncate_visual, _visual_width
+from fx_alfred.core.branch_layout import discover_branch_groups
 from fx_alfred.core.workflow import CROSS_SOP_REF, LoopSignature
 
 if TYPE_CHECKING:
@@ -112,73 +113,6 @@ def _render_step_bottom_connector(has_next: bool) -> str:
 
 
 # ── Per-phase rendering ──────────────────────────────────────────────────────
-
-
-def _identify_branch_group(
-    steps: list["StepDict"],
-    branches: list["BranchSignature"],
-) -> tuple[int, int, "BranchSignature"] | None:
-    """Find the index range of a branch group in ``steps``.
-
-    Returns ``(parent_idx, end_idx, branch_signature)`` where:
-    - ``parent_idx`` is the index of the parent step in ``steps`` (whose
-      ``step["index"] == branch.from_step``);
-    - ``end_idx`` is the index *after* the last step consumed by the branch
-      group (parent + siblings + optional convergence). Use as ``end_idx``
-      in slicing.
-    - ``branch_signature`` is the matching :class:`BranchSignature`.
-
-    Returns ``None`` if no branch group is present.
-
-    Per FXA-2227 Phase 4 GREEN, only the FIRST branch group is detected
-    here; the caller iterates and may invoke this repeatedly on the
-    remainder of the steps list. (For Mid scope, SOPs typically have at
-    most one branch group; multi-branch is supported by the schema but
-    rare in practice.)
-    """
-    if not branches:
-        return None
-    for bsig in branches:
-        from_step = bsig.from_step
-        # Locate parent step.
-        parent_idx = None
-        for i, s in enumerate(steps):
-            if s["index"] == from_step and "sub_branch" not in s:
-                parent_idx = i
-                break
-        if parent_idx is None:
-            continue
-        # Walk forward: collect contiguous sub-step siblings with
-        # index == from_step + 1.
-        i = parent_idx + 1
-        sibling_count = 0
-        while (
-            i < len(steps)
-            and steps[i].get("sub_branch") is not None
-            and steps[i]["index"] == from_step + 1
-        ):
-            sibling_count += 1
-            i += 1
-        if sibling_count == 0:
-            continue
-        # The sibling group is steps[parent_idx+1 : parent_idx+1+sibling_count].
-        # Convergence (if any) is the next plain step — but NOT if that
-        # plain step is itself another branch's parent (chained-branch case).
-        # Without this guard, a back-to-back branch like
-        #   from_step=2 (siblings 3a/3b), then from_step=4 (siblings 5a/5b)
-        # would silently consume step 4 as the first branch's "convergence"
-        # and skip it from rendering, dropping the second branch entirely.
-        other_branch_starts = {b.from_step for b in branches if b is not bsig}
-        if (
-            i < len(steps)
-            and "sub_branch" not in steps[i]
-            and steps[i]["index"] not in other_branch_starts
-        ):
-            end_idx = i + 1
-        else:
-            end_idx = i
-        return parent_idx, end_idx, bsig
-    return None
 
 
 def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence rendering
@@ -309,53 +243,24 @@ def _render_phase(
     # Blank line under header.
     lines.append("│" + " " * _PHASE_INNER + "│")
 
-    # FXA-2227 Phase 4: detect branch groups and replace the per-step
-    # rendering for those step ranges with branch_geometry primitive output.
+    # FXA-2227 Phase 4: detect branch groups via the shared discovery
+    # primitive (core.branch_layout.discover_branch_groups). Renderer
+    # only handles the formatting; group identification (including
+    # branch-list-order independence and chained-branch convergence
+    # disambiguation) is centralized in the layout module.
     skip_indices: set[int] = set()
     branch_groups: dict[
         int, tuple[list["StepDict"], "StepDict | None", "BranchSignature"]
     ] = {}
-    if branches:
-        # Find ALL branch groups (one pass per branch).
-        remaining = steps
-        offset = 0
-        while True:
-            result = _identify_branch_group(remaining, branches)
-            if result is None:
-                break
-            parent_local_idx, end_local_idx, bsig = result
-            parent_global_idx = offset + parent_local_idx
-            sibling_global_start = parent_global_idx + 1
-            # Convergence is the last entry in the group if it's a plain step.
-            sibling_global_end = offset + end_local_idx
-            sibling_steps_global = list(range(sibling_global_start, sibling_global_end))
-            # Determine convergence.
-            convergence_global_idx: int | None = None
-            if (
-                end_local_idx > parent_local_idx + 1
-                and "sub_branch" not in remaining[end_local_idx - 1]
-            ):
-                convergence_global_idx = offset + end_local_idx - 1
-                sibling_steps_global = list(
-                    range(sibling_global_start, convergence_global_idx)
-                )
-            sib_steps = [steps[i] for i in sibling_steps_global]
-            conv_step = (
-                steps[convergence_global_idx]
-                if convergence_global_idx is not None
-                else None
-            )
-            branch_groups[parent_global_idx] = (sib_steps, conv_step, bsig)
-            for i in sibling_steps_global:
-                skip_indices.add(i)
-            if convergence_global_idx is not None:
-                skip_indices.add(convergence_global_idx)
-            # Continue scanning past this group.
-            offset += end_local_idx
-            remaining = remaining[end_local_idx:]
-            # Remove the consumed branch from candidate list to avoid
-            # re-matching the same branch.
-            branches = [b for b in branches if b is not bsig]
+    for group in discover_branch_groups(steps, branches):
+        sib_steps = [steps[i] for i in group.sibling_indices]
+        conv_step = (
+            steps[group.convergence_idx] if group.convergence_idx is not None else None
+        )
+        branch_groups[group.parent_idx] = (sib_steps, conv_step, group.branch_signature)
+        skip_indices.update(group.sibling_indices)
+        if group.convergence_idx is not None:
+            skip_indices.add(group.convergence_idx)
 
     step_count = len(steps)
     for s_idx, step in enumerate(steps):
