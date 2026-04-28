@@ -155,6 +155,19 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
             if letter and idx not in int_to_first_sibling_letter:
                 int_to_first_sibling_letter[idx] = letter
 
+        # Integers that have a plain (non-sub-branched) step.  When a plain
+        # node co-exists with sub-stepped siblings at the same integer, a loop
+        # targeting that integer should land on the plain node, not the first
+        # sibling (Codex P2 fix).
+        has_plain_step: set[int] = {
+            step["index"] for step in steps if "sub_branch" not in step
+        }
+
+        def _suffix_for(int_step: int) -> str:
+            if int_step in has_plain_step:
+                return ""  # plain node exists — preserve explicit endpoint
+            return int_to_first_sibling_letter.get(int_step, "")
+
         # Dashed back-edges for every intra-SOP loop (cross-SOP loops —
         # string `to_step` — are skipped; Mermaid layout is ASCII-only in
         # FXA-2218; see PRP Component 4). A user-facing omission comment
@@ -164,8 +177,8 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
         for lp in loops:
             if not isinstance(lp.to_step, int):
                 continue
-            from_nid = f"{_node_id(phase_idx, lp.from_step)}{int_to_first_sibling_letter.get(lp.from_step, '')}"
-            to_nid = f"{_node_id(phase_idx, lp.to_step)}{int_to_first_sibling_letter.get(lp.to_step, '')}"
+            from_nid = f"{_node_id(phase_idx, lp.from_step)}{_suffix_for(lp.from_step)}"
+            to_nid = f"{_node_id(phase_idx, lp.to_step)}{_suffix_for(lp.to_step)}"
             cond = _sanitize_condition(lp.condition)
             lines.append(f"  {from_nid} -. {cond} .-> {to_nid}")
 

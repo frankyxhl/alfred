@@ -655,6 +655,48 @@ class TestLoopSubStepPhantomNode:
             f"Phantom S1_3 target found in output:\n{result}"
         )
 
+    def test_mermaid_loop_to_plain_step_when_substeps_also_exist_at_same_index(self):
+        """When integer N has both a plain step AND sub-stepped siblings,
+        a loop to N targets the plain node (no suffix override). Pathological
+        metadata shape — graceful behavior is to preserve the explicit plain
+        endpoint over the implicit sibling-group anchor (Codex P2)."""
+        phase = {
+            "sop_id": "TST-9999",
+            "steps": [
+                {"index": 1, "text": "Setup", "gate": False},
+                {"index": 2, "text": "Decision", "gate": False},
+                {"index": 3, "text": "Plain merge", "gate": False},
+                {"index": 3, "text": "Path A", "gate": False, "sub_branch": "a"},
+                {"index": 3, "text": "Path B", "gate": False, "sub_branch": "b"},
+                {"index": 4, "text": "End", "gate": False},
+            ],
+            "loops": [
+                LoopSignature(
+                    id="loop1",
+                    from_step=4,
+                    to_step=3,
+                    max_iterations=2,
+                    condition="retry",
+                )
+            ],
+        }
+        result = render_mermaid([phase])
+        # Loop targets plain node, NOT first sibling.
+        assert "S1_4" in result and ".-> S1_3" in result, (
+            f"loop should target plain S1_3, got:\n{result}"
+        )
+        # The loop must NOT target S1_3a.
+        import re as _re
+
+        assert _re.search(r"\.-> S1_3a", result) is None, (
+            f"loop wrongly targets S1_3a instead of plain S1_3:\n{result}"
+        )
+        # Plain node defined.
+        assert "S1_3[" in result or "S1_3{" in result, "plain S1_3 missing"
+        # Sibling nodes also defined.
+        assert "S1_3a[" in result, "S1_3a missing"
+        assert "S1_3b[" in result, "S1_3b missing"
+
     def test_mermaid_loop_between_plain_steps_unchanged(self):
         """Loop between two plain (non-sub-stepped) steps is unchanged by the fix."""
         phases = [
