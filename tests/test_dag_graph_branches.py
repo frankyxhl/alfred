@@ -601,3 +601,57 @@ def test_nested_sibling_step_loop_annotation_emitted() -> None:
         f"sibling-integer loop annotation silently dropped — "
         f"valid loop on siblings (from_step=3) not rendered:\n{out}"
     )
+
+
+def test_nested_sibling_row_anchor_recorded() -> None:
+    """``step_row_index`` records an anchor for the sibling integer index.
+
+    Codex review N1 (P1): cross-SOP loop overlay resolves source/target
+    rows via ``step_row_index.get((phase_num, loop.from_step))``. Without
+    a sibling-integer anchor, loops with ``from_step`` matching a
+    sibling group's integer (e.g., 3 for 3a/3b) silently miss the lookup
+    and the overlay is dropped. The anchor must point to *some* row
+    inside the sibling group — convention: first sibling's body row.
+    """
+    from fx_alfred.core.dag_graph import _render_phase
+
+    branches = [
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="A"),
+                BranchTarget(parent=3, branch="b", label="B"),
+            ),
+        )
+    ]
+    phase = _phase(
+        "TST-9012",
+        [
+            _step(1, "Setup"),
+            _step(2, "Decision"),
+            _step(3, "Path A", sub_branch="a"),
+            _step(3, "Path B", sub_branch="b"),
+            _step(4, "End"),
+        ],
+        branches=branches,
+    )
+    step_row_index: dict[tuple[int, int], int] = {}
+    _render_phase(
+        phase_num=1,
+        phase=phase,  # type: ignore[arg-type]
+        step_row_index=step_row_index,
+        canvas_row_offset=0,
+    )
+    # Parent (2), sibling integer (3), and convergence (4) must all
+    # have anchors so cross-SOP loops referencing any of them resolve.
+    assert (1, 2) in step_row_index, (
+        f"parent step anchor missing: {sorted(step_row_index.keys())}"
+    )
+    assert (1, 3) in step_row_index, (
+        f"sibling integer anchor missing — cross-SOP loops with "
+        f"from_step=3 will silently drop:\n"
+        f"keys: {sorted(step_row_index.keys())}"
+    )
+    assert (1, 4) in step_row_index, (
+        f"convergence step anchor missing: {sorted(step_row_index.keys())}"
+    )

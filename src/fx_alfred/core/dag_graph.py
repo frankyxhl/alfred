@@ -199,6 +199,16 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
     indent_pad = " " * indent
     line_pad_after = _STEP_BOX_WIDTH - primitive_width - indent
 
+    # Look up the prim_idx of the first sibling's middle row so we can
+    # record an anchor for the sibling integer index in step_row_index.
+    # Cross-SOP loop overlay (FXA-2218) resolves source/target rows via
+    # ``step_row_index.get((phase_num, loop.from_step))`` — without this,
+    # loops with ``from_step`` set to a sibling integer (e.g., 3 for
+    # 3a/3b) are silently dropped because the lookup misses (Codex N1).
+    first_sib_target = branch_signature.to[0]
+    first_sib_id = f"{first_sib_target.parent}{first_sib_target.branch}"
+    first_sib_prim_row = primitive_out.step_anchor_rows.get(first_sib_id)
+
     for prim_idx, prim_line in enumerate(primitive_out.lines):
         wrapped = (
             f"│{pad_left}{indent_pad}{prim_line}"
@@ -206,6 +216,17 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
             + f"{pad_right}│"
         )
         out_lines.append(wrapped)
+        # Track sibling integer row for cross-SOP loop overlay. Use the
+        # first sibling's body row as the representative anchor for the
+        # parent integer (e.g., row of "3a" body is the anchor for index 3).
+        if (
+            first_sib_prim_row is not None
+            and prim_idx == first_sib_prim_row
+            and sibling_steps
+        ):
+            step_row_index[(phase_num, sibling_steps[0]["index"])] = (
+                canvas_row_offset + pre_lines_count + len(out_lines) - 1
+            )
         # Track convergence step row for cross-SOP loop overlay.
         if (
             convergence_step is not None
