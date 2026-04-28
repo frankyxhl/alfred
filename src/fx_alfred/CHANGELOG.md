@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.8.0 (2026-04-29)
+
+Feature release: branching ASCII rendering in `af plan --graph`, Mermaid sub-step IDs, and breaking `todo[].index` format extension.
+
+### Added
+
+- **Branching ASCII rendering** — `af plan --graph` supports nested and flat branch layouts driven by SOP `Workflow branches:` metadata. Three-way Audit Ledger goldens prove geometry invariants. (CHG-2226, CHG-2227)
+- **Mermaid sub-step IDs** — Mermaid output now includes sub-step nodes (`S1_3a`, `S1_3b`, `S1_3c`) with edges connecting parent → siblings → convergence, matching the ASCII renderer. (CHG-2227 Phase 7)
+- **`wcwidth` dependency** — declared explicitly (was previously transitive via `branch_geometry`).
+
+### Changed
+
+- **`_BRANCHES_RENDERER_READY` defaults to `True`** — `af plan --graph` renders branches by default when SOPs declare `Workflow branches:`. (CHG-2227 Phase 8a)
+- **`af validate` accepts `Workflow branches:` SOPs** — validator recognizes the new `Workflow branches:` metadata block. (CHG-2226)
+
+### Breaking
+
+- **`todo[].index` format extends from `^\\d+\\.\\d+$` to `^\\d+\\.\\d+[a-z]?$`** — sub-step IDs (e.g., `3.1a`) are now valid indices. Consumers parsing this with strict numeric regex must update.
+
+### Internal
+
+- New modules: `core/branch_geometry.py`, `core/branch_layout.py`, plus branching integration in `core/dag_graph.py`, `core/ascii_graph.py`, `core/mermaid.py`, `core/workflow.py`, `core/phases.py`.
+- 835 tests passing, pyright 0 errors, ruff clean.
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.8.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.7.1 (2026-04-26)
 
 Patch release: housekeeping migration to resolve a duplicate-ACID block and consolidate the PRJ document namespace. No CLI behavior changes.

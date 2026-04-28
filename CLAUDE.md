@@ -2,7 +2,7 @@
 
 ## Project
 
-- **Package:** fx-alfred v1.6.1
+- **Package:** fx-alfred v1.8.0
 - **Description:** Alfred — Agent Runbook: workflow routing, SOP checklists, and document management
 - **Language:** Python 3.10+, Click 8.0+
 - **Entry point:** `af = fx_alfred.cli:cli`
@@ -129,6 +129,7 @@ af list --root /Users/frank/Projects/alfred/fx_alfred
 - **Before every task:** Declare active SOP per COR-1402 before starting work (or flag if none exist)
 - **Workflow checklist:** `af plan <SOP_IDs>` (LLM-optimized, follow each phase)
 - **First time:** `af setup` (suggested prompts for agent config)
+- **Workflow branches:** SOPs can declare `Workflow branches:` metadata to express branching task flows (e.g., "do EITHER A or B"). `af plan --graph` renders these as ASCII/Mermaid branch diagrams. Branch targets use step indices; sub-steps use `{phase}.{step}{letter}` notation (e.g., `3.1a`).
 - **Routing:** COR-1103 (PKG) → ALF-2207 (USR) → FXA-2125 (PRJ)
 - All code changes go through `/trinity` dispatch (GLM = Worker, Codex/Gemini = Reviewer)
 - TDD mandatory: COR-1500 (Red-Green-Refactor)
