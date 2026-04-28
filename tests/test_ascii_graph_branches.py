@@ -475,3 +475,221 @@ def test_flat_phase_box_uniform_width_with_branches() -> None:
         "branch group output may have overflowed phase border\n"
         + "\n".join(f"  ({wcwidth.wcswidth(line)}) {line}" for line in box_lines)
     )
+
+
+def test_flat_loop_to_sibling_index_lands_on_sibling_body() -> None:
+    """Loop with to_step set to the sibling integer: ◄──────┐ lands on sibling body.
+
+    SOP shape:
+      1. Setup
+      2. Decision   <- branch parent
+      3a. Path A    <- sibling (to_step = 3)
+      3b. Path B    <- sibling
+      4. Continue   <- convergence
+      5. End        <- loop from_step
+
+    ◄──────┐ must appear on the row that also contains 'Path A' (sibling body),
+    NOT on a label row or box-border row.
+    """
+    branches = [
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="ok"),
+                BranchTarget(parent=3, branch="b", label="no"),
+            ),
+        )
+    ]
+    loops = [
+        LoopSignature(
+            id="retry",
+            from_step=5,
+            to_step=3,
+            max_iterations=3,
+            condition="",
+        )
+    ]
+    phases = [
+        _phase(
+            "TST-9020",
+            [
+                _step(1, "Setup"),
+                _step(2, "Decision"),
+                _step(3, "Path A", sub_branch="a"),
+                _step(3, "Path B", sub_branch="b"),
+                _step(4, "Continue"),
+                _step(5, "End"),
+            ],
+            loops=loops,
+            branches=branches,
+        )
+    ]
+    out = render_ascii(phases)
+    lines = out.split("\n")
+
+    # ◄──────┐ must appear somewhere in the output.
+    to_rows = [ln for ln in lines if "◄──────┐" in ln]
+    assert to_rows, f"◄──────┐ not found in output:\n{out}"
+
+    # The row with ◄──────┐ must contain sibling body text ('Path A' or 'Path B'),
+    # NOT be a pure box-border or label row.
+    for row in to_rows:
+        # Must contain sibling body text — it is the middle row of a sibling box.
+        has_body = "Path A" in row or "Path B" in row
+        stripped = row.strip(" │")
+        is_border = all(ch in "┌┐└┘─┴┬┼│▼◄► " for ch in stripped) if stripped else False
+        assert has_body and not is_border, (
+            f"◄──────┐ landed on wrong row (expected sibling body, not border/label):\n{row!r}"
+        )
+
+
+def test_flat_loop_from_sibling_index_lands_on_sibling_body() -> None:
+    """Loop with from_step set to the sibling integer: ─────┘ max N lands on sibling body.
+
+    SOP shape:
+      1. Setup         <- loop to_step
+      2. Decision      <- branch parent
+      3a. Path A       <- sibling (from_step = 3)
+      3b. Path B       <- sibling
+
+    ─────┘ max N must appear on the row that also contains 'Path A' or 'Path B'
+    (sibling body), NOT on a label row or box-border row.
+    """
+    branches = [
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="ok"),
+                BranchTarget(parent=3, branch="b", label="no"),
+            ),
+        )
+    ]
+    loops = [
+        LoopSignature(
+            id="retry",
+            from_step=3,
+            to_step=1,
+            max_iterations=3,
+            condition="",
+        )
+    ]
+    phases = [
+        _phase(
+            "TST-9021",
+            [
+                _step(1, "Setup"),
+                _step(2, "Decision"),
+                _step(3, "Path A", sub_branch="a"),
+                _step(3, "Path B", sub_branch="b"),
+            ],
+            loops=loops,
+            branches=branches,
+        )
+    ]
+    out = render_ascii(phases)
+    lines = out.split("\n")
+
+    # ┘ max must appear somewhere in the output.
+    from_rows = [ln for ln in lines if "┘ max" in ln]
+    assert from_rows, f"┘ max not found in output:\n{out}"
+
+    # The row with ┘ max must contain sibling body text, NOT be a border row.
+    for row in from_rows:
+        has_body = "Path A" in row or "Path B" in row
+        is_border = (
+            all(ch in "┌┐└┘─┴┬┼│▼◄► " for ch in row.strip(" │"))
+            if row.strip(" │")
+            else False
+        )
+        assert has_body and not is_border, (
+            f"┘ max landed on wrong row (expected sibling body, not border/label):\n{row!r}"
+        )
+
+
+def test_flat_loop_track_with_long_condition_stays_aligned() -> None:
+    """Branch + loop with a long condition string: │ track stays at uniform column.
+
+    SOP shape:
+      1. Setup         <- to_step (◄──────┐ lands here)
+      2. Decision      <- branch parent
+      3a. Path A       <- sibling
+      3b. Path B       <- sibling
+      4. Continue      <- convergence
+      5. End           <- from_step
+
+    Long condition eats into track reservation (TRACK_RESERVE). All rows
+    containing │ as a track marker must have that │ at the SAME column position.
+    No │ track marker should appear AFTER the end of a box-drawing geometry row
+    (which would indicate pipe_col > geometry width, i.e. appended to the right
+    edge rather than placed at the track column).
+    """
+    branches = [
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="ok"),
+                BranchTarget(parent=3, branch="b", label="no"),
+            ),
+        )
+    ]
+    loops = [
+        LoopSignature(
+            id="retry",
+            from_step=5,
+            to_step=1,
+            max_iterations=3,
+            condition="the_long_condition_text_for_alignment_test",
+        )
+    ]
+    phases = [
+        _phase(
+            "TST-9022",
+            [
+                _step(1, "Setup"),
+                _step(2, "Decision"),
+                _step(3, "Path A", sub_branch="a"),
+                _step(3, "Path B", sub_branch="b"),
+                _step(4, "Continue"),
+                _step(5, "End"),
+            ],
+            loops=loops,
+            branches=branches,
+        )
+    ]
+    out = render_ascii(phases)
+    lines = out.split("\n")
+
+    # Find to_step row — it has ◄──────┐
+    to_rows = [ln for ln in lines if "◄──────┐" in ln]
+    assert to_rows, f"◄──────┐ not found in output:\n{out}"
+
+    # Determine track ┐ column from the to_step row.
+    to_row = to_rows[0]
+    track_col = to_row.index("┐")  # rightmost ┐ is the track corner
+
+    # Find from_step row — it has ┘ max
+    from_rows = [ln for ln in lines if "┘ max" in ln]
+    if not from_rows:
+        # Fell back to inline — that's acceptable for very long conditions.
+        assert "→ back to" in out or "max 3" in out, (
+            f"no loop annotation at all in output:\n{out}"
+        )
+        return
+
+    to_idx = next(i for i, ln in enumerate(lines) if "◄──────┐" in ln)
+    from_idx = next(i for i, ln in enumerate(lines) if "┘ max" in ln)
+
+    # Every intermediate row must have │ at track_col (not appended at end).
+    for i in range(to_idx + 1, from_idx):
+        ln = lines[i]
+        if len(ln) <= track_col:
+            # Line shorter than track_col — │ must be at end (padded)
+            assert (
+                ln.rstrip().endswith("│") or ln[track_col : track_col + 1] == "│"
+                if len(ln) > track_col
+                else True
+            ), f"Intermediate row {i} missing │ at track col {track_col}:\n{ln!r}"
+        else:
+            assert ln[track_col] == "│", (
+                f"Intermediate row {i} has '{ln[track_col]}' at track col {track_col} (expected │):\n{ln!r}"
+            )

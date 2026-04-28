@@ -171,33 +171,16 @@ def _apply_loop_track(
             continue
 
         # Find step line indices (lines[0] is header, steps start at lines[1]).
-        # to_step: first occurrence is the step's text body row (correct for
-        #   ◄──────┐ placement).
-        # from_step: the ─────┘ suffix must land on a text body row, not a
-        #   box-drawing border.  When from_step appears on multiple rows (e.g.
-        #   it is a convergence step whose box occupies top/mid/bot rows), pick
-        #   the LAST occurrence whose underlying line is NOT pure box-drawing.
+        # Each step integer appears at most ONCE in step_indices (anchored to
+        # the body row only); first occurrence is the correct row for both
+        # to_step and from_step.
         to_line_idx = None
-        from_candidates: list[int] = []
+        from_line_idx = None
         for i, step_idx in enumerate(step_indices):
             if step_idx == to_step and to_line_idx is None:
-                to_line_idx = i + 1  # +1 for header line; first occurrence
-            if step_idx == from_step:
-                from_candidates.append(i + 1)  # +1 for header line
-
-        # Resolve from_line_idx: prefer the last candidate whose line is a
-        # text body row (not box-drawing geometry).
-        from_line_idx: int | None = None
-        if from_candidates:
-            from_line_idx = next(
-                (
-                    c
-                    for c in reversed(from_candidates)
-                    if c < len(result_lines)
-                    and not _is_box_drawing_line(result_lines[c])
-                ),
-                from_candidates[-1],
-            )
+                to_line_idx = i + 1  # +1 for header line
+            if step_idx == from_step and from_line_idx is None:
+                from_line_idx = i + 1  # +1 for header line
 
         if to_line_idx is None or from_line_idx is None:
             continue
@@ -209,11 +192,8 @@ def _apply_loop_track(
                 inner_width,
                 to_line_idx,
                 from_line_idx,
-                to_step,
-                from_step,
                 max_iter,
                 condition,
-                step_indices,
             )
 
         if not rendered_vertical:
@@ -235,11 +215,8 @@ def _render_vertical_track(
     inner_width: int,
     to_line_idx: int,
     from_line_idx: int,
-    to_step: int,
-    from_step: int,
     max_iter: object,
     condition: str,
-    step_indices: list[int],
 ) -> bool:
     """Mutate ``lines`` in place to draw a vertical loop track.
 
@@ -278,27 +255,22 @@ def _render_vertical_track(
         return False
 
     track_col = inner_width - reserve
+    pipe_col = track_col + corner_offset
 
     # to_step row: shrink base to track_col, pad, append the arrow-in marker.
     base = _shrink_for_track(lines[to_line_idx], track_col)
     lines[to_line_idx] = _pad_visual(base, track_col) + to_suffix
 
     # Intermediate rows: place `│` under the ┐ glyph on EVERY row between
-    # to_step and from_step.  For rows that are pure box-drawing geometry
-    # (branch borders, join rows, arrow rows) we pad to pipe_col and append │
-    # WITHOUT calling _shrink_for_track, which would truncate the geometry
-    # with "..." and mangle the visual output.  For text rows we shrink as
-    # usual so the prose content stays within the track column.
-    pipe_col = track_col + corner_offset
+    # to_step and from_step.  All rows (geometry and text) are handled
+    # uniformly: shrink to pipe_col then pad and stamp.  Branch geometry rows
+    # are shorter than pipe_col by construction (inner_width always exceeds
+    # branch primitive width; geometry rows get padded, not truncated).
     for i in range(to_line_idx + 1, from_line_idx):
         if i >= len(lines):
             break
-        if _is_box_drawing_line(lines[i]):
-            # Geometry row: pad only, never truncate.
-            lines[i] = _pad_visual(lines[i], pipe_col) + "│"
-        else:
-            mid = _shrink_for_track(lines[i], pipe_col)
-            lines[i] = _pad_visual(mid, pipe_col) + "│"
+        mid = _shrink_for_track(lines[i], pipe_col)
+        lines[i] = _pad_visual(mid, pipe_col) + "│"
 
     # from_step row: append the arrow-out marker.
     base = _shrink_for_track(lines[from_line_idx], track_col)
@@ -306,22 +278,6 @@ def _render_vertical_track(
     suffix = cond_from_suffix if use_condition else base_from_suffix
     lines[from_line_idx] = padded + suffix
     return True
-
-
-_BOX_DRAW_CHARS = set("┌┐└┘─┴┬┼│▼◄►")
-
-
-def _is_box_drawing_line(s: str) -> bool:
-    """Return True if ``s`` is composed entirely of box-drawing chars and spaces.
-
-    Used to detect rows that belong to branch geometry primitives (sibling box
-    borders, join rows, arrow rows) where calling _shrink_for_track would mangle
-    the geometry rather than safely truncating prose text.
-    """
-    stripped = s.strip()
-    if not stripped:
-        return False
-    return all(ch in _BOX_DRAW_CHARS or ch == " " for ch in stripped)
 
 
 def _shrink_for_track(line: str, limit: int) -> str:
@@ -456,42 +412,39 @@ def _build_phase_lines(
             )
             primitive_out = render_branch(primitive_input)
 
-            # Sibling integer index: used by loop-track to find the sibling rows.
-            # Append it once, pointing at the first primitive line (parent bottom
-            # border row) — close enough for the loop track's row lookup.
+            # Sibling integer index: used by loop-track to anchor to the sibling
+            # body row (the middle row of the first sibling's box).
+            # Only the body row gets sibling_int; all other primitive rows get -1.
             sibling_int = sib_steps[0]["index"]
+            # step_anchor_rows maps "3a" → row index of the middle (body) row
+            # within primitive_out.lines.  Use bsig.to[0] (first sibling in
+            # declared order) as the anchor; its key matches the primitive's
+            # rendering order.
+            first_target = bsig.to[0]
+            first_sibling_key = f"{first_target.parent}{first_target.branch}"
+            sibling_body_row_in_prim = primitive_out.step_anchor_rows.get(
+                first_sibling_key
+            )
 
-            for prim_line in primitive_out.lines:
-                lines.append(prim_line)
-                step_indices.append(sibling_int)
-
-            # Convergence step: append its integer index at the convergence row
-            # (primitive_out.convergence_anchor_row points at the top border of
-            # the convergence box; the text body is one row later). Record the
-            # convergence integer at the convergence-box top-border row so the
-            # loop track can find it.
+            # Convergence integer: body row is convergence_anchor_row + 1
+            # (anchor_row is the top border; +1 is the middle/text row).
+            conv_int: int | None = None
+            conv_body_row_in_prim: int | None = None
             if (
                 conv_step is not None
                 and primitive_out.convergence_anchor_row is not None
             ):
                 conv_int = conv_step["index"]
-                # Walk back from the end and re-stamp convergence rows with conv_int.
-                # The convergence block occupies the last 3 lines of primitive_out
-                # (top, middle, bottom borders) preceded by the join row and arrow.
-                # We identify the anchor row in the already-appended lines.
-                # lines[-1] is prim_out.lines[-1] (conv box bottom); work backward.
-                prim_len = len(primitive_out.lines)
-                # convergence_anchor_row in primitive is 0-based within primitive_out.lines.
-                # Map to lines[] offset: lines has header + parent + prim_len lines so far.
-                # First primitive line index in lines = len(lines) - prim_len.
-                prim_start_in_lines = len(lines) - prim_len
-                conv_line_in_lines = (
-                    prim_start_in_lines + primitive_out.convergence_anchor_row
-                )
-                # Overwrite step_indices entries from convergence_anchor_row onward
-                # with conv_int (top, middle, bottom of convergence box).
-                for ci in range(conv_line_in_lines, len(lines)):
-                    step_indices[ci] = conv_int
+                conv_body_row_in_prim = primitive_out.convergence_anchor_row + 1
+
+            for prim_idx, prim_line in enumerate(primitive_out.lines):
+                lines.append(prim_line)
+                if prim_idx == sibling_body_row_in_prim:
+                    step_indices.append(sibling_int)
+                elif conv_int is not None and prim_idx == conv_body_row_in_prim:
+                    step_indices.append(conv_int)
+                else:
+                    step_indices.append(-1)
         else:
             base = _build_step_base_text(phase_idx, step)
             lines.append(base)
