@@ -106,11 +106,11 @@ def discover_branch_groups(
             continue
         # Convergence: next plain step, unless it's another branch's parent.
         convergence_idx: int | None = None
-        siblings_set = {b.from_step for b in sorted_branches if b is not bsig}
+        other_branch_starts = {b.from_step for b in sorted_branches if b is not bsig}
         if (
             i < len(steps)
             and "sub_branch" not in steps[i]
-            and steps[i]["index"] not in siblings_set
+            and steps[i]["index"] not in other_branch_starts
         ):
             convergence_idx = i
         group = BranchGroup(
