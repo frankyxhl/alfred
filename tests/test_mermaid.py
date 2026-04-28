@@ -464,3 +464,86 @@ class TestCrossSopLoopOmission:
         result = render_mermaid(phases)
         count = result.count("cross-SOP loops omitted — Mermaid layout is ASCII-only")
         assert count == 1
+
+
+# ---------------------------------------------------------------------------
+# FXA-2227 Phase 7 — Sub-step node IDs
+# ---------------------------------------------------------------------------
+
+
+class TestSubStepNodeIds:
+    def test_mermaid_with_substeps(self):
+        """Sub-stepped SOP emits S1_3a, S1_3b, S1_3c node IDs."""
+        phases = [
+            _make_phase(
+                "COR-1500",
+                [
+                    {"index": 1, "text": "Plain first", "gate": False},
+                    {"index": 2, "text": "Plain second", "gate": False},
+                    {
+                        "index": 3,
+                        "text": "Sub-step alpha",
+                        "gate": False,
+                        "sub_branch": "a",
+                    },
+                    {
+                        "index": 3,
+                        "text": "Sub-step beta",
+                        "gate": False,
+                        "sub_branch": "b",
+                    },
+                    {
+                        "index": 3,
+                        "text": "Sub-step gamma",
+                        "gate": False,
+                        "sub_branch": "c",
+                    },
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # Plain step emits integer-only ID
+        assert "S1_2" in result
+
+        # Sub-stepped steps emit suffixed IDs
+        assert "S1_3a" in result
+        assert "S1_3b" in result
+        assert "S1_3c" in result
+
+        # Plain integer-only S1_3 must NOT appear as a node ID
+        import re as _re
+
+        plain_s1_3 = _re.search(r"\bS1_3(?![a-z])", result)
+        assert plain_s1_3 is None, f"Found bare S1_3 node ID in output:\n{result}"
+
+        # Forward edges must reference sub-step IDs
+        edge_lines = [ln for ln in result.split("\n") if "-->" in ln]
+        edge_text = "\n".join(edge_lines)
+        assert "S1_3a" in edge_text or "S1_3b" in edge_text or "S1_3c" in edge_text
+
+    def test_mermaid_legacy_unchanged(self):
+        """3-step linear SOP with no sub_branch keys renders S1_1, S1_2, S1_3 only."""
+        phases = [
+            _make_phase(
+                "COR-1500",
+                [
+                    {"index": 1, "text": "Write failing test", "gate": False},
+                    {"index": 2, "text": "Minimal impl", "gate": False},
+                    {"index": 3, "text": "Refactor", "gate": False},
+                ],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        # All three plain node IDs must appear
+        assert "S1_1" in result
+        assert "S1_2" in result
+        assert "S1_3" in result
+
+        # No sub-step suffixes should appear
+        import re as _re
+
+        assert not _re.search(r"S1_\d+[a-z]", result), (
+            f"Unexpected sub-step suffix in legacy output:\n{result}"
+        )

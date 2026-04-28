@@ -118,7 +118,8 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
             text: str = step["text"]
             gate: bool = step["gate"]
 
-            nid = _node_id(phase_idx, step_idx)
+            # Empty default keeps legacy plain steps byte-identical to pre-Phase-7.
+            nid = f"{_node_id(phase_idx, step_idx)}{step.get('sub_branch', '')}"
             label = _sanitize_label(f"{sop_id} {text}")
 
             # Choose shape: diamond for gates, rectangle for regular steps
