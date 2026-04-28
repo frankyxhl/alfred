@@ -83,6 +83,13 @@ def discover_branch_groups(
     groups: list[BranchGroup] = []
     consumed: set[int] = set()
     for bsig in sorted_branches:
+        # Reject branches whose declared `to` length is unsupported by the
+        # renderer primitive (`branch_geometry.render_branch` requires 2-4
+        # siblings). Validator currently allows any non-empty `to`, so we
+        # guard here. Catches duplicates that pass the collected-letters
+        # set-equality check but exceed the renderer's hard cap (Codex N6).
+        if not (2 <= len(bsig.to) <= 4):
+            continue
         from_step = bsig.from_step
         # Locate parent step (must be plain, not already consumed).
         parent_idx: int | None = None

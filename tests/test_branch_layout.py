@@ -256,6 +256,33 @@ def test_partial_sibling_coverage_rejected() -> None:
     assert discover_branch_groups(steps, [bsig]) == []
 
 
+def test_duplicate_target_ids_in_to_rejected() -> None:
+    """Branch with duplicate target IDs in `to` (e.g., (a, a, b, c, d) —
+    5 declared entries) is rejected by the declared-count guard, even
+    though only 4 unique letters {a,b,c,d} are present and would otherwise
+    pass the collected-letters set-equality check (Codex N6).
+    """
+    steps = [
+        _step(1),
+        _step(2),
+        _step(3, sub_branch="a"),
+        _step(3, sub_branch="b"),
+        _step(3, sub_branch="c"),
+        _step(3, sub_branch="d"),
+    ]
+    bsig = BranchSignature(
+        from_step=2,
+        to=(
+            BranchTarget(parent=3, branch="a", label="A1"),
+            BranchTarget(parent=3, branch="a", label="A2"),  # duplicate
+            BranchTarget(parent=3, branch="b", label="B"),
+            BranchTarget(parent=3, branch="c", label="C"),
+            BranchTarget(parent=3, branch="d", label="D"),
+        ),
+    )
+    assert discover_branch_groups(steps, [bsig]) == []
+
+
 def test_sibling_collection_constrained_to_declared_letters() -> None:
     """Discovery only consumes siblings whose ``sub_branch`` letter is
     declared in the active branch's ``to`` tuple.
