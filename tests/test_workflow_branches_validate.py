@@ -41,14 +41,31 @@ def _doc(yaml_branches: str, steps_section: str) -> str:
     )
 
 
-def test_renderer_readiness_gate_default_blocks() -> None:
-    """Default `_BRANCHES_RENDERER_READY = False` makes ANY Workflow branches:
-    SOP fail validation with a clear message instructing authors to wait for
-    CHG-2227.
+def test_renderer_readiness_gate_default_open() -> None:
+    """CHG-2227 Phase 8a flips `_BRANCHES_RENDERER_READY = True`; the gate is
+    now open by default so well-formed Workflow branches: SOPs pass validation.
     """
-    assert _BRANCHES_RENDERER_READY is False, (
-        "CHG-2226 ships with the gate CLOSED; CHG-2227 Phase 8a flips it open"
+    assert _BRANCHES_RENDERER_READY is True, (
+        "CHG-2227 Phase 8a must ship with the gate OPEN"
     )
+
+    body = _doc(
+        "[{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]",
+        "1. Setup\n2. Decision\n3a. A path\n3b. B path\n4. After\n",
+    )
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    errors = validate_branches(parsed, branches)
+    assert errors == []
+
+
+def test_renderer_readiness_gate_blocks_when_flag_false(monkeypatch) -> None:
+    """When `_BRANCHES_RENDERER_READY` is patched back to False the gate still
+    blocks validation with a clear message — keeps coverage of the blocking path.
+    """
+    import fx_alfred.core.workflow as _wf
+
+    monkeypatch.setattr(_wf, "_BRANCHES_RENDERER_READY", False)
 
     body = _doc(
         "[{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]",
@@ -170,22 +187,50 @@ def test_branches_valid_3way_passes_when_gate_open() -> None:
     assert errors == []
 
 
-def test_gate_fires_on_empty_field_authored() -> None:
-    """Per Codex PR #68 R2 review: ``Workflow branches: []`` (or ``null``)
-    must trigger the gate too.
+def test_empty_field_authored_passes_after_renderer_ready() -> None:
+    """With the gate open (CHG-2227 Phase 8a), ``Workflow branches: []`` no
+    longer triggers a gate error — the field is permitted.
 
-    Spec is "MUST NOT author this field until CHG-2227 lands" — authoring an
-    empty list still authors the field. Pre-fix, the gate only fired when
-    `parse_workflow_branches()` returned a non-empty list, so an SOP could
-    sneak past the gate by writing `Workflow branches: []`.
+    The gate-fires-on-empty behavior when the flag is False is retained in
+    ``test_gate_fires_on_empty_when_flag_false`` below.
     """
     body = _doc("[]", "1. A\n2. B\n3. C\n")
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
     assert branches == []  # parsed-empty
-    # Gate should still fire on field presence even though branches=[].
+    # Gate is open; no blocking errors.
+    errors = validate_branches(parsed, branches)
+    assert not any("renderer support is not yet shipped" in e.msg for e in errors)
+
+
+def test_gate_fires_on_empty_when_flag_false(monkeypatch) -> None:
+    """When `_BRANCHES_RENDERER_READY` is False, ``Workflow branches: []``
+    still triggers the gate (field-presence check, not list-emptiness check).
+    """
+    import fx_alfred.core.workflow as _wf
+
+    monkeypatch.setattr(_wf, "_BRANCHES_RENDERER_READY", False)
+
+    body = _doc("[]", "1. A\n2. B\n3. C\n")
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    assert branches == []
     errors = validate_branches(parsed, branches)
     assert any("renderer support is not yet shipped" in e.msg for e in errors)
+
+
+def test_branches_validates_after_renderer_ready() -> None:
+    """New test (CHG-2227 Phase 8a): load a branches_3way SOP shape, run
+    validate_branches, assert no errors now that the renderer is ready.
+    """
+    body = _doc(
+        "[{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}, {id: 3c, label: escalate}]}]",
+        "1. Setup\n2. Decision\n3a. Pass\n3b. Fail\n3c. Escalate\n4. Continue\n",
+    )
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    errors = validate_branches(parsed, branches)
+    assert errors == []
 
 
 def test_branches_legacy_loops_unaffected() -> None:

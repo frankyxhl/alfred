@@ -280,7 +280,7 @@ class BranchError:
 # commit, ``af validate`` rejects any SOP authoring ``Workflow branches:``
 # so production SOPs cannot land branchy declarations that misrender in
 # nested/flat/Mermaid output.
-_BRANCHES_RENDERER_READY = False
+_BRANCHES_RENDERER_READY = True
 
 
 def has_workflow_branches_field(parsed: ParsedDocument) -> bool:
