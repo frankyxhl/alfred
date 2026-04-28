@@ -158,3 +158,68 @@ def test_branchgroup_end_idx_dangling() -> None:
         branch_signature=_bsig(2, "a", "b"),
     )
     assert g.end_idx == 4
+
+
+def test_single_sibling_branch_rejected() -> None:
+    """Branch with only one declared sibling target → group not produced.
+
+    Codex review C5 (P1): the branch_geometry.render_branch primitive
+    requires n >= 2 siblings (raises ValueError on n=1). Validator
+    currently allows single-target ``to:`` so the discovery layer must
+    reject these to prevent renderer crashes on accepted inputs.
+    """
+    steps = [
+        _step(1),
+        _step(2),  # would-be parent
+        _step(3, sub_branch="a"),  # only one sibling
+        _step(4),
+    ]
+    bsig = BranchSignature(
+        from_step=2,
+        to=(BranchTarget(parent=3, branch="a", label="solo"),),
+    )
+    assert discover_branch_groups(steps, [bsig]) == []
+
+
+def test_sibling_collection_constrained_to_declared_letters() -> None:
+    """Discovery only consumes siblings whose ``sub_branch`` letter is
+    declared in the active branch's ``to`` tuple.
+
+    Codex review C6 (P2): if two branches share the same ``from_step``
+    (a shape parser doesn't reject), the first one would otherwise
+    absorb all siblings of both, producing a length-mismatch crash in
+    the renderer primitive. Constraining by declared letter prevents
+    cross-claiming.
+    """
+    # Branch A declares letters {a, b}. Branch B (same from_step)
+    # declares letters {c, d}. Steps list 3a, 3b, 3c, 3d in order.
+    steps = [
+        _step(1),
+        _step(2),  # parent (shared from_step)
+        _step(3, sub_branch="a"),
+        _step(3, sub_branch="b"),
+        _step(3, sub_branch="c"),
+        _step(3, sub_branch="d"),
+    ]
+    branch_a = BranchSignature(
+        from_step=2,
+        to=(
+            BranchTarget(parent=3, branch="a", label="A"),
+            BranchTarget(parent=3, branch="b", label="B"),
+        ),
+    )
+    branch_b = BranchSignature(
+        from_step=2,
+        to=(
+            BranchTarget(parent=3, branch="c", label="C"),
+            BranchTarget(parent=3, branch="d", label="D"),
+        ),
+    )
+    groups = discover_branch_groups(steps, [branch_a, branch_b])
+    # Branch A should claim 3a/3b only (not 3c/3d).
+    assert len(groups) >= 1
+    g_a = next(g for g in groups if g.branch_signature is branch_a)
+    assert g_a.sibling_indices == (2, 3), (
+        f"branch_a wrongly absorbed siblings beyond its declared letters: "
+        f"{g_a.sibling_indices}"
+    )

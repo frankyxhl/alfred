@@ -446,3 +446,158 @@ def test_nested_parent_annotation_adjacent_to_parent_row() -> None:
         f"parent annotation (row {ann_row}) rendered AFTER convergence "
         f"(row {converge_row}) — visually misordered\n{out}"
     )
+
+
+def test_nested_arrow_after_convergence_to_next_step() -> None:
+    """When a branch group converges and the SOP continues, a ▼ arrow
+    must connect the convergence box to the next step.
+
+    Codex review C1 (P1): without the fix, the branch-group `continue`
+    path skipped the inter-step arrow emission, leaving downstream steps
+    visually disconnected.
+    """
+    branches = [
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="ok"),
+                BranchTarget(parent=3, branch="b", label="no"),
+            ),
+        )
+    ]
+    phases = [
+        _phase(
+            "TST-9009",
+            [
+                _step(1, "Setup"),
+                _step(2, "Decision"),
+                _step(3, "Path A", sub_branch="a"),
+                _step(3, "Path B", sub_branch="b"),
+                _step(4, "Converge"),
+                _step(5, "AfterStep"),
+            ],
+            branches=branches,
+        )
+    ]
+    out = render_dag(phases)
+    lines = out.split("\n")
+    converge_row = next(i for i, line in enumerate(lines) if "Converge" in line)
+    after_row = next(i for i, line in enumerate(lines) if "AfterStep" in line)
+    # Between the two there must be at least one arrow line.
+    arrow_rows = [i for i in range(converge_row + 1, after_row) if "▼" in lines[i]]
+    assert arrow_rows, (
+        f"missing ▼ arrow between Converge (row {converge_row}) and "
+        f"AfterStep (row {after_row}):\n{out}"
+    )
+
+
+def test_nested_sibling_text_paired_by_branch_letter() -> None:
+    """Sibling body text must pair with BranchTarget by ``sub_branch``
+    letter, not by positional zip.
+
+    Codex review C2 (P2): when ``Workflow branches.to`` order differs
+    from the order of ``3a/3b/...`` lines, positional zip mis-pairs
+    labels with bodies. The renderer must look up by letter so author
+    intent is preserved regardless of authoring order.
+    """
+    # branches declares to: (a, b, c) but steps list 3c, 3a, 3b in that
+    # order. Without the fix, sibling_texts would be [c-body, a-body,
+    # b-body] paired with [a-target, b-target, c-target] → mis-paired.
+    branches = [
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="LBL-A"),
+                BranchTarget(parent=3, branch="b", label="LBL-B"),
+                BranchTarget(parent=3, branch="c", label="LBL-C"),
+            ),
+        )
+    ]
+    phases = [
+        _phase(
+            "TST-9010",
+            [
+                _step(1, "Setup"),
+                _step(2, "Decision"),
+                _step(3, "BodyC", sub_branch="c"),
+                _step(3, "BodyA", sub_branch="a"),
+                _step(3, "BodyB", sub_branch="b"),
+                _step(4, "End"),
+            ],
+            branches=branches,
+        )
+    ]
+    out = render_dag(phases)
+    lines = out.split("\n")
+    # Find the row that contains the labels (LBL-A LBL-B LBL-C).
+    label_row = next(i for i, line in enumerate(lines) if "LBL-A" in line)
+    # Find the sibling-body row(s) — any row containing one of the BODY-* texts.
+    body_row = next((i for i, line in enumerate(lines) if "BodyA" in line), None)
+    assert body_row is not None, f"sibling body text missing:\n{out}"
+    # On the label row, LBL-A must appear LEFT of LBL-B and LBL-B left of LBL-C.
+    label_line = lines[label_row]
+    assert (
+        label_line.index("LBL-A")
+        < label_line.index("LBL-B")
+        < label_line.index("LBL-C")
+    ), f"labels not in declared order:\n{label_line}"
+    # On the body row, BodyA must appear LEFT of BodyB left of BodyC.
+    # (positional pairing would have produced BODY-C, BODY-A, BODY-B in column order.)
+    body_line = lines[body_row]
+    assert "BodyA" in body_line and "BodyB" in body_line and "BodyC" in body_line, (
+        f"all three body texts must share the sibling-box row:\n{body_line}"
+    )
+    assert (
+        body_line.index("BodyA") < body_line.index("BodyB") < body_line.index("BodyC")
+    ), (
+        f"sibling bodies not aligned with declared label order — "
+        f"positional-zip mis-pairing bug:\nlabels: {label_line}\nbodies: {body_line}"
+    )
+
+
+def test_nested_sibling_step_loop_annotation_emitted() -> None:
+    """Intra-SOP loops attached to the sibling integer index must render.
+
+    Codex review C3 (P1): siblings share the parent-integer index
+    (e.g., 3 for 3a/3b). A loop with ``from_step=3`` and target back to
+    step 1 should produce an annotation. Without the fix, the branch
+    group only emits annotations for parent and convergence — never
+    siblings — silently dropping the loop.
+    """
+    branches = [
+        BranchSignature(
+            from_step=2,
+            to=(
+                BranchTarget(parent=3, branch="a", label="A"),
+                BranchTarget(parent=3, branch="b", label="B"),
+            ),
+        )
+    ]
+    loops = [
+        LoopSignature(
+            id="sib-retry",
+            from_step=3,  # sibling integer
+            to_step=1,
+            max_iterations=2,
+            condition="sibcond",
+        )
+    ]
+    phases = [
+        _phase(
+            "TST-9011",
+            [
+                _step(1, "Setup"),
+                _step(2, "Decision"),
+                _step(3, "Path A", sub_branch="a"),
+                _step(3, "Path B", sub_branch="b"),
+                _step(4, "End"),
+            ],
+            loops=loops,
+            branches=branches,
+        )
+    ]
+    out = render_dag(phases)
+    assert "sibcond" in out, (
+        f"sibling-integer loop annotation silently dropped — "
+        f"valid loop on siblings (from_step=3) not rendered:\n{out}"
+    )

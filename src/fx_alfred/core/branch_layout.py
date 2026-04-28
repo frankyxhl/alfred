@@ -92,17 +92,31 @@ def discover_branch_groups(
                 break
         if parent_idx is None:
             continue
-        # Walk forward: collect contiguous sub-step siblings.
+        # Walk forward: collect contiguous sub-step siblings whose
+        # ``sub_branch`` letter is declared in *this* branch's ``to`` tuple.
+        # Restricting by declared letter (not just "any sub-stepped step
+        # with the right integer") prevents two branches that share a
+        # ``from_step`` from cross-claiming each other's siblings — a shape
+        # the parser currently allows. Without this guard, the first
+        # branch absorbs all siblings and the primitive raises ValueError
+        # on length mismatch (Codex P2 review finding).
+        declared_letters = {bt.branch for bt in bsig.to}
         sibling_indices: list[int] = []
         i = parent_idx + 1
         while (
             i < len(steps)
             and steps[i].get("sub_branch") is not None
             and steps[i]["index"] == from_step + 1
+            and steps[i]["sub_branch"] in declared_letters
         ):
             sibling_indices.append(i)
             i += 1
-        if not sibling_indices:
+        # Reject branch groups with fewer than 2 siblings — the
+        # ``branch_geometry.render_branch`` primitive requires n>=2 and
+        # raises ValueError otherwise. The validator currently allows a
+        # single-target ``to:``, so guarding here prevents a renderer
+        # crash on accepted inputs (Codex P1 review finding).
+        if len(sibling_indices) < 2:
             continue
         # Convergence: next plain step, unless it's another branch's parent.
         convergence_idx: int | None = None

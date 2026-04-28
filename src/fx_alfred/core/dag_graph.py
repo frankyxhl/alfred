@@ -125,6 +125,7 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
     canvas_row_offset: int,
     pre_lines_count: int,
     parent_annotations: list[str] | None = None,
+    sibling_annotations: list[str] | None = None,
 ) -> list[str]:
     """Render a branch group inside the phase box.
 
@@ -171,7 +172,14 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
     # All fit within _STEP_BOX_WIDTH = 49 cells.
     sibling_box_width = 12 if n <= 3 else 10
 
-    sibling_texts = [s["text"] for s in sibling_steps]
+    # Pair sibling body text to BranchTarget by ``sub_branch`` letter,
+    # not by positional zip. Author may declare ``Workflow branches.to``
+    # in a different order than the ``3a/3b/...`` lines under ``## Steps``;
+    # validation does not enforce identical order. Without this lookup,
+    # mis-paired labels/targets produce wrong branch semantics in the
+    # rendered graph (Codex P2 review finding).
+    sibling_text_by_letter = {s["sub_branch"]: s["text"] for s in sibling_steps}
+    sibling_texts = [sibling_text_by_letter[bt.branch] for bt in branch_signature.to]
     primitive_input = BranchRenderInput(
         parent_step_text=parent_text,
         siblings=branch_signature.to,
@@ -209,6 +217,16 @@ def _render_branch_group(  # noqa: PLR0913 — coordinated branch+convergence re
             step_row_index[(phase_num, convergence_step["index"])] = (
                 canvas_row_offset + pre_lines_count + len(out_lines)
             )
+    # Sibling-step intra-SOP loop annotations: emit AFTER the sibling-box
+    # rows but BEFORE convergence join (or at end for dangling branches).
+    # Inserting before the join would corrupt the geometry, so we append
+    # after the whole primitive block — same precedence as parent
+    # annotations (adjacent-to-source-rows). See Codex P1 finding.
+    if sibling_annotations:
+        joined = " ; ".join(sibling_annotations)
+        ann = _truncate_visual(joined, _PHASE_INNER - 4)
+        ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
+        out_lines.append(f"│ {ann_padded} │")
     return out_lines
 
 
@@ -269,6 +287,15 @@ def _render_phase(
         # Branch group: render the whole group here, then advance past it.
         if s_idx in branch_groups:
             sib_steps, conv_step, bsig = branch_groups[s_idx]
+            # Sibling-step intra-SOP loop annotations: all siblings share
+            # the same integer index (== from_step + 1), so annotations
+            # registered on that integer apply to the sibling group as a
+            # whole. Pass them through the group renderer so they're
+            # emitted next to the sibling boxes (Codex P1 review finding —
+            # without this, valid loops on sibling indices are silently
+            # dropped in branchy SOPs).
+            sibling_int = sib_steps[0]["index"]
+            sibling_annotations = annotations.get(sibling_int, [])
             group_lines = _render_branch_group(
                 phase_num=phase_num,
                 parent_step=step,
@@ -279,6 +306,7 @@ def _render_phase(
                 canvas_row_offset=canvas_row_offset,
                 pre_lines_count=len(lines),
                 parent_annotations=annotations.get(step["index"], []),
+                sibling_annotations=sibling_annotations,
             )
             lines.extend(group_lines)
             # Convergence-step annotations sit after the convergence box
@@ -291,8 +319,19 @@ def _render_phase(
                     ann = _truncate_visual(joined, _PHASE_INNER - 4)
                     ann_padded = _pad_visual(ann, _PHASE_INNER - 2)
                     lines.append(f"│ {ann_padded} │")
-            # Primitive already provides arrows internally; no inter-step
-            # arrow needed here.
+            # If the SOP continues after this branch group, emit a ▼
+            # connector to the next step. Without this, branch -> converge
+            # -> next-step flows are visually disconnected (Codex P1 review
+            # finding). Compute "has next" by scanning for any later
+            # non-skipped, non-branch-group-parent step.
+            has_following_step = any(
+                (later not in skip_indices and later not in branch_groups)
+                or later in branch_groups
+                for later in range(s_idx + 1, step_count)
+                if later not in skip_indices
+            )
+            if has_following_step:
+                lines.append(_render_arrow_line(inside_phase=True))
             continue
         step_text = f"{phase_num}.{step['index']} {step['text']}"
         top, middle, bottom = _render_step_box(step_text)
