@@ -181,6 +181,58 @@ def test_single_sibling_branch_rejected() -> None:
     assert discover_branch_groups(steps, [bsig]) == []
 
 
+def test_five_sibling_branch_rejected() -> None:
+    """Branch with 5 declared ``to`` targets → group not produced (graceful skip).
+
+    Codex review N4 (P1): ``render_branch`` hard-fails on >4 siblings. The
+    discovery layer must reject 5+ to prevent renderer crashes on accepted
+    inputs (validator allows any non-empty ``to``).
+    """
+    steps = [
+        _step(1),
+        _step(2),  # would-be parent
+        _step(3, sub_branch="a"),
+        _step(3, sub_branch="b"),
+        _step(3, sub_branch="c"),
+        _step(3, sub_branch="d"),
+        _step(3, sub_branch="e"),
+        _step(4),
+    ]
+    bsig = _bsig(2, "a", "b", "c", "d", "e")
+    assert discover_branch_groups(steps, [bsig]) == []
+
+
+def test_skipped_branch_does_not_block_earlier_convergence() -> None:
+    """A malformed single-target branch (will be skipped) must not block an
+    earlier valid branch from converging at the same step.
+
+    Codex review N3 (P2): ``other_branch_starts`` was built from ALL
+    declarations including ones that will later be skipped (n<2 siblings).
+    A skipped ``from: 4`` declaration would prevent the earlier valid branch
+    from treating step 4 as its convergence, silently dropping the join.
+    The fix restricts ``other_branch_starts`` to branches with 2 <= len(to) <= 4.
+    """
+    # Branch A: valid 2-way, from_step=2, should converge at step 4 (idx 4).
+    # Branch B: malformed single-target, from_step=4, will be skipped by n<2 guard.
+    steps = [
+        _step(1),
+        _step(2),  # parent of branch A
+        _step(3, sub_branch="a"),
+        _step(3, sub_branch="b"),
+        _step(4),  # convergence of branch A; also from_step of (skipped) branch B
+    ]
+    branch_a = _bsig(2, "a", "b")
+    branch_b = BranchSignature(
+        from_step=4,
+        to=(BranchTarget(parent=5, branch="a", label="solo"),),
+    )
+    groups = discover_branch_groups(steps, [branch_a, branch_b])
+    assert len(groups) == 1, f"expected only branch A rendered, got {len(groups)}"
+    assert groups[0].convergence_idx == 4, (
+        f"branch A should converge at idx 4, got {groups[0].convergence_idx}"
+    )
+
+
 def test_sibling_collection_constrained_to_declared_letters() -> None:
     """Discovery only consumes siblings whose ``sub_branch`` letter is
     declared in the active branch's ``to`` tuple.

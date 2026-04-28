@@ -111,16 +111,23 @@ def discover_branch_groups(
         ):
             sibling_indices.append(i)
             i += 1
-        # Reject branch groups with fewer than 2 siblings — the
-        # ``branch_geometry.render_branch`` primitive requires n>=2 and
-        # raises ValueError otherwise. The validator currently allows a
-        # single-target ``to:``, so guarding here prevents a renderer
-        # crash on accepted inputs (Codex P1 review finding).
-        if len(sibling_indices) < 2:
+        # Reject branch groups with fewer than 2 or more than 4 siblings —
+        # ``branch_geometry.render_branch`` requires 2<=n<=4 and raises
+        # ValueError otherwise. The validator allows single-target ``to:``
+        # and any-length ``to:``, so guarding here prevents renderer crashes
+        # on accepted inputs (Codex P1/N4 review findings).
+        if not (2 <= len(sibling_indices) <= 4):
             continue
-        # Convergence: next plain step, unless it's another branch's parent.
+        # Convergence: next plain step, unless it's another *renderable*
+        # branch's parent. Restrict to branches with 2<=len(to)<=4 so that
+        # skipped (malformed/oversized) declarations don't ghost-block a
+        # valid earlier branch's convergence (Codex N3 review finding).
         convergence_idx: int | None = None
-        other_branch_starts = {b.from_step for b in sorted_branches if b is not bsig}
+        other_branch_starts = {
+            b.from_step
+            for b in sorted_branches
+            if b is not bsig and 2 <= len(b.to) <= 4
+        }
         if (
             i < len(steps)
             and "sub_branch" not in steps[i]
