@@ -75,6 +75,7 @@ Out of scope:
   - `duration_ms` — non-negative integer ≤ 86_400_000 (one day).
   - `parent_event` — optional event correlation id (string, same format as `session_id`).
   - `agent_name` — required when `agent: "other"`; free-form 1–64 chars to identify the unrecognized harness (e.g. `"qodo"`, `"continue"`). MUST be omitted otherwise.
+  - `summary_truncated` — boolean. MUST be `true` when `af log` truncated `summary` or trimmed `files` / `refs` to stay under the per-record line size cap. MUST be omitted otherwise (an absent field implies no truncation; emitting `false` is not allowed in v1).
 - **v1 event enum.**
   - `session.start`, `session.end` — agent session lifecycle.
   - `task.start`, `task.done`, `task.aborted` — coarse task boundaries (one user turn or one logical sub-task).
@@ -82,7 +83,7 @@ Out of scope:
   - `decision` — D-item decisions, PRP convergences, scope cuts.
   - `note` — free-form fallback when no other event applies.
 - **Rotation.** New file each calendar day in UTC. If a single file exceeds 8 MiB, split into `YYYY-MM-DD.partN.jsonl` (N starts at 1 and increments).
-- **Per-record line size cap.** Each JSONL line (including the trailing `\n`) MUST be ≤ 4096 bytes. This bound is required so that POSIX `O_APPEND` writes are atomic across processes (POSIX guarantees atomicity for writes ≤ `PIPE_BUF`, which is ≥ 4096 on every supported OS). `af log` truncates `summary` and trims `files` / `refs` from the end if needed to stay under the cap; the truncation flag `summary_truncated: true` is set when truncation occurs.
+- **Per-record line size cap.** Each JSONL line (including the trailing `\n`) MUST be ≤ 4096 bytes. This bound is required so that POSIX `O_APPEND` writes are atomic across processes (POSIX guarantees atomicity for writes ≤ `PIPE_BUF`, which is ≥ 4096 on every supported OS). `af log` truncates `summary` and trims `files` / `refs` from the end if needed to stay under the cap; when this happens the optional `summary_truncated: true` field (see Optional fields above) is emitted on that record so downstream readers can detect partial data.
 - **File permissions.** Log files are created with mode `0644`; the `logs/agent-activity/` directory is created with mode `0755`. Agents MUST NOT relax these permissions. (Activity logs are not secrets per the privacy constraints below; they are designed to be auditable by the user.)
 - **Default git policy.** Activity logs are per-machine artifacts and SHOULD be gitignored by default. `COR-1206` provides the exact `.gitignore` snippet. Projects MAY commit logs deliberately; that is a project-level choice and not the protocol default.
 - **Privacy & safety constraints.** Forbidden content in any field: API keys, OAuth tokens, full prompt text, full tool call arguments, raw file contents (file *paths* are fine), user PII, environment variable values. Agents are responsible for their own redaction; the validator does not detect secrets. `summary` ≤ 500 chars enforces concision.
@@ -143,7 +144,7 @@ af log-validate path/to/2026-05-02.jsonl     # validate a specific file
 Behavior:
 - **Default target** when `PATH` omitted: today's log file using the same layer resolution as `af log`.
 - **Path semantics:** if `PATH` is a file → validate that file. If `PATH` is a directory → validate every file matching `*.jsonl` and `*.partN.jsonl` recursively at depth 1.
-- **Per-line check:** required fields present, types correct, `agent` in v1 whitelist, `event` in v1 enum, `summary` length, `schema` literal match, `agent_name` present iff `agent == "other"`, line ≤ 4096 bytes.
+- **Per-line check:** required fields present, types correct, `agent` in v1 whitelist, `event` in v1 enum, `summary` length, `schema` literal match, `agent_name` present iff `agent == "other"`, `summary_truncated` (if present) is the literal boolean `true` and the record is at or near the 4096-byte cap, line ≤ 4096 bytes.
 - **Output:** one line per violation in the form `<path>:<lineno>: <field>: <reason>`. Quiet on success.
 - **Exit codes:** 0 = all valid, 1 = schema violations found, 2 = invalid CLI args, 4 = file/dir not readable.
 
@@ -154,7 +155,7 @@ This proposal is complete when:
 - `COR-1205-REF-Agent-Activity-Log-Format` exists in PKG with the v1 schema fully specified (fields, enum values, file format, rotation, line size cap, file permissions, gitignore policy, privacy constraints).
 - `COR-1206-SOP-Emit-Agent-Activity` exists in PKG with mandatory triggers, optional triggers, and the per-agent mapping table covering at least: `claude-code`, `copilot`, `cursor`, `aider`, plus `other` as escape hatch.
 - `af log` command writes a record that passes `af log-validate`, including: layer resolution per the 3-step rule, auto-fill of `ts`/`session_id`/`schema`, line size cap with `summary_truncated` flag, rotation handoff at 8 MiB, exit codes per spec.
-- `af log-validate` correctly reports schema violations on a synthetic invalid file covering at least: missing required field, wrong type, `agent` not in whitelist, `agent: "other"` without `agent_name`, line > 4096 bytes, malformed `schema` literal.
+- `af log-validate` correctly reports schema violations on a synthetic invalid file covering at least: missing required field, wrong type, `agent` not in whitelist, `agent: "other"` without `agent_name`, `summary_truncated: false` (must be omitted, not set to false in v1), line > 4096 bytes, malformed `schema` literal.
 - `COR-1200` (retrospective) gets a single additive bullet in step 1 directing the agent to read today's `logs/agent-activity/<today>.jsonl` before reconstructing actions. The 6-step protocol and outputs are otherwise unchanged.
 - At least **one reference implementation** ships in the same release: a Claude Code `Stop` hook script (committed under `hooks/` in this repo) that emits `task.done` via `af log ... || true` and passes `af log-validate` over a real session log.
 - No reverse dependency on FXA-2229 — this PRP must be independently implementable whether FXA-2229 is shipped or not.
@@ -229,6 +230,7 @@ The remaining items are CHG-stage implementation details, not design questions. 
 | 2026-05-01 | Initial version | Frank + Claude |
 | 2026-05-02 | Self-audit revision pre-strict-review: split out-of-scope vs acceptance contradictions (Claude Code reference hook now in-scope as the sole reference impl; COR-1200 augmentation explicitly an additive bullet, not a semantic change); add 4 KiB line size cap to make POSIX O_APPEND atomicity provable; add explicit layer resolution algorithm; rename `af validate-activity-log` → `af log-validate`; add file permissions, gitignore, fail-open hook policy; tighten `agent_version` / `session_id` / `agent: other` rules; move `session_id` and agent-whitelist-source decisions from OQ into ## Decisions; trim OQs from 4 → 2 with explicit CHG default fallbacks; extend strict review to 4 reviewers (Codex + Gemini + GLM + DeepSeek). | Frank + Claude |
 | 2026-05-02 | Strict 4-reviewer review (Codex+Gemini+GLM+DeepSeek) all PASS — Codex 9.9, GLM 9.9, Gemini 9.8, DeepSeek 9.8; OQ gate PASS for all four. 4/4 satellite advisories on L84 (long-term retention policy) and L85 (POSIX O_APPEND wording precision) to be addressed in the implementing CHG. Status: Draft → Approved. | Codex+Gemini+GLM+DeepSeek (strict review) |
+| 2026-05-02 | Address PR #78 review (Codex bot, P1 inline at L85): add `summary_truncated` (boolean) to v1 optional fields list, resolving the self-contradiction where the spec required emitting `summary_truncated: true` on truncation while also forbidding writers from emitting unlisted fields. Validator updated: `summary_truncated: false` is invalid in v1 (omit instead). Acceptance criteria for af log-validate extended to cover this case. | Frank + Claude (PR #78 review fix) |
 
 ---
 
