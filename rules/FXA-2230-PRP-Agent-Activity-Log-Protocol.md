@@ -40,8 +40,9 @@ In scope:
 - Define a versioned event schema (`alfred.activity/v1`) with required and optional fields.
 - Define the minimum event enum (`session.start`, `session.end`, `task.start`, `task.done`, `task.aborted`, `doc.created`, `doc.updated`, `decision`, `note`).
 - Define the per-agent implementation guidance: when to emit, how to map native lifecycle events, and the universal fallback (`af log`).
-- Add `af log` as a thin writer that any agent can shell out to.
-- Add `af log-validate` as a schema checker so protocol compliance is externally testable.
+- Add `af log` as a thin writer that any agent can shell out to (with built-in lazy archival of closed days).
+- Add `af log-validate` as a schema checker so protocol compliance is externally testable (transparently reads loose `.jsonl` and `archive.zip` entries).
+- Add `af log-archive` as an explicit archival command for ops/cron use.
 - Define privacy and size constraints (no secrets, no full prompts, summary length cap).
 
 Out of scope:
@@ -59,7 +60,7 @@ Out of scope:
 
 **`COR-1205-REF-Agent-Activity-Log-Format`** — the canonical data contract. Defines:
 
-- **Storage location.** `./logs/agent-activity/YYYY-MM-DD.jsonl` at PRJ layer; `~/.alfred/logs/agent-activity/YYYY-MM-DD.jsonl` at USR layer when no project context.
+- **Storage location.** `./rules/logs/YYYY-MM-DD.jsonl` at PRJ layer; `~/.alfred/logs/YYYY-MM-DD.jsonl` at USR layer when no project context. The `rules/logs/` subtree is **reserved**: `af` document scanners (`af list`, `af search`, `af status`, and any future scanner) MUST hard-skip it. Only `*.jsonl`, `*.partN.jsonl`, `archive.zip`, and `archive.zip.tmp` are allowed inside.
 - **Encoding.** UTF-8, LF line terminator, one JSON object per line, no embedded newlines, no trailing comma, append-only.
 - **Required fields per event:**
   - `ts` — RFC 3339 UTC timestamp (`2026-05-02T14:23:11Z`).
@@ -83,9 +84,10 @@ Out of scope:
   - `decision` — D-item decisions, PRP convergences, scope cuts.
   - `note` — free-form fallback when no other event applies.
 - **Rotation.** New file each calendar day in UTC. The 8 MiB per-file cap is enforced as a **pre-condition** check on every append: if writing the next record would push the active file past 8 MiB, `af log` rolls over to `YYYY-MM-DD.partN.jsonl` (N starts at 1 and increments) **before** writing. As a result, no file ever exceeds 8 MiB. (A purely post-condition check would let a file grow past the cap whenever the last record straddles the boundary; that is forbidden.)
+- **Archival.** All closed days (any `YYYY-MM-DD.jsonl` or `YYYY-MM-DD.partN.jsonl` whose date is < today UTC) are folded into a **single `archive.zip` per log directory**, so the directory holds at most today's loose files plus `archive.zip`. The current day's file MUST stay loose because zip does not support append-atomic writes — emitting directly into a zip would force file-locking and defeat the 4 KiB / `O_APPEND` multi-process atomicity guarantee. Archival is performed by `af log` lazily (on the first invocation that detects ≥ 1 closed-day raw file) or on demand via `af log-archive`. **Procedure (atomic):** build `archive.zip.tmp` containing the union of the existing archive's entries plus the closed-day files; `os.replace(archive.zip.tmp, archive.zip)`; `unlink` the closed-day raw files. A reader that finds an `archive.zip.tmp` may safely delete it (it represents an interrupted archival; the existing `archive.zip`, if any, is still authoritative). Compression typically reduces 30 days of logs by 7–10× (raw 30–50 MiB → zip 4–7 MiB).
 - **Per-record line size cap.** Each JSONL line (including the trailing `\n`) MUST be ≤ 4096 bytes. This bound is required so that POSIX `O_APPEND` writes are atomic across processes (POSIX guarantees atomicity for writes ≤ `PIPE_BUF`, which is ≥ 4096 on every supported OS). `af log` truncates `summary` and trims `files` / `refs` from the end if needed to stay under the cap; when this happens the optional `summary_truncated: true` field (see Optional fields above) is emitted on that record so downstream readers can detect partial data.
 - **File permissions.** Log files are created with mode `0644`; the `logs/agent-activity/` directory is created with mode `0755`. Agents MUST NOT relax these permissions. (Activity logs are not secrets per the privacy constraints below; they are designed to be auditable by the user.)
-- **Default git policy.** Activity logs are per-machine artifacts and SHOULD be gitignored by default. `COR-1206` provides the exact `.gitignore` snippet. Projects MAY commit logs deliberately; that is a project-level choice and not the protocol default.
+- **Default git policy.** Activity logs are per-machine artifacts and SHOULD be gitignored by default. `COR-1206` provides the exact `.gitignore` snippet (a single line: `rules/logs/`). Projects MAY commit logs deliberately; that is a project-level choice and not the protocol default.
 - **Privacy & safety constraints.** Forbidden content in any field: API keys, OAuth tokens, full prompt text, full tool call arguments, raw file contents (file *paths* are fine), user PII, environment variable values. Agents are responsible for their own redaction; the validator does not detect secrets. `summary` ≤ 500 chars enforces concision.
 - **Versioning.** Schema version is fixed in `schema` field. Breaking changes ship as `alfred.activity/v2` and require a new PRP. v1 readers MUST ignore unknown optional fields they encounter (forward compatibility); v1 writers MUST NOT emit fields not listed in v1.
 
@@ -123,9 +125,9 @@ af log "FXA-2230 PRP draft created" --event task.done --refs FXA-2230 --files ru
 
 Behavior:
 - **Layer resolution** (deterministic, in order):
-  1. If `--root <DIR>` is given → write to `<DIR>/logs/agent-activity/<YYYY-MM-DD>.jsonl`.
-  2. Else if cwd is inside a recognized project (`./rules/` exists at cwd or any ancestor) → write to `<project-root>/logs/agent-activity/<YYYY-MM-DD>.jsonl`.
-  3. Else → write to `~/.alfred/logs/agent-activity/<YYYY-MM-DD>.jsonl`.
+  1. If `--root <DIR>` is given → write to `<DIR>/rules/logs/<YYYY-MM-DD>.jsonl`.
+  2. Else if cwd is inside a recognized project (`./rules/` exists at cwd or any ancestor) → write to `<project-root>/rules/logs/<YYYY-MM-DD>.jsonl`.
+  3. Else → write to `~/.alfred/logs/<YYYY-MM-DD>.jsonl`.
 - **Auto-fills** `ts` (current UTC), `schema` (literal), `session_id`, and `agent_version` when those flags / env vars are not provided. Resolution rules:
   - `session_id` — read from `$ALFRED_SESSION_ID` if set; otherwise generate a UUIDv4.
   - `agent_version` — read from `$ALFRED_AGENT_VERSION` if set; otherwise fall back to the literal sentinel `"unknown"`. Hook scripts SHOULD export `$ALFRED_AGENT_VERSION` (or pass `--agent-version`) so this fallback is rare; the sentinel exists so that fail-open hooks (`af log ... || true`) cannot silently lose events when the caller forgets the flag.
@@ -133,6 +135,7 @@ Behavior:
 - **Validates** the resulting record against the v1 schema before writing; rejects with exit code 3 (validation error) on failure, printing the failing field and rule.
 - **Atomic append** using `open(O_APPEND | O_CREAT, 0o644)` followed by a single `write()` of one line ≤ 4096 bytes. No read-modify-write. No locking required on POSIX given the size cap.
 - **Rotation handoff.** Before each append, `af log` checks `current_file_size + len(new_record_line) > 8 MiB`. If so, it opens `<YYYY-MM-DD>.partN.jsonl` (N = smallest unused integer ≥ 1) and writes the new record there instead. This is a strict pre-condition check — no file is ever permitted to exceed 8 MiB, even by a single byte.
+- **Lazy archival on startup.** Before the first append in any invocation, `af log` scans the resolved log directory for any closed-day raw file (`YYYY-MM-DD.jsonl` or `YYYY-MM-DD.partN.jsonl` with date < today UTC). If found, it performs the atomic archival into `archive.zip` (see §Archival above) **before** writing today's record. This keeps the directory clean without requiring a daily cron. If archival fails (filesystem error, corrupt existing archive), `af log` logs a warning to stderr and proceeds with today's append — observability MUST NOT block emit.
 - **Failure mode.** `af log` MUST NOT block or error a calling agent's user-visible operation. Hook scripts SHOULD invoke it with `af log ... || true` so an emit failure cannot cascade into a session break. `af log` itself returns non-zero on failure for diagnostic visibility.
 - **Exit codes.** 0 = written, 2 = invalid CLI args, 3 = schema validation error, 4 = filesystem error.
 
@@ -140,27 +143,44 @@ Behavior:
 
 ```
 af log-validate                              # validate today's PRJ log
-af log-validate ./logs/agent-activity/       # validate every *.jsonl in directory
+af log-validate ./rules/logs/                # validate every loose file + every entry inside archive.zip
 af log-validate path/to/2026-05-02.jsonl     # validate a specific file
+af log-validate ./rules/logs/archive.zip     # validate every entry inside the zip
 ```
 
 Behavior:
 - **Default target** when `PATH` omitted: today's log file using the same layer resolution as `af log`.
-- **Path semantics:** if `PATH` is a file → validate that file. If `PATH` is a directory → validate every file matching `*.jsonl` and `*.partN.jsonl` recursively at depth 1.
+- **Path semantics:** if `PATH` is a `.jsonl` file → validate that file. If `PATH` ends in `.zip` → validate every member inside as a JSONL file. If `PATH` is a directory → validate every loose `*.jsonl` / `*.partN.jsonl` at depth 1 **and** every member inside `archive.zip` if present (the directory + zip view is unioned). The zip path inside violations is reported as `<dir>/archive.zip!<member>:<lineno>:` so callers can disambiguate.
 - **Per-line check:** required fields present, types correct, `agent` in v1 whitelist, `event` in v1 enum, `summary` length, `schema` literal match, `agent_name` present iff `agent == "other"`, `summary_truncated` (if present) is the literal boolean `true` (the field MUST NOT be set to `false` in v1; absence implies no truncation regardless of the final record size), line ≤ 4096 bytes.
 - **Output:** one line per violation in the form `<path>:<lineno>: <field>: <reason>`. Quiet on success.
-- **Exit codes:** 0 = all valid, 1 = schema violations found, 2 = invalid CLI args, 4 = file/dir not readable.
+- **Exit codes:** 0 = all valid, 1 = schema violations found, 2 = invalid CLI args, 4 = file/dir/zip not readable, 5 = corrupt zip.
+
+**`af log-archive [PATH]`** — archive command. Atomically folds all closed-day `*.jsonl` and `*.partN.jsonl` files in the target directory into the directory's `archive.zip`, then deletes the raw closed-day files. The current day's file is never touched.
+
+```
+af log-archive                               # archive today's PRJ log directory
+af log-archive ./rules/logs/                 # explicit path
+```
+
+Behavior:
+- **Layer resolution**: same as `af log`. The default target is the directory, not a file.
+- **Per-directory atomicity**: build `archive.zip.tmp` containing the union of the existing archive's entries plus all closed-day raw files; `os.replace(archive.zip.tmp, archive.zip)`; `unlink` the raw files. No partial states are observable to readers.
+- **Idempotent**: safe to invoke when there is nothing to archive (exit 0, no output).
+- **Tmpfile cleanup**: if invoked while a stale `archive.zip.tmp` exists from a prior interrupted run, that tmpfile is unlinked first (the existing `archive.zip` is authoritative).
+- **Exit codes:** 0 = archived (or nothing to do), 2 = invalid CLI args, 4 = filesystem error, 5 = corrupt existing archive (refuses to overwrite without `--force`).
 
 ### Acceptance Criteria
 
 This proposal is complete when:
 
-- `COR-1205-REF-Agent-Activity-Log-Format` exists in PKG with the v1 schema fully specified (fields, enum values, file format, rotation, line size cap, file permissions, gitignore policy, privacy constraints).
-- `COR-1206-SOP-Emit-Agent-Activity` exists in PKG with mandatory triggers, optional triggers, and the per-agent mapping table covering at least: `claude-code`, `copilot`, `cursor`, `aider`, plus `other` as escape hatch.
-- `af log` command writes a record that passes `af log-validate`, including: layer resolution per the 3-step rule, auto-fill of `ts`/`session_id`/`schema`, line size cap with `summary_truncated` flag, rotation handoff at 8 MiB, exit codes per spec.
-- `af log-validate` correctly reports schema violations on a synthetic invalid file covering at least: missing required field, wrong type, `agent` not in whitelist, `agent: "other"` without `agent_name`, `summary_truncated: false` (must be omitted, not set to false in v1), line > 4096 bytes, malformed `schema` literal.
-- `COR-1200` (retrospective) gets a single additive bullet in step 1 directing the agent to read today's `logs/agent-activity/<today>.jsonl` before reconstructing actions. The 6-step protocol and outputs are otherwise unchanged.
+- `COR-1205-REF-Agent-Activity-Log-Format` exists in PKG with the v1 schema fully specified (fields, enum values, file format, rotation, line size cap, archival policy, file permissions, gitignore policy, privacy constraints, scanner-skip rule for `rules/logs/`).
+- `COR-1206-SOP-Emit-Agent-Activity` exists in PKG with mandatory triggers, optional triggers, the per-agent mapping table covering at least `claude-code`, `copilot`, `cursor`, `aider`, plus `other` as escape hatch, **and** the explicit `.gitignore` snippet (`rules/logs/`) and the scanner-skip enforcement rule.
+- `af log` command writes a record that passes `af log-validate`, including: layer resolution per the 3-step rule, auto-fill of `ts`/`session_id`/`schema`/`agent_version`, line size cap with `summary_truncated` flag, rotation handoff at 8 MiB pre-condition, **lazy archival of closed days into `archive.zip` on startup**, and exit codes per spec.
+- `af log-validate` correctly reports schema violations on a synthetic invalid file covering at least: missing required field, wrong type, `agent` not in whitelist, `agent: "other"` without `agent_name`, `summary_truncated: false` (must be omitted, not set to false in v1), line > 4096 bytes, malformed `schema` literal. The validator transparently reads both loose `*.jsonl` files and entries inside `archive.zip` when given a directory or a `.zip` path; violations inside the zip are reported with `<dir>/archive.zip!<member>:<lineno>:` notation.
+- `af log-archive` performs the atomic archival (build `archive.zip.tmp`, `os.replace`, unlink raw closed-day files) and is interruptible-safe (a stray `archive.zip.tmp` does not corrupt the authoritative `archive.zip`).
+- `COR-1200` (retrospective) gets a single additive bullet in step 1 directing the agent to read today's `./rules/logs/<today>.jsonl` (and `archive.zip` if relevant) before reconstructing actions. The 6-step protocol and outputs are otherwise unchanged.
 - At least **one reference implementation** ships in the same release: a Claude Code `Stop` hook script (committed under `hooks/` in this repo) that emits `task.done` via `af log ... || true` and passes `af log-validate` over a real session log.
+- `af` document scanners (`af list`, `af search`, `af status`) verifiably **skip** `rules/logs/`: a regression test asserts that placing `rules/logs/2026-05-02.jsonl` does not affect the output of any scanner-based command.
 - No reverse dependency on FXA-2229 — this PRP must be independently implementable whether FXA-2229 is shipped or not.
 
 ---
@@ -197,6 +217,14 @@ The v1 agent whitelist (`claude-code`, `copilot`, `cursor`, `cline`, `aider`, `c
 
 When `agent` is `"other"`, the optional field `agent_name` becomes required and identifies the unrecognized harness (e.g. `"qodo"`). **Why:** prevents the `"other"` value from silently absorbing all unrecognized writers and erasing the cost signal that the whitelist needs an addition. A spike in `agent: "other"` log lines with the same `agent_name` is the explicit trigger for a follow-on whitelist PRP.
 
+### Storage location: `rules/logs/` with hard scanner-skip rule
+
+Activity logs live under `./rules/logs/` rather than the originally proposed `./logs/agent-activity/` or alternatives like `.alfred/logs/`. **Why:** co-locates with Alfred state so users have one place to look, and avoids cluttering the project root with another top-level directory. **Cost:** `rules/` is the `af` document scanner's working directory; today's scanner happens to ignore non-`*.md` files, but that is implementation behavior, not a contract. To prevent future scanner improvements (e.g. "warn on unknown files in rules/") from interacting badly with logs, `COR-1206` mandates that all `af` scanners (`list`, `search`, `status`, future `validate`) MUST hard-skip the `rules/logs/` subtree — the directory is reserved exclusively for `*.jsonl`, `*.partN.jsonl`, `archive.zip`, and `archive.zip.tmp`. A regression test in the implementing CHG asserts this skip behavior.
+
+### Hybrid storage: today raw, closed days zipped
+
+Today's file is raw `.jsonl` (POSIX `O_APPEND` provides per-write atomicity for ≤ 4096-byte writes on regular files via the kernel inode lock; `PIPE_BUF` ≥ 4096 motivates the line-size cap as the conservative upper bound). Closed days are folded into a single `archive.zip` per directory. **Why:** zip does not support append-atomic writes — directly emitting into a zip would force file-locking and defeat the multi-process atomicity guarantee that motivated the 4 KiB line cap (and that Codex bot R3 review caught when the rotation check was post-condition rather than pre-condition). The hybrid keeps the hot path lock-free while compressing cold data 7–10× to control disk growth. `af log-validate` and consumer code transparently read both forms; the implementing CHG provides reader helpers that abstract the union.
+
 ### `af log` is fail-open at the hook boundary
 
 `af log` exits non-zero on validation or filesystem errors, but per-agent hook scripts MUST invoke it with `af log ... || true` so a log emit failure cannot break the user's session. **Why:** observability is valuable, but not so valuable that we let it take down a coding session. Hooks are advisory; the fallback is graceful degradation, not failure.
@@ -212,8 +240,9 @@ Implementation phases (detailed decomposition belongs in the CHG):
 - Phase 0 — PRP cleanup
 - Phase 1 — Documents (`COR-1205` REF, `COR-1206` SOP, update to `COR-1200` retrospective consuming the log)
 - Phase 2 — `af log` command
-- Phase 3 — `af log-validate` command (renamed from earlier draft `af validate-activity-log`)
-- Phase 4 — Reference Claude Code `Stop` hook + tests + integration
+- Phase 3 — `af log-validate` command (renamed from earlier draft `af validate-activity-log`); transparently reads loose `.jsonl` and entries inside `archive.zip`
+- Phase 4 — `af log-archive` command + scanner-skip enforcement test
+- Phase 5 — Reference Claude Code `Stop` hook + integration test + v1.9.0 release
 
 ---
 
@@ -236,6 +265,7 @@ The remaining items are CHG-stage implementation details, not design questions. 
 | 2026-05-02 | Address PR #78 review (Codex bot, P1 inline at L85): add `summary_truncated` (boolean) to v1 optional fields list, resolving the self-contradiction where the spec required emitting `summary_truncated: true` on truncation while also forbidding writers from emitting unlisted fields. Validator updated: `summary_truncated: false` is invalid in v1 (omit instead). Acceptance criteria for af log-validate extended to cover this case. | Frank + Claude (PR #78 review fix) |
 | 2026-05-02 | Address PR #78 R2 Codex review (2 blocking comments on commit 68e0011): (1) [P1 L147] Drop "at or near 4096-byte cap" qualifier from `summary_truncated` validator rule — when truncation is achieved by trimming `files`/`refs` rather than `summary`, the final record can sit well below the cap, and the qualifier would create false negatives. Validator now just checks the field is the literal boolean `true` if present (`false` still forbidden). (2) [P2 L130] `agent_version` is required but `af log` did not auto-fill it — combined with the fail-open hook contract (`af log ... \|\| true`), a hook that forgot `--agent-version` would silently drop every event. `af log` now reads `$ALFRED_AGENT_VERSION` (mirroring the existing `session_id` pattern) and falls back to the literal sentinel `"unknown"` when neither is supplied. Decision section updated, required-field constraint updated to permit the sentinel. | Frank + Claude (PR #78 R2 fix) |
 | 2026-05-02 | Address PR #78 R3 Codex review (1 blocking comment on commit 009edbd): [P2→Blocking L135] Rotation threshold was a post-condition check ("already exceeds 8 MiB"), letting any record that straddles the boundary push the file past the cap. Changed to a strict pre-condition check on every append: if `current_file_size + new_record_line_len > 8 MiB`, rollover to next `.partN.jsonl` BEFORE writing. The cap is now an absolute upper bound (no file ever exceeds 8 MiB by even one byte). Both the COR-1205 rotation rule (L84) and the `af log` rotation handoff behavior (L132/L135) updated together so the contract is consistent. | Frank + Claude (PR #78 R3 fix) |
+| 2026-05-02 | Amendment (in-place spec change, single PR, no version bump — schema literal stays `alfred.activity/v1`): (a) Storage location moved from `./logs/agent-activity/` to `./rules/logs/` per user direction; `COR-1206` mandates `af` document scanners hard-skip the `rules/logs/` subtree (regression test required in CHG). (b) Add hybrid archival: today's file stays raw `.jsonl` (POSIX append-atomicity preserved); closed days are atomically rolled into a single per-directory `archive.zip` via temp-file + os.replace + unlink. (c) Add `af log-archive` CLI surface and lazy archival on `af log` startup. (d) `af log-validate` extended to transparently read both loose `.jsonl` files and entries inside `archive.zip`. (e) Acceptance criteria + Decisions sections updated. (f) Phase decomposition extended from 4 → 5 (archive command + scanner-skip test as Phase 4, reference hook + release as Phase 5). | Frank + Claude (in-place amendment, route A) |
 
 ---
 
