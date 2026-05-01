@@ -138,6 +138,7 @@
 | 2226 | CHG | Implement Branching ASCII Data Layer |
 | 2227 | CHG | Implement Branching ASCII Presentation Layer |
 | 2228 | SOP | CHG 2227 Remaining Work — Phases 8b, 9, 10 |
+| 2229 | PRP | Layered SOP Memory Model |
 
 ---
 
