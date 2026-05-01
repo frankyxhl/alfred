@@ -64,7 +64,7 @@ Out of scope:
 - **Required fields per event:**
   - `ts` — RFC 3339 UTC timestamp (`2026-05-02T14:23:11Z`).
   - `agent` — short identifier from a v1 whitelist (`claude-code`, `copilot`, `cursor`, `cline`, `aider`, `codex-cli`, `gemini-cli`, `other`). The whitelist is hardcoded as a constant inside the validator (see Decisions). Adding a new entry requires a follow-on PRP that bumps the constant.
-  - `agent_version` — agent's own version string. Constraints: 1–64 ASCII characters, no whitespace, no newlines. Not otherwise validated for semver shape.
+  - `agent_version` — agent's own version string. Constraints: 1–64 ASCII characters, no whitespace, no newlines. Not otherwise validated for semver shape. Auto-filled by `af log` when neither `--agent-version` nor `$ALFRED_AGENT_VERSION` is supplied — see Decisions and `af log` behavior. The literal sentinel `"unknown"` is permitted but indicates the caller did not declare a version; hook scripts SHOULD export `$ALFRED_AGENT_VERSION` to avoid this.
   - `session_id` — string, 1–128 chars, no whitespace. Provided by the agent if available; auto-generated as UUIDv4 by `af log` when absent (see Decisions).
   - `event` — one of the v1 event enum values.
   - `summary` — UTF-8 string, 1–500 characters, no newlines, no NUL bytes.
@@ -126,7 +126,10 @@ Behavior:
   1. If `--root <DIR>` is given → write to `<DIR>/logs/agent-activity/<YYYY-MM-DD>.jsonl`.
   2. Else if cwd is inside a recognized project (`./rules/` exists at cwd or any ancestor) → write to `<project-root>/logs/agent-activity/<YYYY-MM-DD>.jsonl`.
   3. Else → write to `~/.alfred/logs/agent-activity/<YYYY-MM-DD>.jsonl`.
-- **Auto-fills** `ts` (current UTC), `schema` (literal), and `session_id` (UUIDv4) when those flags / env vars are not provided. Reads `$ALFRED_SESSION_ID` if set, otherwise generates.
+- **Auto-fills** `ts` (current UTC), `schema` (literal), `session_id`, and `agent_version` when those flags / env vars are not provided. Resolution rules:
+  - `session_id` — read from `$ALFRED_SESSION_ID` if set; otherwise generate a UUIDv4.
+  - `agent_version` — read from `$ALFRED_AGENT_VERSION` if set; otherwise fall back to the literal sentinel `"unknown"`. Hook scripts SHOULD export `$ALFRED_AGENT_VERSION` (or pass `--agent-version`) so this fallback is rare; the sentinel exists so that fail-open hooks (`af log ... || true`) cannot silently lose events when the caller forgets the flag.
+  - All other required fields (`agent`, `event`, `summary`) MUST be supplied by the caller; their absence is a usage error, not a fail-open scenario.
 - **Validates** the resulting record against the v1 schema before writing; rejects with exit code 3 (validation error) on failure, printing the failing field and rule.
 - **Atomic append** using `open(O_APPEND | O_CREAT, 0o644)` followed by a single `write()` of one line ≤ 4096 bytes. No read-modify-write. No locking required on POSIX given the size cap.
 - **Rotation handoff.** If today's file already exceeds 8 MiB at append time, `af log` opens `<YYYY-MM-DD>.partN.jsonl` where N is the next integer (smallest unused).
@@ -144,7 +147,7 @@ af log-validate path/to/2026-05-02.jsonl     # validate a specific file
 Behavior:
 - **Default target** when `PATH` omitted: today's log file using the same layer resolution as `af log`.
 - **Path semantics:** if `PATH` is a file → validate that file. If `PATH` is a directory → validate every file matching `*.jsonl` and `*.partN.jsonl` recursively at depth 1.
-- **Per-line check:** required fields present, types correct, `agent` in v1 whitelist, `event` in v1 enum, `summary` length, `schema` literal match, `agent_name` present iff `agent == "other"`, `summary_truncated` (if present) is the literal boolean `true` and the record is at or near the 4096-byte cap, line ≤ 4096 bytes.
+- **Per-line check:** required fields present, types correct, `agent` in v1 whitelist, `event` in v1 enum, `summary` length, `schema` literal match, `agent_name` present iff `agent == "other"`, `summary_truncated` (if present) is the literal boolean `true` (the field MUST NOT be set to `false` in v1; absence implies no truncation regardless of the final record size), line ≤ 4096 bytes.
 - **Output:** one line per violation in the form `<path>:<lineno>: <field>: <reason>`. Quiet on success.
 - **Exit codes:** 0 = all valid, 1 = schema violations found, 2 = invalid CLI args, 4 = file/dir not readable.
 
@@ -182,9 +185,9 @@ Format contract (`COR-1205`, REF) is separated from implementation guidance (`CO
 
 `schema` field is a literal string match (`"alfred.activity/v1"`), not a semver range. v2 ships under a different literal. v1 readers MUST ignore unknown optional fields (forward compat); breaking changes get a new version. **Why:** JSONL logs are append-only and may live for years; loose versioning leads to silent corruption.
 
-### `session_id`: agent-provided when available, UUIDv4 fallback
+### `session_id` and `agent_version`: agent-provided when available, sentinel fallback
 
-`af log` reads `$ALFRED_SESSION_ID` (set by the calling hook) and uses it as `session_id` when present. If absent, `af log` generates a UUIDv4 and emits it. **Why:** preserves cross-tool correlation when the harness exposes a stable session id (Claude Code, Cursor); does not break agents that do not. The emitted id is always written to the log so downstream readers can group records by session even when generation happened on the writer side.
+`af log` reads `$ALFRED_SESSION_ID` (set by the calling hook) and uses it as `session_id` when present; if absent it generates a UUIDv4. `af log` reads `$ALFRED_AGENT_VERSION` and uses it as `agent_version` when present; if absent it falls back to the literal sentinel `"unknown"`. **Why:** preserves cross-tool correlation when the harness exposes a stable session id, and keeps `agent_version` a required (always-present) field for downstream readers without breaking the fail-open contract — without sentinel fallback, a caller that forgot `--agent-version` plus a `af log ... || true` hook would silently lose every event for that session. The sentinel is preferable to silent loss because it produces a visible signal ("this caller didn't declare a version") that downstream tooling can warn on.
 
 ### Agent whitelist lives in code, not in a separate YAML
 
@@ -231,6 +234,7 @@ The remaining items are CHG-stage implementation details, not design questions. 
 | 2026-05-02 | Self-audit revision pre-strict-review: split out-of-scope vs acceptance contradictions (Claude Code reference hook now in-scope as the sole reference impl; COR-1200 augmentation explicitly an additive bullet, not a semantic change); add 4 KiB line size cap to make POSIX O_APPEND atomicity provable; add explicit layer resolution algorithm; rename `af validate-activity-log` → `af log-validate`; add file permissions, gitignore, fail-open hook policy; tighten `agent_version` / `session_id` / `agent: other` rules; move `session_id` and agent-whitelist-source decisions from OQ into ## Decisions; trim OQs from 4 → 2 with explicit CHG default fallbacks; extend strict review to 4 reviewers (Codex + Gemini + GLM + DeepSeek). | Frank + Claude |
 | 2026-05-02 | Strict 4-reviewer review (Codex+Gemini+GLM+DeepSeek) all PASS — Codex 9.9, GLM 9.9, Gemini 9.8, DeepSeek 9.8; OQ gate PASS for all four. 4/4 satellite advisories on L84 (long-term retention policy) and L85 (POSIX O_APPEND wording precision) to be addressed in the implementing CHG. Status: Draft → Approved. | Codex+Gemini+GLM+DeepSeek (strict review) |
 | 2026-05-02 | Address PR #78 review (Codex bot, P1 inline at L85): add `summary_truncated` (boolean) to v1 optional fields list, resolving the self-contradiction where the spec required emitting `summary_truncated: true` on truncation while also forbidding writers from emitting unlisted fields. Validator updated: `summary_truncated: false` is invalid in v1 (omit instead). Acceptance criteria for af log-validate extended to cover this case. | Frank + Claude (PR #78 review fix) |
+| 2026-05-02 | Address PR #78 R2 Codex review (2 blocking comments on commit 68e0011): (1) [P1 L147] Drop "at or near 4096-byte cap" qualifier from `summary_truncated` validator rule — when truncation is achieved by trimming `files`/`refs` rather than `summary`, the final record can sit well below the cap, and the qualifier would create false negatives. Validator now just checks the field is the literal boolean `true` if present (`false` still forbidden). (2) [P2 L130] `agent_version` is required but `af log` did not auto-fill it — combined with the fail-open hook contract (`af log ... \|\| true`), a hook that forgot `--agent-version` would silently drop every event. `af log` now reads `$ALFRED_AGENT_VERSION` (mirroring the existing `session_id` pattern) and falls back to the literal sentinel `"unknown"` when neither is supplied. Decision section updated, required-field constraint updated to permit the sentinel. | Frank + Claude (PR #78 R2 fix) |
 
 ---
 
