@@ -9,23 +9,25 @@
 
 ## What Is It?
 
-The standard process for responding to review comments on a Pull Request. Covers comments from any source — human reviewers, automated tools (Codex bot, Copilot), trinity 4-reviewer panel results, or any other source. This SOP is a universal overlay that works with any workflow (COR-1600–1605).
+The standard process for responding to review comments on a Pull Request. Covers comments from any source — human reviewers, GitHub-native automated review bots, multi-model panel review tooling (when available), or any other source. This SOP is a universal overlay that works with any workflow (COR-1600–1605).
 
 ### Reviewer Detector Classes (orthogonal, not interchangeable)
 
-Different reviewer types catch different failure modes. Always treat them as a **set of orthogonal detectors**, not substitutes:
+Different reviewer types catch different failure modes. Always treat them as a **set of orthogonal detectors**, not substitutes. Which classes are available depends on the project's tooling — pick whatever subset applies:
 
-| Detector | Strengths (catches reliably) | Blind spots |
-|---|---|---|
-| **Codex bot inline** (`chatgpt-codex-connector[bot]`, auto-runs ~30s after each commit push) | Cross-reference inconsistencies, stale references, "shipped" / placeholder elision, shell-example execution failures (`set -e` brittleness, unmatched globs, invalid jq, syntax errors), cross-file contract drift | Architectural judgment, design tradeoffs, calibration scoring, out-of-scope debates |
-| **Trinity 4-reviewer panel** (Codex / Gemini / GLM / DeepSeek via `/trinity`) | Architecture, risk awareness, scope precision, calibration scoring (COR-1608), competing-tradeoff judgments | Cross-reference drift after R+1 (panel internalizes a model and stops re-checking), shell-execution last-mile bugs, "review pack framed-out" issues |
-| **Human reviewer** | Domain intent, "is this what the user actually wants", historical context, cross-PR strategic decisions | Patience for diff-mode rescanning, real-shell mental simulation |
-| **Author self-review** | Knows intent + recent context | Author-self bias ("I just wrote this, it's fine"), inability to diff-mode read own work |
+| Detector | Strengths (catches reliably) | Blind spots | Availability |
+|---|---|---|---|
+| **GitHub-native review bot** — e.g. `chatgpt-codex-connector[bot]` (Codex), `copilot-pull-request-reviewer[bot]` (Copilot), CodeRabbit, Greptile, Sourcery. Auto-runs ~30s after each commit push when the corresponding GitHub App is installed. | Cross-reference inconsistencies, stale references, "shipped" / placeholder elision, shell-example execution failures (`set -e` brittleness, unmatched globs, invalid jq, syntax errors), cross-file contract drift | Architectural judgment, design tradeoffs, calibration scoring, out-of-scope debates | Always check repo settings — exact bot identity varies. The SOP applies identically to any bot of this class. |
+| **Multi-model panel review** — N independent LLM reviewers scoring against a rubric (e.g. COR-1608). Project-specific tooling: `/trinity` skill, CodeRabbit Pro, Greptile-team-review, custom orchestration, or none. | Architecture, risk awareness, scope precision, calibration scoring (COR-1608), competing-tradeoff judgments | Cross-reference drift after R+1 (panel internalizes a model and stops re-checking), shell-execution last-mile bugs, "review pack framed-out" issues | **Project-specific.** Many projects have no multi-model panel — that is normal. When unavailable, the bot inline + author self-review is the entire reviewer pool. |
+| **Human reviewer** | Domain intent, "is this what the user actually wants", historical context, cross-PR strategic decisions | Patience for diff-mode rescanning, real-shell mental simulation | Project-dependent (solo vs team). |
+| **Author self-review** | Knows intent + recent context | Author-self bias ("I just wrote this, it's fine"), inability to diff-mode read own work | Always available. |
 
-**Rule of thumb:**
-- Doc-only PR (≤ 5 file changes, no architectural decision) → Codex bot inline alone is **likely sufficient** if iterated through every fix round. Trinity panel optional.
-- PRP / architectural / cross-vendor protocol PR → Trinity panel **required**; bot still runs in parallel and catches what panel misses.
-- Implementation PR with code → both. Bot's execution simulator extends to test code.
+**Rule of thumb (calibrate to what your project actually has):**
+- **Doc-only PR (≤ 5 file changes, no architectural decision)** → GitHub-native review bot inline alone is **likely sufficient** if iterated through every fix round per the §Step 6 loop. Multi-model panel optional.
+- **PRP / architectural / cross-vendor protocol PR** → Multi-model panel **strongly recommended when available**; bot still runs in parallel and catches what panel misses. **If your project has no multi-model panel tooling**, lean harder on §Step 8 (`set -euo pipefail` pre-publish testing) and human review.
+- **Implementation PR with code** → bot inline + (panel if available). Bot's execution simulator extends to test code.
+
+**Important — multi-model panel is NOT universally available.** This SOP describes how to respond to *whatever* reviewers your project actually has. Don't block a PR waiting for a panel review that the project's tooling doesn't support; don't write fix commits expecting a panel pass that won't happen.
 
 ---
 
@@ -119,16 +121,68 @@ GitHub only auto-marks line-anchored comments as outdated when the referenced di
 
 If there was no fix commit, reply only where applicable for Question, Incorrect, or declined Advisory comments.
 
-### 6. Wait for CI **and the next bot review pass**
+### 6. Wait for CI **and the next bot review pass** — agent self-driven loop, no user prompting
 
-Verify CI passes after the fix commit.
+After every fix push, the agent **MUST** wait 3–5 minutes and self-poll for new comments before handing control back to the user. Asking the user "anything new?" or "should I check again?" is **forbidden** — see §Pitfalls. The agent's job is to drive the loop until a stopping condition is hit.
 
-**Iteration is normal**: automated bot reviewers (Codex bot, etc.) auto-trigger a fresh review pass on every new commit, typically within 30–90 seconds of push. **Do NOT close the PR loop after one fix round** — wait at least 2 minutes after `git push` and re-fetch comments per Step 1 to detect any new bot findings on the fix commit itself. Real PRs have run 5+ rounds (PR #84 ran 6 rounds, each catching new shell / cross-reference bugs introduced by the previous fix).
+#### Decision tree (canonical)
 
-Stopping conditions for the iteration loop:
-- No new top-level inline comments since last fix push (run Step 1 to verify).
-- All threads either replied or closed by the original reviewer.
-- CI green.
+```mermaid
+flowchart TD
+  A([Push fix commit]) --> B[Wait 3-5 min<br/>do NOT exit / hand back to user]
+  B --> C[Fetch all comments<br/>per Step 1]
+  C --> D{New top-level<br/>comments since<br/>last fix push?}
+  D -->|Yes| E[Apply Steps 2-5<br/>to new comments]
+  E --> A
+  D -->|No| F{Existing threads:<br/>all replied or<br/>marked outdated/resolved?}
+  F -->|No| G[Reply to remaining<br/>per Step 5]
+  G --> H[Wait 3-5 min<br/>do NOT exit]
+  H --> C
+  F -->|Yes| I{CI green?}
+  I -->|No| J[Investigate CI failure<br/>treat as new comment]
+  J --> E
+  I -->|Yes| K([STOP — PR ready<br/>for merge<br/>handoff to user])
+```
+
+#### Why "wait 3-5 min, do not exit" is mandatory
+
+GitHub-native review bots auto-trigger a fresh review pass on every new commit, typically within 30–90 seconds. A reply that arrives later is invisible to an agent that returned control to the user immediately after pushing. PR #84 in the COR-1612 evidence base ran **7 fix rounds**, each round catching new shell / cross-reference bugs introduced by the prior round's fix; if the agent had handed back control after round 1, rounds 2–7 would have required the user to manually prompt "Round N — check again". That is exactly the anti-pattern this Step 6 prevents.
+
+#### How to wait (harness-specific)
+
+| Harness | Mechanism |
+|---|---|
+| **Claude Code** | Use the `ScheduleWakeup` tool (or `/loop` skill) to schedule a wake-up at +5 min. Do NOT use a long synchronous `sleep` that burns prompt-cache cycles. If neither is available, sleep 180 seconds via `Bash` (cache loss accepted). |
+| **GitHub Actions / CI** | `sleep 300 && <re-fetch script>` |
+| **Manual / shell** | `sleep 300 && <re-fetch>` |
+
+#### Stopping conditions (all three required)
+
+1. **No new top-level inline comments** since the last fix push (re-run Step 1 — count `in_reply_to_id == null` comments without a corresponding reply).
+2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer.
+3. **CI green** for the most recent commit.
+
+If any of the three is not met, loop back to "Wait 3-5 min" — do not exit.
+
+#### Detecting reviewer-side resolution
+
+Verify whether the reviewer marked the thread outdated/resolved (a positive signal that your fix landed):
+
+```bash
+# Per-comment resolution state (GitHub GraphQL — REST doesn't expose isResolved)
+gh api graphql -f query='
+  query($owner:String!, $repo:String!, $pr:Int!) {
+    repository(owner:$owner, name:$repo) {
+      pullRequest(number:$pr) {
+        reviewThreads(first:100) {
+          nodes { id isResolved isOutdated comments(first:1){nodes{databaseId path line body}} }
+        }
+      }
+    }
+  }' -f owner=<owner> -f repo=<repo> -F pr=<num>
+```
+
+A thread with `isResolved: true` OR `isOutdated: true` counts as "resolved" for the stopping condition. Do not self-resolve (per §Step 7).
 
 ### 7. Do NOT self-resolve threads
 
@@ -175,8 +229,10 @@ This suggestion is incorrect — the INC template places Date before Severity (s
 - **Blanket dismiss:** Dismissing bot suggestions without reading them — automated reviewers can catch real bugs
 - **Batch replies:** Replying "fixed all" without per-comment responses makes it hard to verify each fix
 - **Confident-but-unverified behaviour claims in replies:** Asserting behavioural correctness ("real errors still surface", "race resolves identically") without executing the fixed code under the failure mode is the single highest-frequency way that subsequent bot reviews catch the *replier* rather than the original code (PR #84 R6 precedent). Always verify behaviour before asserting it.
-- **Closing the loop after one fix round:** Bot reviewers auto-re-review every new commit. If you push a fix and walk away, you'll miss the next bot pass — which catches bugs your fix introduced (PR #84 ran 6 rounds; rounds 4-6 each caught new shell brittleness introduced by the prior round's fix).
-- **Treating bot findings as "just lint":** Bot's static-diff cross-reference detector class catches genuine spec / shell / contract bugs that human and trinity-panel reviewers miss systematically (see "Reviewer Detector Classes" above). They are not stylistic suggestions — they are a different failure-mode population.
+- **Closing the loop after one fix round:** Bot reviewers auto-re-review every new commit. If you push a fix and walk away, you'll miss the next bot pass — which catches bugs your fix introduced (PR #84 ran 7 rounds; rounds 4-7 each caught new shell brittleness introduced by the prior round's fix).
+- **Treating bot findings as "just lint":** Bot's static-diff cross-reference detector class catches genuine spec / shell / contract bugs that human and panel reviewers miss systematically (see "Reviewer Detector Classes" above). They are not stylistic suggestions — they are a different failure-mode population.
+- **Asking the user to remind you to re-check** (e.g. "Round N — check again", "let me know if there are new comments", "should I look at #84?"). The agent, not the user, owns the §Step 6 wait-and-poll loop. If you find yourself about to ask the user "any new reviews?", that means you exited Step 6 too early — go back, wait 3-5 min, and re-fetch yourself. The user prompts only when overriding the loop (e.g. "stop, merge as-is").
+- **Assuming a multi-model panel is available** when this SOP was written. The original draft hardcoded a specific tool (`/trinity` skill) — that was wrong. The "Reviewer Detector Classes" table now describes panel review as project-specific; check what tooling your project has before relying on a panel pass.
 
 ## Why bot reviewers catch what humans/panels miss
 
@@ -185,7 +241,7 @@ Five structural mechanisms (PR #78 / #80 / #82 / #84 evidence base, 12+ caught b
 1. **Diff-mode vs prose-mode reading.** Bot reads each commit's patch in ~30s; humans/panels read the post-fix document holistically. Cross-reference inconsistencies are systematically caught by diff-mode and missed by prose-mode (which fills "this section is internally consistent" gaps with charity).
 2. **No author-self / no internal-model bias.** Bot is stateless — every commit is a fresh look. Author and panel after R+1 have an internal model of the spec; new commits get squeezed into that model rather than re-checked from zero.
 3. **Execution-model-aware vs concept-aware.** Bot maintains an effective bash + jq + unzip + posix execution simulator. Humans/panels read shell as "logically reasonable" without mentally executing under `set -euo pipefail`.
-4. **Coverage > framing.** Trinity review packs (verification questions, paranoid scrutiny areas) inadvertently define what reviewers DON'T look at. Bot has no pack: it scans whole-diff. Bugs outside the framed area only surface from unframed scanning.
+4. **Coverage > framing.** Multi-model review packs (verification questions, paranoid scrutiny areas) inadvertently define what reviewers DON'T look at. Bot has no pack: it scans whole-diff. Bugs outside the framed area only surface from unframed scanning.
 5. **"Will it run?" vs "Is it correct?"** Bot focuses on last-mile execution; humans/panels work at the concept level. For implementer-facing docs (recipes, examples), the last mile matters most.
 
 These are orthogonal mechanisms — none is "bot is smarter." The defensive practices are: (a) force diff-mode re-reads of own commits; (b) treat just-written code as foreign; (c) mentally execute every shell example; (d) include "free scrutiny" sections in review packs; (e) default-test under `set -euo pipefail`.
@@ -201,4 +257,5 @@ These are orthogonal mechanisms — none is "bot is smarter." The defensive prac
 | 2026-04-05 | PR review fix: include empty-body CHANGES_REQUESTED reviews, move replies after commit/push, add explicit git push step | Codex |
 | 2026-04-05 | Add note that diff-position and top-level comments do not auto-mark outdated | Codex |
 | 2026-04-05 | Make Step 4 conditional when review responses do not require code changes | Codex |
-| 2026-05-02 | Major amendment driven by PR #78 / #80 / #82 / #84 evidence (12+ Codex bot real-bug catches missed by trinity panel + author): (a) Add Reviewer Detector Classes table to §What Is It (bot vs trinity vs human vs author — orthogonal, not interchangeable). (b) §Step 5 mandates behaviour-verification for any reply that asserts behaviour — reasoning-only assertions are forbidden (PR #84 R6 caught my own reply where I claimed errors surface when they didn't). (c) §Step 6 reframes "wait for CI" as "wait for CI AND the next bot review pass" — bot auto-re-reviews each commit within 30–90s; iteration is normal (PR #84 ran 6 rounds). (d) New §Step 8 mandates `set -euo pipefail` pre-publish testing of every doc-shell example in 3 representative states (fresh / happy-path / edge cases). (e) §Pitfalls expanded with 3 new entries (unverified behaviour claims, single-round closing, treating bot as lint). (f) New §Why bot reviewers catch what humans/panels miss section explains the 5 structural mechanisms (diff-mode, no-author-bias, exec-simulator, no-pack-framing, execution focus) and the 5 derived defensive practices. | Frank + Claude (PR #84 retrospective) |
+| 2026-05-02 | Major amendment driven by PR #78 / #80 / #82 / #84 evidence (12+ GitHub-native bot real-bug catches missed by panel + author): (a) Add Reviewer Detector Classes table to §What Is It (bot vs panel vs human vs author — orthogonal, not interchangeable). (b) §Step 5 mandates behaviour-verification for any reply that asserts behaviour — reasoning-only assertions are forbidden (PR #84 R6 caught my own reply where I claimed errors surface when they didn't). (c) §Step 6 reframes "wait for CI" as "wait for CI AND the next bot review pass" — bot auto-re-reviews each commit within 30–90s; iteration is normal (PR #84 ran 6 rounds). (d) New §Step 8 mandates `set -euo pipefail` pre-publish testing of every doc-shell example in 3 representative states (fresh / happy-path / edge cases). (e) §Pitfalls expanded with 3 new entries (unverified behaviour claims, single-round closing, treating bot as lint). (f) New §Why bot reviewers catch what humans/panels miss section explains the 5 structural mechanisms (diff-mode, no-author-bias, exec-simulator, no-pack-framing, execution focus) and the 5 derived defensive practices. | Frank + Claude (PR #84 retrospective) |
+| 2026-05-02 | Iteration on the same amendment per session feedback: (1) Depersonalised "Trinity 4-reviewer panel" → generic "Multi-model panel review" with project-specific tooling examples (`/trinity`, CodeRabbit Pro, Greptile, custom, or none). Multi-model panel is NOT universally available; SOP applies regardless. (2) Generalised "Codex bot" → "GitHub-native review bot" with examples (Codex, Copilot, CodeRabbit, Greptile, Sourcery) — exact bot identity varies by repo settings. (3) Added explicit Mermaid decision tree to §Step 6 making the agent self-driven loop visual. (4) Added strict "wait 3-5 min, do NOT exit / hand back to user" invariant + harness-specific wait mechanisms (Claude Code ScheduleWakeup, CI sleep, manual). (5) Added §Step 6 sub-section on detecting reviewer-side resolution via GraphQL `isResolved`/`isOutdated`. (6) New §Pitfalls entries: "Asking the user to remind you to re-check" (anti-pattern explicitly forbidden) + "Assuming a multi-model panel is available". | Frank + Claude (post-amendment iteration) |
