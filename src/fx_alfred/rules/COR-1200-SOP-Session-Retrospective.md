@@ -49,7 +49,27 @@ See COR-1201 (Discussion Tracking) for the full D item protocol.
 
 ### 1. List all actions taken this session
 
-**Before reconstructing actions:** if `./rules/logs/<today UTC>.jsonl` exists (or `./rules/logs/archive.zip` contains today's entry), read it via `af log-validate` (verifies schema) and use its `task.done` / `doc.created` / `doc.updated` / `decision` events as the ground truth for what happened this session. The chat-history reconstruction below remains the fallback when the log is empty or absent. *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both new in v1.9.0.)*
+**Before reconstructing actions:** if `./rules/logs/<today UTC>.jsonl` exists (or today's entry is inside `./rules/logs/archive.zip`), read its event records as the ground truth for what happened this session. Use the records' `task.done` / `doc.created` / `doc.updated` / `decision` events to populate "Actions Taken" below; the chat-history reconstruction is the fallback when the log is empty or absent.
+
+Two-step recipe — validate first (optional schema check), then read:
+
+```bash
+# 1. (Optional) Verify schema before relying on the log. Quiet on success,
+#    prints "<path>:<lineno>: <field>: <reason>" on violations.
+af log-validate ./rules/logs/<today>.jsonl
+
+# 2. Read the event stream. The record JSON is one-per-line so plain
+#    jq filtering works; the same form works on archive.zip via unzip -p.
+jq -r 'select(.event == "task.done" or .event == "doc.created"
+              or .event == "doc.updated" or .event == "decision")
+       | "\(.ts)  \(.event)  \(.summary)\(if .refs then "  refs=" + (.refs|join(",")) else "" end)"' \
+   ./rules/logs/<today>.jsonl
+
+# Yesterday's records (after archival) — pipe through unzip:
+unzip -p ./rules/logs/archive.zip '<yesterday>.jsonl' | jq -r '...'
+```
+
+Note: `af log-validate` is a **schema checker** (quiet on success, emits only violations); it does not output the event stream itself. Read the JSONL bytes via `jq` (or `cat`) to extract events. *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both new in v1.9.0.)*
 
 Review the conversation and list every meaningful action:
 - Files created, edited, or deleted
