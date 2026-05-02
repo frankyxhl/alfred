@@ -183,25 +183,52 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 
    ```bash
    HEAD_SHA=$(git rev-parse HEAD)
+   LAST_PUSH_TS=""
 
-   # Primary: GitHub Actions starts a workflow run on push — its created_at is
-   # the server-side timestamp of when the push hit GitHub. Z-form by default.
-   LAST_PUSH_TS=$(gh api "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=1" \
-                    --jq '.workflow_runs[0].created_at // empty')
+   # Primary: GitHub Actions run created_at = server-side ack of the SHA arriving.
+   # Fetch all runs for the SHA and exclude events that can re-fire independently
+   # of the push (`workflow_dispatch`, `repository_dispatch`, `schedule`,
+   # `deployment*`); of the remaining push-coupled events (push, pull_request,
+   # check_run, etc.), take the EARLIEST created_at — that's the closest
+   # server-side observation of the push moment. Narrowing to `event=push`
+   # alone would silently fall through to commit-time in the very common case
+   # of PR-only CI workflows (repos where `on:` lists only `pull_request`).
+   # Catch gh api failures explicitly (Actions disabled, missing actions:read,
+   # 5xx, etc.): under `set -e` a bare `LAST_PUSH_TS=$(gh api ...)` aborts the
+   # script before the fallback below can run. Wrapping in `if` suspends `set
+   # -e` for the assignment and lets the fallback handle the empty case.
+   if RUN_TS=$(gh api "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
+                 --jq '[.workflow_runs[]
+                        | select(.event != "workflow_dispatch"
+                                 and .event != "repository_dispatch"
+                                 and .event != "schedule"
+                                 and .event != "deployment"
+                                 and .event != "deployment_status")
+                        | .created_at] | sort | .[0] // empty' 2>/dev/null); then
+     LAST_PUSH_TS=$RUN_TS
+   fi
 
-   # Fallback: no workflow ran for this SHA (no CI configured, or run not yet
-   # registered). Approximate with commit time — accept the small skew window
-   # rather than block the loop.
+   # Fallback: no push workflow ran for this SHA, OR Actions API was unavailable.
+   # Approximate with commit time and warn. Acceptable in the common case
+   # (commit-then-push within seconds); the explicit stderr warning makes the
+   # approximation visible to the operator, who can re-run the loop later when
+   # the API recovers if precision matters.
    if [ -z "$LAST_PUSH_TS" ]; then
      EPOCH=$(git log -1 --format=%ct HEAD)
      LAST_PUSH_TS=$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
                     || date -u -d "@$EPOCH" +%Y-%m-%dT%H:%M:%SZ)   # BSD || GNU
-     echo "WARN: no workflow_run found for $HEAD_SHA; falling back to commit time" >&2
+     echo "WARN: no push workflow_run for $HEAD_SHA (Actions disabled /" \
+          "scope missing / API failure / no push trigger configured);" \
+          "falling back to commit time — boundary precision degraded" >&2
    fi
    # Now LAST_PUSH_TS looks like "2026-05-02T07:35:27Z", same offset as GitHub.
    ```
 
-   Both ends in `Z`-form means lexicographic compare is time-order-safe (within a single offset, ISO 8601 lex order = chronological order). Earlier drafts used `git log %cI` (local-offset string, lex-miscompares across offsets) and `git log %ct` (commit time, not push time — misclassifies feedback when commit-vs-push gap is non-trivial); both hazards are avoided above.
+   Both ends in `Z`-form means lexicographic compare is time-order-safe (within a single offset, ISO 8601 lex order = chronological order). Earlier drafts hit four sequential hazards, all now avoided above:
+   - `git log %cI`: local-offset string, lex-miscompares across offsets.
+   - `git log %ct`: commit time, not push time — misclassifies feedback when commit-vs-push gap is non-trivial (amend → late push, future-skewed clock).
+   - Bare `LAST_PUSH_TS=$(gh api ...)`: `set -e` aborts the loop before the fallback runs when Actions is unavailable.
+   - `head_sha` alone: matches `workflow_dispatch` / `repository_dispatch` runs that may post-date the push, drifting the boundary forward.
 
    The unified `created_at` filter (made possible by the `submitted_at → created_at` alias in §Step 1's review-summary projection) lets one jq predicate apply to all three surfaces:
 
