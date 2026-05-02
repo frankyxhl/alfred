@@ -224,23 +224,60 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
    # workflow runs (extremely long-lived PR with many workflows × reruns), the
    # earliest run can be truncated; the commit-time fallback handles this
    # conservatively (over-approximates safely as above).
-   if RUN_TS_RAW=$(gh api --paginate \
-                     "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
-                     --jq '.workflow_runs[]
-                           | select(.event != "workflow_dispatch"
-                                    and .event != "repository_dispatch"
-                                    and .event != "schedule"
-                                    and .event != "deployment"
-                                    and .event != "deployment_status")
-                           | .created_at' 2>/dev/null); then
-     # Z-form ISO timestamps lex-sort = chronological-sort. The awk filter
-     # picks the first non-empty line and exits with status 0 in BOTH cases
-     # (line found / no lines) — critical under `set -euo pipefail`, where
-     # `grep -v '^$' | head -n1` would exit 1 (grep's "no match") on an
-     # empty stream and abort the script before the commit-time fallback
-     # block can run. `NF` is true only for lines with at least one field;
-     # an empty (whitespace-only) line has NF==0 and is skipped.
-     LAST_PUSH_TS=$(printf '%s\n' "$RUN_TS_RAW" | LC_ALL=C sort | awk 'NF{print; exit}')
+   # Pre-check: GitHub server-caps `actions/runs?head_sha=...` at 1,000
+   # results. If TOTAL_RUNS >= 1,000, the paginate below cannot guarantee
+   # the true earliest run is in the result set (truncation hazard); skip
+   # it and use commit-time fallback. If TOTAL_RUNS == 0, no CI runs exist
+   # — also skip directly to fallback.
+   #
+   # IMPORTANT: capture stderr to a tempfile rather than redirecting to
+   # /dev/null. Blindly suppressing stderr conflates four distinct failure
+   # modes (API 5xx, rate-limit, missing actions:read scope, Actions
+   # disabled) with the legitimate "0 runs" case, hiding real permissions
+   # bugs. The captured stderr is emitted as a single >&2 WARN so the
+   # operator can disambiguate.
+   PRE_ERR=$(mktemp -t cor1612.preerr.XXXXXX 2>/dev/null) \
+            || PRE_ERR=/tmp/cor1612.preerr.$$
+   TOTAL_RUNS=$(gh api \
+       "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=1" \
+       --jq '.total_count // 0' 2>"$PRE_ERR") || TOTAL_RUNS=""
+
+   # POSIX-portable numeric guard (bash 3.2-safe). Empty / non-digit input
+   # trips this branch — emit captured stderr if any, treat as 0, fall
+   # through to the commit-time fallback below.
+   case "$TOTAL_RUNS" in
+     ''|*[!0-9]*)
+       if [ -s "$PRE_ERR" ]; then
+         echo "WARN: actions/runs total_count pre-check failed:" >&2
+         sed 's/^/  /' "$PRE_ERR" >&2
+       fi
+       TOTAL_RUNS=0
+       ;;
+   esac
+   rm -f "$PRE_ERR" 2>/dev/null || true
+
+   # Threshold `< 1000` (gate fires at >= 1000): exact-1000 is ambiguous
+   # (10 full pages might be complete OR might be exactly capped); over-
+   # fallback is harmless, under-fallback drops post-push comments.
+   if [ "$TOTAL_RUNS" -gt 0 ] && [ "$TOTAL_RUNS" -lt 1000 ]; then
+     if RUN_TS_RAW=$(gh api --paginate \
+                       "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
+                       --jq '.workflow_runs[]
+                             | select(.event != "workflow_dispatch"
+                                      and .event != "repository_dispatch"
+                                      and .event != "schedule"
+                                      and .event != "deployment"
+                                      and .event != "deployment_status")
+                             | .created_at' 2>/dev/null); then
+       # Z-form ISO timestamps lex-sort = chronological-sort. The awk filter
+       # picks the first non-empty line and exits with status 0 in BOTH cases
+       # (line found / no lines) — critical under `set -euo pipefail`, where
+       # `grep -v '^$' | head -n1` would exit 1 (grep's "no match") on an
+       # empty stream and abort the script before the commit-time fallback
+       # block can run. `NF` is true only for lines with at least one field;
+       # an empty (whitespace-only) line has NF==0 and is skipped.
+       LAST_PUSH_TS=$(printf '%s\n' "$RUN_TS_RAW" | LC_ALL=C sort | awk 'NF{print; exit}')
+     fi
    fi
 
    # Fallback: no push workflow ran for this SHA, OR Actions API was unavailable.
@@ -263,8 +300,11 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
      EPOCH=$(git log -1 --format=%ct HEAD)
      LAST_PUSH_TS=$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
                     || date -u -d "@$EPOCH" +%Y-%m-%dT%H:%M:%SZ)   # BSD || GNU
-     echo "WARN: no push workflow_run for $HEAD_SHA (Actions disabled /" \
-          "scope missing / API failure / no push trigger configured);" \
+     echo "WARN: no usable push workflow_run for $HEAD_SHA (one of:" \
+          "no CI runs configured for this SHA;" \
+          "actions/runs search truncated by GitHub 1,000-result cap;" \
+          "Actions disabled / actions:read scope missing / API failure;" \
+          "or no push trigger configured);" \
           "falling back to commit time — boundary precision degraded" >&2
    fi
    # Now LAST_PUSH_TS looks like "2026-05-02T07:35:27Z", same offset as GitHub.
