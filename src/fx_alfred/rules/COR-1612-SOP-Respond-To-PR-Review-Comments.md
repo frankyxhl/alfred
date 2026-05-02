@@ -61,14 +61,20 @@ Without a standard process, review comments get fixed without replies, missed en
 Fetch inline review comments, review summary comments, and top-level PR conversation comments:
 
 ```bash
-# Inline review comments on changed lines
-gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate --jq '.[] | {type: "inline", id, path, line, body}'
+# Inline review comments on changed lines.
+# IMPORTANT: keep `in_reply_to_id`, `created_at`, and `user.login` in the
+# projection — §Step 6 stopping condition #1 needs them to (a) distinguish
+# top-level vs reply comments, (b) detect "since last fix push" boundary,
+# (c) attribute the comment to a reviewer (bot vs human).
+gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate --jq '.[] | {type: "inline", id, in_reply_to_id, path, line, user: .user.login, created_at, body}'
 
-# Review summary comments (review bodies). Keep CHANGES_REQUESTED reviews even if body is empty.
-gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type: "review_summary", id, state, body}'
+# Review summary comments (review bodies). Keep CHANGES_REQUESTED reviews even
+# if body is empty. Includes `created_at` + `user.login` for the same Step 6
+# reasons; review summaries don't have `in_reply_to_id` (no thread structure).
+gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type: "review_summary", id, state, user: .user.login, submitted_at, body}'
 
-# Top-level PR conversation comments
-gh api repos/{owner}/{repo}/issues/{number}/comments --paginate --jq '.[] | {type: "issue_comment", id, body}'
+# Top-level PR conversation comments. Same field rationale.
+gh api repos/{owner}/{repo}/issues/{number}/comments --paginate --jq '.[] | {type: "issue_comment", id, user: .user.login, created_at, body}'
 ```
 
 ### 2. Categorize each comment
