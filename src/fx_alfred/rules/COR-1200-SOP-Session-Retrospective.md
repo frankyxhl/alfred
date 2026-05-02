@@ -88,7 +88,18 @@ af log-validate ./rules/logs/
 #    "${YESTERDAY}*.jsonl" picks up ${YESTERDAY}.jsonl AND any
 #    ${YESTERDAY}.partN.jsonl entries inside archive.zip. Reuse $JQ_FILTER
 #    instead of an ellipsis placeholder.
-unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" | jq -r "$JQ_FILTER"
+#
+#    Guards required for `set -euo pipefail` callers: unzip exits non-zero
+#    when archive.zip is absent (fresh project) OR when no entries match
+#    the glob (quiet day) — both are normal states, not errors. The two-
+#    stage check below silently skips both cases and only invokes unzip -p
+#    when there is something to read. Real corruption / IO errors still
+#    surface because `unzip -l ... >/dev/null 2>&1` returns non-zero only
+#    when the operation truly failed.
+if [ -e "./rules/logs/archive.zip" ] \
+   && unzip -l ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" >/dev/null 2>&1; then
+  unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" | jq -r "$JQ_FILTER"
+fi
 ```
 
 Note: `af log-validate` is a **schema checker** (quiet on success, emits only violations); it does not output the event stream itself. Read the JSONL bytes via `jq` (or `cat`) to extract events. The glob in step 2 covers both the base `<today>.jsonl` and any `<today>.partN.jsonl` rollover segments per COR-1205 §Rotation; `2>/dev/null` suppresses jq's "file not found" when no rollover happened. *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both **scaffolded in CHG-2231 Phase 0**; mandatory triggers and CLI surfaces land across Phases 2–5; target release v1.9.0.)*
