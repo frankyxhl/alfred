@@ -71,7 +71,8 @@ The v1 whitelist for the `agent` field is `claude-code`, `copilot`, `cursor`, `c
 | **Cursor** | `.cursorrules` directive | Rule instructs the model to call `af log --agent cursor ... \|\| true` after each turn |
 | **Cline / Roo Code** | Custom MCP tool | Expose `af log` as an MCP tool; rules instruct usage |
 | **Aider** | `--cmd-stop` callback OR git post-commit hook | Shell script invokes `af log --agent aider ... \|\| true` |
-| **Codex CLI / Gemini CLI** | Each SDK's lifecycle event hook | Shell script writes JSONL via `af log --agent {codex,gemini}-cli ... \|\| true` |
+| **Codex CLI** | SDK lifecycle event hook | Shell script writes JSONL via `af log --agent codex-cli ... \|\| true` |
+| **Gemini CLI** | SDK lifecycle event hook | Shell script writes JSONL via `af log --agent gemini-cli ... \|\| true` |
 | **Universal fallback** | None — direct shell-out | Any tool that can shell out invokes `af log` directly with appropriate `--agent` value (or `--agent other --agent-name <id>` for unrecognized harnesses) |
 
 ### Example: Claude Code reference hook

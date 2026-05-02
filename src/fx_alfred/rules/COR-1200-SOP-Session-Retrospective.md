@@ -82,7 +82,17 @@ JQ_FILTER='select(
 #    prints "<path>:<lineno>: <field>: <reason>" on violations.
 #    Validating the directory picks up today's .jsonl, any .partN.jsonl
 #    rollover (per COR-1205 §Rotation), and entries inside archive.zip.
-af log-validate ./rules/logs/
+#
+#    Feature-check guard: `af log-validate` ships in CHG-2231 Phase 3
+#    (target v1.9.0). Before then the subcommand isn't registered, so a
+#    bare invocation halts `set -e` callers. The check below silently
+#    skips validation when the command isn't available — the actual log
+#    read in step 2 still runs.
+if af log-validate --help >/dev/null 2>&1; then
+  af log-validate ./rules/logs/
+else
+  echo "INFO: af log-validate not yet available (CHG-2231 Phase 3 not shipped); skipping schema check" >&2
+fi
 
 # 2. Read today's event stream. JSONL is one-per-line so plain jq works.
 #    Concatenate ${TODAY}.jsonl AND any ${TODAY}.partN.jsonl rollover with
