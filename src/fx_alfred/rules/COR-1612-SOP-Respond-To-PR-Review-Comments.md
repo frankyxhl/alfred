@@ -249,10 +249,16 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
    # approximation visible to the operator, who can re-run the loop later when
    # the API recovers if precision matters.
    # When the fallback fires, LAST_PUSH_TS becomes the local committer date,
-   # which is typically EARLIER than actual push (over-approximation). The
-   # over-approximation is in the safe direction — at worst it includes some
-   # pre-push comments as 'new' and triggers an extra iteration; it never
-   # drops post-push comments.
+   # which is USUALLY earlier than actual push (over-approximates safely:
+   # extra iteration on some pre-push comments, no post-push loss).
+   # CAVEAT: committer date is client-controlled — a future-skewed system
+   # clock, `git commit --date <future>`, or an amended commit with a future
+   # explicit date can place committer time AFTER the real push, in which
+   # case `.created_at > $push` silently drops post-push comments arriving
+   # between actual-push and committer-date. The fallback path is therefore
+   # non-authoritative when both (a) the Actions API was unavailable AND
+   # (b) the committer date is suspect; verify by re-running the loop after
+   # the API recovers, or set LAST_PUSH_TS manually.
    if [ -z "$LAST_PUSH_TS" ]; then
      EPOCH=$(git log -1 --format=%ct HEAD)
      LAST_PUSH_TS=$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
