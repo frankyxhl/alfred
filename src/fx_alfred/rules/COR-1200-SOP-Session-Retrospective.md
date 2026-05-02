@@ -49,6 +49,92 @@ See COR-1201 (Discussion Tracking) for the full D item protocol.
 
 ### 1. List all actions taken this session
 
+**Before reconstructing actions:** if `./rules/logs/<today UTC>.jsonl` exists (or today's entry is inside `./rules/logs/archive.zip`), read its event records as the ground truth for what happened this session. Use the records' `task.done` / `doc.created` / `doc.updated` / `decision` events to populate "Actions Taken" below; the chat-history reconstruction is the fallback when the log is empty or absent.
+
+Two-step recipe — validate first (optional schema check), then read:
+
+```bash
+# Resolve UTC dates (cross-platform — GNU date on Linux, BSD date on macOS).
+# These are real shell variables; the recipe is copy-paste runnable.
+TODAY=$(date -u +%F)
+YESTERDAY=$(date -u -d 'yesterday' +%F 2>/dev/null \
+            || date -u -v-1d +%F)   # GNU first (-d), BSD/macOS fallback (-v-1d)
+
+# Resolve THIS session's id so cross-tool contamination is filtered out
+# (multiple agent sessions can share a UTC day). If $ALFRED_SESSION_ID
+# wasn't exported during the session, leave SID empty — the filter falls
+# back to whole-day view (with a caveat: results may include other agents'
+# work). Tip to find your session_id retroactively:
+#   jq -r '.session_id' ./rules/logs/${TODAY}.jsonl | sort -u
+SID="${ALFRED_SESSION_ID:-}"
+
+# Event-extraction jq filter, parameterised by --arg sid:
+#   - When $sid is non-empty, only records with matching session_id pass
+#   - When $sid is empty, all records pass (whole-day view)
+JQ_FILTER='select(
+    (.event == "task.done" or .event == "doc.created"
+     or .event == "doc.updated" or .event == "decision")
+    and ($sid == "" or .session_id == $sid)
+  )
+  | "\(.ts)  \(.event)  \(.summary)\(if .refs then "  refs=" + (.refs|join(",")) else "" end)"'
+
+# 1. (Optional) Verify schema before relying on the log. Quiet on success,
+#    prints "<path>:<lineno>: <field>: <reason>" on violations.
+#    Validating the directory picks up today's .jsonl, any .partN.jsonl
+#    rollover (per COR-1205 §Rotation), and entries inside archive.zip.
+#
+#    Feature-check guard: `af log-validate` ships in CHG-2231 Phase 3
+#    (target v1.9.0). Before then the subcommand isn't registered, so a
+#    bare invocation halts `set -e` callers. The check below silently
+#    skips validation when the command isn't available — the actual log
+#    read in step 2 still runs.
+if af log-validate --help >/dev/null 2>&1; then
+  af log-validate ./rules/logs/
+else
+  echo "INFO: af log-validate not yet available (CHG-2231 Phase 3 not shipped); skipping schema check" >&2
+fi
+
+# 2. Read today's event stream. JSONL is one-per-line so plain jq works.
+#    Concatenate ${TODAY}.jsonl AND any ${TODAY}.partN.jsonl rollover with
+#    explicit existence guards so the recipe stays `set -e` safe whether or
+#    not rollover happened.
+{
+  if [ -e "./rules/logs/${TODAY}.jsonl" ]; then cat "./rules/logs/${TODAY}.jsonl"; fi
+  for f in ./rules/logs/${TODAY}.part*.jsonl; do
+    if [ -e "$f" ]; then cat "$f"; fi
+  done
+} | jq -r --arg sid "$SID" "$JQ_FILTER"
+
+# 3. Yesterday's records (after archival). `unzip -p` accepts globs, so
+#    "${YESTERDAY}*.jsonl" picks up ${YESTERDAY}.jsonl AND any
+#    ${YESTERDAY}.partN.jsonl entries inside archive.zip.
+#
+#    Three-state guard distinguishing real errors from benign skip cases:
+#    (a) no archive.zip → silent skip (fresh project / first day)
+#    (b) archive corrupt or unreadable → STDERR warning + don't halt
+#        (we do NOT want a corrupt archive to block today's retrospective;
+#        the warning surfaces the issue without losing the rest of the run)
+#    (c) archive readable but no <yesterday>*.jsonl entry → silent skip
+#        (quiet day — normal state, not an error)
+#    (d) archive readable AND has matching entries → extract
+#
+#    The previous one-liner form (`if [ -e ] && unzip -l ... >/dev/null;
+#    then ... fi`) collapsed (b) and (c) into the same false branch and
+#    silently dropped corruption errors — that masking is now gone.
+if [ -e "./rules/logs/archive.zip" ]; then
+  if ! unzip -l ./rules/logs/archive.zip >/dev/null 2>&1; then
+    echo "WARNING: ./rules/logs/archive.zip exists but is unreadable" \
+         "(corruption / IO error / permission). Yesterday's records skipped." \
+         "Recover: af log-archive --force." >&2
+  elif unzip -l ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" >/dev/null 2>&1; then
+    unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" \
+      | jq -r --arg sid "$SID" "$JQ_FILTER"
+  fi
+fi
+```
+
+Note: `af log-validate` is a **schema checker** (quiet on success, emits only violations); it does not output the event stream itself. Read the JSONL bytes via `jq` (or `cat`) to extract events. The glob in step 2 covers both the base `<today>.jsonl` and any `<today>.partN.jsonl` rollover segments per COR-1205 §Rotation. The `--arg sid` parameter constrains output to the current session when `$ALFRED_SESSION_ID` is exported; otherwise the recipe shows the whole-day view (call out that other agents' work may be mixed in). *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both **scaffolded in CHG-2231 Phase 0**; mandatory triggers and CLI surfaces land across Phases 2–5; target release v1.9.0.)*
+
 Review the conversation and list every meaningful action:
 - Files created, edited, or deleted
 - Commands run
