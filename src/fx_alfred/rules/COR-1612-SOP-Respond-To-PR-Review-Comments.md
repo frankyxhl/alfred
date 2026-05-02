@@ -213,10 +213,14 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
                                     and .event != "deployment"
                                     and .event != "deployment_status")
                            | .created_at' 2>/dev/null); then
-     # Z-form ISO timestamps lex-sort = chronological-sort. `grep -v '^$'`
-     # drops the trailing newline `printf` adds for empty input so the head
-     # picks the first real timestamp, or yields empty for "no runs".
-     LAST_PUSH_TS=$(printf '%s\n' "$RUN_TS_RAW" | LC_ALL=C sort | grep -v '^$' | head -n1)
+     # Z-form ISO timestamps lex-sort = chronological-sort. The awk filter
+     # picks the first non-empty line and exits with status 0 in BOTH cases
+     # (line found / no lines) — critical under `set -euo pipefail`, where
+     # `grep -v '^$' | head -n1` would exit 1 (grep's "no match") on an
+     # empty stream and abort the script before the commit-time fallback
+     # block can run. `NF` is true only for lines with at least one field;
+     # an empty (whitespace-only) line has NF==0 and is skipped.
+     LAST_PUSH_TS=$(printf '%s\n' "$RUN_TS_RAW" | LC_ALL=C sort | awk 'NF{print; exit}')
    fi
 
    # Fallback: no push workflow ran for this SHA, OR Actions API was unavailable.
