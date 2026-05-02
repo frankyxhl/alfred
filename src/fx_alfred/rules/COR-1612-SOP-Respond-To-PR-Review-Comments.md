@@ -179,7 +179,18 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 
 #### Stopping conditions (all four required)
 
-1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches. Set `LAST_PUSH_TS` to the ISO timestamp of the most recent fix-commit push (e.g. `LAST_PUSH_TS=$(git log -1 --format=%cI HEAD)`) and the unified `created_at` filter (made possible by the `submitted_at → created_at` alias in §Step 1's review-summary projection) lets one jq predicate apply to all three surfaces:
+1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches. Set `LAST_PUSH_TS` to the **UTC `Z`-form** ISO timestamp of the most recent fix-commit push so it lex-compares cleanly against GitHub `created_at` (also `Z`-form). `git log %cI` emits the commit's stored offset (e.g. `+09:00` for a JST committer), and `TZ=UTC git log` does NOT override it — so derive from the epoch via `date -u`:
+
+   ```bash
+   EPOCH=$(git log -1 --format=%ct HEAD)
+   LAST_PUSH_TS=$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+                  || date -u -d "@$EPOCH" +%Y-%m-%dT%H:%M:%SZ)   # BSD || GNU
+   # Now LAST_PUSH_TS looks like "2026-05-02T07:35:27Z", same offset as GitHub.
+   ```
+
+   Both ends in `Z`-form means lexicographic compare is time-order-safe (within a single offset, ISO 8601 lex order = chronological order). Earlier draft used `git log %cI` directly, which produced local-offset strings and made `.created_at > $push` lex-miscompare across offsets (e.g. comment `08:30:00Z` lex-compares `false` against push `10:00:00+02:00` even though the comment is 30 min newer in UTC).
+
+   The unified `created_at` filter (made possible by the `submitted_at → created_at` alias in §Step 1's review-summary projection) lets one jq predicate apply to all three surfaces:
 
    ```bash
    PR_OWNER="${PR_OWNER:?set PR_OWNER=<github-login-of-pr-author>}"
@@ -194,14 +205,16 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
        --jq '.[] | {type:"issue_comment", id, user:.user.login, created_at, body}'
    } | jq -s --arg push "$LAST_PUSH_TS" --arg owner "$PR_OWNER" '
      map(select(
-       .created_at > $push                          # new since fix push
+       # Both timestamps are Z-form (LAST_PUSH_TS normalised above; GitHub
+       # created_at is Z by default), so lex compare = chronological compare.
+       .created_at > $push
        and (.user != $owner)                        # not authored by PR owner
        and ((.type == "inline" and .in_reply_to_id == null) or .type != "inline")  # top-level only for inline
      ))
    '
    ```
 
-   Stop-condition #1 holds when this jq pipeline returns `[]` (empty array). The earlier draft only counted inline comments and didn't show the actual filter expression, which created a Step 1↔Step 6 contract drift — fetched three surfaces but stopped on one with no executable filter for the other two. All three surfaces are now covered by one composable filter that an implementer can copy-paste.
+   Stop-condition #1 holds when this jq pipeline returns `[]` (empty array). The earlier draft only counted inline comments and didn't show the actual filter expression, which created a Step 1↔Step 6 contract drift — fetched three surfaces but stopped on one with no executable filter for the other two. All three surfaces are now covered by one composable filter that an implementer can copy-paste. The Z-form normalisation above eliminates the lex-vs-chronological hazard; `jq fromdateiso8601` was considered but rejected because BSD/macOS `strptime` doesn't accept the `+HH:MM` offsets it would need to handle.
 
 2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer. **For non-resolving bots** (bots that never call the resolve mutation — common for `chatgpt-codex-connector[bot]`, `copilot-pull-request-reviewer[bot]`): an author reply citing the fix commit hash counts as "addressed"; the agent informs the user at handoff so the user can manually resolve if desired (per §Step 7).
 
@@ -251,7 +264,18 @@ while :; do
         }
       }' \
     -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUM" \
-    "${AFTER_ARG[@]}" 2>/dev/null) || break
+    "${AFTER_ARG[@]}") || {
+    # Distinguish real failure (auth / rate-limit / network / 5xx) from normal
+    # end-of-pagination. A non-zero exit from `gh api graphql` here is ALWAYS
+    # a real failure — pagination ends via HAS_NEXT==false at the bottom of
+    # the loop, never via a non-zero exit. Suppressing this with `2>/dev/null
+    # || break` would silently let downstream logic treat partial / zero
+    # thread data as "all resolved", undermining stop-condition #2.
+    echo "ERROR: gh api graphql failed during reviewThreads pagination" \
+         "(auth / rate-limit / network / API 5xx). Stop-condition #2 cannot" \
+         "be evaluated reliably. Aborting the resolution check." >&2
+    exit 1
+  }
   echo "$RESPONSE" | jq -r '.data.repository.pullRequest.reviewThreads.nodes[]'
   HAS_NEXT=$(echo "$RESPONSE" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
   [ "$HAS_NEXT" = "true" ] || break
