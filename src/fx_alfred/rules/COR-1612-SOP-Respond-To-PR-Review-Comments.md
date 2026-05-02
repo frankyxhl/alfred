@@ -69,9 +69,14 @@ Fetch inline review comments, review summary comments, and top-level PR conversa
 gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate --jq '.[] | {type: "inline", id, in_reply_to_id, path, line, user: .user.login, created_at, body}'
 
 # Review summary comments (review bodies). Keep CHANGES_REQUESTED reviews even
-# if body is empty. Includes `created_at` + `user.login` for the same Step 6
-# reasons; review summaries don't have `in_reply_to_id` (no thread structure).
-gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type: "review_summary", id, state, user: .user.login, submitted_at, body}'
+# if body is empty. Includes `user.login` for bot-vs-human attribution.
+# IMPORTANT: GitHub's reviews endpoint exposes `submitted_at` (not `created_at`);
+# alias it to `created_at` here so §Step 6 stopping condition #1 can apply a
+# UNIFIED `created_at` timestamp filter across all three surfaces. Without the
+# alias, a `created_at`-keyed "since last fix push" check silently drops new
+# review summaries (including new CHANGES_REQUESTED reviews).
+# Reviews don't have `in_reply_to_id` (no thread structure).
+gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type: "review_summary", id, state, user: .user.login, created_at: .submitted_at, body}'
 
 # Top-level PR conversation comments. Same field rationale.
 gh api repos/{owner}/{repo}/issues/{number}/comments --paginate --jq '.[] | {type: "issue_comment", id, user: .user.login, created_at, body}'
@@ -174,12 +179,29 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 
 #### Stopping conditions (all four required)
 
-1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches:
-   - Inline review comments (`pulls/{n}/comments`, `in_reply_to_id == null` without an author reply)
-   - Review summary comments (`pulls/{n}/reviews` with non-empty body or `CHANGES_REQUESTED` state)
-   - Top-level issue comments (`issues/{n}/comments` not authored by the PR owner)
+1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches. Set `LAST_PUSH_TS` to the ISO timestamp of the most recent fix-commit push (e.g. `LAST_PUSH_TS=$(git log -1 --format=%cI HEAD)`) and the unified `created_at` filter (made possible by the `submitted_at → created_at` alias in §Step 1's review-summary projection) lets one jq predicate apply to all three surfaces:
 
-   The earlier draft of this stopping condition only counted inline comments, which created a Step 1↔Step 6 contract drift — fetched three surfaces but stopped on one. All three must be checked.
+   ```bash
+   PR_OWNER="${PR_OWNER:?set PR_OWNER=<github-login-of-pr-author>}"
+
+   # Stream all 3 surfaces through a single new-since-push filter
+   {
+     gh api repos/"$OWNER"/"$REPO"/pulls/"$PR_NUM"/comments --paginate \
+       --jq '.[] | {type:"inline", id, in_reply_to_id, user:.user.login, created_at, body}'
+     gh api repos/"$OWNER"/"$REPO"/pulls/"$PR_NUM"/reviews --paginate \
+       --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type:"review_summary", id, state, user:.user.login, created_at:.submitted_at, body}'
+     gh api repos/"$OWNER"/"$REPO"/issues/"$PR_NUM"/comments --paginate \
+       --jq '.[] | {type:"issue_comment", id, user:.user.login, created_at, body}'
+   } | jq -s --arg push "$LAST_PUSH_TS" --arg owner "$PR_OWNER" '
+     map(select(
+       .created_at > $push                          # new since fix push
+       and (.user != $owner)                        # not authored by PR owner
+       and ((.type == "inline" and .in_reply_to_id == null) or .type != "inline")  # top-level only for inline
+     ))
+   '
+   ```
+
+   Stop-condition #1 holds when this jq pipeline returns `[]` (empty array). The earlier draft only counted inline comments and didn't show the actual filter expression, which created a Step 1↔Step 6 contract drift — fetched three surfaces but stopped on one with no executable filter for the other two. All three surfaces are now covered by one composable filter that an implementer can copy-paste.
 
 2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer. **For non-resolving bots** (bots that never call the resolve mutation — common for `chatgpt-codex-connector[bot]`, `copilot-pull-request-reviewer[bot]`): an author reply citing the fix commit hash counts as "addressed"; the agent informs the user at handoff so the user can manually resolve if desired (per §Step 7).
 
@@ -202,8 +224,20 @@ PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
 # Pagination: GraphQL caps reviewThreads at 100 per page. For PRs with > 100
 # threads, page via the cursor below. The pageInfo block + while-loop is the
 # canonical pattern.
-CURSOR="null"
+#
+# Cursor handling: the GraphQL `$after` arg must be GraphQL `null` on the FIRST
+# request (no prior page). `gh api -f after="..."` sends a JSON STRING value,
+# so `-f after="null"` would send the literal string "null" — GraphQL would
+# fail. The first request omits `-F after=...` entirely (then $after defaults
+# to GraphQL null per the query signature `$after:String`); subsequent
+# requests send the real cursor as a string via `-f`.
+CURSOR=""   # empty = "no cursor yet, send null"
 while :; do
+  if [ -z "$CURSOR" ]; then
+    AFTER_ARG=()                       # first page: omit $after, defaults to GraphQL null
+  else
+    AFTER_ARG=(-f "after=$CURSOR")     # subsequent pages: pass cursor as string
+  fi
   RESPONSE=$(gh api graphql \
     -f query='
       query($owner:String!, $repo:String!, $pr:Int!, $after:String) {
@@ -217,7 +251,7 @@ while :; do
         }
       }' \
     -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUM" \
-    -f after="$CURSOR" 2>/dev/null) || break
+    "${AFTER_ARG[@]}" 2>/dev/null) || break
   echo "$RESPONSE" | jq -r '.data.repository.pullRequest.reviewThreads.nodes[]'
   HAS_NEXT=$(echo "$RESPONSE" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
   [ "$HAS_NEXT" = "true" ] || break
