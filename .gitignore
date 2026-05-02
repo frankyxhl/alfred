@@ -21,5 +21,8 @@ site/
 .omx/
 .factory/
 
+# Activity logs (per PRP-2230) — per-machine artifacts, never commit
+rules/logs/
+
 # macOS
 .DS_Store
