@@ -275,6 +275,13 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
    ```bash
    PR_OWNER="${PR_OWNER:?set PR_OWNER=<github-login-of-pr-author>}"
    PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
+   # REPLY_ACTORS: comma-separated GitHub logins of every account that may post
+   # replies on behalf of the author (PR owner, plus any bot/service account the
+   # agent uses to reply). All of these must be excluded from "new feedback" or
+   # the agent's own replies re-trigger stop-condition #1 -> infinite loop.
+   # Default: just the PR owner. Set explicitly when running from a service
+   # account, e.g. REPLY_ACTORS="alice-the-author,my-bot[bot]".
+   REPLY_ACTORS="${REPLY_ACTORS:-$PR_OWNER}"
 
    # Stream all 3 surfaces through a single new-since-push filter
    {
@@ -284,20 +291,24 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
        --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type:"review_summary", id, state, user:.user.login, created_at:.submitted_at, body}'
      gh api repos/"$OWNER"/"$REPO"/issues/"$PR_NUM"/comments --paginate \
        --jq '.[] | {type:"issue_comment", id, user:.user.login, created_at, body}'
-   } | jq -s --arg push "$LAST_PUSH_TS" --arg owner "$PR_OWNER" '
+   } | jq -s --arg push "$LAST_PUSH_TS" --arg actors "$REPLY_ACTORS" '
      map(select(
        # Both timestamps are Z-form (LAST_PUSH_TS normalised above; GitHub
        # created_at is Z by default), so lex compare = chronological compare.
        # The in_reply_to_id == null clause was removed: it silently dropped
        # reviewer pushback comments posted as replies to a prior author
-       # reply, which could cause merge of contested PRs. The .user != $owner
-       # clause already excludes the PR author own replies — that was the
-       # only legitimate reason to filter on in_reply_to_id.
+       # reply, which could cause merge of contested PRs. The .user check
+       # against $actors already excludes all reply actors own comments —
+       # that was the only legitimate reason to filter on in_reply_to_id.
+       # The .user comparison checks against $REPLY_ACTORS (comma-list)
+       # rather than just the PR owner: when the agent posts replies from a
+       # service account that is NOT the PR owner, those self-replies would
+       # otherwise pass the filter and re-trigger condition #1 forever.
        # NOTE: do NOT introduce apostrophes (U+0027) inside this comment
        # block — the entire jq program is a single-quoted shell string, so
        # an apostrophe here terminates the string and breaks bash -n.
        .created_at > $push
-       and (.user != $owner)                        # not authored by PR owner
+       and ((.user as $u | $actors / "," | index($u)) | not)   # not authored by any reply actor
      ))
    '
    ```
@@ -306,7 +317,12 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 
 2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer. **For non-resolving bots** (bots that never call the resolve mutation — common for `chatgpt-codex-connector[bot]`, `copilot-pull-request-reviewer[bot]`): an author reply citing the fix commit hash counts as "addressed"; the agent informs the user at handoff so the user can manually resolve if desired (per §Step 7). If a thread ID present in iteration N is absent in iteration N+1 (bot retracted the comment, or the diff line was rewritten such that GitHub auto-removed the inline anchor), **treat the disappearance as resolution**. The thread ID set is monotonically non-increasing across iterations once the agent stops adding new fix commits.
 
-3. **CI green** for the most recent commit, OR no CI is configured for the repo. "No CI configured" means both `gh api repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs --jq '.total_count'` AND `gh api repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA --jq '.total_count'` return `0`. In that case treat condition #3 as vacuously satisfied. Without this carve-out the loop never terminates in repos without CI.
+3. **CI green** for the most recent commit, OR no CI is configured for the repo. "No CI configured" means ALL THREE of the following return zero on `$HEAD_SHA`:
+   - `gh api repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs --jq '.total_count'` (check-runs API; covers GitHub Actions + GitHub Apps that publish check-runs)
+   - `gh api repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA --jq '.total_count'` (Actions API; covers any workflow_run on the SHA)
+   - `gh api repos/$OWNER/$REPO/commits/$HEAD_SHA/status --jq '.statuses | length'` (legacy commit-statuses API; covers external CI providers like CircleCI, Jenkins, Travis, and custom integrations that post `continuous-integration/*` contexts).
+
+   In that case treat condition #3 as vacuously satisfied. Without checking all three signal sources, the loop terminates early in repos that publish CI exclusively via legacy commit statuses, handing off PRs as ready while external CI is still pending or failing.
 
 4. **Iteration count below max-iteration fail-safe.** Default cap: **10 fix rounds per PR** (counting each fix commit as one round). On hitting the cap, **escalate to the user** rather than continuing — write a summary of unresolved findings + reviewer-vs-author disagreements + recommend either (a) merge-as-is with explicit accepted-risks list, (b) close the PR and reopen with narrower scope, or (c) bump the cap with explicit justification. Pathological nitpick-spirals (each fix introduces a new bot finding indefinitely) are real failure modes — without a fail-safe the agent loops forever.
 
