@@ -197,15 +197,26 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
    # 5xx, etc.): under `set -e` a bare `LAST_PUSH_TS=$(gh api ...)` aborts the
    # script before the fallback below can run. Wrapping in `if` suspends `set
    # -e` for the assignment and lets the fallback handle the empty case.
-   if RUN_TS=$(gh api "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
-                 --jq '[.workflow_runs[]
-                        | select(.event != "workflow_dispatch"
-                                 and .event != "repository_dispatch"
-                                 and .event != "schedule"
-                                 and .event != "deployment"
-                                 and .event != "deployment_status")
-                        | .created_at] | sort | .[0] // empty' 2>/dev/null); then
-     LAST_PUSH_TS=$RUN_TS
+   # Use --paginate: a single SHA may have > 100 runs across many workflows /
+   # reruns, and the API's true earliest push-coupled run can sit on a later
+   # page. Without pagination, LAST_PUSH_TS is computed too LATE (using a
+   # later page-1 result) and legitimate post-push comments get dropped.
+   # Note: per-page `--jq '[...] | sort | .[0]'` would return each page's
+   # local minimum, not the global minimum, so the sort is moved to the
+   # shell and runs across the full concatenated stream.
+   if RUN_TS_RAW=$(gh api --paginate \
+                     "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
+                     --jq '.workflow_runs[]
+                           | select(.event != "workflow_dispatch"
+                                    and .event != "repository_dispatch"
+                                    and .event != "schedule"
+                                    and .event != "deployment"
+                                    and .event != "deployment_status")
+                           | .created_at' 2>/dev/null); then
+     # Z-form ISO timestamps lex-sort = chronological-sort. `grep -v '^$'`
+     # drops the trailing newline `printf` adds for empty input so the head
+     # picks the first real timestamp, or yields empty for "no runs".
+     LAST_PUSH_TS=$(printf '%s\n' "$RUN_TS_RAW" | LC_ALL=C sort | grep -v '^$' | head -n1)
    fi
 
    # Fallback: no push workflow ran for this SHA, OR Actions API was unavailable.
