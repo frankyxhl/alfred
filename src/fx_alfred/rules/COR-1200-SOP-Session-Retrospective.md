@@ -60,6 +60,11 @@ TODAY=$(date -u +%F)
 YESTERDAY=$(date -u -d 'yesterday' +%F 2>/dev/null \
             || date -u -v-1d +%F)   # GNU first (-d), BSD/macOS fallback (-v-1d)
 
+# Define the event-extraction jq filter once and reuse for today + yesterday.
+JQ_FILTER='select(.event == "task.done" or .event == "doc.created"
+                  or .event == "doc.updated" or .event == "decision")
+           | "\(.ts)  \(.event)  \(.summary)\(if .refs then "  refs=" + (.refs|join(",")) else "" end)"'
+
 # 1. (Optional) Verify schema before relying on the log. Quiet on success,
 #    prints "<path>:<lineno>: <field>: <reason>" on violations.
 #    Validating the directory picks up today's .jsonl, any .partN.jsonl
@@ -67,18 +72,23 @@ YESTERDAY=$(date -u -d 'yesterday' +%F 2>/dev/null \
 af log-validate ./rules/logs/
 
 # 2. Read today's event stream. JSONL is one-per-line so plain jq works.
-#    Glob across ${TODAY}.jsonl AND any ${TODAY}.partN.jsonl rollover so
-#    high-volume sessions don't silently drop events. The 2>/dev/null
-#    suppresses jq's "file not found" when no rollover happened today.
-jq -r 'select(.event == "task.done" or .event == "doc.created"
-              or .event == "doc.updated" or .event == "decision")
-       | "\(.ts)  \(.event)  \(.summary)\(if .refs then "  refs=" + (.refs|join(",")) else "" end)"' \
-   ./rules/logs/${TODAY}.jsonl ./rules/logs/${TODAY}.part*.jsonl 2>/dev/null
+#    Concatenate ${TODAY}.jsonl AND any ${TODAY}.partN.jsonl rollover with
+#    explicit existence guards so the recipe stays `set -e` safe whether or
+#    not rollover happened. (The earlier shell-glob form was unsafe: bash
+#    leaves an unmatched glob literal, jq fails to open it, and the non-zero
+#    exit propagates through `set -e`.)
+{
+  if [ -e "./rules/logs/${TODAY}.jsonl" ]; then cat "./rules/logs/${TODAY}.jsonl"; fi
+  for f in ./rules/logs/${TODAY}.part*.jsonl; do
+    if [ -e "$f" ]; then cat "$f"; fi
+  done
+} | jq -r "$JQ_FILTER"
 
 # 3. Yesterday's records (after archival). `unzip -p` accepts globs, so
 #    "${YESTERDAY}*.jsonl" picks up ${YESTERDAY}.jsonl AND any
-#    ${YESTERDAY}.partN.jsonl entries inside archive.zip:
-unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" | jq -r '...'
+#    ${YESTERDAY}.partN.jsonl entries inside archive.zip. Reuse $JQ_FILTER
+#    instead of an ellipsis placeholder.
+unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" | jq -r "$JQ_FILTER"
 ```
 
 Note: `af log-validate` is a **schema checker** (quiet on success, emits only violations); it does not output the event stream itself. Read the JSONL bytes via `jq` (or `cat`) to extract events. The glob in step 2 covers both the base `<today>.jsonl` and any `<today>.partN.jsonl` rollover segments per COR-1205 §Rotation; `2>/dev/null` suppresses jq's "file not found" when no rollover happened. *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both **scaffolded in CHG-2231 Phase 0**; mandatory triggers and CLI surfaces land across Phases 2–5; target release v1.9.0.)*
