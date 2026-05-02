@@ -12,7 +12,7 @@
 
 The implementation guide for the cross-agent activity log protocol. Tells every coding agent (Claude Code, GitHub Copilot, Cursor, Cline, Aider, Codex CLI, Gemini CLI, …) **when to emit**, **how to emit**, and **how to map native lifecycle events** onto the canonical schema defined in COR-1205. Also defines the **scanner-skip contract** that protects `rules/logs/` from `af` document-walk commands.
 
-This document defines the **emit protocol**. The **format** lives in COR-1205. The **CLI surfaces** are `af log` (writer), `af log-validate` (schema checker), `af log-archive` (explicit archival), all shipped in fx-alfred v1.9.0.
+This document defines the **emit protocol**. The **format** lives in COR-1205. The **CLI surfaces** are `af log` (writer), `af log-validate` (schema checker), `af log-archive` (explicit archival) — **scaffolded in CHG-2231 Phase 0 and implemented across Phases 2–5; target release v1.9.0**. Until those phases land in `main`, the commands are placeholder modules and the mandatory triggers below cannot yet be exercised end-to-end; this SOP still defines the eventual integration contract authoritatively, and integrators preparing per-agent recipes can stub against the CLI surfaces in advance.
 
 ---
 

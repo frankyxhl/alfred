@@ -12,7 +12,7 @@
 
 The canonical data contract for the Alfred activity log protocol. Defines the on-disk format, schema (`alfred.activity/v1`), required + optional fields, event enum, file rotation, archival procedure, and operational constraints. Any coding agent — Claude Code, GitHub Copilot, Cursor, Cline, Aider, Codex CLI, Gemini CLI, or any future tool — emits structured events to this format so "what was done in this session" becomes machine-readable across tools.
 
-This document defines the **format**. The **emit protocol** (mandatory triggers, per-agent integration recipes, scanner-skip enforcement) lives in COR-1206. The **CLI surfaces** that read and write this format are `af log`, `af log-validate`, `af log-archive` (shipped in fx-alfred v1.9.0).
+This document defines the **format**. The **emit protocol** (mandatory triggers, per-agent integration recipes, scanner-skip enforcement) lives in COR-1206. The **CLI surfaces** that read and write this format are `af log`, `af log-validate`, `af log-archive` — **scaffolded in CHG-2231 Phase 0 and implemented across Phases 2–5; target release v1.9.0**. Until those phases land in `main`, the commands are placeholder modules and `af <log|log-validate|log-archive>` will return non-zero (command not registered); this REF still describes the eventual contract authoritatively.
 
 ---
 
