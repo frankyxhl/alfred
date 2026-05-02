@@ -85,37 +85,73 @@ quarkdown/
 `preprocess.sh`:
 ```bash
 #!/bin/bash
-# Copies .md files to temp dir, converting ```mermaid fenced blocks
-# to .mermaid directives for Quarkdown compatibility.
+# Copies .md files to temp dir, converting:
+#   1. ```mermaid fenced blocks → .mermaid directives (Quarkdown compat)
+#   2. The FIRST `---` separator (post-metadata pseudo-frontmatter only)
+# In-body `---` section separators (everything after the first) are preserved.
 # Source .md files are NEVER modified.
-SRC="$1"   # source .md file
-DST="$2"   # temp .qd file
-sed '
-  /^---$/d
-  /^```mermaid$/,/^```$/ {
-    /^```mermaid$/ { s/```mermaid/.mermaid/; n; }
-    /^```$/d
+set -euo pipefail
+SRC="${1:?usage: preprocess.sh <src.md> <dst.qd>}"
+DST="${2:?usage: preprocess.sh <src.md> <dst.qd>}"
+
+awk '
+  BEGIN { stripped_first_separator = 0; in_mermaid = 0 }
+
+  # Strip the first `---` (post-metadata pseudo-frontmatter delimiter).
+  # All subsequent `---` lines pass through unchanged so in-body section
+  # separators render as horizontal rules.
+  /^---$/ && !stripped_first_separator {
+    stripped_first_separator = 1
+    next
   }
+
+  # Convert opening ```mermaid → .mermaid (Quarkdown directive)
+  /^```mermaid$/ {
+    print ".mermaid"
+    in_mermaid = 1
+    next
+  }
+
+  # Drop the closing ``` of a mermaid block (directive scope is until blank line)
+  in_mermaid && /^```$/ {
+    in_mermaid = 0
+    next
+  }
+
+  { print }
 ' "$SRC" > "$DST"
 ```
 
 `main.qd`:
 ```quarkdown
-.include {docs}
+.include {_setup}
 
 # FXA Alfred Agent Runbook
 
-Browse SOPs, PRPs, and CHGs for the fx-alfred project.
+Browse SOPs, PRPs, and CHGs for the fx-alfred project. Each document below
+is **inlined** into the combined output via the Quarkdown `.include`
+directive — required for `quarkdown c main.qd --pdf` to produce a single
+aggregated PDF rather than a PDF of just this index page (Markdown links
+to `.qd` paths would be treated as subdocument references, not inline
+content).
 
 ## SOP Documents
-- [SOP-2102: Release To PyPI](/tmp/qd-build/FXA-2102-SOP-Release-To-PyPI.qd)
+
+.include {/tmp/qd-build/FXA-2102-SOP-Release-To-PyPI.qd}
 
 ## Proposals (PRP)
-- [PRP-2232: Quarkdown Docs Layer](/tmp/qd-build/FXA-2232-PRP-Quarkdown-Documentation-Rendering-Layer.qd)
+
+.include {/tmp/qd-build/FXA-2232-PRP-Quarkdown-Documentation-Rendering-Layer.qd}
 
 ## Change Requests (CHG)
-- [CHG-2103: Root Option And Spacing](/tmp/qd-build/FXA-2103-CHG-Root-Option-And-Spacing.qd)
+
+.include {/tmp/qd-build/FXA-2103-CHG-Root-Option-And-Spacing.qd}
 ```
+
+Note: `.include {_setup}` references `_setup.qd` (the shared config sibling).
+A separate `_nav.qd` can be added if a sidebar navigation is desired in HTML
+output — for the PDF target, the `.include` block above is the canonical
+inlining mechanism per Quarkdown v2.0.0 documentation.
 
 ### Phase 2: Verify rendering fidelity (1 session)
 
@@ -265,3 +301,4 @@ If Phase 2 verification fails (any document requires `.md` modification to rende
 | 2026-05-03 | R2: Added MkDocs comparison, AC, verification plan, risk mitigations (Codex 6.25 + DeepSeek FIX) | Claude Code |
 | 2026-05-03 | R3: Added preprocessor (Mermaid gap confirmed), demo evidence table, rejection cleanup, nav scoped to ~10 docs, Phase 2 rejection threshold made precise | Claude Code |
 | 2026-05-03 | R4: Added main.qd template, preprocessor now strips YAML --- delimiters, PDF criteria made objective (DeepSeek R3 FIX 8.0 → target 9.0) | Claude Code |
+| 2026-05-03 | R5: Address PR #86 Codex bot inline review (P1 + P2). (a) preprocess.sh: replace `sed '/^---$/d'` (which corrupted in-body section separators) with awk strip-first-only, runs under `set -euo pipefail`. (b) main.qd: replace Markdown links to `.qd` paths with `.include {path}` directives so `--pdf` produces single combined PDF as the acceptance criterion specifies. | Claude Code (per COR-1612 §Step 5) |
