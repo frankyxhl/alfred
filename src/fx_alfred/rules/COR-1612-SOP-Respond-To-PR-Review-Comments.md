@@ -19,6 +19,7 @@ Different reviewer types catch different failure modes. Always treat them as a *
 |---|---|---|---|
 | **GitHub-native review bot** — e.g. `chatgpt-codex-connector[bot]` (Codex), `copilot-pull-request-reviewer[bot]` (Copilot), CodeRabbit, Greptile, Sourcery. Auto-runs ~30s after each commit push when the corresponding GitHub App is installed. | Cross-reference inconsistencies, stale references, "shipped" / placeholder elision, shell-example execution failures (`set -e` brittleness, unmatched globs, invalid jq, syntax errors), cross-file contract drift | Architectural judgment, design tradeoffs, calibration scoring, out-of-scope debates | Always check repo settings — exact bot identity varies. The SOP applies identically to any bot of this class. |
 | **Multi-model panel review** — N independent LLM reviewers scoring against a rubric (e.g. COR-1608). Project-specific tooling: `/trinity` skill, CodeRabbit Pro, Greptile-team-review, custom orchestration, or none. | Architecture, risk awareness, scope precision, calibration scoring (COR-1608), competing-tradeoff judgments | Cross-reference drift after R+1 (panel internalizes a model and stops re-checking), shell-execution last-mile bugs, "review pack framed-out" issues | **Project-specific.** Many projects have no multi-model panel — that is normal. When unavailable, the bot inline + author self-review is the entire reviewer pool. |
+| **CI-side static analyzer** — type checker (`mypy`, `pyright`, `tsc`), linter (`ruff`, `eslint`, `clippy`), security scanner (`bandit`, `semgrep`, `gitleaks`), shellcheck. Runs on every PR via the project's CI workflow. | Type errors, lint violations, dead code, security anti-patterns, shell-script bugs (when `shellcheck` is wired). Deterministic, no LLM. | Architectural judgment, semantic correctness beyond type/lint rules, intent verification. Misses cross-reference drift in prose. | Project-dependent — check `.github/workflows/`. Treat as a hard gate when present (CI fail = blocker). |
 | **Human reviewer** | Domain intent, "is this what the user actually wants", historical context, cross-PR strategic decisions | Patience for diff-mode rescanning, real-shell mental simulation | Project-dependent (solo vs team). |
 | **Author self-review** | Knows intent + recent context | Author-self bias ("I just wrote this, it's fine"), inability to diff-mode read own work | Always available. |
 
@@ -130,12 +131,21 @@ After every fix push, the agent **MUST** wait 3–5 minutes and self-poll for ne
 ```mermaid
 flowchart TD
   A([Push fix commit]) --> B[Wait 3-5 min<br/>do NOT exit / hand back to user]
-  B --> C[Fetch all comments<br/>per Step 1]
-  C --> D{New top-level<br/>comments since<br/>last fix push?}
+  B --> P{PR state still<br/>open + ready for review?}
+  P -->|Closed / merged| Z1([STOP — out of band<br/>maintainer closed/merged<br/>handoff to user])
+  P -->|Converted to draft| Z2([STOP — handoff to user<br/>SOP only applies to<br/>ready-for-review PRs])
+  P -->|Force-pushed since<br/>last fetch| FP[Re-anchor: fetch comments<br/>by ID, ignore line numbers<br/>some bot anchors invalidated]
+  FP --> C
+  P -->|Yes| C[Fetch all comments<br/>per Step 1<br/>3 surfaces: inline, review, issue]
+  C --> D{New comments since<br/>last fix push<br/>across all 3 surfaces?}
   D -->|Yes| E[Apply Steps 2-5<br/>to new comments]
-  E --> A
+  E --> M{Iteration count<br/>< max-cap 10?}
+  M -->|Yes| A
+  M -->|No| Z3([STOP — escalate to user<br/>nitpick-spiral fail-safe<br/>see Step 6 stopping cond #4])
   D -->|No| F{Existing threads:<br/>all replied or<br/>marked outdated/resolved?}
-  F -->|No| G[Reply to remaining<br/>per Step 5]
+  F -->|No| RD{Reviewer pushback<br/>on prior reply?<br/>e.g. disagreement<br/>or rebuttal}
+  RD -->|Yes - real disagreement| Z4([STOP — escalate to user<br/>reviewer/author disagreement<br/>needs human judgement])
+  RD -->|No - just unaddressed| G[Reply to remaining<br/>per Step 5]
   G --> H[Wait 3-5 min<br/>do NOT exit]
   H --> C
   F -->|Yes| I{CI green?}
@@ -156,33 +166,60 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 | **GitHub Actions / CI** | `sleep 300 && <re-fetch script>` |
 | **Manual / shell** | `sleep 300 && <re-fetch>` |
 
-#### Stopping conditions (all three required)
+#### Stopping conditions (all four required)
 
-1. **No new top-level inline comments** since the last fix push (re-run Step 1 — count `in_reply_to_id == null` comments without a corresponding reply).
-2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer.
+1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches:
+   - Inline review comments (`pulls/{n}/comments`, `in_reply_to_id == null` without an author reply)
+   - Review summary comments (`pulls/{n}/reviews` with non-empty body or `CHANGES_REQUESTED` state)
+   - Top-level issue comments (`issues/{n}/comments` not authored by the PR owner)
+
+   The earlier draft of this stopping condition only counted inline comments, which created a Step 1↔Step 6 contract drift — fetched three surfaces but stopped on one. All three must be checked.
+
+2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer. **For non-resolving bots** (bots that never call the resolve mutation — common for `chatgpt-codex-connector[bot]`, `copilot-pull-request-reviewer[bot]`): an author reply citing the fix commit hash counts as "addressed"; the agent informs the user at handoff so the user can manually resolve if desired (per §Step 7).
+
 3. **CI green** for the most recent commit.
 
-If any of the three is not met, loop back to "Wait 3-5 min" — do not exit.
+4. **Iteration count below max-iteration fail-safe.** Default cap: **10 fix rounds per PR** (counting each fix commit as one round). On hitting the cap, **escalate to the user** rather than continuing — write a summary of unresolved findings + reviewer-vs-author disagreements + recommend either (a) merge-as-is with explicit accepted-risks list, (b) close the PR and reopen with narrower scope, or (c) bump the cap with explicit justification. Pathological nitpick-spirals (each fix introduces a new bot finding indefinitely) are real failure modes — without a fail-safe the agent loops forever.
+
+If any of the four is not met, loop back to "Wait 3-5 min" — do not exit.
 
 #### Detecting reviewer-side resolution
 
-Verify whether the reviewer marked the thread outdated/resolved (a positive signal that your fix landed):
+Verify whether the reviewer marked the thread outdated/resolved (a positive signal that your fix landed). The `gh api` command below is a real shell example and follows the §Step 8 rule — it uses bash variables (not angle-bracket placeholders) so it is copy-paste runnable under `set -euo pipefail`:
 
 ```bash
-# Per-comment resolution state (GitHub GraphQL — REST doesn't expose isResolved)
-gh api graphql -f query='
-  query($owner:String!, $repo:String!, $pr:Int!) {
-    repository(owner:$owner, name:$repo) {
-      pullRequest(number:$pr) {
-        reviewThreads(first:100) {
-          nodes { id isResolved isOutdated comments(first:1){nodes{databaseId path line body}} }
+OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
+REPO="${REPO:?set REPO=<repo-name>}"
+PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
+
+# Per-thread resolution state (GitHub GraphQL — REST doesn't expose isResolved).
+# Pagination: GraphQL caps reviewThreads at 100 per page. For PRs with > 100
+# threads, page via the cursor below. The pageInfo block + while-loop is the
+# canonical pattern.
+CURSOR="null"
+while :; do
+  RESPONSE=$(gh api graphql \
+    -f query='
+      query($owner:String!, $repo:String!, $pr:Int!, $after:String) {
+        repository(owner:$owner, name:$repo) {
+          pullRequest(number:$pr) {
+            reviewThreads(first:100, after:$after) {
+              pageInfo { hasNextPage endCursor }
+              nodes { id isResolved isOutdated comments(first:1){nodes{databaseId path line body}} }
+            }
+          }
         }
-      }
-    }
-  }' -f owner=<owner> -f repo=<repo> -F pr=<num>
+      }' \
+    -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUM" \
+    -f after="$CURSOR" 2>/dev/null) || break
+  echo "$RESPONSE" | jq -r '.data.repository.pullRequest.reviewThreads.nodes[]'
+  HAS_NEXT=$(echo "$RESPONSE" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
+  [ "$HAS_NEXT" = "true" ] || break
+  CURSOR=$(echo "$RESPONSE" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor')
+done
 ```
 
-A thread with `isResolved: true` OR `isOutdated: true` counts as "resolved" for the stopping condition. Do not self-resolve (per §Step 7).
+A thread with `isResolved: true` OR `isOutdated: true` counts as "resolved" for §Step 6 stopping condition #2. Do not self-resolve (per §Step 7).
 
 ### 7. Do NOT self-resolve threads
 
