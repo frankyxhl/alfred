@@ -1,10 +1,10 @@
 # PRP-2229: Layered SOP Memory Model
 
 **Applies to:** FXA project
-**Last updated:** 2026-04-29
+**Last updated:** 2026-05-02
 **Last reviewed:** 2026-04-29
-**Related:** OpenClaw memory lifecycle, Elliot Chen "State of AI Agent Memory 2026", Tim Kellogg "Agent Memory Patterns"
 **Status:** Draft
+**Related:** OpenClaw memory lifecycle, Elliot Chen "State of AI Agent Memory 2026", Tim Kellogg "Agent Memory Patterns"
 
 ---
 
@@ -49,6 +49,7 @@ repeated observation belongs, and which documents should be recalled before
 work starts. This can lead to lost context, duplicated notes, overgrown SOPs,
 or durable documents being updated without enough review.
 
+
 ## Scope
 
 This proposal covers the design of the memory model and the SOP/CLI changes
@@ -71,6 +72,7 @@ Out of scope:
   SOPs.
 - Requiring embeddings or semantic search in the first implementation slice.
 - Replacing Alfred's existing document types with a generic `MEMORY.md`.
+
 
 ## Proposed Solution
 
@@ -146,8 +148,11 @@ Adopt a layered memory model for Alfred's SOP system:
 7. Recall surface
 
    Explicit tools that retrieve relevant context before or during work. Today
-   this includes `af guide`, `af plan`, and `af search`. A later slice can add
-   `af recall` or ranked search once the SOP semantics are settled.
+   this includes `af guide`, `af plan`, and `af search`. The first
+   implementation slice (per § Decisions § "Implementation slice scope")
+   adds **`af recall <task>`** as a skeleton command — see acceptance criteria
+   for the three-section output contract. Ranked search and embedding-based
+   retrieval remain deferred to later slices once the SOP semantics settle.
 
    Recall is not binary — different documents need different injection
    strategies. The recall surface should distinguish three injection classes:
@@ -217,8 +222,12 @@ Initial implementation should remain simple and document-first:
 
 - Keep current `af guide` and `af plan` behavior as the primary recall entry
   points.
-- Consider a later `af recall <task>` command that returns a ranked set of
-  relevant ADR/REF/SOP/PRP/CHG documents plus active tracker items.
+- Ship a minimal **`af recall <task>`** command skeleton in the first
+  implementation slice (per § Decisions § "Implementation slice scope"),
+  reusing the existing tag-matching algorithm from `core/compose.py` —
+  three output sections per acceptance criteria, no ranking, no embeddings.
+  *(This supersedes the earlier draft wording that called `af recall`
+  "later" — § Decisions promoted it into the first slice.)*
 - Consider `af search --ranked` as a lower-risk intermediate step before
   semantic search.
 - Treat embeddings or hybrid search as optional later infrastructure, not as a
@@ -246,26 +255,104 @@ This proposal is complete when:
   ADR/REF/SOP/PRP/CHG documents.
 - Any future CLI recall feature can be implemented against this model without
   redefining the governance rules.
+- Schema introduces a `Recall` metadata field with values
+  `always | on-demand | never`; `Always included: true` continues to work as
+  a deprecated alias.
+- An `af recall <task>` command exists (skeleton form) and returns three
+  sections: (1) **always-inject documents** — full body rendered for direct
+  prompt-context insertion; (2) **on-demand candidates** matched by
+  tag/lifecycle — full body rendered; (3) **hidden (`never`-inject)
+  entries** — listed by `PREFIX-ACID` and title only, with no body or
+  metadata rendered (operator-visible diagnostic so the user can verify
+  what was deliberately excluded from context, without that content
+  contaminating the prompt). The third section's "omitted from output"
+  refers to *bodies*, not the *list of names* — the diagnostic value of
+  the never-inject section comes from the names being visible.
+- `af validate` checks `Recall` field values and warns when `Recall` and
+  `Always included` are both set with conflicting semantics.
+
+---
+
+## Decisions
+
+The decisions below converge previously open questions on this PRP into
+agreed outcomes. They constrain implementation. Items still requiring
+discussion remain in `## Open Questions`.
+
+### Implementation slice scope
+
+First implementation slice = **Documents + Schema + `af recall` command
+skeleton**.
+
+- Documents: `COR-1203-SOP-Promote-Session-Memory`,
+  `COR-1204-REF-Memory-Layer-Model`, updates to
+  `COR-1103-SOP-Contextual-SOP-Routing`,
+  `COR-1200-SOP-Session-Retrospective`, and
+  `COR-1201-SOP-Discussion-Tracking`; plus a PRJ-side complementary REF for
+  project-specific alpha.
+- Schema: introduce `Recall: always | on-demand | never` metadata field.
+- CLI: ship a minimal `af recall <task>` command skeleton with three output
+  sections (always-inject / on-demand / hidden) using the existing
+  tag-matching algorithm from `core/compose.py`. No ranking, no embeddings.
+
+This converges the previously open question "Should the first implementation
+slice be SOP-only, or should it also add a small `af recall` command?".
+
+### `Recall` field replaces `Always included`
+
+Introduce `Recall: always | on-demand | never` as the canonical metadata
+field. Keep `Always included: true` as a **deprecated alias** for
+`Recall: always` for at least one minor version (compatibility window).
+
+- New documents must use `Recall`.
+- `af fmt` writes `Recall`.
+- `af validate` warns when both `Recall` and `Always included` are set with
+  conflicting semantics.
+
+This converges the previously open question "Should the `Always included: true`
+metadata field be generalized into a `Recall` field…".
+
+### COR-1204 placement
+
+The canonical memory layer model lives in **both layers**:
+
+- PKG: `COR-1204-REF-Memory-Layer-Model` carries the canonical layer
+  architecture, lifecycle vocabulary, promotion rules, and recall injection
+  classes.
+- PRJ: project-side REF documents carry project-specific alpha — procedures
+  and patterns that don't generalize to PKG.
+
+The PRJ→COR feedback loop documented under "Promotion Rules" governs how
+proven PRJ patterns get promoted to PKG.
+
+This promotes the preliminary answer recorded against the original first
+open question to a binding decision.
+
+### Implementation Workflow
+
+This PRP follows the standard meta-workflow:
+
+`COR-1102 (PRP, current) → COR-1602 strict review (Codex + Gemini, both ≥ 9.0) → COR-1101 CHG → COR-1500 TDD per phase`
+
+Implementation will be split into the following phases (detailed
+decomposition belongs in the CHG, not in this PRP):
+
+- Phase 0 — PRP cleanup
+- Phase 1 — Documents (COR-1203, COR-1204, updates to
+  COR-1103/1200/1201, PRJ REF)
+- Phase 2 — Schema (`Recall` field, deprecation of `Always included`)
+- Phase 3 — `af recall` command skeleton
+- Phase 4 — Tests + integration
+
 
 ## Open Questions
 
-- Should the canonical memory layer model be a COR reference because it applies
-  globally, or a PRJ reference until the pattern proves reusable?
-  *Preliminary answer:* Both. COR-1204 carries the architecture definition
-  (layer structure, promotion rules), while PRJ SOPs carry the alternative
-  alpha — project-specific procedures that the PKG layer does not and should
-  not predefine. The PRJ→COR feedback loop captures what generalizes.
-- Should the first implementation slice be SOP-only, or should it also add a
-  small `af recall` command?
 - Should user preferences have their own explicit promotion path, separate
   from project memory?
 - Should project summaries become a first-class REF type, or remain ordinary
   REF documents with tags?
 - What minimum ranking behavior is good enough for recall before introducing
   embeddings or hybrid search?
-- Should the `Always included: true` metadata field be generalized into a
-  `Recall` field (`always | on-demand | never`) to let any document type
-  declare its injection class?
 - Should knowledge-type documents (REF, ADR, CHG) and procedural-type
   documents (SOP, PRP) use different retrieval strategies out of the box?
   Procedural documents are task-specific and need fresher updates; static
@@ -275,10 +362,12 @@ This proposal is complete when:
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
+| Date       | Change                                                                                                                                                                                                                                                                                       | By                           |
+|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
 | 2026-04-29 | Initial version | Codex |
 | 2026-04-29 | Split Durable knowledge into 6a (static knowledge: REF/ADR/CHG) and 6b (dynamic procedural: SOP/PRP); added recall priority injection classes (always / on-demand / never); added PRJ→COR SOP promotion feedback loop; added two new Open Questions | Droid |
+| 2026-05-01 | Converge 4 open questions into ## Decisions: scope = docs+schema+af recall skeleton; Recall field with Always included as deprecated alias; COR-1204 lives in PKG with PRJ-side REF complement; standard PRP→Review→CHG→TDD workflow. Add Recall and af recall items to Acceptance Criteria. | Droid (orchestrator) + Frank |
+| 2026-05-02 | Address PR #82 Codex bot inline review (2 P2 blockings on commit d6536d1): (1) [L256] Acceptance criterion was internally contradictory: 'returns three sections' AND 'hidden entries omitted from output' — implementers cannot satisfy both. Disambiguated: third section lists hidden never-inject entries by PREFIX-ACID + title only (no body) — operator-visible diagnostic so user can verify what was deliberately excluded from context, without that content contaminating the prompt. The 'omitted from output' wording referred to bodies, not the list of names — clarified inline. (2) [L152, L222] Two stale 'later af recall' references in the body of the PRP (Recall surface section + CLI Direction section) directly contradicted the new Decisions section that promoted af recall into the first implementation slice. Same self-contradiction class Codex bot has reliably caught throughout the PRP-2230 amendment series. Both updated to reference Decisions section + clarify that ranking + embeddings remain deferred (not af recall itself). | Frank + Claude (PR #82 Codex bot review fix) |
 
 ---
 
