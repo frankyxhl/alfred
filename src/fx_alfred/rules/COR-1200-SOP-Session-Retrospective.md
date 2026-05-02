@@ -49,6 +49,8 @@ See COR-1201 (Discussion Tracking) for the full D item protocol.
 
 ### 1. List all actions taken this session
 
+**Before reconstructing actions:** if `./rules/logs/<today UTC>.jsonl` exists (or `./rules/logs/archive.zip` contains today's entry), read it via `af log-validate` (verifies schema) and use its `task.done` / `doc.created` / `doc.updated` / `decision` events as the ground truth for what happened this session. The chat-history reconstruction below remains the fallback when the log is empty or absent. *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both new in v1.9.0.)*
+
 Review the conversation and list every meaningful action:
 - Files created, edited, or deleted
 - Commands run

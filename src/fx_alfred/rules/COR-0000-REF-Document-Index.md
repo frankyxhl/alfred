@@ -1,8 +1,8 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-04
-**Last reviewed:** 2026-03-19
+**Last updated:** 2026-05-02
+**Last reviewed:** 2026-05-02
 **Status:** Active
 
 ---
@@ -25,6 +25,8 @@ A reference index of all documents in the COR system.
 | 1102 | SOP | Create Proposal |
 | 1200 | SOP | Session Retrospective |
 | 1201 | SOP | Discussion Tracking |
+| 1205 | REF | Agent Activity Log Format |
+| 1206 | SOP | Emit Agent Activity |
 | 1300 | SOP | Update Document |
 | 1301 | SOP | Deprecate Document |
 | 1302 | SOP | Maintain Document Index |
