@@ -61,12 +61,16 @@ Without a standard process, review comments get fixed without replies, missed en
 Fetch inline review comments, review summary comments, and top-level PR conversation comments:
 
 ```bash
+OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
+REPO="${REPO:?set REPO=<repo-name>}"
+PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
+
 # Inline review comments on changed lines.
 # IMPORTANT: keep `in_reply_to_id`, `created_at`, and `user.login` in the
 # projection — §Step 6 stopping condition #1 needs them to (a) distinguish
 # top-level vs reply comments, (b) detect "since last fix push" boundary,
 # (c) attribute the comment to a reviewer (bot vs human).
-gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate --jq '.[] | {type: "inline", id, in_reply_to_id, path, line, user: .user.login, created_at, body}'
+gh api repos/"$OWNER"/"$REPO"/pulls/"$PR_NUM"/comments --paginate --jq '.[] | {type: "inline", id, in_reply_to_id, path, line, user: .user.login, created_at, body}'
 
 # Review summary comments (review bodies). Keep CHANGES_REQUESTED reviews even
 # if body is empty. Includes `user.login` for bot-vs-human attribution.
@@ -76,10 +80,10 @@ gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate --jq '.[] | {type
 # alias, a `created_at`-keyed "since last fix push" check silently drops new
 # review summaries (including new CHANGES_REQUESTED reviews).
 # Reviews don't have `in_reply_to_id` (no thread structure).
-gh api repos/{owner}/{repo}/pulls/{number}/reviews --paginate --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type: "review_summary", id, state, user: .user.login, created_at: .submitted_at, body}'
+gh api repos/"$OWNER"/"$REPO"/pulls/"$PR_NUM"/reviews --paginate --jq '.[] | select(.state == "CHANGES_REQUESTED" or (.body != null and .body != "")) | {type: "review_summary", id, state, user: .user.login, created_at: .submitted_at, body}'
 
 # Top-level PR conversation comments. Same field rationale.
-gh api repos/{owner}/{repo}/issues/{number}/comments --paginate --jq '.[] | {type: "issue_comment", id, user: .user.login, created_at, body}'
+gh api repos/"$OWNER"/"$REPO"/issues/"$PR_NUM"/comments --paginate --jq '.[] | {type: "issue_comment", id, user: .user.login, created_at, body}'
 ```
 
 ### 2. Categorize each comment
@@ -113,7 +117,8 @@ Read each comment and classify:
 
 If any blocking or adopted advisory comments required code changes, group those fixes into a single commit referencing the PR:
 
-```bash
+Recipe form (pseudocode). Substitute `<changed-files>` with the actual paths and `<PR>` with the PR number before running.
+```text
 git add <changed-files>
 git commit -m "fix: address PR review comments (#<PR>)"
 git push
@@ -165,6 +170,10 @@ flowchart TD
   I -->|Yes| K([STOP — PR ready<br/>for merge<br/>handoff to user])
 ```
 
+#### Force-push re-anchoring
+
+The `FP → C` branch (re-anchor: fetch by ID, ignore line numbers, since some bot anchors invalidate when force-push rewrites history) does NOT count as a fix round. Force-push iteration counter increments ONLY when a new fix commit was pushed (Mermaid edge `E → M`); re-anchor is housekeeping. This prevents history-rewrite churn from consuming the cap-10 fail-safe budget.
+
 #### Why "wait 3-5 min, do not exit" is mandatory
 
 GitHub-native review bots auto-trigger a fresh review pass on every new commit, typically within 30–90 seconds. A reply that arrives later is invisible to an agent that returned control to the user immediately after pushing. PR #84 in the COR-1612 evidence base ran **7 fix rounds**, each round catching new shell / cross-reference bugs introduced by the prior round's fix; if the agent had handed back control after round 1, rounds 2–7 would have required the user to manually prompt "Round N — check again". That is exactly the anti-pattern this Step 6 prevents.
@@ -210,6 +219,11 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
    # Note: per-page `--jq '[...] | sort | .[0]'` would return each page's
    # local minimum, not the global minimum, so the sort is moved to the
    # shell and runs across the full concatenated stream.
+   # GitHub's `actions/runs?head_sha=...` query is also capped server-side at
+   # 1,000 results regardless of `--paginate`. For a SHA accumulating > 1k
+   # workflow runs (extremely long-lived PR with many workflows × reruns), the
+   # earliest run can be truncated; the commit-time fallback handles this
+   # conservatively (over-approximates safely as above).
    if RUN_TS_RAW=$(gh api --paginate \
                      "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
                      --jq '.workflow_runs[]
@@ -234,6 +248,11 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
    # (commit-then-push within seconds); the explicit stderr warning makes the
    # approximation visible to the operator, who can re-run the loop later when
    # the API recovers if precision matters.
+   # When the fallback fires, LAST_PUSH_TS becomes the local committer date,
+   # which is typically EARLIER than actual push (over-approximation). The
+   # over-approximation is in the safe direction — at worst it includes some
+   # pre-push comments as 'new' and triggers an extra iteration; it never
+   # drops post-push comments.
    if [ -z "$LAST_PUSH_TS" ]; then
      EPOCH=$(git log -1 --format=%ct HEAD)
      LAST_PUSH_TS=$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
@@ -255,6 +274,7 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 
    ```bash
    PR_OWNER="${PR_OWNER:?set PR_OWNER=<github-login-of-pr-author>}"
+   PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
 
    # Stream all 3 surfaces through a single new-since-push filter
    {
@@ -268,22 +288,28 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
      map(select(
        # Both timestamps are Z-form (LAST_PUSH_TS normalised above; GitHub
        # created_at is Z by default), so lex compare = chronological compare.
+       # The in_reply_to_id == null clause was removed: it silently dropped
+       # reviewer pushback comments posted as replies to the author's prior
+       # reply, which could cause merge of contested PRs. The .user != $owner
+       # clause already excludes the PR author's own replies — that was the
+       # only legitimate reason to filter on in_reply_to_id.
        .created_at > $push
        and (.user != $owner)                        # not authored by PR owner
-       and ((.type == "inline" and .in_reply_to_id == null) or .type != "inline")  # top-level only for inline
      ))
    '
    ```
 
    Stop-condition #1 holds when this jq pipeline returns `[]` (empty array). The earlier draft only counted inline comments and didn't show the actual filter expression, which created a Step 1↔Step 6 contract drift — fetched three surfaces but stopped on one with no executable filter for the other two. All three surfaces are now covered by one composable filter that an implementer can copy-paste. The Z-form normalisation above eliminates the lex-vs-chronological hazard; `jq fromdateiso8601` was considered but rejected because BSD/macOS `strptime` doesn't accept the `+HH:MM` offsets it would need to handle.
 
-2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer. **For non-resolving bots** (bots that never call the resolve mutation — common for `chatgpt-codex-connector[bot]`, `copilot-pull-request-reviewer[bot]`): an author reply citing the fix commit hash counts as "addressed"; the agent informs the user at handoff so the user can manually resolve if desired (per §Step 7).
+2. **All existing threads** either have a reply from the author OR have been marked **outdated** by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly **resolved** by the original reviewer. **For non-resolving bots** (bots that never call the resolve mutation — common for `chatgpt-codex-connector[bot]`, `copilot-pull-request-reviewer[bot]`): an author reply citing the fix commit hash counts as "addressed"; the agent informs the user at handoff so the user can manually resolve if desired (per §Step 7). If a thread ID present in iteration N is absent in iteration N+1 (bot retracted the comment, or the diff line was rewritten such that GitHub auto-removed the inline anchor), **treat the disappearance as resolution**. The thread ID set is monotonically non-increasing across iterations once the agent stops adding new fix commits.
 
-3. **CI green** for the most recent commit.
+3. **CI green** for the most recent commit, OR no CI is configured for the repo. "No CI configured" means both `gh api repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs --jq '.total_count'` AND `gh api repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA --jq '.total_count'` return `0`. In that case treat condition #3 as vacuously satisfied. Without this carve-out the loop never terminates in repos without CI.
 
 4. **Iteration count below max-iteration fail-safe.** Default cap: **10 fix rounds per PR** (counting each fix commit as one round). On hitting the cap, **escalate to the user** rather than continuing — write a summary of unresolved findings + reviewer-vs-author disagreements + recommend either (a) merge-as-is with explicit accepted-risks list, (b) close the PR and reopen with narrower scope, or (c) bump the cap with explicit justification. Pathological nitpick-spirals (each fix introduces a new bot finding indefinitely) are real failure modes — without a fail-safe the agent loops forever.
 
-If any of the four is not met, loop back to "Wait 3-5 min" — do not exit.
+- If conditions **1, 2, or 3** are unmet, loop back to "Wait 3-5 min" — do not exit.
+- If condition **4** (iteration cap) is the unmet one, **STOP and escalate to the user** per the cap-hit instructions in #4 above. Do NOT loop back — that's an infinite loop.
+- If a reviewer pushback on a prior author reply is detected (Mermaid `RD → Z4`), **STOP and escalate to the user** for human judgement. Reviewer-vs-author disagreement is not loop-resolvable.
 
 #### Detecting reviewer-side resolution
 
@@ -384,7 +410,7 @@ Fixed in abc1234. Narrowed exception catch to `(ValueError, OSError, MalformedDo
 
 Example (declining):
 ```
-This suggestion is incorrect — the INC template places Date before Severity (see `src/fx_alfred/templates/inc.md`). No change needed.
+This suggestion is incorrect — the INC template places Date before Severity (see the project's incident-report template — typically `templates/incident.md` or equivalent). No change needed.
 ```
 
 ---
@@ -399,6 +425,8 @@ This suggestion is incorrect — the INC template places Date before Severity (s
 - **Closing the loop after one fix round:** Bot reviewers auto-re-review every new commit. If you push a fix and walk away, you'll miss the next bot pass — which catches bugs your fix introduced (PR #84 ran 7 rounds; rounds 4-7 each caught new shell brittleness introduced by the prior round's fix).
 - **Treating bot findings as "just lint":** Bot's static-diff cross-reference detector class catches genuine spec / shell / contract bugs that human and panel reviewers miss systematically (see "Reviewer Detector Classes" above). They are not stylistic suggestions — they are a different failure-mode population.
 - **Asking the user to remind you to re-check** (e.g. "Round N — check again", "let me know if there are new comments", "should I look at #84?"). The agent, not the user, owns the §Step 6 wait-and-poll loop. If you find yourself about to ask the user "any new reviews?", that means you exited Step 6 too early — go back, wait 3-5 min, and re-fetch yourself. The user prompts only when overriding the loop (e.g. "stop, merge as-is").
+- **Replying with a commit hash before push completes:** the agent runs `git commit` then composes the §Step 5 reply citing `abc1234` — but `git push` silently failed (network blip, hook reject, missing branch tracking) and the hash is local-only. Reviewer clicks the hash → 404. Always confirm `git push` exited 0 AND the hash resolves in `gh api repos/$OWNER/$REPO/commits/<sha>` before composing the reply.
+- **Treating thread-ID disappearance as a bug rather than resolution:** if a thread ID present in fetch round N is absent in round N+1, the bot retracted the finding (it self-corrected) or GitHub auto-removed an invalid line anchor. Treat the disappearance as resolution. (See §Step 6 stop-cond #2.)
 - **Assuming a multi-model panel is available** when this SOP was written. The original draft hardcoded a specific tool (`/trinity` skill) — that was wrong. The "Reviewer Detector Classes" table now describes panel review as project-specific; check what tooling your project has before relying on a panel pass.
 
 ## Why bot reviewers catch what humans/panels miss
