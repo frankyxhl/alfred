@@ -1,4 +1,4 @@
-# CHG-2232: Subsection Guard Symmetry in COR-1612 Step 6
+# CHG-2233: Subsection Guard Symmetry in COR-1612 Step 6
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
@@ -62,3 +62,4 @@ Sub-blocks currently in the §Step 6 stop-cond #1 example fence:
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-03 | Initial version — deferred from PR #85 trinity 3:1 vote (Codex/Gemini/GLM MERGE-AS-IS, DeepSeek FIX) | Claude Code |
+| 2026-05-03 | Renumbered FXA-2232 → FXA-2233; FXA-2232 was already claimed by PR #86 (Quarkdown PRP) which had been open since before this CHG was filed. ACID first-come-first-served convention. | Claude Code |

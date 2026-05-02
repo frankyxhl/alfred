@@ -141,7 +141,7 @@
 | 2229 | PRP | Layered SOP Memory Model |
 | 2230 | PRP | Agent Activity Log Protocol |
 | 2231 | CHG | Agent Activity Log Protocol v1 Implementation |
-| 2232 | CHG | Subsection Guard Symmetry in COR 1612 Step 6 |
+| 2233 | CHG | Subsection Guard Symmetry in COR 1612 Step 6 |
 
 ---
 
