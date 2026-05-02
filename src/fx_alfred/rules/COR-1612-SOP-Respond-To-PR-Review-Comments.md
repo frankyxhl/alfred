@@ -289,10 +289,13 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
        # Both timestamps are Z-form (LAST_PUSH_TS normalised above; GitHub
        # created_at is Z by default), so lex compare = chronological compare.
        # The in_reply_to_id == null clause was removed: it silently dropped
-       # reviewer pushback comments posted as replies to the author's prior
+       # reviewer pushback comments posted as replies to a prior author
        # reply, which could cause merge of contested PRs. The .user != $owner
-       # clause already excludes the PR author's own replies — that was the
+       # clause already excludes the PR author own replies — that was the
        # only legitimate reason to filter on in_reply_to_id.
+       # NOTE: do NOT introduce apostrophes (U+0027) inside this comment
+       # block — the entire jq program is a single-quoted shell string, so
+       # an apostrophe here terminates the string and breaks bash -n.
        .created_at > $push
        and (.user != $owner)                        # not authored by PR owner
      ))
