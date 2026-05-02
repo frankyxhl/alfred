@@ -179,16 +179,29 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 
 #### Stopping conditions (all four required)
 
-1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches. Set `LAST_PUSH_TS` to the **UTC `Z`-form** ISO timestamp of the most recent fix-commit push so it lex-compares cleanly against GitHub `created_at` (also `Z`-form). `git log %cI` emits the commit's stored offset (e.g. `+09:00` for a JST committer), and `TZ=UTC git log` does NOT override it — so derive from the epoch via `date -u`:
+1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches. Set `LAST_PUSH_TS` to the **UTC `Z`-form** ISO timestamp of when the head commit was actually pushed to GitHub (server-side ack), so it lex-compares cleanly against GitHub `created_at` (also `Z`-form). The push moment, not the commit moment, is the boundary that matters: a commit can sit locally for hours before push, or be pushed earlier with a future-skewed clock — using commit time misclassifies feedback (pulls in pre-push comments as "new", or drops real post-push comments). Query GitHub's record of when the head SHA actually arrived; fall back to commit time only if no server-side push record exists yet:
 
    ```bash
-   EPOCH=$(git log -1 --format=%ct HEAD)
-   LAST_PUSH_TS=$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
-                  || date -u -d "@$EPOCH" +%Y-%m-%dT%H:%M:%SZ)   # BSD || GNU
+   HEAD_SHA=$(git rev-parse HEAD)
+
+   # Primary: GitHub Actions starts a workflow run on push — its created_at is
+   # the server-side timestamp of when the push hit GitHub. Z-form by default.
+   LAST_PUSH_TS=$(gh api "repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=1" \
+                    --jq '.workflow_runs[0].created_at // empty')
+
+   # Fallback: no workflow ran for this SHA (no CI configured, or run not yet
+   # registered). Approximate with commit time — accept the small skew window
+   # rather than block the loop.
+   if [ -z "$LAST_PUSH_TS" ]; then
+     EPOCH=$(git log -1 --format=%ct HEAD)
+     LAST_PUSH_TS=$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+                    || date -u -d "@$EPOCH" +%Y-%m-%dT%H:%M:%SZ)   # BSD || GNU
+     echo "WARN: no workflow_run found for $HEAD_SHA; falling back to commit time" >&2
+   fi
    # Now LAST_PUSH_TS looks like "2026-05-02T07:35:27Z", same offset as GitHub.
    ```
 
-   Both ends in `Z`-form means lexicographic compare is time-order-safe (within a single offset, ISO 8601 lex order = chronological order). Earlier draft used `git log %cI` directly, which produced local-offset strings and made `.created_at > $push` lex-miscompare across offsets (e.g. comment `08:30:00Z` lex-compares `false` against push `10:00:00+02:00` even though the comment is 30 min newer in UTC).
+   Both ends in `Z`-form means lexicographic compare is time-order-safe (within a single offset, ISO 8601 lex order = chronological order). Earlier drafts used `git log %cI` (local-offset string, lex-miscompares across offsets) and `git log %ct` (commit time, not push time — misclassifies feedback when commit-vs-push gap is non-trivial); both hazards are avoided above.
 
    The unified `created_at` filter (made possible by the `submitted_at → created_at` alias in §Step 1's review-summary projection) lets one jq predicate apply to all three surfaces:
 
@@ -251,6 +264,11 @@ while :; do
   else
     AFTER_ARG=(-f "after=$CURSOR")     # subsequent pages: pass cursor as string
   fi
+  # Defensive expansion: bash 3.2 (still default on macOS) raises "unbound
+  # variable" under `set -u` when expanding an empty array via "${arr[@]}".
+  # The `${arr[@]+"${arr[@]}"}` idiom expands to nothing when the array is
+  # empty, and to the quoted elements otherwise — safe under `set -euo
+  # pipefail` on both bash 3.2 and bash 4+/5+.
   RESPONSE=$(gh api graphql \
     -f query='
       query($owner:String!, $repo:String!, $pr:Int!, $after:String) {
@@ -264,7 +282,7 @@ while :; do
         }
       }' \
     -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUM" \
-    "${AFTER_ARG[@]}") || {
+    ${AFTER_ARG[@]+"${AFTER_ARG[@]}"}) || {
     # Distinguish real failure (auth / rate-limit / network / 5xx) from normal
     # end-of-pagination. A non-zero exit from `gh api graphql` here is ALWAYS
     # a real failure — pagination ends via HAS_NEXT==false at the bottom of
