@@ -60,10 +60,23 @@ TODAY=$(date -u +%F)
 YESTERDAY=$(date -u -d 'yesterday' +%F 2>/dev/null \
             || date -u -v-1d +%F)   # GNU first (-d), BSD/macOS fallback (-v-1d)
 
-# Define the event-extraction jq filter once and reuse for today + yesterday.
-JQ_FILTER='select(.event == "task.done" or .event == "doc.created"
-                  or .event == "doc.updated" or .event == "decision")
-           | "\(.ts)  \(.event)  \(.summary)\(if .refs then "  refs=" + (.refs|join(",")) else "" end)"'
+# Resolve THIS session's id so cross-tool contamination is filtered out
+# (multiple agent sessions can share a UTC day). If $ALFRED_SESSION_ID
+# wasn't exported during the session, leave SID empty — the filter falls
+# back to whole-day view (with a caveat: results may include other agents'
+# work). Tip to find your session_id retroactively:
+#   jq -r '.session_id' ./rules/logs/${TODAY}.jsonl | sort -u
+SID="${ALFRED_SESSION_ID:-}"
+
+# Event-extraction jq filter, parameterised by --arg sid:
+#   - When $sid is non-empty, only records with matching session_id pass
+#   - When $sid is empty, all records pass (whole-day view)
+JQ_FILTER='select(
+    (.event == "task.done" or .event == "doc.created"
+     or .event == "doc.updated" or .event == "decision")
+    and ($sid == "" or .session_id == $sid)
+  )
+  | "\(.ts)  \(.event)  \(.summary)\(if .refs then "  refs=" + (.refs|join(",")) else "" end)"'
 
 # 1. (Optional) Verify schema before relying on the log. Quiet on success,
 #    prints "<path>:<lineno>: <field>: <reason>" on violations.
@@ -74,35 +87,43 @@ af log-validate ./rules/logs/
 # 2. Read today's event stream. JSONL is one-per-line so plain jq works.
 #    Concatenate ${TODAY}.jsonl AND any ${TODAY}.partN.jsonl rollover with
 #    explicit existence guards so the recipe stays `set -e` safe whether or
-#    not rollover happened. (The earlier shell-glob form was unsafe: bash
-#    leaves an unmatched glob literal, jq fails to open it, and the non-zero
-#    exit propagates through `set -e`.)
+#    not rollover happened.
 {
   if [ -e "./rules/logs/${TODAY}.jsonl" ]; then cat "./rules/logs/${TODAY}.jsonl"; fi
   for f in ./rules/logs/${TODAY}.part*.jsonl; do
     if [ -e "$f" ]; then cat "$f"; fi
   done
-} | jq -r "$JQ_FILTER"
+} | jq -r --arg sid "$SID" "$JQ_FILTER"
 
 # 3. Yesterday's records (after archival). `unzip -p` accepts globs, so
 #    "${YESTERDAY}*.jsonl" picks up ${YESTERDAY}.jsonl AND any
-#    ${YESTERDAY}.partN.jsonl entries inside archive.zip. Reuse $JQ_FILTER
-#    instead of an ellipsis placeholder.
+#    ${YESTERDAY}.partN.jsonl entries inside archive.zip.
 #
-#    Guards required for `set -euo pipefail` callers: unzip exits non-zero
-#    when archive.zip is absent (fresh project) OR when no entries match
-#    the glob (quiet day) — both are normal states, not errors. The two-
-#    stage check below silently skips both cases and only invokes unzip -p
-#    when there is something to read. Real corruption / IO errors still
-#    surface because `unzip -l ... >/dev/null 2>&1` returns non-zero only
-#    when the operation truly failed.
-if [ -e "./rules/logs/archive.zip" ] \
-   && unzip -l ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" >/dev/null 2>&1; then
-  unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" | jq -r "$JQ_FILTER"
+#    Three-state guard distinguishing real errors from benign skip cases:
+#    (a) no archive.zip → silent skip (fresh project / first day)
+#    (b) archive corrupt or unreadable → STDERR warning + don't halt
+#        (we do NOT want a corrupt archive to block today's retrospective;
+#        the warning surfaces the issue without losing the rest of the run)
+#    (c) archive readable but no <yesterday>*.jsonl entry → silent skip
+#        (quiet day — normal state, not an error)
+#    (d) archive readable AND has matching entries → extract
+#
+#    The previous one-liner form (`if [ -e ] && unzip -l ... >/dev/null;
+#    then ... fi`) collapsed (b) and (c) into the same false branch and
+#    silently dropped corruption errors — that masking is now gone.
+if [ -e "./rules/logs/archive.zip" ]; then
+  if ! unzip -l ./rules/logs/archive.zip >/dev/null 2>&1; then
+    echo "WARNING: ./rules/logs/archive.zip exists but is unreadable" \
+         "(corruption / IO error / permission). Yesterday's records skipped." \
+         "Recover: af log-archive --force." >&2
+  elif unzip -l ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" >/dev/null 2>&1; then
+    unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" \
+      | jq -r --arg sid "$SID" "$JQ_FILTER"
+  fi
 fi
 ```
 
-Note: `af log-validate` is a **schema checker** (quiet on success, emits only violations); it does not output the event stream itself. Read the JSONL bytes via `jq` (or `cat`) to extract events. The glob in step 2 covers both the base `<today>.jsonl` and any `<today>.partN.jsonl` rollover segments per COR-1205 §Rotation; `2>/dev/null` suppresses jq's "file not found" when no rollover happened. *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both **scaffolded in CHG-2231 Phase 0**; mandatory triggers and CLI surfaces land across Phases 2–5; target release v1.9.0.)*
+Note: `af log-validate` is a **schema checker** (quiet on success, emits only violations); it does not output the event stream itself. Read the JSONL bytes via `jq` (or `cat`) to extract events. The glob in step 2 covers both the base `<today>.jsonl` and any `<today>.partN.jsonl` rollover segments per COR-1205 §Rotation. The `--arg sid` parameter constrains output to the current session when `$ALFRED_SESSION_ID` is exported; otherwise the recipe shows the whole-day view (call out that other agents' work may be mixed in). *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both **scaffolded in CHG-2231 Phase 0**; mandatory triggers and CLI surfaces land across Phases 2–5; target release v1.9.0.)*
 
 Review the conversation and list every meaningful action:
 - Files created, edited, or deleted
