@@ -54,25 +54,31 @@ See COR-1201 (Discussion Tracking) for the full D item protocol.
 Two-step recipe — validate first (optional schema check), then read:
 
 ```bash
+# Resolve UTC dates (cross-platform — GNU date on Linux, BSD date on macOS).
+# These are real shell variables; the recipe is copy-paste runnable.
+TODAY=$(date -u +%F)
+YESTERDAY=$(date -u -d 'yesterday' +%F 2>/dev/null \
+            || date -u -v-1d +%F)   # GNU first (-d), BSD/macOS fallback (-v-1d)
+
 # 1. (Optional) Verify schema before relying on the log. Quiet on success,
 #    prints "<path>:<lineno>: <field>: <reason>" on violations.
-#    Note the glob: today's file may have rolled over to .partN.jsonl
-#    once it hit the 8 MiB cap (per COR-1205 §Rotation).
+#    Validating the directory picks up today's .jsonl, any .partN.jsonl
+#    rollover (per COR-1205 §Rotation), and entries inside archive.zip.
 af log-validate ./rules/logs/
 
-# 2. Read the event stream. The record JSON is one-per-line so plain
-#    jq filtering works. Glob across <today>.jsonl AND any
-#    <today>.partN.jsonl rollover segments so high-volume sessions
-#    don't silently drop events.
+# 2. Read today's event stream. JSONL is one-per-line so plain jq works.
+#    Glob across ${TODAY}.jsonl AND any ${TODAY}.partN.jsonl rollover so
+#    high-volume sessions don't silently drop events. The 2>/dev/null
+#    suppresses jq's "file not found" when no rollover happened today.
 jq -r 'select(.event == "task.done" or .event == "doc.created"
               or .event == "doc.updated" or .event == "decision")
        | "\(.ts)  \(.event)  \(.summary)\(if .refs then "  refs=" + (.refs|join(",")) else "" end)"' \
-   ./rules/logs/<today>.jsonl ./rules/logs/<today>.part*.jsonl 2>/dev/null
+   ./rules/logs/${TODAY}.jsonl ./rules/logs/${TODAY}.part*.jsonl 2>/dev/null
 
-# Yesterday's records (after archival) — `unzip -p` accepts globs, so
-# this picks up <yesterday>.jsonl AND any <yesterday>.partN.jsonl
-# entries inside archive.zip:
-unzip -p ./rules/logs/archive.zip '<yesterday>*.jsonl' | jq -r '...'
+# 3. Yesterday's records (after archival). `unzip -p` accepts globs, so
+#    "${YESTERDAY}*.jsonl" picks up ${YESTERDAY}.jsonl AND any
+#    ${YESTERDAY}.partN.jsonl entries inside archive.zip:
+unzip -p ./rules/logs/archive.zip "${YESTERDAY}*.jsonl" | jq -r '...'
 ```
 
 Note: `af log-validate` is a **schema checker** (quiet on success, emits only violations); it does not output the event stream itself. Read the JSONL bytes via `jq` (or `cat`) to extract events. The glob in step 2 covers both the base `<today>.jsonl` and any `<today>.partN.jsonl` rollover segments per COR-1205 §Rotation; `2>/dev/null` suppresses jq's "file not found" when no rollover happened. *(See COR-1205 for the activity log format and COR-1206 for the per-agent emit protocol — both **scaffolded in CHG-2231 Phase 0**; mandatory triggers and CLI surfaces land across Phases 2–5; target release v1.9.0.)*
