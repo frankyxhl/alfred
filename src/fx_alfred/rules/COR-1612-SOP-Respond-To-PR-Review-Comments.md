@@ -182,6 +182,12 @@ GitHub-native review bots auto-trigger a fresh review pass on every new commit, 
 1. **No new comments since last fix push, across all three surfaces** that §Step 1 fetches. Set `LAST_PUSH_TS` to the **UTC `Z`-form** ISO timestamp of when the head commit was actually pushed to GitHub (server-side ack), so it lex-compares cleanly against GitHub `created_at` (also `Z`-form). The push moment, not the commit moment, is the boundary that matters: a commit can sit locally for hours before push, or be pushed earlier with a future-skewed clock — using commit time misclassifies feedback (pulls in pre-push comments as "new", or drops real post-push comments). Query GitHub's record of when the head SHA actually arrived; fall back to commit time only if no server-side push record exists yet:
 
    ```bash
+   # Required vars: same as §Step 7 / §Step 1 examples. Guard explicitly so
+   # this block is copy-paste runnable under `set -euo pipefail` rather than
+   # tripping nounset on the first $OWNER reference.
+   OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
+   REPO="${REPO:?set REPO=<repo-name>}"
+
    HEAD_SHA=$(git rev-parse HEAD)
    LAST_PUSH_TS=""
 
