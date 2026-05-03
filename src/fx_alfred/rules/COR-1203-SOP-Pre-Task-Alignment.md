@@ -36,7 +36,7 @@ Without a pre-task alignment check, misalignment between what the user wants and
 - Emergency hotfixes that would be harmed by delay
 - Tasks where the user explicitly declines: "skip alignment" is a valid alignment outcome, recorded per Step 7
 
-**Mandatory threshold.** COR-1203 is offered for PRPs and non-trivial code changes (>3 files or >50 lines), optional (declarable) for CHGs and trivial changes. Mandatory means the SOP is offered, not enforced — the user may always decline.
+**Mandatory threshold.** COR-1203 is offered for PRPs and non-trivial code changes (>3 files or >50 lines), optional (declarable) for CHGs and trivial changes. Mandatory means the SOP is offered, not enforced — the user may always decline. This threshold applies even when COR-1103 routing is skipped because the caller provided an explicit SOP; the offer must still be made if the task meets the mandatory threshold.
 
 ---
 
