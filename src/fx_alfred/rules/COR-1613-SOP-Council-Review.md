@@ -113,8 +113,8 @@ Tie-breaks are resolved per the `tie_break:` field.
 Durable record requirements (in order of strength):
 
 1. **Document outputs** — produced via `af create` for the supported types (`sop | adr | prp | ref | chg | pln | inc`). For PRP and CHG (the only types where COR-0002 lists `Reviewed by:` as an optional metadata field), the Review Unit `review_id:` appears in `Reviewed by:`. For other document types, the Review Unit `review_id:` is appended as the first line of the Change History entry recording the creation event instead.
-2. **Reject decisions** → recorded in the target document's Change History with mechanism + reviewers + reason.
-3. **Irreversible operations** (delete PKG doc, release tag, schema change) → recorded in the affected document's Change History.
+2. **Reject decisions** → recorded in the target document's Change History with mechanism + reviewers + reason. If the target has no Change History (code PR, release tag, ad-hoc decision), record in the PR description / commit body / release notes / equivalent durable log.
+3. **Irreversible operations** (delete PKG doc, release tag, schema change) → recorded in the affected document's Change History. If the affected entity has no Change History (e.g., a release tag or an external resource), record in the PR description / commit body / release notes / equivalent durable log.
 4. **All other PASS decisions** → at minimum, append one line to the target's Change History (or, if the target has no Change History, to the PR description / commit body). Format:
    ```
    <date> | Council review (mechanism=X, reviewers=N, threshold=Y) → PASS | <dispatcher>
