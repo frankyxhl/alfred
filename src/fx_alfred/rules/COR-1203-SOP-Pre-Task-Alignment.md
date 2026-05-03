@@ -40,7 +40,7 @@ Without a pre-task alignment check, misalignment between what the user wants and
 
 ---
 
-## How
+## Steps
 
 ### Step 1 — Declare active (COR-1402)
 

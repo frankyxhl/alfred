@@ -47,8 +47,9 @@ Session Start
 COR-1201 ──────────► Load/create today's Discussion Tracker, set next_d
      │
      ▼
-COR-1203 ──────────► Pre-task alignment (mandatory offer for PRPs,
-     │                  optional for CHGs, user may decline)
+COR-1203 ──────────► Pre-task alignment (mandatory offer for PRPs +
+     │                  non-trivial code changes; optional for CHGs and
+     │                  trivial changes; user may always decline)
      ▼
 af guide ──────────► Read routing (PKG → USR → PRJ)
      │
