@@ -25,6 +25,10 @@
 | 2113 | PRP | COR 1613 Council Review Mechanism |
 | 2114 | CHG | COR 1103 Add Council Review Routing |
 | 2115 | CHG | COR 1602 Add Council Cross Reference |
+| 2116 | PRP | COR 1503 Diagnose Feedback Loop |
+| 2118 | CHG | COR 1103 Add Diagnose Routing |
+| 2119 | CHG | COR 1613 Add Half Diagnosed Fix Prohibition |
+| 2120 | CHG | COR 1504 REF Diagnose Phase Gates |
 
 ---
 
