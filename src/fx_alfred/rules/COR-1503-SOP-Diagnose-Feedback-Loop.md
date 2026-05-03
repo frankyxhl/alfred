@@ -149,13 +149,13 @@ COR-1503 is the **prelude** to TDD when the bug is already known. COR-1500 assum
 
 ## Relationship to COR-1613
 
-When the Phase-5 fix produces a code change, the resulting PR enters **Council Review (COR-1613)** like any other code change. The operator declares a Review Unit per COR-1613 §Step 1 with mechanism defaulting to Decision Matrix (COR-1602/1608). COR-1503 ends at the moment a fix is committed; COR-1613 begins for the PR that lands it. A Council Review of a half-diagnosed fix is **forbidden** (per COR-1613 §When NOT to Use).
+When the Phase-5 fix produces a code change, the resulting PR enters **Council Review (COR-1613)** like any other code change. The operator declares a Review Unit per COR-1613 §Step 1 with mechanism defaulting to Decision Matrix (COR-1602/1608). COR-1503 ends at the moment a fix is committed; COR-1613 begins for the PR that lands it. A Council Review of a half-diagnosed fix is **forbidden**. (The prohibition is added to COR-1613 §When NOT to Use by companion CHG FXA-2119, shipping in the same merge window.)
 
 ---
 
 ## Universality Contract
 
-This SOP must NOT contain any of the following tokens (greppable blocklist; the SOP review checklist runs `grep -nE` against the SOP file before merge):
+This SOP must NOT contain any of the following tokens in its normative body text (the blocklist applies to everything between the `---` after frontmatter and `## Change History`; the blocklist definition itself and the Change History provenance rows are exempt from the matchup, since the blocklist names tokens to forbid and Change History records document authorship):
 
 ```
 Claude Code | trinity | Codex | Gemini | DeepSeek | GLM | Anthropic | OpenAI |
