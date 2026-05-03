@@ -76,7 +76,7 @@ quorum:                  <min N responders; default = len(reviewers); a mechanis
 abstention_rule:         <abstain_as_no | abstain_excluded | abstain_blocks; default = abstain_excluded>
 tie_break:               <re_review | dictator:<identity> | reject; default = re_review. <identity> must appear in `reviewers:`>
 deadline:                <ISO-8601 timestamp; default = none (sync review assumed)>
-disagreement_threshold:  <numeric or "any"; below which Step-5 reconciliation is required; default = "any">
+disagreement_threshold:  <numeric or "any"; if pairwise disagreement exceeds this value, Step-5 reconciliation is required. Default = "any" (any non-zero disagreement triggers reconciliation)>
 blind:                   <true | false; default = true; lifts after Step 4 aggregation>
 ```
 
@@ -94,7 +94,7 @@ When `blind: true` (default), reviewers do **not** see each other's outputs befo
 
 ### Step 4 — Aggregate
 
-Compute the outcome per the declared mechanism. Apply `quorum` and `abstention_rule`. If quorum fails (insufficient responders), the result is **`inconclusive`** — neither pass nor reject; the dispatcher must either extend the deadline, recruit additional reviewers, or downgrade the mechanism (with a written annotation).
+Compute the outcome per the declared mechanism. Apply `quorum` and `abstention_rule`. If quorum fails (insufficient responders), the result is **`inconclusive`** — neither pass nor reject. The dispatcher's only in-flight option is to extend the deadline (amend `deadline:` per the Step-1 amendment-annotation rule for non-frozen fields). **The current Review Unit's frozen fields (`mechanism`, `rubric`, `threshold`, `reviewers`) cannot be modified after declaration** — that would defeat the Step-1 freeze and re-introduce post-hoc rule-shopping for high-stakes mechanisms (Veto / Consensus). If a deadline extension is not viable or still does not reach quorum, abort the current Review Unit and start a brand-new one with whatever revised mechanism / reviewer set is appropriate, declared up front.
 
 ### Step 5 — Adjudicate
 
