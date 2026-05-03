@@ -149,7 +149,7 @@ COR-1503 is the **prelude** to TDD when the bug is already known. COR-1500 assum
 
 ## Relationship to COR-1613
 
-When the Phase-5 fix produces a code change, the resulting PR enters **Council Review (COR-1613)** like any other code change. The operator declares a Review Unit per COR-1613 §Step 1 with mechanism defaulting to Decision Matrix (COR-1602; rubric per the target type — COR-1608 for PRP, COR-1609 for CHG, COR-1610 for code per COR-1103). COR-1503 ends at the moment a fix is committed; COR-1613 begins for the PR that lands it. A Council Review of a half-diagnosed fix is **forbidden**. (The prohibition is added to COR-1613 §When NOT to Use by companion CHG FXA-2119, shipping in the same merge window.)
+When the Phase-5 fix produces a code change, the resulting PR enters **Council Review (COR-1613)** like any other code change. The operator declares a Review Unit per COR-1613 §Step 1 with mechanism defaulting to Decision Matrix (COR-1602; rubric per the target type — COR-1608 for PRP, COR-1609 for CHG, COR-1610 for code per COR-1103). COR-1503 ends at the moment a fix is committed; COR-1613 begins for the PR that lands it. A Council Review of a half-diagnosed fix is **forbidden** (per COR-1613 §When NOT to Use).
 
 ---
 

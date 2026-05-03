@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
-**Status:** Proposed
+**Status:** Approved
 **Date:** 2026-05-03
 **Requested by:** Frank Xu (companion CHG to FXA-2116 / COR-1503)
 **Priority:** Medium
@@ -58,3 +58,4 @@ COR-1503 was approved via FXA-2116 PRP. Without router insertion, COR-1103 §PRI
 | Date       | Change                                                               | By       |
 |------------|----------------------------------------------------------------------|----------|
 | 2026-05-03 | Initial version — companion CHG to FXA-2116 PRP for COR-1503 routing | Frank Xu |
+| 2026-05-03 | Implemented in same PR: COR-1103 PRIMARY ROUTE branch 2 sub-branch + OVERLAYS line + Golden Rule line added for COR-1503. | Frank Xu |

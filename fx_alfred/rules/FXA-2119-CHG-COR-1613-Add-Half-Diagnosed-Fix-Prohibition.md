@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
-**Status:** Proposed
+**Status:** Approved
 **Date:** 2026-05-03
 **Requested by:** Frank Xu (companion CHG to FXA-2116 / COR-1503)
 **Priority:** Medium
@@ -48,3 +48,4 @@ COR-1503 §Relationship to COR-1613 states that a Council Review of a half-diagn
 | Date       | Change                                                                   | By       |
 |------------|--------------------------------------------------------------------------|----------|
 | 2026-05-03 | Initial version — companion CHG to FXA-2116 PRP for COR-1613 prohibition | Frank Xu |
+| 2026-05-03 | Implemented in same PR: COR-1613 §When NOT to Use now includes half-diagnosed-fix prohibition. | Frank Xu |
