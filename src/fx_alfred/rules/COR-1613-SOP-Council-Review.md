@@ -45,7 +45,7 @@ Council Review fixes this by requiring every multi-reviewer review to **declare 
 - Solo decisions on a single project with no other stakeholder (just decide and move on)
 - Mid-task micro-choices that do not produce a durable artifact
 - When an existing review SOP (COR-1600/1601/1602) already runs the review and the implicit Decision-Matrix mechanism is acceptable — in that case, declare the Review Unit inline (one block at the top of the review) rather than as a standalone artifact
-- A fix PR whose diagnosis was incomplete — the Council Review Unit cannot record a falsified hypothesis it never saw. The fix must first complete COR-1503 (Diagnose Feedback Loop) Phase 1–5 before entering Council Review
+- A fix PR whose diagnosis was incomplete — the Council Review Unit cannot record a falsified hypothesis it never saw. The fix must first complete COR-1503 (Diagnose Feedback Loop) Phase 1–6 before entering Council Review
 
 ---
 
