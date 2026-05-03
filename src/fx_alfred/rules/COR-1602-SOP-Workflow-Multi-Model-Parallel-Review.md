@@ -1,8 +1,8 @@
 # SOP-1602: Workflow — Multi Model Parallel Review
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-01
-**Last reviewed:** 2026-04-01
+**Last updated:** 2026-05-03
+**Last reviewed:** 2026-05-03
 **Status:** Active
 **Workflow loops:** [{id: review-retry, from: 7, to: 3, max_iterations: 3, condition: "iteration is on and not all reviewers approve"}]
 **Task tags:** [review, code-review, plan-review, multi-model, prp-review, implement]
@@ -158,6 +158,14 @@ Round 1 (iterate: false, single-pass):
 
 ---
 
+## Relationship to COR-1613 (Council Review)
+
+COR-1602 specifies the *workflow pattern* for parallel-dispatch reviews (how reviewers are convened, how the Leader synthesizes outputs, how iteration loops work). COR-1613 specifies the *decision rule* applied to whatever pattern is in use. The two are layered, not redundant: a typical multi-reviewer review under COR-1602 declares a Council Review Unit (per COR-1613) with `mechanism: decision_matrix` and `rubric: COR-1608/1609/1610` as the default.
+
+Reviewers may declare a different mechanism (Veto, Consensus, etc.) when the target's risk profile warrants it. **When the declared Council mechanism is anything other than `decision_matrix`, COR-1602's Leader-override termination paths are suspended** — specifically, "Leader accepts" approval and "max rounds ... Leader makes final call" cannot override the declared mechanism's outcome. A Veto-objected target cannot be approved by Leader override; a Consensus-blocked target cannot be approved by Leader override. The Leader's role in non-Decision-Matrix mode is reduced to dispatch + synthesis + recording the mechanism-determined outcome. This preserves the Step-1 freeze guarantee in COR-1613.
+
+---
+
 ## Change History
 
 | Date | Change | By |
@@ -165,3 +173,4 @@ Round 1 (iterate: false, single-pass):
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
+| 2026-05-03 | FXA-2115: add "Relationship to COR-1613 (Council Review)" subsection clarifying COR-1602 as workflow-pattern layered with Council's mechanism contract. | Frank Xu |
