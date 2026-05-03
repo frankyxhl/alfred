@@ -47,6 +47,10 @@ Session Start
 COR-1201 ──────────► Load/create today's Discussion Tracker, set next_d
      │
      ▼
+COR-1203 ──────────► Pre-task alignment (mandatory offer for PRPs +
+     │                  non-trivial code changes; optional for CHGs and
+     │                  trivial changes; user may always decline)
+     ▼
 af guide ──────────► Read routing (PKG → USR → PRJ)
      │
      ▼
@@ -74,7 +78,7 @@ Commit ────────────► af validate → Session End
 
 • COR-1201: Load today's Discussion Tracker — search for today's file, read max DN, auto-increment on new topics (see COR-1201 Session Start Protocol)
 • COR-1402: Declare 📋 active SOP before work and on every transition
-• COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP)
+• COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP — but still offer COR-1203 alignment for PRPs and non-trivial code changes when the mandatory threshold is met)
 • af plan: Before every response — decide if task needs a checklist. For a manual, targeted checklist from specific SOPs: `af plan <SOP_IDs>`.
 • COR-1202 (Compose Session Plan): for the full session-workflow plan — use when the user says "show me the plan" / "compose session plan" / "follow COR-1202", or when the task spans multiple SOPs and you want auto-composition (ASCII + Mermaid + flat TODO) rather than hand-picking SOP IDs.
 
@@ -131,6 +135,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • Review scoring rubric    → COR-1608 (PRP) / COR-1609 (CHG) / COR-1610 (Code) + COR-1611 (calibration)
 • Multi-reviewer decision  → COR-1613 (declare Review Unit: mechanism, threshold, reviewers)
 • Diagnose bug/perf regression → COR-1503 (Diagnose Feedback Loop: build feedback loop → reproduce → hypothesise → instrument → fix → regression-test)
+• Pre-task alignment       → COR-1203 (Socratic interview: 7-step loop before PRP/non-trivial code; challenge against glossary, stop when crisp or user-declined)
 • SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
 ```
 
@@ -155,6 +160,7 @@ COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin (mechanism / rubric / threshold / reviewers); record per Step 6
 COR-1503: Diagnose bug/perf regression → build feedback loop → reproduce → hypothesise (3-5 ranked) → instrument (one variable/round) → fix → regression-test (hand off to COR-1500)
+COR-1203: Pre-task alignment → before PRP/non-trivial code, offer 7-step Socratic interview; challenge against glossary (COR-1204 CTX), sharpen terms, stop when crisp or user-declined; record one-line outcome
 Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
 ```
 
@@ -229,3 +235,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-04-18 | Add intent-router cross-reference to COR-1202 (per CHG-2207 Step 8). | Frank + Claude Code |
 | 2026-05-03 | FXA-2114: add COR-1613 (Council Review) routing entries — OVERLAYS line, Golden Rule line, Workflow-Selection footnote noting orthogonal layering with COR-1602. | Frank Xu |
 | 2026-05-03 | FXA-2118: add COR-1503 (Diagnose Feedback Loop) routing entries — OVERLAYS line, PRIMARY ROUTE branch 2 sub-branch, Golden Rule line. | Frank Xu |
+| 2026-05-03 | FXA-2122: add COR-1203 (Pre-Task Alignment) to Workflow Sequence diagram (after COR-1201, before af guide), OVERLAYS line, and Golden Rule line. | Frank Xu |
