@@ -35,8 +35,10 @@ Council Review fixes this by requiring every multi-reviewer review to **declare 
 ## When to Use
 
 - Any task whose output is a decision that needs more than one reviewer
-- Any review of a PRP / CHG / ADR / code PR / release / architectural choice with multi-party input
+- Any review of a CHG / ADR / code PR / release / architectural choice with multi-party input
 - Any decision whose reversibility, blast radius, or stakeholder count warrants a stronger rule than "two reviewers ≥ 9.0"
+
+**Mandatory carve-out — PRP review.** PRP approval is governed by COR-1102, which mandates COR-1602 strict mode (both reviewers ≥ 9.0/10 on the COR-1608 rubric). Council Review applies to PRPs only as the *vocabulary* for declaring this gate explicitly: when the target is a PRP, the Review Unit's `mechanism:` MUST be `decision_matrix`, `rubric:` MUST be `COR-1608`, and `threshold:` MUST be `weighted_avg ≥ 9.0` for every reviewer (not the panel mean). Other mechanisms (Simple Majority, Lazy Consensus, etc.) are forbidden for PRP targets — they would bypass the COR-1102 gate.
 
 ## When NOT to Use
 
@@ -110,7 +112,7 @@ Tie-breaks are resolved per the `tie_break:` field.
 
 Durable record requirements (in order of strength):
 
-1. **Document outputs** (PRP / CHG / ADR / CTX) → produced via `af create`. The Review Unit `review_id:` appears in the output's `Reviewed by:` field.
+1. **Document outputs** — produced via `af create` for the supported types (`sop | adr | prp | ref | chg | pln | inc`). For PRP and CHG (the only types where COR-0002 lists `Reviewed by:` as an optional metadata field), the Review Unit `review_id:` appears in `Reviewed by:`. For other document types, the Review Unit `review_id:` is appended as the first line of the Change History entry recording the creation event instead.
 2. **Reject decisions** → recorded in the target document's Change History with mechanism + reviewers + reason.
 3. **Irreversible operations** (delete PKG doc, release tag, schema change) → recorded in the affected document's Change History.
 4. **All other PASS decisions** → at minimum, append one line to the target's Change History (or, if the target has no Change History, to the PR description / commit body). Format:
