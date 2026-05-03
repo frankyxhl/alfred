@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
-**Status:** Proposed
+**Status:** Approved
 **Date:** 2026-05-03
 **Requested by:** Frank Xu (companion CHG to FXA-2121 / COR-1203)
 **Priority:** Medium
@@ -52,3 +52,4 @@ COR-1203 was approved via FXA-2121 PRP. Without router insertion, operators woul
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-03 | Initial version — companion CHG to FXA-2121 PRP for COR-1203 routing | Frank Xu |
+| 2026-05-03 | Implemented in same PR: COR-1103 Workflow Sequence + OVERLAYS + Golden Rule line for COR-1203. | Frank Xu |
