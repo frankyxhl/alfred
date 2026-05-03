@@ -45,6 +45,7 @@ Council Review fixes this by requiring every multi-reviewer review to **declare 
 - Solo decisions on a single project with no other stakeholder (just decide and move on)
 - Mid-task micro-choices that do not produce a durable artifact
 - When an existing review SOP (COR-1600/1601/1602) already runs the review and the implicit Decision-Matrix mechanism is acceptable — in that case, declare the Review Unit inline (one block at the top of the review) rather than as a standalone artifact
+- A fix PR whose diagnosis was incomplete — the Council Review Unit cannot record a falsified hypothesis it never saw. The fix must first complete COR-1503 (Diagnose Feedback Loop) Phase 1–6 before entering Council Review
 
 ---
 
@@ -201,3 +202,4 @@ If a project's habits depend on such specifics (e.g., "in this project, the defa
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-03 | Initial version per FXA-2113 PRP. Round-1 review (4 reviewers) returned unanimous FIX (mean 8.0). Round-2 review returned 3-of-4 PASS (mean 9.03); one reviewer persistently raised mechanism-count and steelman-strength concerns. Chair cast the deciding vote PASS via mechanism #13 (Dictator/Single Reviewer) as tie-break. The dissent is captured as Open Question §1 with a 90-day revisit clause. | Frank Xu |
+| 2026-05-03 | FXA-2119: add half-diagnosed-fix prohibition to §When NOT to Use — a fix PR whose diagnosis was incomplete must complete COR-1503 Phase 1–5 before entering Council Review. | Frank Xu |

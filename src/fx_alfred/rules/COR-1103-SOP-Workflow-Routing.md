@@ -90,6 +90,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
    └── Update existing doc   → COR-1300
 
 2. Something broken/failing/unexpected?
+   ├── Cause is unknown → COR-1503 (Diagnose Feedback Loop)
    ├── Bug/incident          → INC (project-level SOP)
    └── Fix requires system change → INC + CHG (COR-1101)
 
@@ -129,6 +130,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • Background agents running → Proactively report progress on every user message (check output file sizes, show line counts)
 • Review scoring rubric    → COR-1608 (PRP) / COR-1609 (CHG) / COR-1610 (Code) + COR-1611 (calibration)
 • Multi-reviewer decision  → COR-1613 (declare Review Unit: mechanism, threshold, reviewers)
+• Diagnose bug/perf regression → COR-1503 (Diagnose Feedback Loop: build feedback loop → reproduce → hypothesise → instrument → fix → regression-test)
 • SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
 ```
 
@@ -152,6 +154,7 @@ COR-1201: Session start → load today's Discussion Tracker (af list --type ref)
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin (mechanism / rubric / threshold / reviewers); record per Step 6
+COR-1503: Diagnose bug/perf regression → build feedback loop → reproduce → hypothesise (3-5 ranked) → instrument (one variable/round) → fix → regression-test (hand off to COR-1500)
 Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
 ```
 
@@ -225,3 +228,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-04-02 | R1 fix: Workflow Sequence diagram — add COR-1201 as first step before af guide | Frank + Claude Code |
 | 2026-04-18 | Add intent-router cross-reference to COR-1202 (per CHG-2207 Step 8). | Frank + Claude Code |
 | 2026-05-03 | FXA-2114: add COR-1613 (Council Review) routing entries — OVERLAYS line, Golden Rule line, Workflow-Selection footnote noting orthogonal layering with COR-1602. | Frank Xu |
+| 2026-05-03 | FXA-2118: add COR-1503 (Diagnose Feedback Loop) routing entries — OVERLAYS line, PRIMARY ROUTE branch 2 sub-branch, Golden Rule line. | Frank Xu |
