@@ -70,7 +70,7 @@ Iterate on the loop as a product:
 
 **Escape hatch (anti-abuse).** If after honest effort no loop can be built, proceed only when **all three** conditions are met: (i) at least **three** of the ten construction methods were attempted, with the attempt artefact (commands run, files created, output captured) recorded; (ii) a **structural-incompatibility justification** for each rejected method ("method 4 headless browser N/A — target is a CLI tool with no rendered UI", not "tried it, was hard"); (iii) the operator explicitly stops and asks for the missing artefact (environment access, captured trace, permission to add temporary instrumentation). Proceeding to Phase 2 without satisfying all three is forbidden.
 
-Proceed to Phase 2 only when you have a loop you believe in.
+Proceed to Phase 2 only when you have a loop you believe in. **If the escape hatch was invoked, the SOP stops at Phase 1.** The operator must communicate the missing artefact (environment access, captured trace, permission for instrumentation) to the requester and wait for it before re-entering. No further phases are reachable without a loop — the escape hatch is an exit, not a shortcut.
 
 ### Phase 2 — Reproduce
 
