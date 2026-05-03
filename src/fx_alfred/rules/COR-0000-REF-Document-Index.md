@@ -1,8 +1,8 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-02
-**Last reviewed:** 2026-05-02
+**Last updated:** 2026-05-03
+**Last reviewed:** 2026-05-03
 **Status:** Active
 
 ---
@@ -39,6 +39,8 @@ A reference index of all documents in the COR system.
 | 1500 | SOP | TDD Development Workflow |
 | 1501 | SOP | Create GitHub Issue |
 | 1502 | SOP | Git Branch Naming |
+| 1503 | SOP | Diagnose Feedback Loop |
+| 1504 | REF | Diagnose Phase Gates |
 | 1600 | SOP | Workflow — Direct Review Loop |
 | 1601 | SOP | Workflow — Leader Mediated Review Loop |
 | 1602 | SOP | Workflow — Multi Model Parallel Review |
@@ -52,6 +54,7 @@ A reference index of all documents in the COR system.
 | 1610 | SOP | Code Review Scoring |
 | 1611 | SOP | Reviewer Calibration Guide |
 | 1612 | SOP | Respond To PR Review Comments |
+| 1613 | SOP | Council Review |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
@@ -66,3 +69,4 @@ A reference index of all documents in the COR system.
 |------|--------|----|
 | 2026-03-19 | Initial version with proper structure | Frank |
 | 2026-04-04 | Added COR-1607–1612, COR-1800 | Claude Code |
+| 2026-05-03 | Added COR-1503 (Diagnose Feedback Loop), COR-1504 (Diagnose Phase Gates), COR-1613 (Council Review — was shipped in PR #88, index entry missed) | Frank Xu |
