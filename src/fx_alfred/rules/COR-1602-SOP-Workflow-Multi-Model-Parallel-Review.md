@@ -160,7 +160,9 @@ Round 1 (iterate: false, single-pass):
 
 ## Relationship to COR-1613 (Council Review)
 
-COR-1602 specifies the *workflow pattern* for parallel-dispatch reviews (how reviewers are convened, how the Leader synthesizes outputs, how iteration loops work). COR-1613 specifies the *decision rule* applied to whatever pattern is in use. The two are layered, not redundant: a typical multi-reviewer review under COR-1602 declares a Council Review Unit (per COR-1613) with `mechanism: decision_matrix` and `rubric: COR-1608/1609/1610` as the default. Reviewers may declare a different mechanism (Veto, Consensus, etc.) when the target's risk profile warrants it; in that case COR-1602's parallel-dispatch shape is preserved and only the aggregation rule changes.
+COR-1602 specifies the *workflow pattern* for parallel-dispatch reviews (how reviewers are convened, how the Leader synthesizes outputs, how iteration loops work). COR-1613 specifies the *decision rule* applied to whatever pattern is in use. The two are layered, not redundant: a typical multi-reviewer review under COR-1602 declares a Council Review Unit (per COR-1613) with `mechanism: decision_matrix` and `rubric: COR-1608/1609/1610` as the default.
+
+Reviewers may declare a different mechanism (Veto, Consensus, etc.) when the target's risk profile warrants it. **When the declared Council mechanism is anything other than `decision_matrix`, COR-1602's Leader-override termination paths are suspended** — specifically, "Leader accepts" approval and "max rounds ... Leader makes final call" cannot override the declared mechanism's outcome. A Veto-objected target cannot be approved by Leader override; a Consensus-blocked target cannot be approved by Leader override. The Leader's role in non-Decision-Matrix mode is reduced to dispatch + synthesis + recording the mechanism-determined outcome. This preserves the Step-1 freeze guarantee in COR-1613.
 
 ---
 

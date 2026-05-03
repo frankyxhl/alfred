@@ -38,7 +38,7 @@ Council Review fixes this by requiring every multi-reviewer review to **declare 
 - Any review of a CHG / ADR / code PR / release / architectural choice with multi-party input
 - Any decision whose reversibility, blast radius, or stakeholder count warrants a stronger rule than "two reviewers ≥ 9.0"
 
-**Mandatory carve-out — PRP review.** PRP approval is governed by COR-1102, which mandates COR-1602 strict mode (both reviewers ≥ 9.0/10 on the COR-1608 rubric). Council Review applies to PRPs only as the *vocabulary* for declaring this gate explicitly: when the target is a PRP, the Review Unit's `mechanism:` MUST be `decision_matrix`, `rubric:` MUST be `COR-1608`, and `threshold:` MUST be `weighted_avg ≥ 9.0` for every reviewer (not the panel mean). Other mechanisms (Simple Majority, Lazy Consensus, etc.) are forbidden for PRP targets — they would bypass the COR-1102 gate.
+**Mandatory carve-out — PRP review.** PRP approval is governed by COR-1102, which mandates COR-1602 strict mode (both reviewers ≥ 9.0/10 on the COR-1608 rubric). Council Review applies to PRPs only as the *vocabulary* for declaring this gate explicitly: when the target is a PRP, the Review Unit's `mechanism:` MUST be `decision_matrix`, `rubric:` MUST be `COR-1608`, `threshold:` MUST be `weighted_avg ≥ 9.0` for **every** reviewer (not the panel mean), and `reviewers:` MUST contain at least 2 identities (matching COR-1102's "both reviewers" requirement; N=1 is forbidden for PRP targets even though §Step 1 allows N≥1 generally). Other mechanisms (Simple Majority, Lazy Consensus, etc.) are forbidden for PRP targets — they would bypass the COR-1102 gate.
 
 ## When NOT to Use
 
