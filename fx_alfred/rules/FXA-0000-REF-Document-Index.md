@@ -29,6 +29,9 @@
 | 2118 | CHG | COR 1103 Add Diagnose Routing |
 | 2119 | CHG | COR 1613 Add Half Diagnosed Fix Prohibition |
 | 2120 | CHG | COR 1504 REF Diagnose Phase Gates |
+| 2121 | PRP | COR 1203 Pre Task Alignment |
+| 2122 | CHG | COR 1103 Add Pre Task Alignment Routing |
+| 2123 | CTX | Alfred Glossary |
 
 ---
 
