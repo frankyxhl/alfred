@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.9.0 (2026-05-03)
+
+Feature release: new PKG SOP families from the skills-absorption initiative (Rounds 0–1 of 4).
+
+### Added
+
+- **COR-1613 Council Review** — decision-mechanism contract for any multi-reviewer negotiated decision. 14-mechanism library (Core 4 + Advanced 10), Review Unit YAML schema, 6-step workflow, universality contract with greppable token blocklist. (PR #88, FXA-2113)
+- **COR-1503 Diagnose Feedback Loop** — 6-phase disciplined diagnosis loop for hard bugs and performance regressions: build feedback loop → reproduce → hypothesise (3-5 ranked falsifiable) → instrument (one variable/round) → fix → regression-test. Phase enforcement gates, escape-hatch anti-abuse rules, non-determinism floor (≥30% over ≥20 trials). (PR #89, FXA-2116)
+- **COR-1504 Diagnose Phase Gates** — detailed evidence-artefact specification REF for COR-1503 phase gates. (PR #89)
+- **COR-1103 routing entries** for COR-1613 and COR-1503 (OVERLAYS, PRIMARY ROUTE, Golden Rules, Workflow-Selection footnote).
+
+### Changed
+
+- **COR-1612** extended with per-thread reply discipline and 3-endpoint comment fetching.
+- **COR-1613** §When NOT to Use includes half-diagnosed-fix prohibition from COR-1503.
+
+### Internal
+
+- 73 PKG documents, 0 validate issues.
+- 4-LLM Council Review used per COR-1613 across all PRPs in this release.
+
 ## v1.8.0 (2026-04-29)
 
 Feature release: branching ASCII rendering in `af plan --graph`, Mermaid sub-step IDs, and breaking `todo[].index` format extension.

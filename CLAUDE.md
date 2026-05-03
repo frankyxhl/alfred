@@ -115,6 +115,8 @@ af list --root /Users/frank/Projects/alfred/fx_alfred
 | COR-1602 | Multi-Model Parallel Review |
 | COR-1608/1609/1610 | Review Scoring (PRP/CHG/Code rubrics) |
 | COR-1611 | Reviewer Calibration Guide |
+| COR-1613 | Council Review — decision-mechanism contract for multi-reviewer negotiation |
+| COR-1503 | Diagnose Feedback Loop — 6-phase bug/perf diagnosis with enforcement gates |
 
 ## Active PRPs (Draft)
 

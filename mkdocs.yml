@@ -22,6 +22,7 @@ nav:
       - 'REF-0000: Document Index': COR-0000-REF-Document-Index.md
       - 'REF-0001: Glossary': COR-0001-REF-Glossary.md
       - 'REF-0002: Document Format Contract': COR-0002-REF-Document-Format-Contract.md
+      - 'REF-1504: Diagnose Phase Gates': COR-1504-REF-Diagnose-Phase-Gates.md
   - SOP:
       - 'SOP-1000: Create SOP': COR-1000-SOP-Create-SOP.md
       - 'SOP-1001: Create Document': COR-1001-SOP-Create-Document.md
@@ -45,6 +46,7 @@ nav:
       - 'SOP-1500: TDD Development Workflow': COR-1500-SOP-TDD-Development-Workflow.md
       - 'SOP-1501: Create GitHub Issue': COR-1501-SOP-Create-GitHub-Issue.md
       - 'SOP-1502: Git Branch Naming': COR-1502-SOP-Git-Branch-Naming.md
+      - 'SOP-1503: Diagnose Feedback Loop': COR-1503-SOP-Diagnose-Feedback-Loop.md
       - 'SOP-1600: Workflow — Direct Review Loop': COR-1600-SOP-Workflow-Direct-Review-Loop.md
       - 'SOP-1601: Workflow — Leader Mediated Review Loop': COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop.md
       - 'SOP-1602: Workflow — Multi Model Parallel Review': COR-1602-SOP-Workflow-Multi-Model-Parallel-Review.md
@@ -57,6 +59,8 @@ nav:
       - 'SOP-1609: CHG Review Scoring': COR-1609-SOP-CHG-Review-Scoring.md
       - 'SOP-1610: Code Review Scoring': COR-1610-SOP-Code-Review-Scoring.md
       - 'SOP-1611: Reviewer Calibration Guide': COR-1611-SOP-Reviewer-Calibration-Guide.md
+      - 'SOP-1612: Respond To PR Review Comments': COR-1612-SOP-Respond-To-PR-Review-Comments.md
+      - 'SOP-1613: Council Review': COR-1613-SOP-Council-Review.md
       - 'SOP-1700: Initialize Project': COR-1700-SOP-Initialize-Project.md
       - 'SOP-1701: Archive Project': COR-1701-SOP-Archive-Project.md
       - 'SOP-1702: Sync Project': COR-1702-SOP-Sync-Project.md

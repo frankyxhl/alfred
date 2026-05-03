@@ -21,6 +21,7 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
+- **NEW in v1.9.0** — [Council Review (COR-1613)](src/fx_alfred/rules/COR-1613-SOP-Council-Review.md) for multi-reviewer decisions with 14 voting mechanisms, and [Diagnose Feedback Loop (COR-1503)](src/fx_alfred/rules/COR-1503-SOP-Diagnose-Feedback-Loop.md) for disciplined bug/perf diagnosis
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
 - **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs. With `--task "<description>"` auto-composes the SOP set from tags; `--todo` flattens into a unified checklist; `--graph` renders ASCII + Mermaid flowcharts with intra-SOP loops and gates
 - **Document Validation** — `af validate` enforces metadata format, status values, and section structure
@@ -294,6 +295,8 @@ graph TD
 | COR-1612 | Respond to PR review comments on GitHub |
 | COR-1608 | PRP Review Scoring rubric |
 | COR-1611 | Reviewer Calibration Guide |
+| COR-1613 | Council Review — multi-reviewer decision mechanism (14 voting rules) |
+| COR-1503 | Diagnose Feedback Loop — disciplined bug/perf diagnosis |
 
 ### Review Scoring
 
