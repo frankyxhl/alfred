@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
-**Status:** Proposed
+**Status:** Approved
 **Date:** 2026-05-03
 **Requested by:** Frank Xu (companion CHG to FXA-2113 / COR-1613)
 **Priority:** Medium
@@ -62,6 +62,7 @@ None — scope is mechanically defined (3 specific insertions in one file).
 
 ## Change History
 
-| Date       | Change                                                               | By       |
-|------------|----------------------------------------------------------------------|----------|
-| 2026-05-03 | Initial version — companion CHG to FXA-2113 PRP for COR-1613 routing | Frank Xu |
+| Date       | Change                                                                                                                                                                                | By       |
+|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| 2026-05-03 | Initial version — companion CHG to FXA-2113 PRP for COR-1613 routing                                                                                                                  | Frank Xu |
+| 2026-05-03 | Implemented in commit on feat/cor-1613-council-review-prp: 3 insertions to COR-1103 (OVERLAYS line, Golden Rule line, Workflow-Selection footnote). Status flipped Proposed→Approved. | Frank Xu |

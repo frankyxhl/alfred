@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
-**Status:** Proposed
+**Status:** Approved
 **Date:** 2026-05-03
 **Requested by:** Frank Xu (companion CHG to FXA-2113 / COR-1613)
 **Priority:** Medium
@@ -60,6 +60,7 @@ This CHG is the only sanctioned modification to COR-1602 in the FXA-2113 / COR-1
 
 ## Change History
 
-| Date       | Change                                                                       | By       |
-|------------|------------------------------------------------------------------------------|----------|
-| 2026-05-03 | Initial version — companion CHG to FXA-2113 PRP for COR-1602 cross-reference | Frank Xu |
+| Date       | Change                                                                                                                                                                 | By       |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| 2026-05-03 | Initial version — companion CHG to FXA-2113 PRP for COR-1602 cross-reference                                                                                           | Frank Xu |
+| 2026-05-03 | Implemented in commit on feat/cor-1613-council-review-prp: added 'Relationship to COR-1613 (Council Review)' subsection to COR-1602. Status flipped Proposed→Approved. | Frank Xu |

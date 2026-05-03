@@ -1,8 +1,8 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-18
-**Last reviewed:** 2026-04-18
+**Last updated:** 2026-05-03
+**Last reviewed:** 2026-05-03
 **Status:** Active
 **Related:** COR-1607 (deprecated, replaced by this document)
 **Workflow input:** proposal:draft
@@ -128,6 +128,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • Confidence < 90%          → Ask one clarifying question before proceeding
 • Background agents running → Proactively report progress on every user message (check output file sizes, show line counts)
 • Review scoring rubric    → COR-1608 (PRP) / COR-1609 (CHG) / COR-1610 (Code) + COR-1611 (calibration)
+• Multi-reviewer decision  → COR-1613 (declare Review Unit: mechanism, threshold, reviewers)
 • SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
 ```
 
@@ -150,6 +151,7 @@ COR-1000/1001: New SOP → COR-1000; new document → af create (COR-1001) with 
 COR-1201: Session start → load today's Discussion Tracker (af list --type ref), read max DN, auto-increment; D new/list/show/start/done/defer/archive
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
+COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin (mechanism / rubric / threshold / reviewers); record per Step 6
 Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
 ```
 
@@ -171,6 +173,8 @@ When a step says "COR-1606 to select workflow", read COR-1606 and choose based o
 | Workflow | SOP | When to use |
 |----------|-----|-------------|
 | Multi Model Parallel Review | COR-1602 | Significant changes, multiple models evaluate in parallel |
+
+> Council Review (COR-1613) operates orthogonally: COR-1602 picks the *workflow pattern* (parallel dispatch + Leader synthesis); COR-1613 picks the *decision rule* (default = Decision Matrix). Declare both for any multi-reviewer review.
 
 **Implementation coordination** (multiple workers build in parallel or sequence):
 
@@ -220,3 +224,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-04-02 | ALWAYS section: add COR-1201 Discussion Tracker as mandatory session-start step; Golden Rules: expand COR-1201 to include load + auto-increment | Frank + Claude Code |
 | 2026-04-02 | R1 fix: Workflow Sequence diagram — add COR-1201 as first step before af guide | Frank + Claude Code |
 | 2026-04-18 | Add intent-router cross-reference to COR-1202 (per CHG-2207 Step 8). | Frank + Claude Code |
+| 2026-05-03 | FXA-2114: add COR-1613 (Council Review) routing entries — OVERLAYS line, Golden Rule line, Workflow-Selection footnote noting orthogonal layering with COR-1602. | Frank Xu |
