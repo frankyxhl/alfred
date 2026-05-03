@@ -25,6 +25,9 @@ A reference index of all documents in the COR system.
 | 1102 | SOP | Create Proposal |
 | 1200 | SOP | Session Retrospective |
 | 1201 | SOP | Discussion Tracking |
+| 1202 | SOP | Compose Session Plan |
+| 1203 | SOP | Pre-Task Alignment |
+| 1204 | REF | CTX Format |
 | 1205 | REF | Agent Activity Log Format |
 | 1206 | SOP | Emit Agent Activity |
 | 1300 | SOP | Update Document |
@@ -70,3 +73,4 @@ A reference index of all documents in the COR system.
 | 2026-03-19 | Initial version with proper structure | Frank |
 | 2026-04-04 | Added COR-1607–1612, COR-1800 | Claude Code |
 | 2026-05-03 | Added COR-1503 (Diagnose Feedback Loop), COR-1504 (Diagnose Phase Gates), COR-1613 (Council Review — was shipped in PR #88, index entry missed) | Frank Xu |
+| 2026-05-03 | Added COR-1202 (Compose Session Plan — was shipped but index entry missed), COR-1203 (Pre-Task Alignment), COR-1204 (CTX Format) | Frank Xu |
