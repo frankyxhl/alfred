@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## v1.9.1 (2026-05-05)
+
+Patch release: PKG SOP promotion for GitHub App PR review bot loops.
 
 ### Added
 
-- **COR-1615 GitHub App PR Review Bot Loop** — PKG SOP promoted from BAB-1504. Standardizes GitHub App PR review bot triggering, conservative reaction interpretation, current-head matching, stale-thread checks, and handoff to COR-1612 for actionable findings. (FXA-2234)
+- **COR-1615 GitHub App PR Review Bot Loop** — PKG SOP promoted from BAB-1504. Standardizes GitHub App PR review bot triggering, conservative reaction interpretation, current-head matching, stale-thread checks, and handoff to COR-1612 for actionable findings. Covers both OpenAI Codex Connector (`@codex review`) and GitHub Copilot reviewer assignment (`@copilot`). (PR #91, FXA-2234)
 
 ## v1.9.0 (2026-05-03)
 
