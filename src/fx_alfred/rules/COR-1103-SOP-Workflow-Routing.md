@@ -1,8 +1,8 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-03
-**Last reviewed:** 2026-05-03
+**Last updated:** 2026-05-05
+**Last reviewed:** 2026-05-05
 **Status:** Active
 **Related:** COR-1607 (deprecated, replaced by this document)
 **Workflow input:** proposal:draft
@@ -134,6 +134,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • Background agents running → Proactively report progress on every user message (check output file sizes, show line counts)
 • Review scoring rubric    → COR-1608 (PRP) / COR-1609 (CHG) / COR-1610 (Code) + COR-1611 (calibration)
 • Multi-reviewer decision  → COR-1613 (declare Review Unit: mechanism, threshold, reviewers)
+• GitHub App PR review bot loop → COR-1615 (trigger/poll/match current head), then COR-1612 for fetched findings
 • Diagnose bug/perf regression → COR-1503 (Diagnose Feedback Loop: build feedback loop → reproduce → hypothesise → instrument → fix → regression-test)
 • Pre-task alignment       → COR-1203 (Socratic interview: 7-step loop before PRP/non-trivial code; challenge against glossary, stop when crisp or user-declined)
 • SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
@@ -159,6 +160,7 @@ COR-1201: Session start → load today's Discussion Tracker (af list --type ref)
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin (mechanism / rubric / threshold / reviewers); record per Step 6
+COR-1615: GitHub App PR review bot loop → request once per head, poll without spam, match result to current head, hand findings to COR-1612
 COR-1503: Diagnose bug/perf regression → build feedback loop → reproduce → hypothesise (3-5 ranked) → instrument (one variable/round) → fix → regression-test (hand off to COR-1500)
 COR-1203: Pre-task alignment → before PRP/non-trivial code, offer 7-step Socratic interview; challenge against glossary (COR-1204 CTX), sharpen terms, stop when crisp or user-declined; record one-line outcome
 Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
@@ -235,4 +237,5 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-04-18 | Add intent-router cross-reference to COR-1202 (per CHG-2207 Step 8). | Frank + Claude Code |
 | 2026-05-03 | FXA-2114: add COR-1613 (Council Review) routing entries — OVERLAYS line, Golden Rule line, Workflow-Selection footnote noting orthogonal layering with COR-1602. | Frank Xu |
 | 2026-05-03 | FXA-2118: add COR-1503 (Diagnose Feedback Loop) routing entries — OVERLAYS line, PRIMARY ROUTE branch 2 sub-branch, Golden Rule line. | Frank Xu |
+| 2026-05-05 | Add COR-1615 routing entries for GitHub App PR review bot loops. | Codex |
 | 2026-05-03 | FXA-2122: add COR-1203 (Pre-Task Alignment) to Workflow Sequence diagram (after COR-1201, before af guide), OVERLAYS line, and Golden Rule line. | Frank Xu |

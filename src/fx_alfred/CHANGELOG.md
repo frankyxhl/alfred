@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **COR-1615 GitHub App PR Review Bot Loop** — PKG SOP promoted from BAB-1504. Standardizes GitHub App PR review bot triggering, conservative reaction interpretation, current-head matching, stale-thread checks, and handoff to COR-1612 for actionable findings. (FXA-2234)
+
 ## v1.9.0 (2026-05-03)
 
 Feature release: new PKG SOP families from the skills-absorption initiative (Rounds 0–1 of 4).

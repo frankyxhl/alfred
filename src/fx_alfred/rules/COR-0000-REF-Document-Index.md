@@ -1,8 +1,8 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-03
-**Last reviewed:** 2026-05-03
+**Last updated:** 2026-05-05
+**Last reviewed:** 2026-05-05
 **Status:** Active
 
 ---
@@ -58,6 +58,7 @@ A reference index of all documents in the COR system.
 | 1611 | SOP | Reviewer Calibration Guide |
 | 1612 | SOP | Respond To PR Review Comments |
 | 1613 | SOP | Council Review |
+| 1615 | SOP | GitHub App PR Review Bot Loop |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
@@ -74,3 +75,4 @@ A reference index of all documents in the COR system.
 | 2026-04-04 | Added COR-1607–1612, COR-1800 | Claude Code |
 | 2026-05-03 | Added COR-1503 (Diagnose Feedback Loop), COR-1504 (Diagnose Phase Gates), COR-1613 (Council Review — was shipped in PR #88, index entry missed) | Frank Xu |
 | 2026-05-03 | Added COR-1202 (Compose Session Plan — was shipped but index entry missed), COR-1203 (Pre-Task Alignment), COR-1204 (CTX Format) | Frank Xu |
+| 2026-05-05 | Added COR-1615 (GitHub App PR Review Bot Loop). | Codex |

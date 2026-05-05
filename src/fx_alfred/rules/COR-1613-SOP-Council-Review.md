@@ -1,11 +1,11 @@
 # SOP-1613: Council Review
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-03
-**Last reviewed:** 2026-05-03
+**Last updated:** 2026-05-05
+**Last reviewed:** 2026-05-05
 **Status:** Active
 **Depends on:** COR-1402 (Declare Active Process), COR-0002 (Document Format Contract)
-**Related:** COR-1606 (Workflow Selection), COR-1602 (Multi-Model Parallel Review), COR-1600/1601 (Review Loops), COR-1608/1609/1610 (Scoring Rubrics), COR-1611 (Reviewer Calibration), COR-1612 (Respond To PR Review Comments)
+**Related:** COR-1606 (Workflow Selection), COR-1602 (Multi-Model Parallel Review), COR-1600/1601 (Review Loops), COR-1608/1609/1610 (Scoring Rubrics), COR-1611 (Reviewer Calibration), COR-1612 (Respond To PR Review Comments), COR-1615 (GitHub App PR Review Bot Loop)
 **Authored from:** FXA-2113 PRP (3-of-4 reviewer PASS, chair-cast deciding vote via mechanism #13)
 
 ---
@@ -172,6 +172,7 @@ Always pick the lightest mechanism that fits the decision's reversibility and bl
 - **COR-1608/1609/1610 (Scoring Rubrics)** — referenced from a Review Unit's `rubric:` field when `mechanism = Decision Matrix`. Unchanged by this SOP.
 - **COR-1611 (Reviewer Calibration)** — applies to **any reviewer** using one of the COR-1608/9/10 rubrics under a Decision Matrix mechanism (humans included), not exclusively LLMs.
 - **COR-1612 (Respond To PR Review Comments)** — covers the *post-decision response* lane for PR-context reviews; complements Council's *during-decision* mechanism layer.
+- **COR-1615 (GitHub App PR Review Bot Loop)** — covers GitHub App bot trigger/poll/current-head matching before PR-context findings enter COR-1612.
 
 ---
 
@@ -203,3 +204,4 @@ If a project's habits depend on such specifics (e.g., "in this project, the defa
 |------|--------|----|
 | 2026-05-03 | Initial version per FXA-2113 PRP. Round-1 review (4 reviewers) returned unanimous FIX (mean 8.0). Round-2 review returned 3-of-4 PASS (mean 9.03); one reviewer persistently raised mechanism-count and steelman-strength concerns. Chair cast the deciding vote PASS via mechanism #13 (Dictator/Single Reviewer) as tie-break. The dissent is captured as Open Question §1 with a 90-day revisit clause. | Frank Xu |
 | 2026-05-03 | FXA-2119: add half-diagnosed-fix prohibition to §When NOT to Use — a fix PR whose diagnosis was incomplete must complete COR-1503 Phase 1–5 before entering Council Review. | Frank Xu |
+| 2026-05-05 | Add COR-1615 relationship pointer for GitHub App PR review bot trigger/poll/current-head matching. | Codex |
