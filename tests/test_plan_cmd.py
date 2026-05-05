@@ -1,5 +1,6 @@
 """Tests for af plan command (FXA-2134)."""
 
+import json
 from pathlib import Path
 
 import click
@@ -130,6 +131,154 @@ def test_setup_outputs_prompts(sample_project, monkeypatch):
     assert result.exit_code == 0
     assert "af plan" in result.output
     assert "af guide" in result.output
+
+
+def _create_skill_ref(
+    rules_dir: Path,
+    prefix: str,
+    acid: str,
+    file_title: str,
+    *,
+    tags: str = "skill",
+    task_tags: str = "release",
+) -> Path:
+    """Helper to create a REF skill document."""
+    filename = f"{prefix}-{acid}-REF-{file_title}.md"
+    filepath = rules_dir / filename
+    filepath.write_text(
+        f"# REF-{acid}: {file_title.replace('-', ' ')}\n\n"
+        "**Applies to:** Test\n"
+        "**Last updated:** 2026-05-05\n"
+        "**Last reviewed:** 2026-05-05\n"
+        "**Status:** Active\n"
+        f"**Tags:** {tags}\n"
+        f"**Task tags:** {task_tags}\n\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "A skill document for release work.\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By |\n|------|--------|----|\n"
+        "| 2026-05-05 | Initial version | Test |\n"
+    )
+    return filepath
+
+
+def test_plan_with_skills_requires_task(sample_project, monkeypatch):
+    """--with-skills requires --task even in JSON mode."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["plan", "--with-skills", "COR-1103"])
+    assert result.exit_code != 0
+    assert "--with-skills requires --task" in result.output
+
+    result = runner.invoke(cli, ["plan", "--with-skills", "--json", "COR-1103"])
+    assert result.exit_code != 0
+    assert "--with-skills requires --task" in result.output
+
+
+def test_plan_with_skills_json_top_level_schema_v3(sample_project, monkeypatch):
+    """--with-skills adds top-level recommended_skills and schema v3."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Release-Workflow")
+    _create_skill_ref(
+        rules_dir,
+        "TST",
+        "5002",
+        "Skill-Release-To-PyPI",
+        tags="skill, release, pypi",
+        task_tags="release, pypi",
+    )
+
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(
+        cli,
+        [
+            "plan",
+            "--task",
+            "release pypi",
+            "--with-skills",
+            "--json",
+            "TST-5001",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["schema_version"] == "3"
+    assert "recommended_skills" in data
+    assert data["recommended_skills"][0]["id"] == "TST-5002"
+
+
+def test_plan_with_skills_json_empty_match_keeps_empty_array(
+    sample_project, monkeypatch
+):
+    """--with-skills emits [] when no skill matches."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Release-Workflow")
+    _create_skill_ref(
+        rules_dir,
+        "TST",
+        "5002",
+        "Skill-Release-To-PyPI",
+        tags="skill, release, pypi",
+        task_tags="release, pypi",
+    )
+
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(
+        cli,
+        [
+            "plan",
+            "--task",
+            "no-match-token",
+            "--with-skills",
+            "--json",
+            "TST-5001",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["schema_version"] == "3"
+    assert data["recommended_skills"] == []
+
+
+def test_plan_with_skills_text_appends_after_graph(sample_project, monkeypatch):
+    """Recommended Skills block appears after normal text and graph output."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Release-Workflow")
+    _create_skill_ref(
+        rules_dir,
+        "TST",
+        "5002",
+        "Skill-Release-To-PyPI",
+        tags="skill, release, pypi",
+        task_tags="release, pypi",
+    )
+
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(
+        cli,
+        [
+            "plan",
+            "--task",
+            "release pypi",
+            "--with-skills",
+            "--graph",
+            "--graph-format",
+            "ascii",
+            "TST-5001",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert "# Recommended Skills" in result.output
+    assert result.output.rfind("# Recommended Skills") > result.output.rfind("Phase")
 
 
 def test_plan_no_args(sample_project, monkeypatch):
