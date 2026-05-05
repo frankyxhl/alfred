@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-05
 **Last reviewed:** 2026-05-05
-**Status:** In Progress
+**Status:** Completed
 **Date:** 2026-05-05
 **Requested by:** Frank
 **Priority:** Medium
@@ -73,3 +73,4 @@ BAB-1504 captured a real process gap: agents can mistake an acknowledgement reac
 | 2026-05-05 | Rename from "GitHub Native" to "GitHub App" to avoid ambiguity between GitHub/Copilot official review and Codex Connector review. | Codex |
 | 2026-05-05 | Add official OpenAI Codex GitHub integration and GitHub Copilot code review references to COR-1615. | Codex |
 | 2026-05-05 | Verified official OpenAI and GitHub docs; add Copilot reviewer-request command and explicit non-automatic re-review caution. | Codex |
+| 2026-05-05 | Released as `fx-alfred` v1.9.1 and marked CHG completed. | Codex |
