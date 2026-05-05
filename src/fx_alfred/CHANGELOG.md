@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.10.0 (2026-05-05)
+
+Feature release: agent-editable helpers and reusable skill documents.
+
+### Added
+
+- **`af agent call`** — explicitly gated PRJ/USR Python helper execution with `ALFRED_AGENT_TOOLS=1`, PRJ-over-USR resolution, async helper support, string-only `--arg key=value`, and JSON success/error envelopes. (FXA-2236, issue #94)
+- **`af agent run`** — explicitly gated Python script runner using the current interpreter, no shell, and process-style JSON envelopes with `stdout`, `stderr`, and `exit_code`. (FXA-2236)
+- **`af skill list/read`** — read-only discovery and reading for REF/SOP documents explicitly tagged with `Tags: skill`, including deterministic task scoring across `Task tags`, `Tags`, title, and body. (FXA-2236)
+- **`af plan --with-skills`** — task-scoped skill recommendations appended to text plans and emitted as top-level `recommended_skills` in JSON schema version `3`. (FXA-2236)
+- **FXA-2237 usage REF** — examples and safety guidance for agent helpers and skill documents.
+
+### Safety
+
+- Normal `af guide`, `af plan`, `af validate`, and `af skill` paths do not import or execute `agent_helpers.py`.
+- Helper execution refuses unless the exact opt-in gate `ALFRED_AGENT_TOOLS=1` is set before import or script execution.
+
 ## v1.9.1 (2026-05-05)
 
 Patch release: PKG SOP promotion for GitHub App PR review bot loops.

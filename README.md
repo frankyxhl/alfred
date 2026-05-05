@@ -21,9 +21,11 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
-- **NEW in v1.9.1** — [GitHub App PR Review Bot Loop (COR-1615)](src/fx_alfred/rules/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md) for Codex Connector / Copilot PR review loops; v1.9.0 added [Council Review (COR-1613)](src/fx_alfred/rules/COR-1613-SOP-Council-Review.md) and [Diagnose Feedback Loop (COR-1503)](src/fx_alfred/rules/COR-1503-SOP-Diagnose-Feedback-Loop.md)
+- **NEW in v1.10.0** — Agent-editable helpers and skill documents: `af agent call/run`, `af skill list/read`, and `af plan --with-skills`
+- **v1.9.1** — [GitHub App PR Review Bot Loop (COR-1615)](src/fx_alfred/rules/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md) for Codex Connector / Copilot PR review loops; v1.9.0 added [Council Review (COR-1613)](src/fx_alfred/rules/COR-1613-SOP-Council-Review.md) and [Diagnose Feedback Loop (COR-1503)](src/fx_alfred/rules/COR-1503-SOP-Diagnose-Feedback-Loop.md)
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
-- **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs. With `--task "<description>"` auto-composes the SOP set from tags; `--todo` flattens into a unified checklist; `--graph` renders ASCII + Mermaid flowcharts with intra-SOP loops and gates
+- **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs. With `--task "<description>"` auto-composes the SOP set from tags; `--todo` flattens into a unified checklist; `--graph` renders ASCII + Mermaid flowcharts with intra-SOP loops and gates; `--with-skills` recommends matching skill docs
+- **Agent Helpers & Skills** — `af agent` runs explicitly gated local Python helpers/scripts, while `af skill` discovers and reads reusable REF/SOP skill documents without executing code
 - **Document Validation** — `af validate` enforces metadata format, status values, and section structure
 - **Document Formatting** — `af fmt` normalizes metadata order, whitespace, and table alignment to canonical style
 - **File Path Lookup** — `af where` prints the absolute filesystem path of any document by identifier
@@ -75,6 +77,7 @@ af plan COR-1102 COR-1602 COR-1500            # phased checklist from named SOPs
 af plan --human COR-1102                       # human-readable format
 af plan --task "implement FXA-XXXX PRP"        # auto-compose SOPs from tags (COR-1202)
 af plan --task "..." --todo --graph            # flat TODO + ASCII + Mermaid graph
+af plan --task "..." --with-skills             # append matching skill docs
 af plan --task "..." --graph --graph-format=ascii    # ASCII only (terminal)
 af plan --task "..." --graph --graph-format=mermaid  # Mermaid only (GitHub / Obsidian)
 af setup                                       # suggested prompts for agent config
@@ -104,6 +107,34 @@ intra-SOP loops only) for downstream tooling pinned on the legacy shape.
 
 See [COR-1202 (Compose Session Plan)](src/fx_alfred/rules/COR-1202-SOP-Compose-Session-Plan.md)
 for the canonical usage procedure.
+
+### Agent Helpers and Skills
+
+Run explicit local helper code only after opting in:
+
+```bash
+ALFRED_AGENT_TOOLS=1 af agent call collect_review_pack --arg root=. --json
+ALFRED_AGENT_TOOLS=1 af agent run scripts/check_release.py --json
+```
+
+`af agent call` loads public functions from `<project-root>/.alfred/agent_helpers.py`
+first, then `~/.alfred/agent_helpers.py`. The exact
+`ALFRED_AGENT_TOOLS=1` gate is checked before importing helper code.
+
+Discover reusable skill documents without executing code:
+
+```bash
+af skill list
+af skill list --task "release fx-alfred to pypi" --json
+af skill read skill-release-to-pypi
+```
+
+A skill is a `REF` or `SOP` document with explicit `Tags: skill` metadata.
+`af plan --task "..." --with-skills` appends matched skills to the plan; JSON
+output adds `recommended_skills` and uses schema version `3`.
+
+See [FXA-2237](rules/FXA-2237-REF-Agent-Helpers-And-Skills-Usage.md) for the
+full usage reference.
 
 ### Document Validation (`af validate`)
 
@@ -314,7 +345,11 @@ Pass threshold: >= 9.0/10. All deductions must cite specific lines.
 
 ```
 af guide [--root DIR] [--json]
-af plan [SOP_ID ...] [--root DIR] [--task TEXT] [--todo] [--graph] [--graph-format ascii|mermaid|both] [--human] [--json]
+af plan [SOP_ID ...] [--root DIR] [--task TEXT] [--with-skills] [--todo] [--graph] [--graph-format ascii|mermaid|both] [--human] [--json]
+af agent call HELPER_NAME [--arg key=value ...] [--json]
+af agent run SCRIPT_PATH [--json]
+af skill list [--task TEXT] [--layer PKG|USR|PRJ|all] [--json]
+af skill read ID_OR_NAME [--json]
 af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
 af read IDENTIFIER [--json]
 af create TYPE --prefix P --acid N|--area N --title T [--layer project|user] [--subdir DIR] [--spec FILE] [--dry-run]

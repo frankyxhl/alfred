@@ -145,6 +145,8 @@
 | 2233 | CHG | Subsection Guard Symmetry in COR 1612 Step 6 |
 | 2234 | CHG | Promote GitHub App PR Review Bot Loop SOP |
 | 2235 | PRP | Agent Editable Helpers And Skills |
+| 2236 | CHG | Implement Agent Editable Helpers And Skills |
+| 2237 | REF | Agent Helpers And Skills Usage |
 
 ---
 

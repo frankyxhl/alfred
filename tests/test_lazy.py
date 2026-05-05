@@ -151,3 +151,35 @@ class TestLazyCliIntegration:
         assert isinstance(cli, LazyGroup)
         assert hasattr(cli, "_lazy_subcommands")
         assert len(cli._lazy_subcommands) >= 8
+
+    def test_agent_nested_group_help_resolves(self):
+        """LazyGroup resolves af agent and its nested subcommands."""
+        from click.testing import CliRunner
+
+        from fx_alfred.cli import cli
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["agent", "--help"])
+        assert result.exit_code == 0
+        assert "call" in result.output
+        assert "run" in result.output
+
+        result = runner.invoke(cli, ["agent", "call", "--help"])
+        assert result.exit_code == 0
+        assert "--arg" in result.output
+
+    def test_skill_nested_group_help_resolves(self):
+        """LazyGroup resolves af skill and its nested subcommands."""
+        from click.testing import CliRunner
+
+        from fx_alfred.cli import cli
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["skill", "--help"])
+        assert result.exit_code == 0
+        assert "list" in result.output
+        assert "read" in result.output
+
+        result = runner.invoke(cli, ["skill", "list", "--help"])
+        assert result.exit_code == 0
+        assert "--task" in result.output

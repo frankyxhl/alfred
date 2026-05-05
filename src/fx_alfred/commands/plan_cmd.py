@@ -22,6 +22,7 @@ from fx_alfred.core.compose import resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.phases import PhaseDict
 from fx_alfred.core.schema import TASK_TAGS
+from fx_alfred.core.skills import list_skills
 from fx_alfred.core.workflow import (
     BranchSignature,
     LoopSignature,
@@ -479,6 +480,22 @@ def _emit_graph(
         click.echo("```")
 
 
+def _emit_recommended_skills(recommended_skills: list[dict] | None) -> None:
+    """Append a compact recommended skills block to text output."""
+    if not recommended_skills:
+        return
+    click.echo()
+    click.echo("# Recommended Skills")
+    click.echo()
+    for item in recommended_skills:
+        source = item["source"]["layer"]
+        score = item.get("score")
+        suffix = "" if score is None else f" (score {score})"
+        click.echo(
+            f"- [{source}] {item['id']} {item['type_code']} {item['title']}{suffix}"
+        )
+
+
 @click.command("plan")
 @root_option
 @click.argument("sop_ids", nargs=-1)
@@ -520,6 +537,11 @@ def _emit_graph(
     default=None,
     help="Auto-compose SOPs by matching Task tags against task description",
 )
+@click.option(
+    "--with-skills",
+    is_flag=True,
+    help="Recommend matching skill documents for the task.",
+)
 @click.pass_context
 def plan_cmd(
     ctx: click.Context,
@@ -531,6 +553,7 @@ def plan_cmd(
     graph_format: str,
     graph_layout: str,
     task_description: str | None,
+    with_skills: bool,
 ) -> None:
     """Generate workflow checklist from SOPs."""
     # ── Validate --graph-format / --graph coupling ──
@@ -547,8 +570,14 @@ def plan_cmd(
         if layout_source is not None and layout_source.name != "DEFAULT":
             raise click.UsageError("--graph-layout requires --graph")
 
+    if with_skills and task_description is None:
+        raise click.UsageError("--with-skills requires --task")
+
     # Scan documents first (needed for --task resolution)
     docs = scan_or_fail(ctx)
+    recommended_skills = (
+        list_skills(docs, task=task_description) if with_skills else None
+    )
 
     # Handle --task flag for auto-composition
     composed_from_provenance: dict[str, list[str]] | None = None
@@ -735,6 +764,7 @@ def plan_cmd(
             provenance_map = _build_provenance_map(composed_from_provenance)
             click.echo()
             _emit_graph(phase_info, provenance_map, graph_format, graph_layout)
+        _emit_recommended_skills(recommended_skills)
         return
 
     # ── JSON output mode ──
@@ -789,9 +819,12 @@ def plan_cmd(
                     )
 
         has_new_keys = (
-            output_todo or output_graph or (composed_from_provenance is not None)
+            output_todo
+            or output_graph
+            or (composed_from_provenance is not None)
+            or with_skills
         )
-        schema_ver = "2" if has_new_keys else "1"
+        schema_ver = "3" if with_skills else ("2" if has_new_keys else "1")
 
         result = {
             "schema_version": schema_ver,
@@ -827,6 +860,9 @@ def plan_cmd(
                 )
             if graph_format in ("mermaid", "both"):
                 result["graph_mermaid"] = render_mermaid(mermaid_phases)
+
+        if with_skills:
+            result["recommended_skills"] = recommended_skills or []
 
         click.echo(json.dumps(result, ensure_ascii=False, indent=2))
         return
@@ -879,3 +915,4 @@ def plan_cmd(
     if output_graph:
         provenance_map = _build_provenance_map(composed_from_provenance)
         _emit_graph(phase_info, provenance_map, graph_format, graph_layout)
+    _emit_recommended_skills(recommended_skills)

@@ -31,6 +31,7 @@ Quick Start:
 @click.group(
     cls=LazyGroup,
     lazy_subcommands={
+        "agent": "fx_alfred.commands.agent_cmd:agent_cmd",
         "changelog": "fx_alfred.commands.changelog_cmd:changelog_cmd",
         "create": "fx_alfred.commands.create_cmd:create_cmd",
         "fmt": "fx_alfred.commands.fmt_cmd:fmt_cmd",
@@ -41,6 +42,7 @@ Quick Start:
         "read": "fx_alfred.commands.read_cmd:read_cmd",
         "setup": "fx_alfred.commands.setup_cmd:setup_cmd",
         "search": "fx_alfred.commands.search_cmd:search_cmd",
+        "skill": "fx_alfred.commands.skill_cmd:skill_cmd",
         "status": "fx_alfred.commands.status_cmd:status_cmd",
         "update": "fx_alfred.commands.update_cmd:update_cmd",
         "validate": "fx_alfred.commands.validate_cmd:validate_cmd",
