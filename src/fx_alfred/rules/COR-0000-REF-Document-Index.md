@@ -63,6 +63,11 @@ A reference index of all documents in the COR system.
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
 | 1703 | SOP | Fork Project |
+| 1705 | REF | Code Review Classification System |
+| 1706 | SOP | Code Review — Structural Checks |
+| 1707 | SOP | Code Review — Cross-Cutting Concerns |
+| 1708 | SOP | Code Review — Domain-Specific Checks |
+| 1709 | SOP | Code Review — AI-Assisted Code + Quick Reference |
 | 1800 | REF | Evolution Philosophy |
 | 1801 | SOP | Pattern Promotion |
 
@@ -78,3 +83,4 @@ A reference index of all documents in the COR system.
 | 2026-05-03 | Added COR-1202 (Compose Session Plan — was shipped but index entry missed), COR-1203 (Pre-Task Alignment), COR-1204 (CTX Format) | Frank Xu |
 | 2026-05-05 | Added COR-1615 (GitHub App PR Review Bot Loop). | Codex |
 | 2026-05-05 | Added COR-1801 (Pattern Promotion). | Codex |
+| 2026-05-06 | Added COR-1705–1709 (Code Review Checklists per FXA-2124). | Frank Xu |
