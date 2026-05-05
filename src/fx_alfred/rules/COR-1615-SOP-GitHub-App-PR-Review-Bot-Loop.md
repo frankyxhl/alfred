@@ -62,7 +62,7 @@ Core invariant: a PR is not clear until the latest review result applies to the 
 - Do not post duplicate `@codex review` comments or duplicate reviewer requests while a request for the same head is still pending.
 - Verify the visible-write identity with `gh auth status` before posting PR comments, reviewer requests, or replies.
 - Do not publish private IPs, local filesystem paths, tokens, private hostnames, or host-specific secrets in PR bodies, comments, commits, or review packets.
-- For actionable P1/P2 findings, hand off to COR-1612: classify comments, fix blockers, rerun relevant validation, commit, push, and reply where needed.
+- For all actionable findings, hand off to COR-1612: classify comments, fix blockers and adopted advisories, rerun relevant validation, commit, push, and reply where needed.
 - After pushing fixes from COR-1612, return to this SOP Step 1 for the new `headRefOid`.
 
 ---
@@ -252,7 +252,7 @@ Use the GitHub App PR review bot loop:
 - After every push, compare the reviewed commit with the current headRefOid.
 - Treat eyes reactions as queued or in-progress, not approval.
 - Do not post duplicate review triggers while one request is in progress.
-- Fix actionable P1/P2 findings, validate, commit, push, and restart the current-head review loop.
+- Fix all actionable findings, validate, commit, push, and restart the current-head review loop.
 - Verify the visible-write identity with gh auth status.
 - Do not publish private IPs, local paths, tokens, or host-specific details in public PR text or commits.
 ```

@@ -58,6 +58,7 @@ The current SOP already contains these rules, but they are spread across Prerequ
 | Date | Action | Result |
 |------|--------|--------|
 | 2026-05-05 | Created CHG and updated COR-1615 with checklist/prompt. | Validation and representative read/plan checks passed. |
+| 2026-05-05 | Addressed Codex PR review feedback. | Replaced `P1/P2` wording with all actionable findings to match COR-1612 handoff semantics. |
 
 ---
 
