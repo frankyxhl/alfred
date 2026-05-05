@@ -38,7 +38,7 @@ Without Alfred-native documents, agents and human reviewers lack a discoverable,
 - Create SOP 3: domain-specific checks (change-level checks, frontend, backend, config/IaC, docs/review quality)
 - Create SOP 4: AI-assisted code review + short-form PR checklist + example tool configs
 - Add cross-reference line in COR-1602 Steps section pointing to new checklists
-- Archive original `code-review-checklist.md` to `docs/archive/` with supersession note
+- Original `code-review-checklist.md` superseded by new COR-1705–1709 documents
 
 **Out of scope (v1):**
 - Modifying COR-1608/1610/1611 scoring rubrics (they are process, the new docs are domain checklists)
@@ -125,9 +125,8 @@ No changes to COR-1608, COR-1610, or COR-1611 — they score *how well* the revi
 1. Create COR-1705 REF via spec file
 2. Create COR-1706 through COR-1709 SOPs via spec files, translating content from Chinese draft
 3. Add cross-reference to COR-1602
-4. Archive `code-review-checklist.md` (attached to Issue #99) to `docs/archive/code-review-checklist-v1.0.md`
-5. Run `af index` to register all new documents
-6. Open PR, trigger COR-1615 review bot
+4. Run `af index` to register all new documents
+5. Open PR, trigger COR-1615 review bot
 
 ### Maintenance
 
@@ -157,7 +156,7 @@ All resolved during COR-1203 pre-task alignment + multi-model review:
 3. **Integration** → Complementary, cross-reference from COR-1602 (unanimous)
 4. **Language** → English only (user decision)
 5. **Layer** → PKG, ships with `fx_alfred` package (user decision + unanimous reviewer agreement)
-6. **Backward compatibility** → Archive v1.0, new docs supersede with cross-reference (unanimous)
+6. **Backward compatibility** → New docs supersede v1.0; original file not retained in repo (user decision)
 
 ---
 

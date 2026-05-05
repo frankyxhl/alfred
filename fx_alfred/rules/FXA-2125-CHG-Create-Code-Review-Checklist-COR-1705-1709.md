@@ -21,7 +21,7 @@ Create five new PKG-layer documents in `src/fx_alfred/rules/` per approved PRP F
 - COR-1708-SOP: Code Review — Domain-Specific Checks
 - COR-1709-SOP: Code Review — AI-Assisted Code + Quick Reference
 
-Add cross-reference to COR-1602 Steps section. Archive `code-review-checklist.md` to `docs/archive/`.
+Add cross-reference to COR-1602 Steps section. Original `code-review-checklist.md` superseded; not retained in repo.
 
 ---
 
@@ -43,9 +43,8 @@ Converts the 1022-line Chinese `code-review-checklist.md` into discoverable, ato
 1. Create COR-1705-REF in `src/fx_alfred/rules/`
 2. Create COR-1706-SOP through COR-1709-SOP in `src/fx_alfred/rules/`
 3. Add cross-reference line to COR-1602 §Steps
-4. Archive `code-review-checklist.md` to `docs/archive/code-review-checklist-v1.0.md`
-5. Run `af validate` and `af index`
-6. Open PR
+4. Run `af validate` and `af index`
+5. Open PR
 
 ---
 

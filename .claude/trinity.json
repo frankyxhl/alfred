@@ -1,0 +1,94 @@
+{
+  "sessions": {
+    "gemini": {
+      "session_id": "69b1bfa7-5d19-4ec1-ab32-a83e995b637a",
+      "last_used": "2026-05-03T14:22:33",
+      "task_summary": "FXA-2116-eval-r2 panel review (PASS 9.5)"
+    },
+    "codex": {
+      "session_id": "019d57a3-a979-7f51-84db-f679ba4b3258",
+      "last_used": "2026-05-03T14:22:56",
+      "task_summary": "FXA-2116 R2 review: PASS 9.4"
+    },
+    "glm": {
+      "session_id": "9cc98e2a-9938-498f-92e2-7c310b8166aa",
+      "last_used": "2026-05-03T16:28:39",
+      "task_summary": "Review WUK-2007 proposed changes: scored 3 changes, bundle composite 8.7, recommended adopting Changes 1+2 with modifications, dropping Change 3."
+    },
+    "deepseek": {
+      "session_id": "79ce98bc-214e-4b90-8d3a-5d732f1f2f5a",
+      "last_used": "2026-05-03T14:12:16",
+      "task_summary": "FXA-2116-eval-r1: COR-1503 PRP review (Round 1 of skills-absorption initiative); scored 6.8/10 FIX; harshest critic of panel"
+    },
+    "glm-pr85-r11": {
+      "session_id": "self-review-no-droid",
+      "last_used": "2026-05-02T17:47:32",
+      "task_summary": "PR #85 R11 review completed by Claude directly (no droid call needed; pack self-contained)"
+    },
+    "gemini-pr85-r11": {
+      "session_id": "c0171dfe-bf51-48a9-8187-f3e8ca6fdb7e",
+      "last_used": "2026-05-02T17:48:27",
+      "task_summary": "PR #85 COR-1612 post-R10 review"
+    },
+    "deepseek-pr85-r11": {
+      "session_id": "14554fa2-e86d-4efb-9ba0-6559628d0a11",
+      "last_used": "2026-05-02T17:52:32",
+      "task_summary": "PR #85 COR-1612 amendment post-R10 review — FAIL 8.25 with 1 blocking (no-CI repo CI-green undefined) + 4 advisory"
+    },
+    "codex-pr85-r11": {
+      "session_id": "019de7de-d038-7fd3-a515-eaa13f873220",
+      "last_used": "2026-05-02T17:52:42",
+      "task_summary": "PR #85 R11 review of COR-1612 SOP amendment"
+    },
+    "gemini-pr85-r12": {
+      "session_id": "c0171dfe-bf51-48a9-8187-f3e8ca6fdb7e",
+      "last_used": "2026-05-03T00:52:04",
+      "task_summary": "PR #85 COR-1612 amendment R12 re-review (resumed from R11): all 3 blocking R10 findings addressed-correctly; composite 10.0 PASS"
+    },
+    "codex-pr85-r12": {
+      "session_id": "019de7de-d038-7fd3-a515-eaa13f873220",
+      "last_used": "2026-05-03T00:52:46",
+      "task_summary": "PR #85 R12 re-review: COMPOSITE 8.9, FAIL — 2 remaining blocking issues (apostrophe-in-jq + missing var guards in §Step 6 unified-filter block)"
+    },
+    "deepseek-pr85-r12": {
+      "session_id": "57de7213-417d-495b-9875-44336be36f89",
+      "last_used": "2026-05-03T00:55:46",
+      "task_summary": "R12 re-review of PR #85 COR-1612"
+    },
+    "glm-pr85-r12": {
+      "session_id": "a031212e-7232-4f71-ba38-3fc6a4027d8c",
+      "last_used": "2026-05-03T02:10:20",
+      "task_summary": "PR #85 R12 re-review — 9.94/PASS, all 4 R10 advisories addressed-correctly"
+    },
+    "glm-pr85-truncfix-design": {
+      "session_id": "19a87ac3-d832-4ca8-937f-80850381afac",
+      "last_used": "2026-05-03T02:59:49",
+      "task_summary": "PR85 truncation-fix design review (Approach A pre-check)"
+    },
+    "codex-pr85-truncfix-design": {
+      "session_id": "019de9e0-3cb4-7732-bc7f-694f457d8416",
+      "last_used": "2026-05-03T03:08:34",
+      "task_summary": "Design review of Approach A pre-check for actions/runs 1k-cap truncation fix in COR-1612 SOP §Step 6"
+    },
+    "glm-pr85-subblock-vote": {
+      "session_id": "2d1f43a3-96c5-47eb-bfd2-71abdbdcc1c4",
+      "last_used": "2026-05-03T03:25:03",
+      "task_summary": "PR#85 sub-block guard binary vote: MERGE-AS-IS"
+    },
+    "gemini-pr85-subblock-vote": {
+      "session_id": "9409e321-1204-44af-86c5-94b8d0c49495",
+      "last_used": "2026-05-03T03:25:06",
+      "task_summary": "PR #85 sub-block guard binary vote: MERGE-AS-IS"
+    },
+    "codex-pr85-subblock-vote": {
+      "session_id": "019de9fd-dcb8-7111-b9ad-fa770fff23bb",
+      "last_used": "2026-05-03T03:40:36",
+      "task_summary": "PR-85 sub-block guard binary vote: MERGE-AS-IS"
+    },
+    "codex:review": {
+      "session_id": "019decf2-adeb-7310-be2f-1aa98648ed3c",
+      "last_used": "2026-05-03T17:27:22",
+      "task_summary": "Round-2 review of WUK-2007 diff scoring"
+    }
+  }
+}

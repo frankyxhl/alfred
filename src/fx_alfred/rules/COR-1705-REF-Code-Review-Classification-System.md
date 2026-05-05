@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-05-06
 **Status:** Active
 **Related:** COR-1706, COR-1707, COR-1708, COR-1709, COR-1602, COR-1608, COR-1610
-**Supersedes:** code-review-checklist.md v1.0 (archived at docs/archive/code-review-checklist-v1.0.md)
+**Supersedes:** code-review-checklist.md v2.0 (Issue #99)
 
 ---
 
