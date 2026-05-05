@@ -52,6 +52,21 @@ GitHub App review bots are useful but easy to misread. A reaction on a request c
 
 ---
 
+## Operator Checklist
+
+Core invariant: a PR is not clear until the latest review result applies to the current `headRefOid` and no new actionable findings remain for that head.
+
+- Record the current `headRefOid` before triggering or interpreting a review.
+- After every push, return to Step 1 and compare any bot-reviewed commit with the new `headRefOid`.
+- Treat `eyes` or similar acknowledgement reactions as queued or in-progress, not approval.
+- Do not post duplicate `@codex review` comments or duplicate reviewer requests while a request for the same head is still pending.
+- Verify the visible-write identity with `gh auth status` before posting PR comments, reviewer requests, or replies.
+- Do not publish private IPs, local filesystem paths, tokens, private hostnames, or host-specific secrets in PR bodies, comments, commits, or review packets.
+- For actionable P1/P2 findings, hand off to COR-1612: classify comments, fix blockers, rerun relevant validation, commit, push, and reply where needed.
+- After pushing fixes from COR-1612, return to this SOP Step 1 for the new `headRefOid`.
+
+---
+
 ## Status Vocabulary
 
 | Signal | Meaning | What to do |
@@ -227,6 +242,23 @@ The loop is complete when the latest bot result applies to current `headRefOid`,
 
 ---
 
+## Portable Operator Prompt
+
+```md
+Use the GitHub App PR review bot loop:
+
+- Follow COR-1615 to trigger, poll, and match review results to the current PR head.
+- Follow COR-1612 to address fetched review comments.
+- After every push, compare the reviewed commit with the current headRefOid.
+- Treat eyes reactions as queued or in-progress, not approval.
+- Do not post duplicate review triggers while one request is in progress.
+- Fix actionable P1/P2 findings, validate, commit, push, and restart the current-head review loop.
+- Verify the visible-write identity with gh auth status.
+- Do not publish private IPs, local paths, tokens, or host-specific details in public PR text or commits.
+```
+
+---
+
 ## References
 
 - OpenAI Codex GitHub integration: https://developers.openai.com/codex/integrations/github
@@ -238,4 +270,5 @@ The loop is complete when the latest bot result applies to current `headRefOid`,
 
 | Date | Change | By |
 |------|--------|----|
+| 2026-05-05 | Added compact operator checklist and portable prompt for current-head review-loop non-negotiables. | Codex |
 | 2026-05-05 | Initial COR-level version promoted from BAB-1504, generalized from Codex-specific Babs wording to GitHub App PR review bots. | Codex |
