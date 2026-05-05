@@ -148,6 +148,7 @@
 | 2236 | CHG | Implement Agent Editable Helpers And Skills |
 | 2237 | REF | Agent Helpers And Skills Usage |
 | 2238 | CHG | Add COR 1615 Operator Checklist |
+| 2239 | CHG | Add COR 1801 Pattern Promotion SOP |
 
 ---
 

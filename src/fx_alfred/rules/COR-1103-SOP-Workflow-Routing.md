@@ -89,6 +89,7 @@ material (REF, Glossary, Index) — NOT creating lifecycle documents
 like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 
 1. Pure document management? (REF, Glossary, SOP creation, metadata update)
+   ├── Promote PRJ pattern to PKG → COR-1801, then CHG/PRP as required
    ├── New SOP               → COR-1000
    ├── New reference doc     → COR-1001
    └── Update existing doc   → COR-1300
@@ -137,6 +138,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • GitHub App PR review bot loop → COR-1615 (trigger/poll/match current head), then COR-1612 for fetched findings
 • Diagnose bug/perf regression → COR-1503 (Diagnose Feedback Loop: build feedback loop → reproduce → hypothesise → instrument → fix → regression-test)
 • Pre-task alignment       → COR-1203 (Socratic interview: 7-step loop before PRP/non-trivial code; challenge against glossary, stop when crisp or user-declined)
+• PRJ-to-PKG pattern promotion → COR-1801 (evaluate candidate evidence, decide promote/defer/reject/revise, then route to CHG/PRP)
 • SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
 ```
 
@@ -163,6 +165,7 @@ COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin
 COR-1615: GitHub App PR review bot loop → request once per head, poll without spam, match result to current head, hand findings to COR-1612
 COR-1503: Diagnose bug/perf regression → build feedback loop → reproduce → hypothesise (3-5 ranked) → instrument (one variable/round) → fix → regression-test (hand off to COR-1500)
 COR-1203: Pre-task alignment → before PRP/non-trivial code, offer 7-step Socratic interview; challenge against glossary (COR-1204 CTX), sharpen terms, stop when crisp or user-declined; record one-line outcome
+COR-1801: Pattern promotion → evaluate PRJ pattern contract and evidence before creating or amending PKG/COR documents
 Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
 ```
 
@@ -239,3 +242,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-05-03 | FXA-2118: add COR-1503 (Diagnose Feedback Loop) routing entries — OVERLAYS line, PRIMARY ROUTE branch 2 sub-branch, Golden Rule line. | Frank Xu |
 | 2026-05-05 | Add COR-1615 routing entries for GitHub App PR review bot loops. | Codex |
 | 2026-05-03 | FXA-2122: add COR-1203 (Pre-Task Alignment) to Workflow Sequence diagram (after COR-1201, before af guide), OVERLAYS line, and Golden Rule line. | Frank Xu |
+| 2026-05-05 | Add COR-1801 routing entries for PRJ-to-PKG pattern promotion. | Codex |

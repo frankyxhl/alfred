@@ -64,6 +64,7 @@ A reference index of all documents in the COR system.
 | 1702 | SOP | Sync Project |
 | 1703 | SOP | Fork Project |
 | 1800 | REF | Evolution Philosophy |
+| 1801 | SOP | Pattern Promotion |
 
 ---
 
@@ -76,3 +77,4 @@ A reference index of all documents in the COR system.
 | 2026-05-03 | Added COR-1503 (Diagnose Feedback Loop), COR-1504 (Diagnose Phase Gates), COR-1613 (Council Review — was shipped in PR #88, index entry missed) | Frank Xu |
 | 2026-05-03 | Added COR-1202 (Compose Session Plan — was shipped but index entry missed), COR-1203 (Pre-Task Alignment), COR-1204 (CTX Format) | Frank Xu |
 | 2026-05-05 | Added COR-1615 (GitHub App PR Review Bot Loop). | Codex |
+| 2026-05-05 | Added COR-1801 (Pattern Promotion). | Codex |

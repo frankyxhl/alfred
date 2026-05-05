@@ -1,8 +1,8 @@
 # REF-1800: Evolution Philosophy
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-04
-**Last reviewed:** 2026-04-04
+**Last updated:** 2026-05-05
+**Last reviewed:** 2026-05-05
 **Status:** Active
 
 ---
@@ -91,6 +91,14 @@ Reference catalog. Projects pick what applies to their context.
 
 ---
 
+## Relationship to Pattern Promotion
+
+COR-1800 defines the philosophy and evaluation rubrics for evolution. COR-1801 is the peer 18xx governance SOP that defines how a proven PRJ-layer pattern is promoted into PKG/COR.
+
+Use COR-1801 when the evolution candidate is not just an improvement inside one project, but a local practice being considered as reusable package governance.
+
+---
+
 ## COR-to-PRJ Override Contract
 
 Projects customize evolution by creating a PRJ-layer REF that overrides COR-1800 defaults.
@@ -126,3 +134,4 @@ COR-1800-REF (philosophy + rubrics + override contract)
 | Date | Change | By |
 |------|--------|----|
 | 2026-04-04 | Initial version per PRP FXA-2198 and CHG FXA-2199 | Claude Code |
+| 2026-05-05 | Added peer relationship pointer to COR-1801 Pattern Promotion. | Codex |
