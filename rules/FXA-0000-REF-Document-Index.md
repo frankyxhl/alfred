@@ -144,6 +144,7 @@
 | 2232 | PRP | Quarkdown Documentation Rendering Layer |
 | 2233 | CHG | Subsection Guard Symmetry in COR 1612 Step 6 |
 | 2234 | CHG | Promote GitHub App PR Review Bot Loop SOP |
+| 2235 | PRP | Agent Editable Helpers And Skills |
 
 ---
 
