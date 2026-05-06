@@ -1,8 +1,14 @@
 """Tests for LazyGroup lazy command loading."""
 
+import pytest
+
+
 from unittest.mock import patch
 
 import click
+
+
+pytestmark = pytest.mark.cli
 
 
 class TestLazyGroupListCommands:

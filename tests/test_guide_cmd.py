@@ -1,7 +1,13 @@
+import pytest
+
+
 from pathlib import Path
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
+
+
+pytestmark = [pytest.mark.cli, pytest.mark.docs, pytest.mark.integration]
 
 
 def test_guide_outputs_content(sample_project, monkeypatch):

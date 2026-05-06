@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pytest
+
+
 import json
 import sys
 from pathlib import Path
@@ -9,6 +12,9 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+
+pytestmark = [pytest.mark.cli, pytest.mark.integration]
 
 
 def _project_helper(root: Path, content: str) -> Path:

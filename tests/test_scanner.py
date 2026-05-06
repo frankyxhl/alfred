@@ -1,7 +1,13 @@
+import pytest
+
+
 import tempfile
 from pathlib import Path
 
 from fx_alfred.core.scanner import LayerValidationError, scan_documents
+
+
+pytestmark = pytest.mark.integration
 
 
 def test_scan_finds_all_documents(sample_project):

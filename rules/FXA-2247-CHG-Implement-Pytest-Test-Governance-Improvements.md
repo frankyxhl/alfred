@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-06
 **Last reviewed:** 2026-05-06
-**Status:** Approved
+**Status:** Completed
 **Date:** 2026-05-06
 **Requested by:** Frank Xu
 **Priority:** Medium
@@ -120,7 +120,7 @@ PRP titles, not evidence that those PRPs have completed COR-1602 approval.
      intentionally accepts duplicate optional-extra membership rather than
      changing the extra dependency model.
    - Measure current coverage with:
-     `pytest --cov=fx_alfred --cov-report=term-missing --cov-report=xml --cov-fail-under=0`.
+     `pytest --cov=src/fx_alfred --cov-report=term-missing --cov-report=xml --cov-fail-under=0`.
    - Set the initial fail-under threshold to the measured baseline rounded down
      to a stable integer, with a conservative default of **95%** if the measured
      baseline remains at or above historical FXA reports.
@@ -139,7 +139,7 @@ PRP titles, not evidence that those PRPs have completed COR-1602 approval.
 6. **Verification**
    - `pytest --tb=short`
    - `pytest -m "not slow" --tb=short`
-   - `pytest --cov=fx_alfred --cov-report=term-missing --cov-fail-under=<threshold>`
+   - `pytest --cov=src/fx_alfred --cov-report=term-missing --cov-fail-under=<threshold>`
    - `ruff check .`
    - `pyright src/`
    - `af validate --root .`
@@ -147,19 +147,19 @@ PRP titles, not evidence that those PRPs have completed COR-1602 approval.
 
 ## Acceptance Criteria
 
-- [ ] Pytest marker taxonomy is defined in `pyproject.toml`.
-- [ ] Unknown pytest markers fail under the default test configuration.
-- [ ] Existing tests are categorized with module-level markers where practical.
-- [ ] Repeated assertion families that benefit from table-driven testing are
+- [x] Pytest marker taxonomy is defined in `pyproject.toml`.
+- [x] Unknown pytest markers fail under the default test configuration.
+- [x] Existing tests are categorized with module-level markers where practical.
+- [x] Repeated assertion families that benefit from table-driven testing are
   converted to parametrized tests with readable IDs.
-- [ ] Tests that become less diagnosable when parametrized are left separate and
+- [x] Tests that become less diagnosable when parametrized are left separate and
   not force-converted.
-- [ ] `pytest-cov` is available through the same install path used by CI.
-- [ ] CI and publish validation fail when coverage drops below the chosen
+- [x] `pytest-cov` is available through the same install path used by CI.
+- [x] CI and publish validation fail when coverage drops below the chosen
   threshold.
-- [ ] The chosen threshold is justified by a measured baseline recorded in this
+- [x] The chosen threshold is justified by a measured baseline recorded in this
   CHG's execution log.
-- [ ] `pytest`, coverage pytest, `ruff`, `pyright`, `af validate`, and
+- [x] `pytest`, coverage pytest, `ruff`, `pyright`, `af validate`, and
   `git diff --check` pass before PR.
 
 ## Open Questions / Defaults
@@ -167,11 +167,11 @@ PRP titles, not evidence that those PRPs have completed COR-1602 approval.
 - **Can implementation start while all three PRPs are Draft placeholders?**
   Resolved: yes, by Frank's explicit approval on 2026-05-06. This CHG is the
   implementation authority unless a later review requires PRP body backfill.
-- **Initial coverage threshold?** Default: measured baseline rounded down, capped
-  at a conservative first gate of 95% unless the fresh baseline is lower.
-- **Marker granularity?** Default: module-level marker coverage first; avoid
-  noisy per-test annotations unless a module is mixed.
-- **Dependency path?** Default: add `pytest-cov` to `dev` because CI installs
+- **Initial coverage threshold?** Resolved: 95%, verified against a fresh local
+  baseline of 95.10% using `--cov=src/fx_alfred`.
+- **Marker granularity?** Resolved: module-level marker coverage across existing
+  test modules, with a small marker-contract regression test for future files.
+- **Dependency path?** Resolved: add `pytest-cov` to `dev` because CI installs
   `.[dev]`; keep it in `evolve` because the evolve workflow also consumes
   coverage reports.
 
@@ -179,19 +179,19 @@ PRP titles, not evidence that those PRPs have completed COR-1602 approval.
 
 Pre-implementation:
 
-- [ ] `pytest --tb=short`
-- [ ] `ruff check .`
-- [ ] `af validate --root .`
+- [x] `pytest --tb=short`
+- [x] `ruff check .`
+- [x] `af validate --root .`
 
 Implementation:
 
-- [ ] `pytest --tb=short`
-- [ ] `pytest -m "not slow" --tb=short`
-- [ ] `pytest --cov=fx_alfred --cov-report=term-missing --cov-fail-under=<threshold>`
-- [ ] `ruff check .`
-- [ ] `pyright src/`
-- [ ] `af validate --root .`
-- [ ] `git diff --check`
+- [x] `pytest --tb=short`
+- [x] `pytest -m "not slow" --tb=short`
+- [x] `pytest --cov=src/fx_alfred --cov-report=term-missing --cov-fail-under=95`
+- [x] `ruff check .`
+- [x] `pyright src/`
+- [x] `af validate --root .`
+- [x] `git diff --check`
 
 ## Approval
 
@@ -207,6 +207,8 @@ Implementation:
 | 2026-05-06 | Checked local coverage command in existing `.venv`. | `pytest-cov` is not installed in default `.venv`; coverage flags are currently unavailable without dependency-path changes. |
 | 2026-05-06 | Trinity CHG review R1 using GLM and DeepSeek under COR-1609. | PASS: GLM 9.1/10, DeepSeek 9.0/10. Folded in low-risk advisories for Related metadata, optional-extra policy, CI marker policy, and rollback wording. |
 | 2026-05-06 | Frank approved explicit override and requested PR. | Status moved to Approved; PRP placeholder status remains documented as a known constraint. |
+| 2026-05-06 | Implemented pytest marker taxonomy, strict marker validation, coverage dependency path, CI/publish coverage gate, README testing guidance, module-level test markers, and targeted parametrization cleanup. | Coverage source-path form `--cov=src/fx_alfred` is required locally; package-name form produced no coverage data in this editable install. |
+| 2026-05-06 | Ran implementation verification. | `pytest -m "not slow"`: 867 passed / 2 deselected. `pytest --tb=short`: 869 passed. Coverage: 95.10% with `--cov-fail-under=95`. `ruff check .`, `pyright src/`, `af validate --root .`, and `git diff --check` passed. |
 
 ---
 
@@ -216,3 +218,4 @@ Implementation:
 |------|--------|----|
 | 2026-05-06 | Initial version | Codex |
 | 2026-05-06 | Marked Approved after Trinity PASS and Frank explicit approval. | Codex |
+| 2026-05-06 | Marked Completed after implementation and verification. | Codex |

@@ -1,5 +1,8 @@
 """Tests for scripts/build_docs.py (CHG FXA-2196)."""
 
+import pytest
+
+
 from pathlib import Path
 from textwrap import dedent
 
@@ -11,6 +14,9 @@ from scripts.build_docs import (
     parse_h1,
     update_mkdocs_yml,
 )
+
+
+pytestmark = [pytest.mark.docs, pytest.mark.integration]
 
 
 def _make_cor_file(directory: Path, name: str, h1: str) -> Path:

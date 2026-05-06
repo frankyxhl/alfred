@@ -1,11 +1,16 @@
 """Tests for --json output mode on guide, plan, search, validate commands (FXA-2142)."""
 
+import pytest
+
+
 import json
 from pathlib import Path
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
 
+
+pytestmark = pytest.mark.cli
 
 # =============================================================================
 # GUIDE --json

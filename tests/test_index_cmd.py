@@ -1,8 +1,14 @@
+import pytest
+
+
 from datetime import date
 
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+
+pytestmark = [pytest.mark.cli, pytest.mark.docs, pytest.mark.integration]
 
 
 def test_index_handles_multiple_prefixes(tmp_path, monkeypatch):

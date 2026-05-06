@@ -4,9 +4,13 @@ from unittest.mock import patch
 import click
 import pytest
 
+
 from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
 from fx_alfred.core.document import Document
 from fx_alfred.core.scanner import LayerValidationError
+
+
+pytestmark = pytest.mark.unit
 
 
 def test_scan_or_fail_returns_documents(sample_project):

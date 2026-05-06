@@ -13,12 +13,18 @@ Plain plans must remain byte-identical to v1.7.1 for the
 
 from __future__ import annotations
 
+import pytest
+
+
 import json
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+
+pytestmark = pytest.mark.cli
 
 
 def _create_sop_with_branches(rules_dir: Path) -> Path:

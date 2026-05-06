@@ -1,7 +1,13 @@
+import pytest
+
+
 from pathlib import Path
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
+
+
+pytestmark = pytest.mark.cli
 
 
 def test_list_shows_documents(sample_project, monkeypatch):

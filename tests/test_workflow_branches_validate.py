@@ -11,12 +11,16 @@ import textwrap
 
 import pytest
 
+
 from fx_alfred.core.parser import MalformedDocumentError, parse_metadata
 from fx_alfred.core.workflow import (
     parse_workflow_branches,
     validate_branches,
     _BRANCHES_RENDERER_READY,
 )
+
+
+pytestmark = pytest.mark.unit
 
 
 def _doc(yaml_branches: str, steps_section: str) -> str:

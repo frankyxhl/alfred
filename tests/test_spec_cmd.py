@@ -1,10 +1,14 @@
 """Tests for af create --spec and af update --spec (FXA-2143)."""
 
 import pytest
+
+
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
 
+
+pytestmark = [pytest.mark.cli, pytest.mark.integration]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Fixtures

@@ -1,3 +1,6 @@
+import pytest
+
+
 import json
 import re
 from pathlib import Path
@@ -5,6 +8,9 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
+
+
+pytestmark = pytest.mark.cli
 
 
 def test_status_shows_counts(sample_project, monkeypatch):

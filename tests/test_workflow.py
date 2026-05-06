@@ -1,5 +1,8 @@
 """Tests for core/workflow.py — typed SOP workflow composition helpers."""
 
+import pytest
+
+
 from fx_alfred.core.parser import MetadataField, ParsedDocument
 from fx_alfred.core.workflow import (
     WorkflowSignature,
@@ -8,6 +11,8 @@ from fx_alfred.core.workflow import (
     validate_workflow_signature,
 )
 
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # Helpers

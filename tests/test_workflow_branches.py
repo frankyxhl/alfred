@@ -23,6 +23,9 @@ Parsed to:
 
 from __future__ import annotations
 
+import pytest
+
+
 import textwrap
 
 from fx_alfred.core.parser import parse_metadata
@@ -32,6 +35,9 @@ from fx_alfred.core.workflow import (
     parse_workflow_branches,
     parse_workflow_loops,
 )
+
+
+pytestmark = pytest.mark.unit
 
 
 def _doc(yaml_branches: str) -> str:

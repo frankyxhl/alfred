@@ -1,8 +1,14 @@
 """Tests for af validate command."""
 
+import pytest
+
+
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+
+pytestmark = [pytest.mark.cli, pytest.mark.docs, pytest.mark.integration]
 
 
 def _write_valid_document(path, prefix, acid, type_code, title, status="Active"):

@@ -1,11 +1,17 @@
 """Tests for af search command."""
 
+import pytest
+
+
 import os
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+
+pytestmark = pytest.mark.cli
 
 
 def test_search_finds_match_in_prj_doc(sample_project, monkeypatch):

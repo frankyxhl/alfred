@@ -1,10 +1,16 @@
 """Tests for af where command."""
 
+import pytest
+
+
 import json
 from pathlib import Path
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
+
+
+pytestmark = pytest.mark.cli
 
 
 def test_where_prints_path(sample_project, monkeypatch):

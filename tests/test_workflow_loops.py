@@ -2,6 +2,7 @@
 
 import pytest
 
+
 from fx_alfred.core.parser import MetadataField, ParsedDocument
 from fx_alfred.core.workflow import (
     LoopSignature,
@@ -9,6 +10,8 @@ from fx_alfred.core.workflow import (
     validate_loops,
 )
 
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # Helpers

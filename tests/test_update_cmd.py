@@ -1,10 +1,16 @@
 """Tests for af update command (PRP-2104)."""
 
+import pytest
+
+
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+
+pytestmark = [pytest.mark.cli, pytest.mark.integration]
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 

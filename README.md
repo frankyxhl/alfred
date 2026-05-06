@@ -136,6 +136,25 @@ output adds `recommended_skills` and uses schema version `3`.
 See [FXA-2237](rules/FXA-2237-REF-Agent-Helpers-And-Skills-Usage.md) for the
 full usage reference.
 
+### Testing
+
+The pytest suite uses strict registered markers:
+
+```bash
+pytest --tb=short
+pytest -m "not slow" --tb=short
+pytest --cov=src/fx_alfred --cov-report=term-missing --cov-fail-under=95
+```
+
+Markers:
+- `unit` — narrow module or pure-function tests
+- `cli` — `af` command surface and Click command wiring
+- `integration` — filesystem, packaging, subprocess, or cross-module behavior
+- `docs` — document, rule, template, or documentation behavior
+- `slow` — intentionally slower tests for local loop exclusion
+
+Unknown markers fail because pytest runs with `--strict-markers`.
+
 ### Document Validation (`af validate`)
 
 Enforces document health across all layers:

@@ -3,6 +3,9 @@
 import pytest
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestTokenize:
     """Tests for tokenize() function."""
 

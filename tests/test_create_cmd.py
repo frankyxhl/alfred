@@ -2,9 +2,14 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
+
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+
+pytestmark = [pytest.mark.cli, pytest.mark.integration]
 
 
 def test_create_sop_without_rules_dir(tmp_path, monkeypatch):
