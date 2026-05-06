@@ -153,6 +153,10 @@
 | 2241 | CHG | Create Code Review Checklist COR 1705 1709 |
 | 2242 | CHG | Promote Multi Phase Execution Contract SOP |
 | 2243 | CHG | Add COR 1615 Pre Trigger Finalization Gate |
+| 2244 | PRP | Add Custom Pytest Markers for Test Categorization |
+| 2245 | PRP | Add Parametrized Tests for Repeated Assertions |
+| 2246 | PRP | Enforce Pytest Coverage Thresholds |
+| 2247 | CHG | Implement Pytest Test Governance Improvements |
 
 ---
 
