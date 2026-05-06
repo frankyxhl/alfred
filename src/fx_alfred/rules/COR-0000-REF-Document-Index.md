@@ -83,4 +83,4 @@ A reference index of all documents in the COR system.
 | 2026-05-03 | Added COR-1202 (Compose Session Plan — was shipped but index entry missed), COR-1203 (Pre-Task Alignment), COR-1204 (CTX Format) | Frank Xu |
 | 2026-05-05 | Added COR-1615 (GitHub App PR Review Bot Loop). | Codex |
 | 2026-05-05 | Added COR-1801 (Pattern Promotion). | Codex |
-| 2026-05-06 | Added COR-1705–1709 (Code Review Checklists per FXA-2124). | Frank Xu |
+| 2026-05-06 | Added COR-1705–1709 (Code Review Checklists per FXA-2240). | Frank Xu |
