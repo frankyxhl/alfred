@@ -1,5 +1,67 @@
 # Changelog
 
+## v1.11.0 (2026-05-06)
+
+Feature release: new governance, review, and execution-contract SOPs.
+
+### Added
+
+- **COR-1801 Pattern Promotion** — PKG SOP for promoting project-local
+  practices into reusable COR rules, with evidence, risk, rollback, and
+  de-promotion criteria. (PR #98, FXA-2239)
+- **COR-1705 Code Review Classification System** — REF defining gate/automated/
+  human review classifications and P0/P1/P2 severity language for code review
+  checklists. (PR #100, FXA-2241)
+- **COR-1706 Code Review Structural Checks** — SOP for architecture, API,
+  database, and structural review concerns. (PR #100)
+- **COR-1707 Code Review Cross-Cutting Concerns** — SOP for security,
+  observability, concurrency, migrations, and operational concerns. (PR #100)
+- **COR-1708 Code Review Domain-Specific Checks** — SOP for frontend, backend,
+  configuration, infrastructure, documentation, and review-quality checks.
+  (PR #100)
+- **COR-1709 Code Review AI-Assisted Code + Quick Reference** — SOP for
+  AI-assisted code review risks and compact PR review checklists. (PR #100)
+- **COR-1614 Multi Phase Execution Contract** — PKG SOP promoted from BAB-2218
+  for turning approved multi-phase work into reviewable execution slices with
+  authority references, operator defaults, validation gates, privacy rules, and
+  stop conditions. (PR #101, FXA-2242)
+
+### Changed
+
+- **COR-1615 GitHub App PR Review Bot Loop** now includes a pre-trigger
+  finalization gate and decision tree so known closeout/status/index/fixup
+  commits happen before manually requesting bot review. This reduces wasted
+  review passes while preserving current-head review correctness. (PR #102,
+  FXA-2243)
+- **COR-1103 Workflow Routing** now routes approved multi-phase continuous
+  execution through COR-1614 and links pattern-promotion work to COR-1801.
+  (PR #98, PR #101)
+- **COR-1613 Council Review** releases its deferred hard-coded COR-1614
+  decision-library fallback; any future split uses the next open COR ACID at
+  that time. (PR #101)
+- **COR-1602 Workflow Multi Model Parallel Review** now links to the expanded
+  code-review checklist family. (PR #100)
+
+### Docs
+
+- Added FXA-2240/2241 records for migrating Code Review Checklist v2.0 into
+  COR-1705 through COR-1709.
+- Added FXA-2242 as the COR-1614 promotion record.
+- Added FXA-2243 as the COR-1615 pre-trigger finalization gate record.
+
+### Stats
+
+- 214 documents, 0 validation issues.
+- 0 breaking changes.
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.11.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.10.0 (2026-05-05)
 
 Feature release: agent-editable helpers and reusable skill documents.
