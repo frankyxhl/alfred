@@ -149,6 +149,8 @@
 | 2237 | REF | Agent Helpers And Skills Usage |
 | 2238 | CHG | Add COR 1615 Operator Checklist |
 | 2239 | CHG | Add COR 1801 Pattern Promotion SOP |
+| 2240 | PRP | Code Review Checklist v2.0 as Alfred SOP REF |
+| 2241 | CHG | Create Code Review Checklist COR 1705 1709 |
 
 ---
 

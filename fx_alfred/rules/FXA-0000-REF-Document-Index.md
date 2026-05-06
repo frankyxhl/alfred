@@ -32,8 +32,6 @@
 | 2121 | PRP | COR 1203 Pre Task Alignment |
 | 2122 | CHG | COR 1103 Add Pre Task Alignment Routing |
 | 2123 | CTX | Alfred Glossary |
-| 2124 | PRP | Code Review Checklist v2.0 as Alfred SOP REF |
-| 2125 | CHG | Create Code Review Checklist COR 1705 1709 |
 
 ---
 
