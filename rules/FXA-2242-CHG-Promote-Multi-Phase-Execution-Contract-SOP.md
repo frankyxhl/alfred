@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-06
 **Last reviewed:** 2026-05-06
-**Status:** In Progress
+**Status:** Completed
 **Date:** 2026-05-06
 **Requested by:** Frank
 **Priority:** Medium
@@ -205,7 +205,7 @@ continuity of already-decided defaults, not larger blast radius.
   `COR-1614-REF-Decision-Mechanism-Library.md` as a future ACID.
 - [x] Local validation and Trinity implementation fast-review pass before the PR
   is opened.
-- [ ] PR feedback is completed through COR-1615 and COR-1612.
+- [x] PR feedback is completed through COR-1615 and COR-1612.
 
 ## Open Questions / Defaults
 
@@ -260,11 +260,17 @@ Implementation:
 | 2026-05-06 | Implemented COR-1614 and references. | Added COR-1614, COR-0000 row, COR-1103 routing and golden rule, and COR-1613 fallback release. Local validation, read/plan smoke checks, diff whitespace check, and privacy scan passed. |
 | 2026-05-06 | Trinity implementation review, PKG docs. | Scope `src/fx_alfred/rules`: GLM PASS and DeepSeek PASS. Folded in advisory fixes for COR-0000 Last updated date and COR-1801 body reference in COR-1614. |
 | 2026-05-06 | Trinity implementation review, FXA docs. | Scope `rules`: GLM PASS and DeepSeek PASS with non-blocking advisories only. Ready for PR creation. |
+| 2026-05-06 | Opened PR #101 and completed COR-1615/COR-1612 loop. | CI passed. Codex GitHub App review bot reported no major issues for current head `62dccca`; no inline review comments or review-summary findings were returned. |
 
 ## Post-Change Review
 
-- Pending until COR-1614 is implemented, locally reviewed, and PR feedback is
-  resolved.
+- COR-1614 was implemented and linked from COR-0000 and COR-1103.
+- COR-1613's deferred hard-coded COR-1614 fallback was released so the future
+  decision-mechanism-library split can use the next open ACID at that time.
+- Local validation, read/plan smoke checks, whitespace check, privacy scan, and
+  Trinity fast-review all passed before PR creation.
+- PR #101 CI passed, and the COR-1615 GitHub App review bot loop produced no
+  actionable findings to process through COR-1612.
 
 ---
 
@@ -277,3 +283,4 @@ Implementation:
 | 2026-05-06 | Address Trinity R2 ACID-reservation blocker by adding COR-1613 fallback-release scope. | Codex |
 | 2026-05-06 | Mark CHG approved after Trinity R3 PASS and advisory fold-in. | Codex |
 | 2026-05-06 | Record implementation verification and Trinity implementation review results. | Codex |
+| 2026-05-06 | Mark CHG completed after PR #101 CI and GitHub App review bot loop passed. | Codex |
