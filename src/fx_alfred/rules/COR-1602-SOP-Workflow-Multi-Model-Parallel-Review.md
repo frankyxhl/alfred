@@ -1,8 +1,8 @@
 # SOP-1602: Workflow — Multi Model Parallel Review
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-03
-**Last reviewed:** 2026-05-03
+**Last updated:** 2026-05-06
+**Last reviewed:** 2026-05-06
 **Status:** Active
 **Workflow loops:** [{id: review-retry, from: 7, to: 3, max_iterations: 3, condition: "iteration is on and not all reviewers approve"}]
 **Task tags:** [review, code-review, plan-review, multi-model, prp-review, implement]
@@ -61,6 +61,9 @@ Leader      Reviewer A    Reviewer B
 ## Steps
 
 1. **Leader identifies artifact** — the document, plan, code, or design to be reviewed
+
+   **Reference:** COR-1705 through COR-1709 (Code Review Checklists) for domain-specific review items. Consult the relevant SOP based on the artifact's surface: COR-1706 (structural checks), COR-1707 (cross-cutting concerns), COR-1708 (domain-specific checks), COR-1709 (AI-assisted code + quick reference). Read COR-1705 (REF — Classification System) once for the G/A/H and P0/P1/P2 taxonomy used by all checklist SOPs.
+
 2. **Leader dispatches Reviewers** — all Reviewers receive the same artifact in parallel
 
    **Dispatch context:** When dispatching Reviewers, include instructions for accessing project artifacts. Since all projects using this workflow have `af` installed, include:
