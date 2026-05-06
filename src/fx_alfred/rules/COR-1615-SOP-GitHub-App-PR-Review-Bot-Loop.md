@@ -1,8 +1,8 @@
 # SOP-1615: GitHub App PR Review Bot Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-05
-**Last reviewed:** 2026-05-05
+**Last updated:** 2026-05-06
+**Last reviewed:** 2026-05-06
 **Status:** Active
 **Related:** COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
 **Task tags:** [github, github-app, pull-request, pr-review, review, bot-review, codex, copilot]
@@ -48,6 +48,10 @@ GitHub App review bots are useful but easy to misread. A reaction on a request c
 - Confirm the visible-write account is the intended account for this project before creating PR comments.
 - Know the local branch state and remote PR head:
   `git status --short --branch` and `gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid`.
+- Before manually triggering review, finish and push all known local closeout
+  commits, status flips, index updates, PR-body-driven doc edits, and
+  validation-only fixups. Trigger only when the next expected commit would be a
+  response to review feedback or CI feedback.
 - Do not put private hostnames, local filesystem paths, tokens, Tailscale IPs, or other local environment details into public PR text.
 
 ---
@@ -57,6 +61,9 @@ GitHub App review bots are useful but easy to misread. A reaction on a request c
 Core invariant: a PR is not clear until the latest review result applies to the current `headRefOid` and no new actionable findings remain for that head.
 
 - Record the current `headRefOid` before triggering or interpreting a review.
+- Before the first manual trigger for a head, complete the local closeout pass:
+  no known status-only, index-only, CHG closeout, PR body, or validation fixup
+  commit should remain unpushed.
 - After every push, return to Step 1 and compare any bot-reviewed commit with the new `headRefOid`.
 - Treat `eyes` or similar acknowledgement reactions as queued or in-progress, not approval.
 - Do not post duplicate `@codex review` comments or duplicate reviewer requests while a request for the same head is still pending.
@@ -135,6 +142,40 @@ When thread state matters, use a GraphQL or project helper that exposes `isOutda
 
 ---
 
+## Decision Tree
+
+```mermaid
+flowchart TD
+  A([Start with open PR]) --> B[Resolve current headRefOid]
+  B --> C[Confirm visible-write identity]
+  C --> D{Known local follow-up<br/>commit still pending?}
+  D -->|Yes| E[Make commit, validate, push]
+  E --> B
+  D -->|No| F{Current head already<br/>has completed bot result?}
+  F -->|Yes| G[Fetch three feedback surfaces]
+  F -->|No| H{Request already pending<br/>for this head?}
+  H -->|Yes| I[Poll without another trigger]
+  H -->|No| J[Trigger one bot review<br/>for this head]
+  J --> I
+  I --> K{Review/result applies<br/>to current head?}
+  K -->|No| B
+  K -->|Yes| G
+  G --> L{Actionable findings?}
+  L -->|Yes| M[Process through COR-1612]
+  M --> N[Commit fixes, validate, push]
+  N --> B
+  L -->|No| O{CI and required checks pass?}
+  O -->|No| P[Diagnose or fix checks]
+  P --> N
+  O -->|Yes| Q([Current head clear])
+```
+
+Read this as a control-flow summary only. The detailed rules below still govern
+identity checks, trigger discipline, stale-head matching, feedback handling, and
+completion criteria.
+
+---
+
 ## Steps
 
 ### 1. Resolve the current PR head
@@ -145,11 +186,26 @@ Run `gh pr view` and record `headRefOid`. A review only clears the head commit i
 
 Run `gh auth status`. If the authenticated account is not the intended visible-write account for the project, stop and fix authentication before creating PR comments.
 
-### 3. Decide whether a trigger is needed
+### 3. Run the pre-trigger finalization gate
+
+Before posting a manual review trigger, ask: "Do I already know I will make
+another commit if this review passes?" If yes, make that commit first. Common
+known follow-up commits include CHG closeout, status flips, index updates,
+generated-doc refreshes, PR-body-driven corrections, and validation or
+whitespace fixups.
+
+Run the project validation that supports the PR readiness claim, confirm
+`git status --short --branch` is clean except intentionally untracked unrelated
+files, push the final known local commit, and re-read `headRefOid`.
+
+If the only possible next commits are review-response or CI-response fixes, the
+head is ready for a manual review trigger.
+
+### 4. Decide whether a trigger is needed
 
 Trigger review only when the current head lacks a completed review result, the operator explicitly requested a new pass, or a push changed the head after the last review request. Do not trigger another review while an existing request for the same head is still pending.
 
-### 4. Trigger one review request for the head
+### 5. Trigger one review request for the head
 
 Post or request the project-specific review once. Examples:
 
@@ -159,31 +215,31 @@ Post or request the project-specific review once. Examples:
 
 Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist.
 
-### 5. Poll without spamming
+### 6. Poll without spamming
 
 Wait 3-5 minutes between polls. Re-read PR state, latest reviews, top-level comments, and inline comments. Repeated request comments before the previous request has resolved add noise and can obscure the audit trail.
 
-### 6. Interpret reactions conservatively
+### 7. Interpret reactions conservatively
 
 Treat queue or acknowledgement reactions as in-progress signals, not approval. A positive no-comment signal can clear the head only when it is tied to the current request or current head and no newer actionable comments exist.
 
-### 7. Match review result to the current head
+### 8. Match review result to the current head
 
 If the review body or API object names a reviewed commit, compare it with current `headRefOid`. If the reviewed commit is stale, the current head is not clear. If the reviewer does not expose an explicit reviewed commit, use the best available evidence: request timestamp, review `commit_id`, PR head at review submission time, and absence of newer pushes.
 
-### 8. Fetch actionable findings
+### 9. Fetch actionable findings
 
 Use the COR-1612 three-surface fetch pattern: inline review comments, review summaries, and top-level PR conversation comments. If a comment may be stale, fetch thread-aware state before treating it as a fresh blocker.
 
-### 9. Process findings through COR-1612
+### 10. Process findings through COR-1612
 
 Classify each finding as blocking, advisory, question, or incorrect. Fix blocking issues and adopted advisories in focused commits, reply with verified behavior claims, and keep reviewer-thread resolution discipline per COR-1612.
 
-### 10. Restart after every push
+### 11. Restart after every push
 
 Every push creates a new `headRefOid`. Return to Step 1, then request or wait for a review of that new head. A clean review of the old head does not clear the new one. Do not assume re-review is automatic; some reviewers must be explicitly requested again after a push.
 
-### 11. Stop only when the current head is clear
+### 12. Stop only when the current head is clear
 
 The loop is complete when the latest bot result applies to current `headRefOid`, no new actionable comments remain, required checks are settled, and no review request for the current head is still pending.
 
@@ -192,6 +248,9 @@ The loop is complete when the latest bot result applies to current `headRefOid`,
 ## Completion Criteria
 
 - Current `headRefOid` is recorded.
+- The pre-trigger finalization gate passed before the first manual trigger for
+  the current head, or any known follow-up commit was pushed before review was
+  requested.
 - Latest review result is matched to current `headRefOid`, or a no-suggestion signal is tied to the current request/head.
 - No new actionable PR comments remain unhandled.
 - Relevant validation or CI has passed after the last fix push.
@@ -204,6 +263,9 @@ The loop is complete when the latest bot result applies to current `headRefOid`,
 - **Mistaking acknowledgement for approval:** queue reactions are not completed reviews.
 - **Reviewing the wrong commit:** a review of one SHA does not clear a later push.
 - **Duplicate triggers:** repeated request comments while one is pending make the timeline noisy.
+- **Triggering before local closeout:** if a known CHG closeout, status flip,
+  index update, or validation fixup is still pending, a clean bot result will
+  immediately become stale after that push. Finish known local commits first.
 - **Flat-comment staleness:** REST comment lists do not prove a thread still applies to the current diff.
 - **Wrong visible-write identity:** project/user routing may require a specific GitHub account for public comments.
 - **Private environment leakage:** never include local-only network or host details in public PR text.
@@ -240,6 +302,17 @@ The loop is complete when the latest bot result applies to current `headRefOid`,
 3. The operator fetches thread-aware state and sees the thread is outdated.
 4. Correct action: do not re-fix the stale comment unless the underlying issue still exists.
 
+### Example 5 - Clean review before a known closeout commit
+
+1. A PR receives a clean bot result for `abc123`.
+2. The operator then notices a planned CHG closeout/status commit was not yet
+   made.
+3. Pushing that closeout creates `def456`; the clean review for `abc123` is now
+   stale.
+4. Correct action: avoid this by running Step 3 before the first trigger. If the
+   push already happened, restart the loop for `def456` and record the
+   sequencing miss in the CHG or retrospective if useful.
+
 ---
 
 ## Portable Operator Prompt
@@ -249,6 +322,8 @@ Use the GitHub App PR review bot loop:
 
 - Follow COR-1615 to trigger, poll, and match review results to the current PR head.
 - Follow COR-1612 to address fetched review comments.
+- Before the first manual trigger, finish all known local closeout/status/index
+  commits, validate, push, and re-read headRefOid.
 - After every push, compare the reviewed commit with the current headRefOid.
 - Treat eyes reactions as queued or in-progress, not approval.
 - Do not post duplicate review triggers while one request is in progress.
@@ -270,5 +345,6 @@ Use the GitHub App PR review bot loop:
 
 | Date | Change | By |
 |------|--------|----|
+| 2026-05-06 | Added pre-trigger finalization gate to avoid wasting bot review passes on heads that already have known local follow-up commits pending. | Codex |
 | 2026-05-05 | Added compact operator checklist and portable prompt for current-head review-loop non-negotiables. | Codex |
 | 2026-05-05 | Initial COR-level version promoted from BAB-1504, generalized from Codex-specific Babs wording to GitHub App PR review bots. | Codex |
