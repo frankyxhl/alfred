@@ -127,7 +127,7 @@ af list --root /Users/frank/Projects/alfred/fx_alfred
 
 ## Workflow
 
-- **Session start:** `af guide --root /Users/frank/Projects/alfred/fx_alfred`
+- **Session start:** Run COR-1208 (Session Startup Sanity Check — `pwd`, `git status`/`log`, smoke test, load tracker, surface anomalies) before anything else. Then `af guide --root /Users/frank/Projects/alfred/fx_alfred`. Smoke for this project: `.venv/bin/pytest -v --tb=short` and `af validate --root /Users/frank/Projects/alfred/fx_alfred`.
 - **Before every task:** Declare active SOP per COR-1402 before starting work (or flag if none exist)
 - **Workflow checklist:** `af plan <SOP_IDs>` (LLM-optimized, follow each phase)
 - **First time:** `af setup` (suggested prompts for agent config)
