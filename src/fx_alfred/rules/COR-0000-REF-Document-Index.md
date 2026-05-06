@@ -1,7 +1,7 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-05
+**Last updated:** 2026-05-06
 **Last reviewed:** 2026-05-05
 **Status:** Active
 
@@ -58,6 +58,7 @@ A reference index of all documents in the COR system.
 | 1611 | SOP | Reviewer Calibration Guide |
 | 1612 | SOP | Respond To PR Review Comments |
 | 1613 | SOP | Council Review |
+| 1614 | SOP | Multi Phase Execution Contract |
 | 1615 | SOP | GitHub App PR Review Bot Loop |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
@@ -84,3 +85,4 @@ A reference index of all documents in the COR system.
 | 2026-05-05 | Added COR-1615 (GitHub App PR Review Bot Loop). | Codex |
 | 2026-05-05 | Added COR-1801 (Pattern Promotion). | Codex |
 | 2026-05-06 | Added COR-1705–1709 (Code Review Checklists per FXA-2240). | Frank Xu |
+| 2026-05-06 | Added COR-1614 (Multi Phase Execution Contract). | Codex |
