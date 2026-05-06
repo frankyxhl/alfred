@@ -14,7 +14,7 @@
 
 ## What
 
-Create five new PKG-layer documents in `src/fx_alfred/rules/` per approved PRP FXA-2124:
+Create five new PKG-layer documents in `src/fx_alfred/rules/` per approved PRP FXA-2240:
 - COR-1705-REF: Code Review Classification System
 - COR-1706-SOP: Code Review — Structural Checks
 - COR-1707-SOP: Code Review — Cross-Cutting Concerns
@@ -27,7 +27,7 @@ Add cross-reference to COR-1602 Steps section. Original `code-review-checklist.m
 
 ## Why
 
-Converts the 1022-line Chinese `code-review-checklist.md` into discoverable, atomic, English PKG-layer Alfred documents. All design decisions resolved in FXA-2124 PRP (unanimous 10.0/10 approval).
+Converts the 1022-line Chinese `code-review-checklist.md` into discoverable, atomic, English PKG-layer Alfred documents. All design decisions resolved in FXA-2240 PRP (unanimous 10.0/10 approval).
 
 ---
 
