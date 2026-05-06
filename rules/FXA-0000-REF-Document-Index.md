@@ -152,6 +152,7 @@
 | 2240 | PRP | Code Review Checklist v2.0 as Alfred SOP REF |
 | 2241 | CHG | Create Code Review Checklist COR 1705 1709 |
 | 2242 | CHG | Promote Multi Phase Execution Contract SOP |
+| 2243 | CHG | Add COR 1615 Pre Trigger Finalization Gate |
 
 ---
 
