@@ -1,4 +1,4 @@
-# PRP-2124: Code Review Checklist v2.0 as Alfred SOP-REF
+# PRP-2240: Code Review Checklist v2.0 as Alfred SOP-REF
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-06

@@ -1,4 +1,4 @@
-# CHG-2125: Create Code Review Checklist COR-1705-1709
+# CHG-2241: Create Code Review Checklist COR-1705-1709
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-06
@@ -8,7 +8,7 @@
 **Requested by:** Frank Xu
 **Priority:** Medium
 **Change Type:** Normal
-**Related:** FXA-2124 (PRP), Issue #99, COR-1602
+**Related:** FXA-2240 (PRP), Issue #99, COR-1602
 
 ---
 
