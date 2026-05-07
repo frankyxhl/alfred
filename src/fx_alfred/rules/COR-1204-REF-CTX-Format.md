@@ -6,7 +6,7 @@
 **Status:** Active
 **Depends on:** COR-0002 (Document Format Contract)
 **Related:** COR-1203 (Pre-Task Alignment — references CTX documents for glossary challenge)
-**Authored from:** FXA-2121 PRP (companion REF to COR-1203, defines the glossary template)
+**Authored from:** FXA-2269 PRP (companion REF to COR-1203, defines the glossary template)
 
 ---
 
@@ -38,7 +38,7 @@ A CTX document is a Markdown table with four columns:
 
 ### CTX document location
 
-- **PRJ-layer:** `rules/<prefix>-XXXX-CTX-<topic>.md` (e.g., `FXA-2123-CTX-Alfred-Glossary.md`). Uses existing Alfred document filename convention — the 3-letter code `CTX` parses correctly under current `FILENAME_PATTERN`.
+- **PRJ-layer:** `rules/<prefix>-XXXX-CTX-<topic>.md` (e.g., `FXA-2271-CTX-Alfred-Glossary.md`). Uses existing Alfred document filename convention — the 3-letter code `CTX` parses correctly under current `FILENAME_PATTERN`.
 - **Project root:** `CONTEXT.md` for single-context projects following the same table format, without Alfred document headers.
 - **Multi-context:** `CONTEXT-MAP.md` at project root pointing to per-module CONTEXT.md files.
 
@@ -67,4 +67,4 @@ The first CTX instance is `FXA-2271-CTX-Alfred-Glossary.md` in the Alfred projec
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-03 | Initial version per FXA-2121 PRP. Defines CTX format spec; companion to COR-1203. | Frank Xu |
+| 2026-05-03 | Initial version per FXA-2269 PRP. Defines CTX format spec; companion to COR-1203. | Frank Xu |

@@ -6,7 +6,7 @@
 **Status:** Active
 **Depends on:** COR-1402 (Declare Active Process), COR-0002 (Document Format Contract)
 **Related:** COR-1606 (Workflow Selection), COR-1602 (Multi-Model Parallel Review), COR-1600/1601 (Review Loops), COR-1608/1609/1610 (Scoring Rubrics), COR-1611 (Reviewer Calibration), COR-1612 (Respond To PR Review Comments), COR-1615 (GitHub App PR Review Bot Loop)
-**Authored from:** FXA-2113 PRP (3-of-4 reviewer PASS, chair-cast deciding vote via mechanism #13)
+**Authored from:** FXA-2262 PRP (3-of-4 reviewer PASS, chair-cast deciding vote via mechanism #13)
 
 ---
 
@@ -57,7 +57,7 @@ Before reviewers begin, the dispatcher fills the following block (in conversatio
 
 ```yaml
 # Required (always)
-review_id:    <unique ID — free-form, e.g. "release-v1.9.0" or "FXA-2113-eval">
+review_id:    <unique ID — free-form, e.g. "release-v1.9.0" or "FXA-2262-eval">
 target:       <what is being reviewed — file path / PR # / decision question>
 mechanism:    <one of the mechanisms in §Mechanism Library below>
 rubric:       <scoring rule when the mechanism is scoring-based; reference an existing
@@ -190,7 +190,7 @@ If a project's habits depend on such specifics (e.g., "in this project, the defa
 
 ## Open Questions
 
-1. **Mechanism library size (deferred).** A round-2 reviewer of FXA-2113 raised that 14 mechanisms may be overprovisioned for current usage, where only Decision Matrix is in active use. The Core+Advanced split is a readability concession but does not retire the question. **Plan:** revisit this question 90 days after this SOP becomes Active (≈ 2026-08-01). If fewer than 6 mechanisms have been invoked at least once in real reviews by then, demote the unused mechanisms to a separate `COR-16xx-REF-Decision-Mechanism-Library.md` using the next open COR ACID at that time, and trim this SOP body to the Core. Until then, the full library is documented here.
+1. **Mechanism library size (deferred).** A round-2 reviewer of FXA-2262 raised that 14 mechanisms may be overprovisioned for current usage, where only Decision Matrix is in active use. The Core+Advanced split is a readability concession but does not retire the question. **Plan:** revisit this question 90 days after this SOP becomes Active (≈ 2026-08-01). If fewer than 6 mechanisms have been invoked at least once in real reviews by then, demote the unused mechanisms to a separate `COR-16xx-REF-Decision-Mechanism-Library.md` using the next open COR ACID at that time, and trim this SOP body to the Core. Until then, the full library is documented here.
 
 2. **`af council` tooling.** No tooling exists today for declaring or aggregating Review Units — they live in conversation context, PR bodies, or session notes. If usage shows that manual declaration is error-prone, a future PRP may propose `af council declare/aggregate` commands. Out of scope for this SOP.
 
@@ -202,7 +202,7 @@ If a project's habits depend on such specifics (e.g., "in this project, the defa
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-03 | Initial version per FXA-2113 PRP. Round-1 review (4 reviewers) returned unanimous FIX (mean 8.0). Round-2 review returned 3-of-4 PASS (mean 9.03); one reviewer persistently raised mechanism-count and steelman-strength concerns. Chair cast the deciding vote PASS via mechanism #13 (Dictator/Single Reviewer) as tie-break. The dissent is captured as Open Question §1 with a 90-day revisit clause. | Frank Xu |
-| 2026-05-03 | FXA-2119: add half-diagnosed-fix prohibition to §When NOT to Use — a fix PR whose diagnosis was incomplete must complete COR-1503 Phase 1–5 before entering Council Review. | Frank Xu |
+| 2026-05-03 | Initial version per FXA-2262 PRP. Round-1 review (4 reviewers) returned unanimous FIX (mean 8.0). Round-2 review returned 3-of-4 PASS (mean 9.03); one reviewer persistently raised mechanism-count and steelman-strength concerns. Chair cast the deciding vote PASS via mechanism #13 (Dictator/Single Reviewer) as tie-break. The dissent is captured as Open Question §1 with a 90-day revisit clause. | Frank Xu |
+| 2026-05-03 | FXA-2267: add half-diagnosed-fix prohibition to §When NOT to Use — a fix PR whose diagnosis was incomplete must complete COR-1503 Phase 1–5 before entering Council Review. | Frank Xu |
 | 2026-05-05 | Add COR-1615 relationship pointer for GitHub App PR review bot trigger/poll/current-head matching. | Codex |
 | 2026-05-06 | Release hard-coded COR-1614 fallback for the future decision-mechanism library split; future split must use the next open COR ACID. | Codex |
