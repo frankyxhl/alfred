@@ -66,7 +66,7 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
    - Confirm Quick Start commands still work
    - Update the Key SOPs table if a new COR SOP shipped
    - Commit the README change with the version bump (or as a separate commit on the release branch) **before** running Step 3
-   - Verification: `git diff main -- README.md` shows the intended changes; nothing stale referencing the prior version remains
+   - Verification: `grep -F "v<NEW_VERSION>" README.md` returns at least one match (confirms the new version is referenced) AND a manual scan finds no stale references to the prior version. This works regardless of whether the release commit lives on a branch or on `main`.
 
 3. **Create GitHub Release** using the release notes template below
    ```bash
