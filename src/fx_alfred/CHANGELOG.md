@@ -1,5 +1,57 @@
 # Changelog
 
+## v1.13.0 (2026-05-07)
+
+Minor release: per-user document bookmarking via `af star`.
+
+### Added
+
+- **`af star <ID>`** — bookmark a document by its identifier. Accepts
+  `PREFIX-ACID` (e.g. `COR-1202`), case-insensitive prefix
+  (`cor-1202`), or ACID-only (`1202`). Idempotent. Errors on no-match
+  or ambiguous-ACID inputs. (FXA-2274)
+- **`af unstar <ID>`** — remove a bookmark. Best-effort resolution:
+  works on stale bookmarks (doc deleted), errors on ambiguous
+  ACID-only when multiple stored entries match, prefers stale starred
+  entries over a different live doc with the same ACID.
+- **`af starred [--json]`** — sorted list of bookmarked docs. Marks
+  entries that no longer resolve as `(missing)` in text mode and as
+  `"missing": [...]` alongside `"starred_docs"` in JSON mode (schema
+  version `"1"`).
+- **`~/.alfred/preferences.yaml`** — new per-user preferences file
+  with a `starred_docs:` key. Created on first `af star`. Atomic
+  writes via `tempfile.mkstemp()` + `os.replace()`. Forward-compat:
+  unknown top-level keys survive `star`/`unstar` round-trips.
+
+### Internal
+
+- New `src/fx_alfred/core/preferences.py` — framework-agnostic atomic
+  YAML I/O with `PreferencesError`, dedup-on-read, and unknown-key
+  preservation. Reusable by future per-user-preference features.
+
+### Removed
+
+- The `af tag star/unstar/list` commands and `af list --starred` flag
+  introduced briefly on `main` (FXA-2273) were **deleted before
+  reaching PyPI**. They starred tag *values* rather than documents,
+  which proved overengineered for the actual `Tags:` coverage in real
+  document bases (5 of 238 docs in this repo). `af star` is the
+  simpler primitive that matches operator intent: bookmark the doc
+  itself, no `Tags:` dependency.
+
+### Stats
+
+- 899 tests passing, coverage 95.01%, 0 breaking changes for PyPI
+  users (v1.12.0 had neither `af tag` nor `af star`).
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.13.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.12.0 (2026-05-07)
 
 Minor release: new Contract-First Delivery Workflow SOP, pytest test

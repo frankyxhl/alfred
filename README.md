@@ -21,7 +21,8 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
-- **NEW in v1.12.0** — [Contract-First Delivery Workflow (COR-1616)](src/fx_alfred/rules/COR-1616-SOP-Contract-First-Delivery-Workflow.md) — project-neutral reviewed-delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out), promoted from Babs `BAB-1503`. Also: pytest test-marker governance gate, skills-absorption round 5 (COR-1207, COR-1208, FXA-2248).
+- **NEW in v1.13.0** — Per-user document bookmarking: `af star <ID>`, `af unstar <ID>`, `af starred`. Bookmark any doc directly by ACID; persists in `~/.alfred/preferences.yaml`; documents are not modified.
+- **v1.12.0** — [Contract-First Delivery Workflow (COR-1616)](src/fx_alfred/rules/COR-1616-SOP-Contract-First-Delivery-Workflow.md) — project-neutral reviewed-delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out), promoted from Babs `BAB-1503`. Also: pytest test-marker governance gate, skills-absorption round 5 (COR-1207, COR-1208, FXA-2248).
 - **v1.10.0** — Agent-editable helpers and skill documents: `af agent call/run`, `af skill list/read`, and `af plan --with-skills`
 - **v1.9.1** — [GitHub App PR Review Bot Loop (COR-1615)](src/fx_alfred/rules/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md) for Codex Connector / Copilot PR review loops; v1.9.0 added [Council Review (COR-1613)](src/fx_alfred/rules/COR-1613-SOP-Council-Review.md) and [Diagnose Feedback Loop (COR-1503)](src/fx_alfred/rules/COR-1503-SOP-Diagnose-Feedback-Loop.md)
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
@@ -207,6 +208,13 @@ af search "validation" --json       # JSON output
 af list --type SOP                  # filter by type
 af list --tag release               # filter by tag
 af list --prefix FXA --json         # filter + JSON output
+
+# Star (per-user bookmarks, ~/.alfred/preferences.yaml)
+af star COR-1202                    # bookmark a doc (PREFIX-ACID, prefix-case-insensitive, or ACID-only)
+af star 1202                        # ACID-only when unambiguous
+af starred                          # list bookmarks; (missing) marks deleted docs
+af starred --json                   # {schema_version, starred_docs, missing}
+af unstar COR-1202                  # remove bookmark (works on stale entries too)
 
 # Other
 af guide --json                     # routing guide as JSON
