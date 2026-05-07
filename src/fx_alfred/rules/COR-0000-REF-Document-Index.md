@@ -62,6 +62,7 @@ A reference index of all documents in the COR system.
 | 1613 | SOP | Council Review |
 | 1614 | SOP | Multi Phase Execution Contract |
 | 1615 | SOP | GitHub App PR Review Bot Loop |
+| 1616 | SOP | Contract-First Delivery Workflow |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
@@ -88,3 +89,4 @@ A reference index of all documents in the COR system.
 | 2026-05-05 | Added COR-1801 (Pattern Promotion). | Codex |
 | 2026-05-06 | Added COR-1705–1709 (Code Review Checklists per FXA-2240). | Frank Xu |
 | 2026-05-06 | Added COR-1614 (Multi Phase Execution Contract). | Codex |
+| 2026-05-07 | Added COR-1616 (Contract-First Delivery Workflow — promoted from BAB-1503 per issue #106). | Claude Code |
