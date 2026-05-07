@@ -15,9 +15,7 @@ from typing import Any
 import yaml
 
 
-_HEADER_COMMENT = (
-    "# Managed by `af star`; safe to edit by hand.\n"
-)
+_HEADER_COMMENT = "# Managed by `af star`; safe to edit by hand.\n"
 
 
 class PreferencesError(ValueError):
