@@ -164,7 +164,8 @@ COR-1100: Durable decision already made → ADR, write immediately
 PLN: Execution coordination for approved/in-progress work → PLN before starting multi-phase or multi-agent implementation
 COR-1300: Existing document edit → af update, update Last updated + Change History; never delete, deprecate instead (COR-1301)
 COR-1000/1001: New SOP → COR-1000; new document → af create (COR-1001) with correct prefix, ACID, type, template
-COR-1201: Session start → load today's Discussion Tracker (af list --type ref), read max DN, auto-increment; D new/list/show/start/done/defer/archive
+COR-1208: Session start → run sanity check (pwd, git status --short --branch, git log -5, project smoke test, load tracker via COR-1201 step 4, surface anomalies and stop until operator acknowledges) BEFORE COR-1402 declaration or COR-1103 routing
+COR-1201: Discussion Tracker mechanism (invoked from COR-1208 step 4; or standalone for tracker-only ops) — read max DN, auto-increment; D new/list/show/start/done/defer/archive
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin (mechanism / rubric / threshold / reviewers); record per Step 6
