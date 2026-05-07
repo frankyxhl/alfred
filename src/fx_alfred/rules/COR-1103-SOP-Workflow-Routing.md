@@ -248,10 +248,10 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-04-02 | ALWAYS section: add COR-1201 Discussion Tracker as mandatory session-start step; Golden Rules: expand COR-1201 to include load + auto-increment | Frank + Claude Code |
 | 2026-04-02 | R1 fix: Workflow Sequence diagram — add COR-1201 as first step before af guide | Frank + Claude Code |
 | 2026-04-18 | Add intent-router cross-reference to COR-1202 (per CHG-2207 Step 8). | Frank + Claude Code |
-| 2026-05-03 | FXA-2114: add COR-1613 (Council Review) routing entries — OVERLAYS line, Golden Rule line, Workflow-Selection footnote noting orthogonal layering with COR-1602. | Frank Xu |
-| 2026-05-03 | FXA-2118: add COR-1503 (Diagnose Feedback Loop) routing entries — OVERLAYS line, PRIMARY ROUTE branch 2 sub-branch, Golden Rule line. | Frank Xu |
+| 2026-05-03 | FXA-2263: add COR-1613 (Council Review) routing entries — OVERLAYS line, Golden Rule line, Workflow-Selection footnote noting orthogonal layering with COR-1602. | Frank Xu |
+| 2026-05-03 | FXA-2266: add COR-1503 (Diagnose Feedback Loop) routing entries — OVERLAYS line, PRIMARY ROUTE branch 2 sub-branch, Golden Rule line. | Frank Xu |
 | 2026-05-05 | Add COR-1615 routing entries for GitHub App PR review bot loops. | Codex |
-| 2026-05-03 | FXA-2122: add COR-1203 (Pre-Task Alignment) to Workflow Sequence diagram (after COR-1201, before af guide), OVERLAYS line, and Golden Rule line. | Frank Xu |
+| 2026-05-03 | FXA-2270: add COR-1203 (Pre-Task Alignment) to Workflow Sequence diagram (after COR-1201, before af guide), OVERLAYS line, and Golden Rule line. | Frank Xu |
 | 2026-05-05 | Add COR-1801 routing entries for PRJ-to-PKG pattern promotion. | Codex |
 | 2026-05-06 | Add COR-1614 routing entries for approved multi-phase continuous execution contracts. | Codex |
 | 2026-05-07 | Add COR-1616 routing entries (OVERLAY + Golden Rule) for Contract-First Delivery Workflow promoted from BAB-1503 per issue #106. | Claude Code |

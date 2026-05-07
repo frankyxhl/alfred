@@ -1,4 +1,4 @@
-# CHG-2112: Reorder Review Loop To Process Comments Before CI Gate
+# CHG-2261: Reorder Review Loop To Process Comments Before CI Gate
 
 **Applies to:** FXA project
 **Last updated:** 2026-04-06

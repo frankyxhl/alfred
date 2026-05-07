@@ -895,7 +895,7 @@ def test_parse_cor_1602_loop():
     from importlib import resources
     from fx_alfred.core.parser import parse_metadata
 
-    # PKG layer is bundled in fx_alfred/rules/
+    # PKG layer is bundled in src/fx_alfred/rules/
     pkg_rules = resources.files("fx_alfred").joinpath("rules")
     cor_1602_path = pkg_rules.joinpath(
         "COR-1602-SOP-Workflow-Multi-Model-Parallel-Review.md"

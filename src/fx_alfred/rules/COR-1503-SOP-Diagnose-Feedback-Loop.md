@@ -6,7 +6,7 @@
 **Status:** Active
 **Depends on:** COR-1402 (Declare Active Process), COR-1500 (TDD Development Workflow)
 **Related:** COR-1613 (Council Review), COR-1504-REF-Diagnose-Phase-Gates
-**Authored from:** FXA-2116 PRP (unanimous 3-of-3 PASS, R3)
+**Authored from:** FXA-2265 PRP (unanimous 3-of-3 PASS, R3)
 
 ---
 
@@ -170,4 +170,4 @@ This SOP must NOT mention any specific harness, runtime, provider, model, panel 
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-03 | Initial version per FXA-2116 PRP. Unanimous 3-of-3 PASS in round-3 panel review (Codex 9.7 / Gemini 9.5 / DeepSeek 9.2). | Frank Xu |
+| 2026-05-03 | Initial version per FXA-2265 PRP. Unanimous 3-of-3 PASS in round-3 panel review (Codex 9.7 / Gemini 9.5 / DeepSeek 9.2). | Frank Xu |

@@ -176,4 +176,4 @@ Reviewers may declare a different mechanism (Veto, Consensus, etc.) when the tar
 | 2026-03-19 | Initial version, with sequence diagram (D4), iteration mode (D3), review scoring (D9), Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
-| 2026-05-03 | FXA-2115: add "Relationship to COR-1613 (Council Review)" subsection clarifying COR-1602 as workflow-pattern layered with Council's mechanism contract. | Frank Xu |
+| 2026-05-03 | FXA-2264: add "Relationship to COR-1613 (Council Review)" subsection clarifying COR-1602 as workflow-pattern layered with Council's mechanism contract. | Frank Xu |

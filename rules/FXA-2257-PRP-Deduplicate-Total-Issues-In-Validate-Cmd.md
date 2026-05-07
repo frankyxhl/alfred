@@ -1,4 +1,4 @@
-# PRP-2108: Deduplicate-Total-Issues-In-Validate-Cmd
+# PRP-2257: Deduplicate-Total-Issues-In-Validate-Cmd
 
 **Applies to:** FXA project
 **Last updated:** 2026-04-06

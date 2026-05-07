@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-05-03
 **Status:** Active
 **Depends on:** COR-1503 (Diagnose Feedback Loop)
-**Authored from:** FXA-2116 PRP (companion REF to COR-1503, extracted from §1.5 per round-3 review)
+**Authored from:** FXA-2265 PRP (companion REF to COR-1503, extracted from §1.5 per round-3 review)
 
 ---
 
@@ -38,4 +38,4 @@ The numeric calibrations in rows 1 (≥30% rate over ≥20 trials) and 4 (N≥10
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-03 | Initial version per FXA-2116 PRP. Extracted from COR-1503 §1.5 in round-3 review to resolve atomicity stress. | Frank Xu |
+| 2026-05-03 | Initial version per FXA-2265 PRP. Extracted from COR-1503 §1.5 in round-3 review to resolve atomicity stress. | Frank Xu |

@@ -6,7 +6,7 @@
 **Status:** Active
 **Depends on:** COR-1402 (Declare Active Process), COR-1403 (Interactive Question Principle)
 **Related:** COR-1201 (Discussion Tracking), COR-1202 (Compose Session Plan), COR-1204 (CTX Format REF), COR-1613 (Council Review), COR-1503 (Diagnose Feedback Loop)
-**Authored from:** FXA-2121 PRP (unanimous 3-of-3 PASS, R2)
+**Authored from:** FXA-2269 PRP (unanimous 3-of-3 PASS, R2)
 
 ---
 
@@ -119,4 +119,4 @@ This SOP must NOT mention any specific harness, runtime, provider, model, panel 
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-03 | Initial version per FXA-2121 PRP. Unanimous 3-of-3 PASS in round-2 panel review (Codex 9.2 / Gemini 9.0 / DeepSeek 9.1). | Frank Xu |
+| 2026-05-03 | Initial version per FXA-2269 PRP. Unanimous 3-of-3 PASS in round-2 panel review (Codex 9.2 / Gemini 9.0 / DeepSeek 9.1). | Frank Xu |
