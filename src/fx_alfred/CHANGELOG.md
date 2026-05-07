@@ -45,7 +45,7 @@ governance enforcement, and skills-absorption round 5.
 ### Install / Upgrade
 
 ```bash
-pip install fx-alfred==1.11.1       # install specific version
+pip install fx-alfred==1.12.0       # install specific version
 pipx install fx-alfred              # first install
 pipx upgrade fx-alfred              # upgrade existing
 ```
