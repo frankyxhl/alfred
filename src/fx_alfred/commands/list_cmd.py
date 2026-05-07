@@ -4,7 +4,6 @@ import click
 
 from fx_alfred.commands._helpers import scan_or_fail
 from fx_alfred.context import root_option
-from fx_alfred.core.preferences import PreferencesError, get_starred_tags
 from fx_alfred.core.source import SOURCE_LABELS
 
 
@@ -40,11 +39,6 @@ Filters use exact case-insensitive matching (AND logic).
 @click.option(
     "--tag", default=None, help="Filter by tag (case-insensitive exact match)."
 )
-@click.option(
-    "--starred",
-    is_flag=True,
-    help="Filter by starred tags from ~/.alfred/preferences.yaml (af tag star).",
-)
 @click.pass_context
 def list_cmd(
     ctx: click.Context,
@@ -53,7 +47,6 @@ def list_cmd(
     source_filter: str | None,
     json_output: bool,
     tag: str | None,
-    starred: bool,
 ):
     """List all documents across PKG, USR, and PRJ layers."""
     docs = scan_or_fail(ctx)
@@ -67,12 +60,6 @@ def list_cmd(
         docs = [d for d in docs if d.source.lower() == source_filter.lower()]
     if tag is not None:
         docs = [d for d in docs if tag.lower() in d.tags]
-    if starred:
-        try:
-            starred_set = set(get_starred_tags())
-        except PreferencesError as exc:
-            raise click.ClickException(str(exc)) from exc
-        docs = [d for d in docs if starred_set.intersection(d.tags)]
 
     if not docs:
         if json_output:

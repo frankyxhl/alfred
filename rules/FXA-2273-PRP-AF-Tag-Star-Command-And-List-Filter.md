@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-05-07
 **Last reviewed:** 2026-05-07
-**Status:** Draft
+**Status:** Rejected
 
 ---
 
@@ -135,3 +135,4 @@ Behaviour rules:
 | 2026-05-07 | Trinity fast-review (round 1): GLM 9.08 PASS, DeepSeek 9.30 PASS — 2/2 PASS, zero blocking. Folded convergent advisory (empty-string guard, empty-starred UX) and craft items (~/.alfred/ dir creation, `PreferencesError` at core boundary, AC #7 softened to semantic equivalence, YAML coercion warning). | Claude Code |
 | 2026-05-07 | Implementation complete on branch `af-tag-star`. Validation: pytest 888 passing (+19 new), ruff/pyright clean, af validate 247 docs / 0 issues, `af tag --help` surfaces star/unstar/list, `af list --starred` works. Files: core/preferences.py + commands/tag_cmd.py (new); list_cmd.py + cli.py (modified). | Claude Code |
 | 2026-05-07 | Trinity fast-review code review: GLM 9.13 PASS, DeepSeek 9.30 PASS — 2/2 PASS, zero blocking. Folded convergent advisory (`af list --starred` malformed-YAML test) and single-reviewer items (dedup-on-read in `get_starred_tags`, defensive `.strip().lower()` in `add_starred_tag`/`remove_starred_tag`, `--starred --json` test, `--starred --tag` combo test). Final: pytest 891 passing (+22 new). | Claude Code |
+| 2026-05-07 | Superseded by FXA-2274 before reaching PyPI. v1.13.0 release pivoted: af tag star/unstar/list and af list --starred deleted from main; af star/unstar/starred ships instead. core/preferences.py infrastructure preserved and reused. | Claude Code |
