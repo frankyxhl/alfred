@@ -44,8 +44,10 @@ Ensures every task follows the correct SOP from the start, preventing wasted eff
 Session Start
      │
      ▼
-COR-1201 ──────────► Load/create today's Discussion Tracker, set next_d
-     │
+COR-1208 ──────────► Sanity check: pwd, git status --short --branch,
+     │                  git log -5, project smoke test, load tracker
+     │                  (invokes COR-1201 step 4), surface anomalies and
+     │                  STOP until operator acknowledges
      ▼
 COR-1203 ──────────► Pre-task alignment (mandatory offer for PRPs +
      │                  non-trivial code changes; optional for CHGs and
@@ -76,7 +78,8 @@ Commit ────────────► af validate → Session End
 ```
 ═══ ALWAYS (every session, every task) ═══
 
-• COR-1201: Load today's Discussion Tracker — search for today's file, read max DN, auto-increment on new topics (see COR-1201 Session Start Protocol)
+• COR-1208: First action of every active session — `pwd` + `git status --short --branch` + `git log --oneline -5` + project smoke test + load tracker + surface anomalies (stop until operator acknowledges). Wraps the COR-1201 tracker load as its step 4.
+• COR-1201: Discussion Tracker mechanism — search for today's file, read max DN, auto-increment on new topics. Invoked from COR-1208 step 4; can also be invoked standalone for tracker-only operations.
 • COR-1402: Declare 📋 active SOP before work and on every transition
 • COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP — but still offer COR-1203 alignment for PRPs and non-trivial code changes when the mandatory threshold is met)
 • af plan: Before every response — decide if task needs a checklist. For a manual, targeted checklist from specific SOPs: `af plan <SOP_IDs>`.
@@ -140,6 +143,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • Approved multi-phase continuous execution → COR-1614 (write authority, defaults, reviewable slices, validation gates, privacy rules, and stop conditions before continuing)
 • Diagnose bug/perf regression → COR-1503 (Diagnose Feedback Loop: build feedback loop → reproduce → hypothesise → instrument → fix → regression-test)
 • Pre-task alignment       → COR-1203 (Socratic interview: 7-step loop before PRP/non-trivial code; challenge against glossary, stop when crisp or user-declined)
+• Working in unfamiliar code → COR-1207 (zoom-out: pick altitude — module / data flow / decision; map in CTX glossary vocabulary; stop when "given the proposed change, what else might break?" is answerable)
 • PRJ-to-PKG pattern promotion → COR-1801 (evaluate candidate evidence, decide promote/defer/reject/revise, then route to CHG/PRP)
 • SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
 ```
@@ -160,7 +164,8 @@ COR-1100: Durable decision already made → ADR, write immediately
 PLN: Execution coordination for approved/in-progress work → PLN before starting multi-phase or multi-agent implementation
 COR-1300: Existing document edit → af update, update Last updated + Change History; never delete, deprecate instead (COR-1301)
 COR-1000/1001: New SOP → COR-1000; new document → af create (COR-1001) with correct prefix, ACID, type, template
-COR-1201: Session start → load today's Discussion Tracker (af list --type ref), read max DN, auto-increment; D new/list/show/start/done/defer/archive
+COR-1208: Session start → run sanity check (pwd, git status --short --branch, git log -5, project smoke test, load tracker via COR-1201 step 4, surface anomalies and stop until operator acknowledges) BEFORE COR-1402 declaration or COR-1103 routing
+COR-1201: Discussion Tracker mechanism (invoked from COR-1208 step 4; or standalone for tracker-only ops) — read max DN, auto-increment; D new/list/show/start/done/defer/archive
 COR-1608/1609/1610: Review scoring — PRP → 1608, CHG → 1609, Code → 1610; always use weighted rubric
 COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, blocking vs advisory
 COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin (mechanism / rubric / threshold / reviewers); record per Step 6
