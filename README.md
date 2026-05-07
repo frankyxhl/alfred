@@ -21,7 +21,8 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
-- **NEW in v1.10.0** — Agent-editable helpers and skill documents: `af agent call/run`, `af skill list/read`, and `af plan --with-skills`
+- **NEW in v1.12.0** — [Contract-First Delivery Workflow (COR-1616)](src/fx_alfred/rules/COR-1616-SOP-Contract-First-Delivery-Workflow.md) — project-neutral reviewed-delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out), promoted from Babs `BAB-1503`. Also: pytest test-marker governance gate, skills-absorption round 5 (COR-1207, COR-1208, FXA-2248).
+- **v1.10.0** — Agent-editable helpers and skill documents: `af agent call/run`, `af skill list/read`, and `af plan --with-skills`
 - **v1.9.1** — [GitHub App PR Review Bot Loop (COR-1615)](src/fx_alfred/rules/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md) for Codex Connector / Copilot PR review loops; v1.9.0 added [Council Review (COR-1613)](src/fx_alfred/rules/COR-1613-SOP-Council-Review.md) and [Diagnose Feedback Loop (COR-1503)](src/fx_alfred/rules/COR-1503-SOP-Diagnose-Feedback-Loop.md)
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
 - **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs. With `--task "<description>"` auto-composes the SOP set from tags; `--todo` flattens into a unified checklist; `--graph` renders ASCII + Mermaid flowcharts with intra-SOP loops and gates; `--with-skills` recommends matching skill docs
@@ -344,6 +345,7 @@ graph TD
 | COR-1602 | Multi-Model Parallel Review |
 | COR-1612 | Respond to PR review comments on GitHub |
 | COR-1615 | GitHub App PR Review Bot Loop — trigger/poll/match-head loop for Codex Connector, Copilot, and other GitHub App reviewers |
+| COR-1616 | Contract-First Delivery Workflow — project-neutral reviewed delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out) |
 | COR-1608 | PRP Review Scoring rubric |
 | COR-1611 | Reviewer Calibration Guide |
 | COR-1613 | Council Review — multi-reviewer decision mechanism (14 voting rules) |

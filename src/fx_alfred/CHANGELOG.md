@@ -1,5 +1,55 @@
 # Changelog
 
+## v1.12.0 (2026-05-07)
+
+Minor release: new Contract-First Delivery Workflow SOP, pytest test
+governance enforcement, and skills-absorption round 5.
+
+### Added
+
+- **COR-1616 Contract-First Delivery Workflow** — PKG SOP promoted from
+  Babs `BAB-1503` per issue #106 into a project-neutral, reusable
+  reviewed-delivery loop covering plan review, TDD/BDD/E2E pressure,
+  implementation review, privacy/artifact cleanup, identity-correct PR,
+  PR review loop, and post-merge reconciliation. Includes Browser-Harness
+  BDD Policy, Pitfalls section, and an Adapter SOP example so projects
+  can rebase existing SOPs onto `Inherits from: COR-1616`.
+  Reviewed via Trinity multi-model parallel review (Gemini, GLM, Codex,
+  DeepSeek) — 4/4 PASS in round 2 against the COR-1608 PRP rubric.
+  (PR #107)
+
+### Changed
+
+- **COR-1103 Workflow Routing** now surfaces COR-1616 in OVERLAYS and
+  Golden Rules so `af guide` routes reviewed delivery slices through the
+  new SOP. (PR #107)
+- **COR-0000 Document Index** updated to list COR-1616. (PR #107)
+
+### Tests
+
+- **Pytest test governance** enforced: every test file now declares an
+  explicit pytest marker, with a CI gate (`tests/test_pytest_markers.py`)
+  that fails the build if a new test file lands without one. Reduces
+  silent-skip risk and drift in test classification. (PR #103, PR #104)
+
+### Docs
+
+- **Skills-absorption round 5** — COR-1207 (Working in Unfamiliar Code:
+  Zoom-Out), COR-1208 (Session Startup Sanity Check), and FXA-2248 SOP
+  Outcome Notebook absorbed into the Alfred SOP graph. (PR #105)
+
+### Stats
+
+- 869 tests passing, 0 breaking changes.
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.12.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.11.0 (2026-05-06)
 
 Feature release: new governance, review, and execution-contract SOPs.
