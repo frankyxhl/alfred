@@ -44,6 +44,7 @@ Quick Start:
         "search": "fx_alfred.commands.search_cmd:search_cmd",
         "skill": "fx_alfred.commands.skill_cmd:skill_cmd",
         "status": "fx_alfred.commands.status_cmd:status_cmd",
+        "tag": "fx_alfred.commands.tag_cmd:tag_cmd",
         "update": "fx_alfred.commands.update_cmd:update_cmd",
         "validate": "fx_alfred.commands.validate_cmd:validate_cmd",
         "where": "fx_alfred.commands.where_cmd:where_cmd",
