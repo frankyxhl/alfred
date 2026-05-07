@@ -1,10 +1,10 @@
-# CTX-2123: Alfred Glossary
+# CTX-2271: Alfred Glossary
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
 **Status:** Active
-**Source:** Pilot CTX instance per FXA-2121 PRP (COR-1204-REF format); 90-day review horizon
+**Source:** Pilot CTX instance per FXA-2269 PRP (COR-1204-REF format); 90-day review horizon
 
 ---
 
@@ -12,7 +12,7 @@
 
 | Term | Definition | Source | Updated |
 |------|------------|--------|----------|
-| **ACID** | A unique document identifier composed of a 3-letter prefix and a 4-digit number (e.g., `COR-1613`, `FXA-2121`) | COR-0002 | 2026-05-03 |
+| **ACID** | A unique document identifier composed of a 3-letter prefix and a 4-digit number (e.g., `COR-1613`, `FXA-2269`) | COR-0002 | 2026-05-03 |
 | **ADR** | Architecture Decision Record — a durable record of a past design decision with accepted trade-offs. Created via `af create adr` (COR-1100) or as free-form narrative in `docs/adr/`. | COR-1100 | 2026-05-03 |
 | **CHG** | Change Request — a document proposing a change to an existing system, config, or architecture. | COR-1101 | 2026-05-03 |
 | **Council Review** | The process defined by COR-1613: a dispatcher declares a Review Unit naming the decision mechanism, threshold, and reviewer set before any multi-reviewer evaluation begins. | COR-1613 | 2026-05-03 |
@@ -36,4 +36,4 @@
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-03 | Initial pilot version — ~17 core Alfred terms per FXA-2121 PRP. 90-day review horizon per OQ3. | Frank Xu |
+| 2026-05-03 | Initial pilot version — ~17 core Alfred terms per FXA-2269 PRP. 90-day review horizon per OQ3. | Frank Xu |

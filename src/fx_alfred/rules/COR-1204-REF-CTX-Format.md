@@ -59,7 +59,7 @@ PRJ-layer CTX documents use base Alfred metadata format (COR-0002 frontmatter). 
 
 ## Pilot Instance
 
-The first CTX instance is `FXA-2123-CTX-Alfred-Glossary.md` in the Alfred project's `fx_alfred/rules/` directory, covering ~15 core Alfred terms. This pilot validates the format and informs future promotion decisions. After 90 days and ≥3 CTX instances in real use, a future PRP may propose adding `DocType.CTX` to `schema.py` and `af create ctx` tooling.
+The first CTX instance is `FXA-2271-CTX-Alfred-Glossary.md` in the Alfred project's top-level `rules/` directory, covering ~15 core Alfred terms. This pilot validates the format and informs future promotion decisions. After 90 days and ≥3 CTX instances in real use, a future PRP may propose adding `DocType.CTX` to `schema.py` and `af create ctx` tooling.
 
 ---
 

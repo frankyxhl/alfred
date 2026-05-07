@@ -1,11 +1,11 @@
-# CHG-2118: COR-1103-Add-Diagnose-Routing
+# CHG-2266: COR-1103-Add-Diagnose-Routing
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
 **Status:** Approved
 **Date:** 2026-05-03
-**Requested by:** Frank Xu (companion CHG to FXA-2116 / COR-1503)
+**Requested by:** Frank Xu (companion CHG to FXA-2265 / COR-1503)
 **Priority:** Medium
 **Change Type:** Normal
 **Targets:** COR-1103 (PKG)
@@ -32,7 +32,7 @@ Add COR-1503 (Diagnose Feedback Loop) entry to COR-1103 in two places:
 
 ## Why
 
-COR-1503 was approved via FXA-2116 PRP. Without router insertion, COR-1103 §PRIMARY ROUTE branch 2 ("Something broken/failing/unexpected?") would route directly to INC + CHG with no diagnosis SOP in between — the exact gap COR-1503 fills.
+COR-1503 was approved via FXA-2265 PRP. Without router insertion, COR-1103 §PRIMARY ROUTE branch 2 ("Something broken/failing/unexpected?") would route directly to INC + CHG with no diagnosis SOP in between — the exact gap COR-1503 fills.
 
 
 ## Impact Analysis
@@ -49,7 +49,7 @@ COR-1503 was approved via FXA-2116 PRP. Without router insertion, COR-1103 §PRI
 3. Insert the COR-1503 sub-branch under PRIMARY ROUTE branch 2.
 4. Update COR-1103 metadata + Change History.
 5. Run `af fmt` and `af validate`.
-6. Commit with message: `chg(FXA-2118): add COR-1503 diagnose routing to COR-1103`.
+6. Commit with message: `chg(FXA-2266): add COR-1503 diagnose routing to COR-1103`.
 
 ---
 
@@ -57,5 +57,5 @@ COR-1503 was approved via FXA-2116 PRP. Without router insertion, COR-1103 §PRI
 
 | Date       | Change                                                               | By       |
 |------------|----------------------------------------------------------------------|----------|
-| 2026-05-03 | Initial version — companion CHG to FXA-2116 PRP for COR-1503 routing | Frank Xu |
+| 2026-05-03 | Initial version — companion CHG to FXA-2265 PRP for COR-1503 routing | Frank Xu |
 | 2026-05-03 | Implemented in same PR: COR-1103 PRIMARY ROUTE branch 2 sub-branch + OVERLAYS line + Golden Rule line added for COR-1503. | Frank Xu |

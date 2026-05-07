@@ -1,4 +1,4 @@
-# CHG-2109: Deduplicate-Total-Issues-In-Validate-Cmd
+# CHG-2258: Deduplicate-Total-Issues-In-Validate-Cmd
 
 **Applies to:** FXA project
 **Last updated:** 2026-04-06

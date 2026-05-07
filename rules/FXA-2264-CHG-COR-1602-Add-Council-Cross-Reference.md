@@ -1,11 +1,11 @@
-# CHG-2115: COR-1602-Add-Council-Cross-Reference
+# CHG-2264: COR-1602-Add-Council-Cross-Reference
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
 **Status:** Approved
 **Date:** 2026-05-03
-**Requested by:** Frank Xu (companion CHG to FXA-2113 / COR-1613)
+**Requested by:** Frank Xu (companion CHG to FXA-2262 / COR-1613)
 **Priority:** Medium
 **Change Type:** Normal
 **Targets:** COR-1602 (PKG)
@@ -27,14 +27,14 @@ Insertion point: a new "Relationship to COR-1613" subsection immediately before 
 
 COR-1602 currently does not name its decision rule explicitly — the "≥ 9.0 PASS" practice is folklore inherited from COR-1608. With COR-1613 in place, this folklore becomes a *declared mechanism choice* (Decision Matrix). Without the cross-reference, a reader of COR-1602 will not know that the mechanism is now configurable and that other mechanisms are available.
 
-This was raised as a round-1 reviewer finding for FXA-2113 (Codex, GLM): COR-1602's role under the new layered model needs to be made explicit somewhere visible to anyone reading just COR-1602.
+This was raised as a round-1 reviewer finding for FXA-2262 (Codex, GLM): COR-1602's role under the new layered model needs to be made explicit somewhere visible to anyone reading just COR-1602.
 
 
 ## Impact Analysis
 
 - **Systems affected:** `src/fx_alfred/rules/COR-1602-SOP-Workflow-Multi-Model-Parallel-Review.md` only (one new subsection added; nothing removed or renamed).
 - **Backward compatibility:** Additive only. No change to COR-1602's existing Roles, Steps, or scoring guidance. Existing reviews that did not declare a Review Unit are not retroactively reclassified.
-- **Affected workflows:** None at runtime; the change is purely descriptive. Going forward, COR-1602 reviews are encouraged (not required by this CHG — that requirement belongs to FXA-2114 router insertion + COR-1613 itself) to declare a Review Unit.
+- **Affected workflows:** None at runtime; the change is purely descriptive. Going forward, COR-1602 reviews are encouraged (not required by this CHG — that requirement belongs to FXA-2263 router insertion + COR-1613 itself) to declare a Review Unit.
 - **Rollback plan:** Revert this CHG's commit. The added subsection is isolated above Change History; revert restores prior COR-1602 verbatim. COR-1613 remains operational without the cross-reference; rollback only removes the discoverability hint.
 
 
@@ -44,7 +44,7 @@ This was raised as a round-1 reviewer finding for FXA-2113 (Codex, GLM): COR-160
 2. Insert the "Relationship to COR-1613 (Council Review)" subsection immediately before the existing Change History section.
 3. Update COR-1602 metadata: `Last updated: 2026-05-03`, append Change History row noting the cross-reference addition.
 4. Run `af fmt COR-1602 --root <pkg_root> --write` and `af validate`.
-5. Commit with message: `chg(FXA-2115): add COR-1613 cross-reference to COR-1602`.
+5. Commit with message: `chg(FXA-2264): add COR-1613 cross-reference to COR-1602`.
 
 
 ## Open Questions
@@ -54,7 +54,7 @@ None — scope is mechanically defined (one paragraph in one file).
 
 ## Constraint
 
-This CHG is the only sanctioned modification to COR-1602 in the FXA-2113 / COR-1613 initiative. A round-2 reviewer (Codex) flagged that the original "only sanctioned modification" phrasing in the PRP forecloses iterative review of this CHG itself; that flag is acknowledged here. Reviewers of *this* CHG may raise new COR-1602 issues; if accepted, those become a separate CHG (FXA-2116+), not amendments to this one.
+This CHG is the only sanctioned modification to COR-1602 in the FXA-2262 / COR-1613 initiative. A round-2 reviewer (Codex) flagged that the original "only sanctioned modification" phrasing in the PRP forecloses iterative review of this CHG itself; that flag is acknowledged here. Reviewers of *this* CHG may raise new COR-1602 issues; if accepted, those become a separate CHG (FXA-2265+), not amendments to this one.
 
 ---
 
@@ -62,5 +62,5 @@ This CHG is the only sanctioned modification to COR-1602 in the FXA-2113 / COR-1
 
 | Date       | Change                                                                                                                                                                 | By       |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| 2026-05-03 | Initial version — companion CHG to FXA-2113 PRP for COR-1602 cross-reference                                                                                           | Frank Xu |
+| 2026-05-03 | Initial version — companion CHG to FXA-2262 PRP for COR-1602 cross-reference                                                                                           | Frank Xu |
 | 2026-05-03 | Implemented in commit on feat/cor-1613-council-review-prp: added 'Relationship to COR-1613 (Council Review)' subsection to COR-1602. Status flipped Proposed→Approved. | Frank Xu |

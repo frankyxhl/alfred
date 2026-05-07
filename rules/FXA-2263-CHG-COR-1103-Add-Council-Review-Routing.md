@@ -1,11 +1,11 @@
-# CHG-2114: COR-1103-Add-Council-Review-Routing
+# CHG-2263: COR-1103-Add-Council-Review-Routing
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
 **Status:** Approved
 **Date:** 2026-05-03
-**Requested by:** Frank Xu (companion CHG to FXA-2113 / COR-1613)
+**Requested by:** Frank Xu (companion CHG to FXA-2262 / COR-1613)
 **Priority:** Medium
 **Change Type:** Normal
 **Targets:** COR-1103 (PKG)
@@ -32,7 +32,7 @@ Add COR-1613 (Council Review) to COR-1103 in three places, so the new SOP is dis
 
 ## Why
 
-COR-1613 was approved via FXA-2113 PRP. Without router insertion, no agent or human reading COR-1103 at session start will know to invoke it; the SOP would be reachable only by direct reference, which defeats the routing layer. This is the explicit "orphaned-SOP" risk flagged in the FXA-2113 round-1 review (Gemini, 2026-05-03) and committed to as in-scope by FXA-2113 §1.0.
+COR-1613 was approved via FXA-2262 PRP. Without router insertion, no agent or human reading COR-1103 at session start will know to invoke it; the SOP would be reachable only by direct reference, which defeats the routing layer. This is the explicit "orphaned-SOP" risk flagged in the FXA-2262 round-1 review (Gemini, 2026-05-03) and committed to as in-scope by FXA-2262 §1.0.
 
 
 ## Impact Analysis
@@ -51,7 +51,7 @@ COR-1613 was approved via FXA-2113 PRP. Without router insertion, no agent or hu
 4. Append the Workflow-Selection footnote immediately after the `Parallel evaluation` table (before the `Implementation coordination` heading).
 5. Update COR-1103 metadata: `Last updated: 2026-05-03`, append Change History row.
 6. Run `af fmt COR-1103 --root <pkg_root> --write` and `af validate`.
-7. Commit with message: `chg(FXA-2114): add COR-1613 routing entries to COR-1103`.
+7. Commit with message: `chg(FXA-2263): add COR-1613 routing entries to COR-1103`.
 
 
 ## Open Questions
@@ -64,5 +64,5 @@ None — scope is mechanically defined (3 specific insertions in one file).
 
 | Date       | Change                                                                                                                                                                                | By       |
 |------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| 2026-05-03 | Initial version — companion CHG to FXA-2113 PRP for COR-1613 routing                                                                                                                  | Frank Xu |
+| 2026-05-03 | Initial version — companion CHG to FXA-2262 PRP for COR-1613 routing                                                                                                                  | Frank Xu |
 | 2026-05-03 | Implemented in commit on feat/cor-1613-council-review-prp: 3 insertions to COR-1103 (OVERLAYS line, Golden Rule line, Workflow-Selection footnote). Status flipped Proposed→Approved. | Frank Xu |

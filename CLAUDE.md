@@ -89,10 +89,10 @@ src/fx_alfred/
 # Install (editable)
 pip install -e .
 
-# Alfred ops (project documents — now in fx_alfred/rules/)
-af guide --root /Users/frank/Projects/alfred/fx_alfred
-af validate --root /Users/frank/Projects/alfred/fx_alfred
-af list --root /Users/frank/Projects/alfred/fx_alfred
+# Alfred ops (project documents — in top-level rules/)
+af guide --root /Users/frank/Projects/alfred
+af validate --root /Users/frank/Projects/alfred
+af list --root /Users/frank/Projects/alfred
 ```
 
 ## Key Design Patterns
@@ -138,4 +138,4 @@ af list --root /Users/frank/Projects/alfred/fx_alfred
 - Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (both >= 9.0 to pass)
 - Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
 - Documents: always `af create`, never manual files
-- Documents live in `fx_alfred/rules/` (PRJ layer)
+- Documents live in top-level `rules/` (PRJ layer)

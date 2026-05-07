@@ -1,4 +1,4 @@
-# PRP-2113: COR-1613-Council-Review-Mechanism
+# PRP-2262: COR-1613-Council-Review-Mechanism
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
@@ -49,7 +49,7 @@ COR-1613 is a *meta-mechanism layer*: it declares **which decision rule** is bei
 - **Option A (chosen): COR-1613.** Slot at end of the 16xx family on the basis that decision-mechanism selection is the natural pair to workflow selection (1606), and keeping the entire review topic in 16xx aids discoverability. Numerically last in family.
 - **Option B (rejected): COR-1620 or new 19xx family.** Cleaner taxonomic separation but fragments the review topic across two ACID ranges and increases routing-tree depth in COR-1103.
 
-**Routing.** This PRP commits to a follow-up CHG (`FXA-2114`) that updates COR-1103's intent router and OVERLAYS section to insert COR-1613. Without that update, the SOP would be discoverable only by direct reference and would be effectively orphaned. The CHG is small (one-line in the OVERLAYS table; one branch in the decision tree) and is in-scope for the same merge window as the SOP itself, even though authored as a separate PR.
+**Routing.** This PRP commits to a follow-up CHG (`FXA-2263`) that updates COR-1103's intent router and OVERLAYS section to insert COR-1613. Without that update, the SOP would be discoverable only by direct reference and would be effectively orphaned. The CHG is small (one-line in the OVERLAYS table; one branch in the decision tree) and is in-scope for the same merge window as the SOP itself, even though authored as a separate PR.
 
 ### 1.1 New PKG SOP — COR-1613-SOP-Council-Review
 
@@ -59,7 +59,7 @@ A 5W1H SOP defining a **Review Unit** contract, a 6-step workflow, and a library
 
 ```yaml
 # Required
-review_id:    <unique ID — free-form, e.g. "release-v1.9.0" or "FXA-2113-eval">
+review_id:    <unique ID — free-form, e.g. "release-v1.9.0" or "FXA-2262-eval">
 target:       <what is being reviewed — file path / PR # / decision question>
 mechanism:    <one of the mechanisms in §1.2 below>
 rubric:       <scoring rule when mechanism is scoring-based; reference an existing
@@ -135,10 +135,10 @@ The SOP body must briefly note (≤ 5 lines) that mechanisms 7/8/9/10 are subjec
 
 ### 2. Relationship to existing SOPs
 
-- **COR-1103 (Workflow Routing)** — **must be updated** in companion CHG `FXA-2114` to add Council-Review entry to OVERLAYS and to the intent router decision tree (e.g., "any task that produces a decision needing > 1 reviewer → consult COR-1613"). This is no longer optional; without it, COR-1613 is orphaned (round-1 finding, Gemini).
+- **COR-1103 (Workflow Routing)** — **must be updated** in companion CHG `FXA-2263` to add Council-Review entry to OVERLAYS and to the intent router decision tree (e.g., "any task that produces a decision needing > 1 reviewer → consult COR-1613"). This is no longer optional; without it, COR-1613 is orphaned (round-1 finding, Gemini).
 - **COR-1400 (Atomic SOP Principle)** — explicitly addressed: COR-1613 is one SOP because it has one purpose ("declare a decision mechanism"); the mechanism library is reference material under that single purpose, presented as a Core+Advanced split (precedent: COR-1606's quick-reference table). If reviewers reject this defense, fall-back is to split into COR-1613 (procedure) + COR-1614-REF (mechanism library).
 - **COR-1402 (Declare Active Process)** — Council-Review is itself an active SOP that must be declared when in use.
-- **COR-1602 (Multi-Model Parallel Review)** — becomes an *instance* of Council-Review where mechanism = Decision Matrix and reviewers = a parallel-dispatched panel (LLM, human, or mixed). COR-1602 contributes the Leader-synthesis + iteration plumbing; COR-1613 contributes the mechanism declaration. **The two are layered, not redundant.** A follow-up CHG (`FXA-2115`) will add a one-paragraph cross-reference to COR-1602 noting this; that CHG is the only sanctioned modification to COR-1602.
+- **COR-1602 (Multi-Model Parallel Review)** — becomes an *instance* of Council-Review where mechanism = Decision Matrix and reviewers = a parallel-dispatched panel (LLM, human, or mixed). COR-1602 contributes the Leader-synthesis + iteration plumbing; COR-1613 contributes the mechanism declaration. **The two are layered, not redundant.** A follow-up CHG (`FXA-2264`) will add a one-paragraph cross-reference to COR-1602 noting this; that CHG is the only sanctioned modification to COR-1602.
 - **COR-1606 (Workflow Selection)** — orthogonal axis: COR-1606 picks a *workflow pattern* (1600–1605); COR-1613 picks a *decision rule* applied to that pattern. The SOP body must include a one-paragraph "How to read this alongside COR-1606" callout to prevent routing collision (round-1 finding, Gemini).
 - **COR-1608/1609/1610 (Scoring Rubrics)** — referenced by Review Units that pick mechanism = Decision Matrix. Unchanged; no modifications proposed.
 - **COR-1611 (Reviewer Calibration)** — applies to **any reviewer** using the COR-1608/9/10 rubrics under a Decision Matrix mechanism, not exclusively LLMs. (Round-1 correction from Codex.) Cross-reference in COR-1613 will state this scope explicitly.
@@ -164,8 +164,8 @@ In scope:
 - Defining the 6-step workflow
 
 Companion CHGs (separate PRs, same merge window):
-- `FXA-2114-CHG-COR-1103-Add-Council-Review-Routing.md` — updates COR-1103 OVERLAYS + decision tree
-- `FXA-2115-CHG-COR-1602-Add-Council-Cross-Reference.md` — one-paragraph cross-reference in COR-1602 §Relationship
+- `FXA-2263-CHG-COR-1103-Add-Council-Review-Routing.md` — updates COR-1103 OVERLAYS + decision tree
+- `FXA-2264-CHG-COR-1602-Add-Council-Cross-Reference.md` — one-paragraph cross-reference in COR-1602 §Relationship
 
 Out of scope:
 - `af council` tooling (deferred; flagged for future PRP if usage warrants)
@@ -179,7 +179,7 @@ Out of scope:
 
 All resolved by user confirmation prior to round-1 review. Round-1 reviewer findings have been incorporated into the body above; no new OQs raised.
 
-1. **Self-review of this PRP** — RESOLVED: 4-LLM parallel Decision Matrix (COR-1608 rubric) for both round 1 (complete; unanimous FIX) and round 2 (this revision). From FXA-2114 onward, all reviews declare a Review Unit per COR-1613.
+1. **Self-review of this PRP** — RESOLVED: 4-LLM parallel Decision Matrix (COR-1608 rubric) for both round 1 (complete; unanimous FIX) and round 2 (this revision). From FXA-2263 onward, all reviews declare a Review Unit per COR-1613.
 2. **Default threshold values** — RESOLVED: defer to rubric's native scale (no 100-pt conversion); each Review Unit may override via its `threshold:` field.
 3. **Mechanism count (14)** — RESOLVED: keep 14, split into Core (4 inline) + Advanced (10 appendix) for atomicity.
 4. **Where does the Review Unit live during the session?** — RESOLVED: conversation context only by default; promoted to a written one-liner in the target's Change History per Step 6.
@@ -193,5 +193,5 @@ All resolved by user confirmation prior to round-1 review. Round-1 reviewer find
 |------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
 | 2026-05-03 | Initial version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Claude Code            |
 | 2026-05-03 | Drafted as Round 0 of mattpocock/skills absorption initiative; user confirmed 14-mechanism library, 100-pt default scale, no mandatory archival                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Claude Code            |
-| 2026-05-03 | Round 1 review by GLM/Codex/Gemini/DeepSeek — unanimous FIX (mean 8.0/10, DeepSeek breach of <7.0 sub-floor on Risk Awareness). Revised: CJK→English, scoring scale ambiguity resolved, Review Unit schema expanded with quorum/abstention/tie_break/deadline/disagreement_threshold/blind/window/inner_mechanism/veto_seats/weights/max_rounds/variance_threshold, mechanism table reorganized into Core+Advanced for COR-1400 atomicity, dropped silent "no dim < 70" floor, ACID 1613 family-fit justified, COR-1606/1612 relationships added, COR-1611 scope corrected, voting-theory caveats added, two companion CHGs (FXA-2114 routing, FXA-2115 cross-ref) committed in scope, Step-6 traceability gap closed with mandatory one-line PASS log. | Claude Code            |
+| 2026-05-03 | Round 1 review by GLM/Codex/Gemini/DeepSeek — unanimous FIX (mean 8.0/10, DeepSeek breach of <7.0 sub-floor on Risk Awareness). Revised: CJK→English, scoring scale ambiguity resolved, Review Unit schema expanded with quorum/abstention/tie_break/deadline/disagreement_threshold/blind/window/inner_mechanism/veto_seats/weights/max_rounds/variance_threshold, mechanism table reorganized into Core+Advanced for COR-1400 atomicity, dropped silent "no dim < 70" floor, ACID 1613 family-fit justified, COR-1606/1612 relationships added, COR-1611 scope corrected, voting-theory caveats added, two companion CHGs (FXA-2263 routing, FXA-2264 cross-ref) committed in scope, Step-6 traceability gap closed with mandatory one-line PASS log. | Claude Code            |
 | 2026-05-03 | Round 2 review: GLM 9.12 PASS / Codex 9.41 PASS / Gemini 9.7 PASS / DeepSeek 7.9 FIX. Mean 9.03. 3-of-4 PASS. Chair (Frank Xu) cast deciding vote = PASS via Dictator/Single-Reviewer mechanism (COR-1613 mech #13 invoked as tie-break). DeepSeek's persistent dissent on mechanism count (14 may be overprovisioned) and steelman-strength is recorded as a known divergence; SOP body will carry an explicit OQ to revisit mechanism library after 90 days of usage data. Path C selected.                                                                                                                                                                                                                                                           | Frank Xu + Claude Code |

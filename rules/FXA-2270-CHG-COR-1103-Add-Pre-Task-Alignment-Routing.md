@@ -1,11 +1,11 @@
-# CHG-2122: COR-1103-Add-Pre-Task-Alignment-Routing
+# CHG-2270: COR-1103-Add-Pre-Task-Alignment-Routing
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
 **Status:** Approved
 **Date:** 2026-05-03
-**Requested by:** Frank Xu (companion CHG to FXA-2121 / COR-1203)
+**Requested by:** Frank Xu (companion CHG to FXA-2269 / COR-1203)
 **Priority:** Medium
 **Change Type:** Normal
 **Targets:** COR-1103 (PKG)
@@ -28,7 +28,7 @@ Add COR-1203 (Pre-Task Alignment) to COR-1103 in two places:
 
 ## Why
 
-COR-1203 was approved via FXA-2121 PRP. Without router insertion, operators would need to discover and remember to invoke COR-1203 manually. The placement in the session-start sequence ensures alignment is offered before task routing and execution.
+COR-1203 was approved via FXA-2269 PRP. Without router insertion, operators would need to discover and remember to invoke COR-1203 manually. The placement in the session-start sequence ensures alignment is offered before task routing and execution.
 
 ## Impact Analysis
 
@@ -51,5 +51,5 @@ COR-1203 was approved via FXA-2121 PRP. Without router insertion, operators woul
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-03 | Initial version — companion CHG to FXA-2121 PRP for COR-1203 routing | Frank Xu |
+| 2026-05-03 | Initial version — companion CHG to FXA-2269 PRP for COR-1203 routing | Frank Xu |
 | 2026-05-03 | Implemented in same PR: COR-1103 Workflow Sequence + OVERLAYS + Golden Rule line for COR-1203. | Frank Xu |

@@ -1,4 +1,4 @@
-# CHG-2102: Consolidate-H1-Regex-Named-Groups
+# CHG-2251: Consolidate-H1-Regex-Named-Groups
 
 **Applies to:** FXA project
 **Last updated:** 2026-04-05
@@ -13,7 +13,7 @@
 
 ## What
 
-Add named capture groups to `H1_PATTERN` in `parser.py` and remove the duplicate `_H1_EXTRACT` regex from `validate_cmd.py`. Per PRP FXA-2101 (Codex 9.4, Gemini 10.0).
+Add named capture groups to `H1_PATTERN` in `parser.py` and remove the duplicate `_H1_EXTRACT` regex from `validate_cmd.py`. Per PRP FXA-2250 (Codex 9.4, Gemini 10.0).
 
 ## Why
 

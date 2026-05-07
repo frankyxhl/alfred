@@ -1,4 +1,4 @@
-# CHG-2110: Add-Completion-Checklist-To-Evolve-SOP
+# CHG-2259: Add-Completion-Checklist-To-Evolve-SOP
 
 **Applies to:** FXA project
 **Last updated:** 2026-04-06
@@ -13,11 +13,11 @@
 
 ## What
 
-Add Phase 7 (Completion Checklist) to FXA-2148-SOP-Evolve-SOP.md, mirroring the same addition made to FXA-2149 in CHG FXA-2107. The checklist is adapted for Evolve-SOP's gate structure: `af validate` hard gate instead of pytest/ruff, no README check (SOP changes, not code).
+Add Phase 7 (Completion Checklist) to FXA-2148-SOP-Evolve-SOP.md, mirroring the same addition made to FXA-2149 in CHG FXA-2256. The checklist is adapted for Evolve-SOP's gate structure: `af validate` hard gate instead of pytest/ruff, no README check (SOP changes, not code).
 
 ## Why
 
-Same rationale as CHG FXA-2107: gates executed without auditable output can be silently skipped or misjudged. Both evolve SOPs should have parity in process rigor.
+Same rationale as CHG FXA-2256: gates executed without auditable output can be silently skipped or misjudged. Both evolve SOPs should have parity in process rigor.
 
 ## Impact Analysis
 

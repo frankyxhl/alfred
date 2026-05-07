@@ -1,10 +1,10 @@
-# PRP-2121: COR-1203-Pre-Task-Alignment
+# PRP-2269: COR-1203-Pre-Task-Alignment
 
 **Applies to:** FXA project
 **Last updated:** 2026-05-03
 **Last reviewed:** 2026-05-03
 **Status:** Approved
-**Related:** COR-1103 (routing — companion CHG FXA-2122), COR-1402 (declaration), COR-1403 (Interactive Question Principle), COR-1201/1202 (session-family siblings), COR-1204-REF (CTX format — companion REF in same merge window)
+**Related:** COR-1103 (routing — companion CHG FXA-2270), COR-1402 (declaration), COR-1403 (Interactive Question Principle), COR-1201/1202 (session-family siblings), COR-1204-REF (CTX format — companion REF in same merge window)
 **Reviewed by:** Codex 8.3 FIX / Gemini 8.2 FIX / DeepSeek 7.7 FIX (Risk sub-floor 5.0) — round 1 (2026-05-03); revising for round 2
 **Inspired by:** mattpocock/skills `productivity/grill-me` + `engineering/grill-with-docs` (Round 2 of skills-absorption initiative; Round 0 shipped COR-1613, Round 1 shipped COR-1503)
 
@@ -48,7 +48,7 @@ Two alternatives were considered and rejected:
 - **16xx (review family).** Rejected: alignment is pre-execution, not post-hoc evaluation.
 - **New 11xx family.** Rejected: creating a one-member family violates COR-1400. Re-evaluate if a second alignment SOP appears.
 
-**Routing.** This PRP commits to companion CHG `FXA-2122` that updates COR-1103. Insertion point: after COR-1201 (load tracker) and before task-specific routing. COR-1203 is mandatory for PRPs and non-trivial code changes (>3 files or >50 lines), optional (declarable) for CHGs and trivial changes. Mandatory also implies: the user may decline the interview by saying "skip alignment" — that is itself the alignment outcome, recorded as `user-declined` per Step 7.
+**Routing.** This PRP commits to companion CHG `FXA-2270` that updates COR-1103. Insertion point: after COR-1201 (load tracker) and before task-specific routing. COR-1203 is mandatory for PRPs and non-trivial code changes (>3 files or >50 lines), optional (declarable) for CHGs and trivial changes. Mandatory also implies: the user may decline the interview by saying "skip alignment" — that is itself the alignment outcome, recorded as `user-declined` per Step 7.
 
 ### 1.1 New PKG SOP — COR-1203-SOP-Pre-Task-Alignment
 
@@ -97,7 +97,7 @@ Defines the project glossary (CTX) document template. A CTX document is a simple
 
 A CTX document may live in any layer — `rules/` for PRJ-layer glossaries, or the project root as `CONTEXT.md` for single-context projects. COR-1204-REF is the format specification; individual CTX instances are project-maintained documents.
 
-**Pilot instance.** The first CTX instance is the Alfred project glossary at `fx_alfred/rules/FXA-2123-CTX-Alfred-Glossary.md` (companion document, same merge window). It covers ~15 core Alfred terms (SOP, PRP, CHG, ADR, REF, ACID, PKG/USR/PRJ, Review Unit, mechanism, gate, operator, dispatcher, universality contract, phase, evidence artefact).
+**Pilot instance.** The first CTX instance is the Alfred project glossary at `fx_alfred/rules/FXA-2271-CTX-Alfred-Glossary.md` (companion document, same merge window). It covers ~15 core Alfred terms (SOP, PRP, CHG, ADR, REF, ACID, PKG/USR/PRJ, Review Unit, mechanism, gate, operator, dispatcher, universality contract, phase, evidence artefact).
 
 **Constraints (from user).** This is a PRJ-layer pilot + PKG format REF. No changes to `src/fx_alfred/core/schema.py`. No `af create ctx` command. No `DocType.CTX` enum value. After 90 days and at least 3 CTX instances in real use, a future PRP may propose PKG promotion. Filename convention for PRJ-layer CTX documents: `FXA-XXXX-CTX-<topic>.md`. Within existing `FILENAME_PATTERN`, the 3-letter code CTX parses correctly — no tooling changes needed.
 
@@ -118,7 +118,7 @@ When the interview resolves a design decision, the operator offers an ADR only w
 ### 2. Relationship to existing SOPs
 
 - **COR-1403 (Interactive Question Principle)** — COR-1203 references COR-1403's question format (recommended answer, wait for feedback) and is the session-level procedure applying that principle. COR-1403 defines *how*; COR-1203 defines *when* and *against what* and *when to stop*.
-- **COR-1103 (Workflow Routing)** — updated in companion CHG FXA-2122.
+- **COR-1103 (Workflow Routing)** — updated in companion CHG FXA-2270.
 - **COR-1402 (Declare Active Process)** — COR-1203 is declared via COR-1402 when in use.
 - **COR-1201 (Discussion Tracking)** — no D items created during interview. Unresolvable points deferred to COR-1201.
 - **COR-1202 (Compose Session Plan)** — COR-1203 is a prelude that sharpens terms before COR-1202 composes.
@@ -133,9 +133,9 @@ When the interview resolves a design decision, the operator offers an ADR only w
 **In scope:**
 - Drafting `COR-1203-SOP-Pre-Task-Alignment.md` at `src/fx_alfred/rules/`
 - Drafting `COR-1204-REF-CTX-Format.md` at `src/fx_alfred/rules/`
-- Drafting pilot CTX instance `FXA-2123-CTX-Alfred-Glossary.md` at `fx_alfred/rules/`
-- Updating COR-0000 PKG index with COR-1203 and COR-1204; updating FXA-0000 PRJ index with FXA-2123
-- Companion CHG `FXA-2122` — adds COR-1203 to COR-1103 routing
+- Drafting pilot CTX instance `FXA-2271-CTX-Alfred-Glossary.md` at `fx_alfred/rules/`
+- Updating COR-0000 PKG index with COR-1203 and COR-1204; updating FXA-0000 PRJ index with FXA-2271
+- Companion CHG `FXA-2270` — adds COR-1203 to COR-1103 routing
 
 **Out of scope:**
 - `src/fx_alfred/core/schema.py` changes (DocType.CTX, new enums — deferred, minimum 90 days)
@@ -167,6 +167,6 @@ All resolved by user confirmation on 2026-05-03 prior to round-2 dispatch. Round
 | Date       | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | By           |
 |------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
 | 2026-05-03 | Initial version | — |
-| 2026-05-03 | Drafted PRP body as Round 2 of mattpocock/skills absorption initiative; GLM as worker per user constraint (no agent modification); two-product proposal (COR-1203 SOP + CTX pilot); 10-step interview loop; CTX constrained to PRJ-layer pilot with 90-day promotion horizon; universality contract mirrors COR-1613/COR-1503 blocklist; companion CHG FXA-2122 for COR-1103 routing. | GLM (worker) |
-| 2026-05-03 | Round-1 review: Codex 8.3 FIX / Gemini 8.2 FIX / DeepSeek 7.7 FIX (Risk 5.0 sub-floor). Mean 8.07. Revised: OQs resolved per user confirmation; 10-step loop compressed to 7 (glossary-maintenance and ADR-creation steps extracted to COR-1204-REF / §1.3 as optional outcomes, not SOP steps); COR-1403 relationship explicitly added (§1.1); CTX promoted from "pilot doc only" to companion PKG REF COR-1204 + PRJ-layer pilot instance FXA-2123; strongest steelman (COR-1402+1403+1202 collectively cover alignment) engaged in §Problem; grill fatigue addressed via mandatory/optional distinction + user-decline-as-alignment; ADR gate hardened to "at least 2 of 3 conditions with one-sentence justification per condition"; `## Scope` promoted to H2; COR-0000 index update added to in-scope. | Frank Xu |
+| 2026-05-03 | Drafted PRP body as Round 2 of mattpocock/skills absorption initiative; GLM as worker per user constraint (no agent modification); two-product proposal (COR-1203 SOP + CTX pilot); 10-step interview loop; CTX constrained to PRJ-layer pilot with 90-day promotion horizon; universality contract mirrors COR-1613/COR-1503 blocklist; companion CHG FXA-2270 for COR-1103 routing. | GLM (worker) |
+| 2026-05-03 | Round-1 review: Codex 8.3 FIX / Gemini 8.2 FIX / DeepSeek 7.7 FIX (Risk 5.0 sub-floor). Mean 8.07. Revised: OQs resolved per user confirmation; 10-step loop compressed to 7 (glossary-maintenance and ADR-creation steps extracted to COR-1204-REF / §1.3 as optional outcomes, not SOP steps); COR-1403 relationship explicitly added (§1.1); CTX promoted from "pilot doc only" to companion PKG REF COR-1204 + PRJ-layer pilot instance FXA-2271; strongest steelman (COR-1402+1403+1202 collectively cover alignment) engaged in §Problem; grill fatigue addressed via mandatory/optional distinction + user-decline-as-alignment; ADR gate hardened to "at least 2 of 3 conditions with one-sentence justification per condition"; `## Scope` promoted to H2; COR-0000 index update added to in-scope. | Frank Xu |
 | 2026-05-03 | Round 2 panel review: Gemini 9.0 PASS / Codex 9.2 PASS / DeepSeek 9.1 PASS — unanimous 3-of-3 PASS (first PRP to pass in round 2 without round 3). Mean 9.1. DeepSeek Risk Awareness improved from 5.0 to 8.0. All R1 blockers resolved. Proceeding to implementation. | Frank Xu |
