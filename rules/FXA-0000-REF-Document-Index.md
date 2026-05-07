@@ -184,6 +184,7 @@
 | 2272 | CHG | Merge fx_alfredrules Into Top Level rules |
 | 2273 | PRP | AF Tag Star Command And List Filter |
 | 2274 | PRP | AF Star Command Bookmark Documents |
+| 2275 | CHG | FXA 2102 Promote README Check To Numbered Step |
 
 ---
 
