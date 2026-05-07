@@ -1,7 +1,7 @@
 # SOP-2102: Release To PyPI
 
 **Applies to:** FXA project
-**Last updated:** 2026-04-18
+**Last updated:** 2026-05-07
 **Last reviewed:** 2026-03-17
 **Status:** Active
 
@@ -42,7 +42,7 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
 - Ruff format clean (`.venv/bin/ruff format --check .`) — if files need formatting, format + commit first
 - Pyright clean (`.venv/bin/pyright src/`) — catches type errors that the publish CI also runs
 - Dual code review passed (Codex + Gemini both ≥ 9/10)
-- README up to date (FXA-2136 Update README SOP)
+- README updated per **Step 2** below (FXA-2136 Update README SOP)
 - Version bumped in `pyproject.toml`
 - All changes committed and pushed to `main`
 
@@ -59,7 +59,16 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
    .venv/bin/af --version             # confirm version matches
    ```
 
-2. **Create GitHub Release** using the release notes template below
+2. **Update README per FXA-2136** (skip only when the release contains zero user-facing changes)
+   Run the FXA-2136 Update README SOP. At minimum:
+   - Bump or add the "NEW in v\<VERSION\>" highlight line for any new feature/command
+   - Add new commands to the Commands Reference / Document Management section
+   - Confirm Quick Start commands still work
+   - Update the Key SOPs table if a new COR SOP shipped
+   - Commit the README change with the version bump (or as a separate commit on the release branch) **before** running Step 3
+   - Verification: `grep -F "v<NEW_VERSION>" README.md` returns at least one match (confirms the new version is referenced) AND a manual scan finds no stale references to the prior version. This works regardless of whether the release commit lives on a branch or on `main`.
+
+3. **Create GitHub Release** using the release notes template below
    ```bash
    gh release create v<VERSION> --title "v<VERSION>" --notes "$(cat <<'NOTES'
    <release notes from template>
@@ -107,20 +116,20 @@ Categories (use only what applies):
 - **Docs** — documentation-only changes
 - **Stats** — test count, breaking changes
 
-3. **Wait for CI** — GitHub Actions runs test → build → publish automatically
+4. **Wait for CI** — GitHub Actions runs test → build → publish automatically
 
-4. **Verify CI passed**
+5. **Verify CI passed**
    ```bash
    gh run list --repo frankyxhl/alfred --limit 1
    ```
 
-5. **Verify on PyPI**
+6. **Verify on PyPI**
    ```bash
    pipx install fx-alfred --force
    af --version  # should show new version
    ```
 
-6. **Update CHG document** — mark status as Completed in the related CHG doc
+7. **Update CHG document** — mark status as Completed in the related CHG doc
 
 ---
 
@@ -152,7 +161,8 @@ pipx upgrade fx-alfred                        # verify on PyPI
 
 | Date       | Change                                                                                 | By                  |
 |------------|----------------------------------------------------------------------------------------|---------------------|
-| 2026-03-17 | Initial version                                                                        | Claude Code         |
-| 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration)              | Claude Code         |
-| 2026-03-21 | Added Examples section + release notes template                                        | Claude Code         |
+| 2026-03-17 | Initial version | Claude Code |
+| 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration) | Claude Code |
+| 2026-03-21 | Added Examples section + release notes template | Claude Code |
 | 2026-04-18 | Add pyright to Prerequisites + Step 1 per CHG-FXA-2208 (post v1.6.0 publish incident). | Frank + Claude Code |
+| 2026-05-07 | FXA-2275: promote README check from Prerequisites to a numbered Step (new Step 2). Renumbered subsequent steps 3-7. Reason: README updates were silently skipped twice during v1.12.0 and v1.13.0 release work because the check sat in Prerequisites and was easy to miss when reading top-down. | Claude Code |
