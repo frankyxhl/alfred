@@ -44,8 +44,10 @@ Ensures every task follows the correct SOP from the start, preventing wasted eff
 Session Start
      │
      ▼
-COR-1201 ──────────► Load/create today's Discussion Tracker, set next_d
-     │
+COR-1208 ──────────► Sanity check: pwd, git status --short --branch,
+     │                  git log -5, project smoke test, load tracker
+     │                  (invokes COR-1201 step 4), surface anomalies and
+     │                  STOP until operator acknowledges
      ▼
 COR-1203 ──────────► Pre-task alignment (mandatory offer for PRPs +
      │                  non-trivial code changes; optional for CHGs and
@@ -76,7 +78,8 @@ Commit ────────────► af validate → Session End
 ```
 ═══ ALWAYS (every session, every task) ═══
 
-• COR-1201: Load today's Discussion Tracker — search for today's file, read max DN, auto-increment on new topics (see COR-1201 Session Start Protocol)
+• COR-1208: First action of every active session — `pwd` + `git status --short --branch` + `git log --oneline -5` + project smoke test + load tracker + surface anomalies (stop until operator acknowledges). Wraps the COR-1201 tracker load as its step 4.
+• COR-1201: Discussion Tracker mechanism — search for today's file, read max DN, auto-increment on new topics. Invoked from COR-1208 step 4; can also be invoked standalone for tracker-only operations.
 • COR-1402: Declare 📋 active SOP before work and on every transition
 • COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP — but still offer COR-1203 alignment for PRPs and non-trivial code changes when the mandatory threshold is met)
 • af plan: Before every response — decide if task needs a checklist. For a manual, targeted checklist from specific SOPs: `af plan <SOP_IDs>`.

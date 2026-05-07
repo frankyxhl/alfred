@@ -48,7 +48,7 @@ The startup ritual is also Anthropic's empirical finding: *"Established consiste
 
 1. **Orient.** Run `pwd`. Confirm the cwd matches the project root the operator intends. If the operator did not specify a project, ask before proceeding rather than guessing from `cd` history.
 
-2. **Snapshot the working tree.** Run `git status --short` and `git log --oneline -5`. Read both. Note three things:
+2. **Snapshot the working tree.** Run `git status --short --branch` (the `--branch` flag is required — plain `--short` omits branch info, defeating the third bullet below) and `git log --oneline -5`. Read both. Note three things:
    - Uncommitted files (staged + working tree) — what was left mid-edit
    - Most recent commits — what was just shipped, which determines what the next task can assume
    - Current branch — main? a feature branch? matches operator's intent?

@@ -10,15 +10,15 @@ Add ONE of the following to your agent's instruction file
 
 ## Option A: Minimal
 
-Load today's Discussion Tracker per COR-1201 (auto-increments D items).
-At session start, run `af guide` to see routing.
+At session start, run COR-1208 (Session Startup Sanity Check: pwd, git status --short --branch, git log -5, project smoke test, load tracker per COR-1201, surface anomalies).
+Then run `af guide` to see routing.
 Before every task, run `af plan <SOP_IDs>` and follow the output.
 Declare active SOP per COR-1402 before starting work (or flag if none exist).
 
 ## Option B: With routing
 
 At session start:
-1. Load today's Discussion Tracker per COR-1201 (auto-increments D items)
+1. Run COR-1208 (Session Startup Sanity Check: pwd, git status --short --branch, git log -5, smoke test, load tracker, surface anomalies — stop until operator acknowledges any anomalies)
 2. Run `af guide --root <project-root>` to see routing (PKG → USR → PRJ)
 
 Before every task:
@@ -31,7 +31,7 @@ Before every task:
 ## Option C: Full (recommended)
 
 At session start:
-1. Load today's Discussion Tracker per COR-1201 (auto-increments D items)
+1. Run COR-1208 (Session Startup Sanity Check: pwd, git status --short --branch, git log -5, smoke test, load tracker per COR-1201, surface anomalies — stop until operator acknowledges any anomalies)
 2. Run `af guide --root <project-root>` to see routing (PKG → USR → PRJ)
 
 Before every task:
@@ -42,9 +42,9 @@ Before every task:
 7. Do not commit code without completing review steps
 8. When task is done, confirm which SOPs were used and use the plan output as completion checklist
 
+COR-1208 = first action of every active session (state-recovery ritual; wraps COR-1201 as step 4).
 af guide = once per session (routing context).
 af plan  = before EVERY task (checklist from SOPs).
-COR-1201 = once per session (Discussion Tracker, auto-increment D items).
 COR-1402 = declare active SOP before work, at every transition, flag if none exist, confirm at completion.
 """
 
