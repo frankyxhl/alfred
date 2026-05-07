@@ -1,5 +1,51 @@
 # Changelog
 
+## v1.13.0 (2026-05-07)
+
+Minor release: starred-tags personal-preference layer and `af tag` command group.
+
+### Added
+
+- **`af tag star/unstar/list`** — new command group for managing per-user
+  starred tags. Starred tags persist in `~/.alfred/preferences.yaml` (created
+  on first `af tag star`; not stored in any document). All names are
+  lowercased and de-duplicated; empty names are rejected.
+- **`af list --starred`** — filter documents whose `Tags:` metadata
+  intersects the starred set. Composes with `--type / --prefix / --source / --tag`
+  via the same AND logic as existing filters.
+- **`af tag list --json`** — schema-versioned JSON output:
+  `{"schema_version": "1", "starred_tags": [...]}`.
+- **`src/fx_alfred/core/preferences.py`** — new framework-agnostic atomic
+  YAML I/O layer with `PreferencesError`, dedup-on-read, and forward-compat
+  preservation of unknown top-level keys. Command layer converts
+  `PreferencesError` → `click.ClickException` at the boundary. (FXA-2273)
+
+### Changed
+
+- **`rules/` and `fx_alfred/rules/` PRJ trees merged** into a single top-level
+  `rules/` tree. 23 docs renumbered to FXA-2249–2271; FXA-2248 moved as-is.
+  PKG provenance pointers (`Authored from:` / history rows) in COR-1103,
+  COR-1203, COR-1204, COR-1503, COR-1504, COR-1602, COR-1613 updated to the
+  new ACIDs. PKG layer (`src/fx_alfred/rules/`) and USR layer (`~/.alfred/`)
+  untouched. (FXA-2272)
+
+### Docs
+
+- README — new "NEW in v1.13.0" highlight + COR-1616 entry retained;
+  `af tag` and `af list --starred` now appear in the Commands table.
+
+### Stats
+
+- 891 tests passing (+22 new for FXA-2273), 0 breaking changes.
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.13.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.12.0 (2026-05-07)
 
 Minor release: new Contract-First Delivery Workflow SOP, pytest test
