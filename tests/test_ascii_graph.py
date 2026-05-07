@@ -1,5 +1,10 @@
 """Tests for ASCII graph renderer (FXA-2206 C1)."""
 
+import pytest
+
+
+pytestmark = pytest.mark.unit
+
 
 class TestSingleSopSequentialSteps:
     """Test 1: Single SOP with 3 sequential steps."""

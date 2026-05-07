@@ -1,6 +1,12 @@
 """Tests for fx_alfred.core.parser — H1_PATTERN named groups."""
 
+import pytest
+
+
 from fx_alfred.core.parser import H1_PATTERN, parse_metadata
+
+
+pytestmark = pytest.mark.unit
 
 
 def test_h1_pattern_named_groups_extract_type_code_and_acid():

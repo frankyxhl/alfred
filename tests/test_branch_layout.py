@@ -8,8 +8,14 @@ on, separately from any rendering concern.
 
 from __future__ import annotations
 
+import pytest
+
+
 from fx_alfred.core.branch_layout import BranchGroup, discover_branch_groups
 from fx_alfred.core.workflow import BranchSignature, BranchTarget
+
+
+pytestmark = pytest.mark.unit
 
 
 def _step(index: int, text: str = "x", sub_branch: str | None = None) -> dict:

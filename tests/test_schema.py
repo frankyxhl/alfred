@@ -1,5 +1,8 @@
 """Tests for core/schema.py — document type schema."""
 
+import pytest
+
+
 from fx_alfred.core.schema import (
     DocType,
     DocRole,
@@ -11,6 +14,9 @@ from fx_alfred.core.schema import (
     WORKFLOW_LOOPS,
     ALWAYS_INCLUDED,
 )
+
+
+pytestmark = pytest.mark.unit
 
 
 def test_doctype_has_all_seven_values():

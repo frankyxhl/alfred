@@ -9,6 +9,9 @@ from pathlib import Path
 import pytest
 
 
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
+
+
 def _has_build_module():
     try:
         import build  # noqa: F401

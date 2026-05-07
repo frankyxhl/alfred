@@ -1,5 +1,8 @@
 """Tests for af fmt command (FXA-2141)."""
 
+import pytest
+
+
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -7,6 +10,8 @@ from click.testing import CliRunner
 from fx_alfred.cli import cli
 from fx_alfred.core.parser import parse_metadata
 
+
+pytestmark = [pytest.mark.cli, pytest.mark.docs, pytest.mark.integration]
 
 # ── Sample Documents ──────────────────────────────────────────────────────────
 

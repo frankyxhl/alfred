@@ -1,5 +1,8 @@
 """Tests for core/normalize.py — normalization utilities."""
 
+import pytest
+
+
 from fx_alfred.core.normalize import (
     slugify,
     normalize_date,
@@ -9,36 +12,39 @@ from fx_alfred.core.normalize import (
 from fx_alfred.core.schema import DocType
 
 
-def test_slugify_hello_world():
-    assert slugify("Hello World") == "Hello-World"
+pytestmark = pytest.mark.unit
 
 
-def test_slugify_trims_whitespace():
-    assert slugify("  trim  ") == "trim"
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("Hello World", "Hello-World"),
+        ("  trim  ", "trim"),
+        ("path/unsafe:chars?", "pathunsafechars"),
+        ("Hello_World", "Hello_World"),
+        ("multiple   spaces", "multiple-spaces"),
+        ("--leading-trailing--", "leading-trailing"),
+        ("", ""),
+    ],
+    ids=[
+        "spaces-to-dashes",
+        "trim-whitespace",
+        "remove-unsafe-chars",
+        "preserve-underscores",
+        "collapse-spaces",
+        "strip-edge-dashes",
+        "empty-string",
+    ],
+)
+def test_slugify(value, expected):
+    assert slugify(value) == expected
 
 
-def test_slugify_removes_unsafe_chars():
+def test_slugify_removes_path_separators():
     result = slugify("path/unsafe:chars?")
-    assert result == "pathunsafechars"
     assert "/" not in result
     assert ":" not in result
     assert "?" not in result
-
-
-def test_slugify_preserves_underscores():
-    assert slugify("Hello_World") == "Hello_World"
-
-
-def test_slugify_multiple_spaces():
-    assert slugify("multiple   spaces") == "multiple-spaces"
-
-
-def test_slugify_leading_trailing_hyphens():
-    assert slugify("--leading-trailing--") == "leading-trailing"
-
-
-def test_slugify_empty_string():
-    assert slugify("") == ""
 
 
 def test_sort_metadata_canonical_order():
@@ -63,18 +69,25 @@ def test_sort_metadata_empty():
     assert sort_metadata([], DocType.SOP) == []
 
 
-def test_strip_trailing_whitespace_removes_trailing():
-    result = strip_trailing_whitespace(["hello   ", "world", "  "])
-    assert result == ["hello", "world", ""]
+@pytest.mark.parametrize(
+    ("lines", "expected"),
+    [
+        (["hello   ", "world", "  "], ["hello", "world", ""]),
+        ([], []),
+    ],
+    ids=["removes-trailing", "empty-list"],
+)
+def test_strip_trailing_whitespace(lines, expected):
+    assert strip_trailing_whitespace(lines) == expected
 
 
-def test_strip_trailing_whitespace_empty_list():
-    assert strip_trailing_whitespace([]) == []
-
-
-def test_normalize_date_passthrough():
-    assert normalize_date("2026-03-22") == "2026-03-22"
-
-
-def test_normalize_date_unparseable_returns_original():
-    assert normalize_date("not-a-date") == "not-a-date"
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2026-03-22", "2026-03-22"),
+        ("not-a-date", "not-a-date"),
+    ],
+    ids=["valid-date", "unparseable"],
+)
+def test_normalize_date(value, expected):
+    assert normalize_date(value) == expected

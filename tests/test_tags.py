@@ -4,6 +4,9 @@ Covers: parse_tags, Document.tags property, af list --tag,
 af validate tags checks, af fmt tags normalization, sort_metadata with Tags.
 """
 
+import pytest
+
+
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
@@ -11,31 +14,32 @@ from fx_alfred.core.parser import parse_tags
 from fx_alfred.core.schema import DocType, OPTIONAL_METADATA
 
 
+pytestmark = [pytest.mark.unit, pytest.mark.cli]
+
 # ── parse_tags ───────────────────────────────────────────────────────────────
 
 
-def test_parse_tags_basic():
-    assert parse_tags("tdd, review, release") == ["tdd", "review", "release"]
-
-
-def test_parse_tags_strips_whitespace():
-    assert parse_tags("  tdd ,  review  ") == ["tdd", "review"]
-
-
-def test_parse_tags_lowercases():
-    assert parse_tags("TDD, Review") == ["tdd", "review"]
-
-
-def test_parse_tags_filters_empty():
-    assert parse_tags("tdd,,review,") == ["tdd", "review"]
-
-
-def test_parse_tags_empty_string():
-    assert parse_tags("") == []
-
-
-def test_parse_tags_single_tag():
-    assert parse_tags("tdd") == ["tdd"]
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("tdd, review, release", ["tdd", "review", "release"]),
+        ("  tdd ,  review  ", ["tdd", "review"]),
+        ("TDD, Review", ["tdd", "review"]),
+        ("tdd,,review,", ["tdd", "review"]),
+        ("", []),
+        ("tdd", ["tdd"]),
+    ],
+    ids=[
+        "basic",
+        "strip-whitespace",
+        "lowercase",
+        "filter-empty",
+        "empty-string",
+        "single-tag",
+    ],
+)
+def test_parse_tags(raw, expected):
+    assert parse_tags(raw) == expected
 
 
 # ── OPTIONAL_METADATA schema ────────────────────────────────────────────────

@@ -8,6 +8,8 @@ manual-eyeball gate from R1.
 
 from __future__ import annotations
 
+import pytest
+
 import wcwidth
 
 from fx_alfred.core.branch_geometry import (
@@ -16,6 +18,9 @@ from fx_alfred.core.branch_geometry import (
     render_branch,
 )
 from fx_alfred.core.workflow import BranchTarget
+
+
+pytestmark = pytest.mark.unit
 
 
 def _make_input(

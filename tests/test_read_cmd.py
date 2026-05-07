@@ -1,5 +1,11 @@
+import pytest
+
+
 from click.testing import CliRunner
 from fx_alfred.cli import cli
+
+
+pytestmark = pytest.mark.cli
 
 
 def test_read_by_prefix_acid(tmp_path, monkeypatch):

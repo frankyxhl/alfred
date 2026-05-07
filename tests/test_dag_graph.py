@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 
+import pytest
+
+
 from fx_alfred.core.dag_graph import render_dag
 from fx_alfred.core.workflow import LoopSignature
 
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -10,10 +10,16 @@ Path B convention: plain steps OMIT the `sub_branch` key entirely
 
 from __future__ import annotations
 
+import pytest
+
+
 from fx_alfred.core.steps import (
     _parse_steps_for_json,
     parse_top_level_step_indices,
 )
+
+
+pytestmark = pytest.mark.unit
 
 
 def test_extract_step_substep_format() -> None:

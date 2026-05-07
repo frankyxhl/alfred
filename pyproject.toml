@@ -12,7 +12,7 @@ license = "MIT"
 dependencies = ["click>=8.0", "pyyaml>=6.0", "wcwidth>=0.2.13"]
 
 [project.optional-dependencies]
-dev = ["pytest>=9.0", "ruff>=0.15", "pyright", "mkdocs-material"]
+dev = ["pytest>=9.0", "pytest-cov", "ruff>=0.15", "pyright", "mkdocs-material"]
 evolve = ["pytest>=9.0", "pytest-json-report", "pytest-cov"]
 
 [project.scripts]
@@ -26,7 +26,15 @@ artifacts = ["src/fx_alfred/rules/*.md", "src/fx_alfred/templates/*.md", "src/fx
 artifacts = ["src/fx_alfred/rules/*.md", "src/fx_alfred/templates/*.md", "src/fx_alfred/CHANGELOG.md"]
 
 [tool.pytest.ini_options]
+addopts = ["--strict-markers"]
 testpaths = ["tests"]
+markers = [
+    "unit: pure function or narrow module tests without project-level integration setup",
+    "cli: tests that exercise the af command surface or Click command wiring",
+    "integration: tests that exercise filesystem, packaging, subprocess, or cross-module behavior",
+    "docs: tests that validate document, rule, template, or documentation behavior",
+    "slow: intentionally slower tests that may be excluded from tight local loops",
+]
 
 [tool.ruff]
 target-version = "py310"

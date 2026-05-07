@@ -15,4 +15,4 @@ jobs:
           python-version: '3.12'
       - run: pip install -e '.[dev]'
       - run: ruff check .
-      - run: pytest --tb=short
+      - run: pytest --tb=short --cov=src/fx_alfred --cov-report=term-missing --cov-fail-under=95

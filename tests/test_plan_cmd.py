@@ -5,6 +5,8 @@ from pathlib import Path
 
 import click
 import pytest
+
+
 from click.testing import CliRunner
 from fx_alfred.cli import cli
 from fx_alfred.commands.plan_cmd import (
@@ -15,6 +17,9 @@ from fx_alfred.commands.plan_cmd import (
 from fx_alfred.core.document import Document
 from fx_alfred.core.parser import parse_metadata
 from fx_alfred.core.workflow import BranchSignature, WorkflowSignature
+
+
+pytestmark = pytest.mark.cli
 
 
 def _create_sop_with_steps(rules_dir: Path, prefix: str, acid: str, title: str) -> Path:

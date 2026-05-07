@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import pytest
+
+
 from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.workflow import LoopSignature
 
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # Helpers

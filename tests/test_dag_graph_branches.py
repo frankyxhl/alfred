@@ -13,10 +13,16 @@ Per CHG-2227 §"Phase 4 — `dag_graph.py` nested integration":
 
 from __future__ import annotations
 
+import pytest
+
+
 import wcwidth
 
 from fx_alfred.core.dag_graph import render_dag
 from fx_alfred.core.workflow import BranchSignature, BranchTarget, LoopSignature
+
+
+pytestmark = pytest.mark.unit
 
 
 def _step(

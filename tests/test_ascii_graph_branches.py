@@ -11,10 +11,16 @@ Per CHG-2227 §"Phase 5 — `ascii_graph.py` flat integration":
 
 from __future__ import annotations
 
+import pytest
+
+
 import wcwidth
 
 from fx_alfred.core.ascii_graph import render_ascii
 from fx_alfred.core.workflow import BranchSignature, BranchTarget, LoopSignature
+
+
+pytestmark = pytest.mark.unit
 
 
 def _step(

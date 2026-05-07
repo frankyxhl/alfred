@@ -1,6 +1,12 @@
+import pytest
+
+
 from pathlib import Path
 
 from fx_alfred.core.document import Document
+
+
+pytestmark = pytest.mark.unit
 
 
 def test_resolve_resource_for_prj():

@@ -9,7 +9,13 @@ total=False subclass.
 
 from __future__ import annotations
 
+import pytest
+
+
 from fx_alfred.core.phases import StepDict
+
+
+pytestmark = pytest.mark.unit
 
 
 def test_stepdict_required_keys_only() -> None:
