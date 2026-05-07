@@ -143,6 +143,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • Approved multi-phase continuous execution → COR-1614 (write authority, defaults, reviewable slices, validation gates, privacy rules, and stop conditions before continuing)
 • Diagnose bug/perf regression → COR-1503 (Diagnose Feedback Loop: build feedback loop → reproduce → hypothesise → instrument → fix → regression-test)
 • Pre-task alignment       → COR-1203 (Socratic interview: 7-step loop before PRP/non-trivial code; challenge against glossary, stop when crisp or user-declined)
+• Working in unfamiliar code → COR-1207 (zoom-out: pick altitude — module / data flow / decision; map in CTX glossary vocabulary; stop when "given the proposed change, what else might break?" is answerable)
 • PRJ-to-PKG pattern promotion → COR-1801 (evaluate candidate evidence, decide promote/defer/reject/revise, then route to CHG/PRP)
 • SOP section compliance   → af validate checks required sections (What/Why/When to Use/When NOT/Steps)
 ```

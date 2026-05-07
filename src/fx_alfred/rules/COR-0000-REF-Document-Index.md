@@ -1,8 +1,8 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-06
-**Last reviewed:** 2026-05-05
+**Last updated:** 2026-05-07
+**Last reviewed:** 2026-05-07
 **Status:** Active
 
 ---
@@ -30,6 +30,8 @@ A reference index of all documents in the COR system.
 | 1204 | REF | CTX Format |
 | 1205 | REF | Agent Activity Log Format |
 | 1206 | SOP | Emit Agent Activity |
+| 1207 | SOP | Zoom Out |
+| 1208 | SOP | Session Startup Sanity Check |
 | 1300 | SOP | Update Document |
 | 1301 | SOP | Deprecate Document |
 | 1302 | SOP | Maintain Document Index |
