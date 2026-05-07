@@ -20,7 +20,7 @@ Promote the README check in `FXA-2102 Release To PyPI` from a Prerequisites bull
 
 During this session's release work for v1.12.0 and v1.13.0, the README update was silently skipped twice. The operator had to remind the agent ("pls don't forget to update README as well") during v1.12.0 and again ask "we have a release gate SOP for this?" during v1.13.0. Root cause: the check sat in Prerequisites and was never referenced in the Steps section, so a top-down read of the SOP missed it.
 
-Promoting the check to a numbered Step makes it impossible to skip when working through the SOP linearly, and adds a concrete verification command (`git diff main -- README.md`) so the operator can confirm the change actually landed.
+Promoting the check to a numbered Step makes it impossible to skip when working through the SOP linearly, and adds a concrete verification — `grep -F "v<NEW_VERSION>" README.md` plus a manual stale-reference scan — so the operator can confirm the change actually landed. (An earlier draft used `git diff main -- README.md`; that variant was rejected during PR review because it produces an empty diff once the release commit lands on `main`, defeating the whole point of the gate.)
 
 
 ## Impact Analysis
