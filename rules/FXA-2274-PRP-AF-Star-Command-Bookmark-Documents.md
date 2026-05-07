@@ -122,10 +122,10 @@ Both keys are independently optional. Missing key → empty list. Forward-compat
 3b. `af unstar 1202` returns an ambiguity error when both `COR-1202` and `FXA-1202` are starred — operator must use a full `PREFIX-ACID` to disambiguate.
 4. `af unstar COR-1202` succeeds even when the underlying doc has been deleted from disk (operator-cleanup path) — best-effort resolution falls back to literal-string match against `starred_docs`.
 5. `af starred` lists starred IDs sorted, one per line. Marks entries whose docs no longer resolve as `(missing)`. JSON form includes `"missing": [...]` alongside `"starred_docs"`.
-6. Existing `af tag star/unstar/list` and `af list --starred` from v1.13.0 are byte-identical in output and behaviour. Same preferences file, different key.
-7. Preferences file with **only** `starred_tags` (no `starred_docs`) → `af starred` returns empty without error. Vice versa for `af tag list`.
-8. Atomic writes leave no `.tmp` artefacts after sequential star+unstar+star.
-9. **Cross-feature regression**: a single integration test stars one tag (`af tag star release`) AND one doc (`af star COR-1202`) into the same `~/.alfred/preferences.yaml`, then verifies (a) `af tag list` returns only `release`, (b) `af starred` returns only `COR-1202`, (c) the YAML file contains both `starred_tags: [release]` and `starred_docs: [COR-1202]` keys after a `star` round-trip, and (d) `af list --starred` (the v1.13.0 tag-filter) is unaffected.
+6. **Forward-compat**: a hand-edited preferences file with unknown top-level keys (e.g., `future_key: keep-me`) survives a `star` round-trip with the unknown key intact. (Verified by `test_starred_ignores_unknown_top_level_keys`.)
+7. Atomic writes leave no `.tmp` artefacts after sequential star+unstar+star.
+
+> **Note**: previous versions of this PRP listed AC items asserting coexistence with `af tag star/unstar/list` and `af list --starred` (the FXA-2273 commands). Those features were deleted from main as part of this PR (see the Change History row dated 2026-05-07 for the scope pivot), so cross-feature acceptance criteria for them are obsolete and removed here.
 
 ## Risks / Failure Modes
 
