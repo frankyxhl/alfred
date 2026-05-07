@@ -1,10 +1,10 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-06
+**Last updated:** 2026-05-07
 **Last reviewed:** 2026-05-05
 **Status:** Active
-**Related:** COR-1607 (deprecated, replaced by this document), COR-1614
+**Related:** COR-1607 (deprecated, replaced by this document), COR-1614, COR-1616
 **Workflow input:** proposal:draft
 **Workflow output:** task:routed
 **Always included:** true
@@ -141,6 +141,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • Multi-reviewer decision  → COR-1613 (declare Review Unit: mechanism, threshold, reviewers)
 • GitHub App PR review bot loop → COR-1615 (trigger/poll/match current head), then COR-1612 for fetched findings
 • Approved multi-phase continuous execution → COR-1614 (write authority, defaults, reviewable slices, validation gates, privacy rules, and stop conditions before continuing)
+• Reviewed delivery slice (single PR, contract → review → ship) → COR-1616 (Contract-First Delivery Workflow: contract before code → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out)
 • Diagnose bug/perf regression → COR-1503 (Diagnose Feedback Loop: build feedback loop → reproduce → hypothesise → instrument → fix → regression-test)
 • Pre-task alignment       → COR-1203 (Socratic interview: 7-step loop before PRP/non-trivial code; challenge against glossary, stop when crisp or user-declined)
 • Working in unfamiliar code → COR-1207 (zoom-out: pick altitude — module / data flow / decision; map in CTX glossary vocabulary; stop when "given the proposed change, what else might break?" is answerable)
@@ -171,6 +172,7 @@ COR-1611: Reviewer calibration — cite deductions, 10 = zero improvements, bloc
 COR-1613: Multi-reviewer decision → declare Review Unit before reviewers begin (mechanism / rubric / threshold / reviewers); record per Step 6
 COR-1615: GitHub App PR review bot loop → request once per head, poll without spam, match result to current head, hand findings to COR-1612
 COR-1614: Multi-phase continuous execution → write an execution contract before continuing across reviewed PR slices
+COR-1616: Reviewed delivery slice → contract first (PRP/CHG/PLN), plan review before code, TDD/BDD/E2E pressure, impl review before PR, identity-correct PR, PR review loop until merge
 COR-1503: Diagnose bug/perf regression → build feedback loop → reproduce → hypothesise (3-5 ranked) → instrument (one variable/round) → fix → regression-test (hand off to COR-1500)
 COR-1203: Pre-task alignment → before PRP/non-trivial code, offer 7-step Socratic interview; challenge against glossary (COR-1204 CTX), sharpen terms, stop when crisp or user-declined; record one-line outcome
 COR-1801: Pattern promotion → evaluate PRJ pattern contract and evidence before creating or amending PKG/COR documents
@@ -252,3 +254,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-05-03 | FXA-2122: add COR-1203 (Pre-Task Alignment) to Workflow Sequence diagram (after COR-1201, before af guide), OVERLAYS line, and Golden Rule line. | Frank Xu |
 | 2026-05-05 | Add COR-1801 routing entries for PRJ-to-PKG pattern promotion. | Codex |
 | 2026-05-06 | Add COR-1614 routing entries for approved multi-phase continuous execution contracts. | Codex |
+| 2026-05-07 | Add COR-1616 routing entries (OVERLAY + Golden Rule) for Contract-First Delivery Workflow promoted from BAB-1503 per issue #106. | Claude Code |
