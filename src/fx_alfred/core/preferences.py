@@ -16,7 +16,7 @@ import yaml
 
 
 _HEADER_COMMENT = (
-    "# Managed by `af tag star`; safe to edit by hand.\n"
+    "# Managed by `af tag star` and `af star`; safe to edit by hand.\n"
     "# Quote tag names that look like booleans or numbers (yes/no/on/off/1.0)\n"
     "# — YAML coerces unquoted bare strings of those shapes.\n"
 )
@@ -143,5 +143,82 @@ def remove_starred_tag(name: str) -> tuple[bool, list[str]]:
         return False, sorted(existing)
     new_list = sorted(t for t in existing if t != name)
     data["starred_tags"] = new_list
+    _atomic_write(preferences_path(), _serialise(data))
+    return True, new_list
+
+
+# ---------- starred docs (FXA-2274) ----------
+#
+# Note: doc-ID canonicalisation is uppercase-prefix (e.g., COR-1202) and
+# differs from the lowercase canonicalisation used by starred-tags above.
+# Callers must pass already-canonical PREFIX-ACID strings; these helpers do
+# not case-mangle their inputs.
+
+
+def get_starred_docs() -> list[str]:
+    """Return the user's starred document IDs (sorted, deduplicated).
+
+    Returns [] when the file is missing or starred_docs key is absent.
+    Raises PreferencesError when the key exists but is not a list.
+    """
+    data = load_preferences()
+    if "starred_docs" not in data:
+        return []
+    value = data["starred_docs"]
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise PreferencesError(
+            f"{preferences_path()}: 'starred_docs' must be a list, got "
+            f"{type(value).__name__}"
+        )
+    return sorted({str(v) for v in value})
+
+
+def add_starred_doc(canonical_id: str) -> tuple[bool, list[str]]:
+    """Add `canonical_id` to starred_docs. Returns (added, sorted_list).
+
+    `canonical_id` must already be in canonical form (e.g., "COR-1202").
+    Idempotent. Preserves any other top-level keys in preferences.yaml.
+    """
+    data = load_preferences()
+    existing_raw = data.get("starred_docs")
+    if existing_raw is None:
+        existing: list[str] = []
+    elif isinstance(existing_raw, list):
+        existing = [str(v) for v in existing_raw]
+    else:
+        raise PreferencesError(
+            f"{preferences_path()}: 'starred_docs' must be a list, got "
+            f"{type(existing_raw).__name__}"
+        )
+
+    if canonical_id in existing:
+        return False, sorted(set(existing))
+    new_list = sorted(set(existing + [canonical_id]))
+    data["starred_docs"] = new_list
+    _atomic_write(preferences_path(), _serialise(data))
+    return True, new_list
+
+
+def remove_starred_doc(canonical_id: str) -> tuple[bool, list[str]]:
+    """Remove `canonical_id` from starred_docs. Returns (removed, sorted_list).
+
+    Idempotent: returns (False, current_list) when not present.
+    """
+    data = load_preferences()
+    existing_raw = data.get("starred_docs")
+    if existing_raw is None:
+        return False, []
+    if not isinstance(existing_raw, list):
+        raise PreferencesError(
+            f"{preferences_path()}: 'starred_docs' must be a list, got "
+            f"{type(existing_raw).__name__}"
+        )
+    existing = [str(v) for v in existing_raw]
+    if canonical_id not in existing:
+        return False, sorted(set(existing))
+    new_list = sorted({v for v in existing if v != canonical_id})
+    data["starred_docs"] = new_list
     _atomic_write(preferences_path(), _serialise(data))
     return True, new_list
