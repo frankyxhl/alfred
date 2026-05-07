@@ -182,6 +182,7 @@
 | 2270 | CHG | COR 1103 Add Pre Task Alignment Routing |
 | 2271 | CTX | Alfred Glossary |
 | 2272 | CHG | Merge fx_alfredrules Into Top Level rules |
+| 2273 | PRP | AF Tag Star Command And List Filter |
 
 ---
 
