@@ -174,6 +174,31 @@ def test_unstar_acid_only_ambiguous_with_multiple_starred(tmp_path, monkeypatch)
     assert sorted(data["starred_docs"]) == ["ALF-5001", "TST-5001"]
 
 
+def test_unstar_acid_only_prefers_stale_starred_over_live_doc(tmp_path, monkeypatch):
+    """Codex-found regression: ACID-only unstar must remove a stale starred
+    entry even when a different live doc shares the same ACID.
+
+    Setup: starred_docs=[ALF-5001] (stale, no such live doc), live TST-5001
+    exists but is not starred. `af unstar 5001` must remove ALF-5001 — the
+    operator clearly meant the stale bookmark, not to fail with "not starred"
+    on TST-5001.
+    """
+    _project_doc(tmp_path, "TST", "5001", "REF", "Live")
+    monkeypatch.chdir(tmp_path)
+
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("starred_docs:\n  - ALF-5001\n")
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["unstar", "5001"])
+
+    assert result.exit_code == 0, result.output
+    assert "unstarred: ALF-5001" in result.output
+    data = yaml.safe_load(prefs.read_text())
+    assert data["starred_docs"] == []
+
+
 def test_starred_text_output_sorted(tmp_path, monkeypatch):
     _project_doc(tmp_path, "TST", "5001", "REF", "A")
     _project_doc(tmp_path, "TST", "5002", "SOP", "B")
@@ -272,3 +297,124 @@ def test_starred_ignores_unknown_top_level_keys(project_with_doc, monkeypatch):
     runner.invoke(cli, ["star", "TST-5001"])  # idempotent
     data = yaml.safe_load(prefs.read_text())
     assert data["future_key"] == "keep-me"
+
+
+# ---------- Error-path coverage ----------
+
+
+def test_star_with_malformed_preferences_errors(project_with_doc, monkeypatch):
+    """PreferencesError from add_starred_doc surfaces as ClickException."""
+    monkeypatch.chdir(project_with_doc)
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("starred_docs: 'not-a-list'")  # wrong shape
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["star", "TST-5001"])
+    assert result.exit_code != 0
+    assert "starred_docs" in result.output
+
+
+def test_unstar_with_malformed_preferences_errors(project_with_doc, monkeypatch):
+    """PreferencesError from get_starred_docs in unstar surfaces as ClickException."""
+    monkeypatch.chdir(project_with_doc)
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("starred_docs: {nope: bad}")  # not a list
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["unstar", "TST-5001"])
+    assert result.exit_code != 0
+
+
+def test_starred_with_malformed_preferences_errors(project_with_doc, monkeypatch):
+    """PreferencesError from get_starred_docs in starred_cmd surfaces."""
+    monkeypatch.chdir(project_with_doc)
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("starred_docs: 12345")  # int, not list
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["starred"])
+    assert result.exit_code != 0
+
+
+def test_unstar_acid_only_no_starred_no_live(project_with_doc, monkeypatch):
+    """ACID-only unstar with neither live doc nor starred match → raw 'not starred'."""
+    monkeypatch.chdir(project_with_doc)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["unstar", "9999"])
+    assert result.exit_code == 0
+    assert "not starred" in result.output
+
+
+def test_unstar_prefix_acid_not_in_starred_reports_not_starred(
+    project_with_doc, monkeypatch
+):
+    """PREFIX-ACID form: literal-match against starred; not found → 'not starred'."""
+    monkeypatch.chdir(project_with_doc)
+    runner = CliRunner()
+    # TST-5001 exists as a live doc but is not starred
+    result = runner.invoke(cli, ["unstar", "TST-5001"])
+    assert result.exit_code == 0
+    assert "not starred: TST-5001" in result.output
+
+
+def test_load_preferences_missing_file_returns_empty():
+    """load_preferences gracefully handles missing file (covers prefs.py:42)."""
+    from fx_alfred.core.preferences import load_preferences
+
+    assert not _prefs_path().exists()
+    assert load_preferences() == {}
+
+
+def test_load_preferences_empty_file_returns_empty():
+    """load_preferences gracefully handles whitespace-only file."""
+    from fx_alfred.core.preferences import load_preferences
+
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("\n   \n\n")
+    assert load_preferences() == {}
+
+
+def test_load_preferences_top_level_not_mapping_raises():
+    """Top-level YAML must be a mapping; list/scalar raises PreferencesError."""
+    from fx_alfred.core.preferences import PreferencesError, load_preferences
+
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("- not\n- a\n- mapping\n")
+
+    with pytest.raises(PreferencesError):
+        load_preferences()
+
+
+def test_load_preferences_yaml_null_returns_empty():
+    """YAML 'null' parses as None and is normalised to {}."""
+    from fx_alfred.core.preferences import load_preferences
+
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("null\n")
+    assert load_preferences() == {}
+
+
+def test_get_starred_docs_with_null_value_returns_empty():
+    """starred_docs: null in YAML is treated as empty list, not error."""
+    from fx_alfred.core.preferences import get_starred_docs
+
+    prefs = _prefs_path()
+    prefs.parent.mkdir(parents=True, exist_ok=True)
+    prefs.write_text("starred_docs: null\n")
+    assert get_starred_docs() == []
+
+
+def test_remove_starred_doc_when_file_missing():
+    """remove_starred_doc returns (False, []) when preferences file is absent."""
+    from fx_alfred.core.preferences import remove_starred_doc
+
+    assert not _prefs_path().exists()
+    removed, current = remove_starred_doc("COR-1202")
+    assert removed is False
+    assert current == []

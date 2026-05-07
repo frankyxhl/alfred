@@ -24,11 +24,6 @@ def _canonical_from_doc(doc) -> str:
     return f"{doc.prefix}-{doc.acid}"
 
 
-def _looks_like_acid_only(identifier: str) -> bool:
-    """True when input is digits only (e.g. '1202')."""
-    return identifier.isdigit()
-
-
 def _normalise_input(identifier: str) -> str:
     """Upper-case the prefix portion if present; leave ACID-only inputs alone.
 
@@ -61,49 +56,55 @@ def star_cmd(ctx: click.Context, identifier: str) -> None:
 def _resolve_unstar_target(
     ctx: click.Context, identifier: str
 ) -> tuple[str | None, str | None]:
-    """Best-effort canonicalisation for unstar.
+    """Resolve `identifier` to the canonical PREFIX-ACID to remove.
 
     Returns (canonical_id, error_message). Exactly one is non-None.
 
-    Strategy:
-      1. Try `find_or_fail` — if doc resolves, return its canonical ID.
-      2. If resolution fails AND input is `PREFIX-ACID` form, fall back to
-         literal-uppercase match against the starred list.
-      3. If input is ACID-only and resolution failed, look for stored
-         entries ending in `-<ACID>`. Exactly one match → unstar it.
-         Multiple → ambiguity error. Zero → fall through to literal match
-         on `<ACID>` itself (which will report "not starred").
+    Strategy (starred-first, to honour the operator's intent when an ACID
+    is shared between a stale starred entry and a different live doc):
+
+      1. Load `starred_docs` from preferences.
+      2. If input is `PREFIX-ACID` form: literal-match against starred. If
+         found, target = that exact canonical entry. If not, target is the
+         normalised input itself — `remove_starred_doc` will report
+         "not starred".
+      3. If input is ACID-only: search starred entries for any ending in
+         `-<ACID>`. Exactly one match → that entry. Multiple → ambiguity
+         error (operator must use full PREFIX-ACID). Zero → try live
+         resolution to give a friendlier "not starred: PREFIX-ACID"
+         message (the doc exists but isn't starred); if live resolution
+         also fails, return the raw ACID for a "not starred: 5001" report.
     """
     norm = _normalise_input(identifier)
-    # Step 1: try to resolve against current docs
-    try:
-        docs = scan_or_fail(ctx)
-        doc = find_or_fail(docs, norm)
-        return _canonical_from_doc(doc), None
-    except click.ClickException:
-        pass  # fall through to stale-bookmark handling
 
-    # Step 2 / 3: stale-bookmark fallback against existing starred list
     try:
         starred = get_starred_docs()
     except PreferencesError as exc:
         return None, str(exc)
 
-    if _looks_like_acid_only(norm):
-        suffix = f"-{norm}"
-        matches = [s for s in starred if s.endswith(suffix)]
-        if len(matches) == 1:
-            return matches[0], None
-        if len(matches) > 1:
-            return None, (
-                f"ambiguous: starred entries match ACID {norm} — "
-                f"{', '.join(matches)}. Use a full PREFIX-ACID."
-            )
-        # zero matches → fall through to literal "not starred" path
+    if "-" in norm:
+        # PREFIX-ACID form: literal match against starred list.
+        # No live resolution needed; if not in starred, report "not starred".
         return norm, None
 
-    # PREFIX-ACID form, doc not currently resolvable: literal upper-prefix match
-    return norm, None
+    # ACID-only form
+    suffix = f"-{norm}"
+    matches = [s for s in starred if s.endswith(suffix)]
+    if len(matches) == 1:
+        return matches[0], None
+    if len(matches) > 1:
+        return None, (
+            f"ambiguous: starred entries match ACID {norm} — "
+            f"{', '.join(matches)}. Use a full PREFIX-ACID."
+        )
+
+    # Zero starred matches; try live resolution for a friendlier message.
+    try:
+        docs = scan_or_fail(ctx)
+        doc = find_or_fail(docs, norm)
+        return _canonical_from_doc(doc), None
+    except click.ClickException:
+        return norm, None
 
 
 @click.command("unstar")
