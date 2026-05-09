@@ -73,8 +73,24 @@ class TestBuildNav:
         nav = build_nav(files)
         sop_group = nav[1]["SOP"]
         labels = [list(e.keys())[0] for e in sop_group]
-        assert labels[0].startswith("SOP-1000")
-        assert labels[1].startswith("SOP-1500")
+        assert labels[0].startswith("COR-1000")
+        assert labels[1].startswith("COR-1500")
+
+    def test_label_uses_prefix_from_filename_not_type_from_h1(
+        self, tmp_path: Path
+    ) -> None:
+        """Per FXA-2124: nav label uses the canonical PREFIX-ACID identifier
+        (e.g. ``COR-1500``) — not the H1's TYPE-ACID (e.g. ``SOP-1500``).
+        Section grouping still uses TYPE."""
+        files = [
+            _make_cor_file(tmp_path, "COR-1500-SOP-TDD.md", "SOP-1500: TDD"),
+            _make_cor_file(tmp_path, "COR-0000-REF-Index.md", "REF-0000: Index"),
+        ]
+        nav = build_nav(files)
+        ref_label = list(nav[1]["REF"][0].keys())[0]
+        sop_label = list(nav[2]["SOP"][0].keys())[0]
+        assert ref_label == "COR-0000: Index"
+        assert sop_label == "COR-1500: TDD"
 
     def test_empty_list(self) -> None:
         nav = build_nav([])

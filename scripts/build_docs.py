@@ -20,6 +20,9 @@ MKDOCS_YML = ROOT / "mkdocs.yml"
 
 # H1 pattern: # TYPE-ACID: Title
 H1_RE = re.compile(r"^#\s+(\S+)-(\d+):\s+(.+)$")
+# Filename pattern: PREFIX-ACID-TYPE-Title.md (PREFIX is the project identifier
+# used by `af read`; TYPE is the document type/role used for nav grouping).
+FILENAME_PREFIX_RE = re.compile(r"^([A-Z]+)-(\d+)-")
 
 
 def parse_h1(path: Path) -> tuple[str, int, str] | None:
@@ -65,14 +68,24 @@ def create_index() -> None:
 
 
 def build_nav(copied_files: list[Path]) -> list[dict]:
-    """Build nav structure grouped by document type, sorted by ACID."""
+    """Build nav structure grouped by document type, sorted by ACID.
+
+    Per-page label uses the canonical PREFIX-ACID identifier (e.g.
+    ``COR-1500: TDD Development Workflow``) — the same form ``af read``
+    accepts. The PREFIX comes from the filename, not from the H1 (the
+    H1 carries TYPE, not PREFIX, by alfred convention).
+
+    Section grouping still uses TYPE (REF / SOP / ADR / etc.).
+    """
     groups: dict[str, list[tuple[int, str, str]]] = defaultdict(list)
 
     for path in copied_files:
         parsed = parse_h1(path)
         if parsed:
             doc_type, acid, title = parsed
-            label = f"{doc_type}-{acid:04d}: {title}"
+            m = FILENAME_PREFIX_RE.match(path.name)
+            prefix = m.group(1) if m else doc_type
+            label = f"{prefix}-{acid:04d}: {title}"
             groups[doc_type].append((acid, label, path.name))
 
     nav: list[dict] = [{"Home": "index.md"}]

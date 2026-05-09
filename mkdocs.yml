@@ -19,49 +19,74 @@ markdown_extensions:
 nav:
   - Home: index.md
   - REF:
-      - 'REF-0000: Document Index': COR-0000-REF-Document-Index.md
-      - 'REF-0001: Glossary': COR-0001-REF-Glossary.md
-      - 'REF-0002: Document Format Contract': COR-0002-REF-Document-Format-Contract.md
-      - 'REF-1504: Diagnose Phase Gates': COR-1504-REF-Diagnose-Phase-Gates.md
+      - 'COR-0000: Document Index': COR-0000-REF-Document-Index.md
+      - 'COR-0001: Glossary': COR-0001-REF-Glossary.md
+      - 'COR-0002: Document Format Contract': COR-0002-REF-Document-Format-Contract.md
+      - 'COR-1204: CTX Format': COR-1204-REF-CTX-Format.md
+      - 'COR-1205: Agent Activity Log Format': COR-1205-REF-Agent-Activity-Log-Format.md
+      - 'COR-1504: Diagnose Phase Gates': COR-1504-REF-Diagnose-Phase-Gates.md
+      - 'COR-1622: Multi-Agent Loop Project Configuration': COR-1622-REF-Multi-Agent-Loop-Project-Configuration.md
+      - 'COR-1705: Code Review Classification System': COR-1705-REF-Code-Review-Classification-System.md
+      - 'COR-1800: Evolution Philosophy': COR-1800-REF-Evolution-Philosophy.md
   - SOP:
-      - 'SOP-1000: Create SOP': COR-1000-SOP-Create-SOP.md
-      - 'SOP-1001: Create Document': COR-1001-SOP-Create-Document.md
-      - 'SOP-1002: Read Document': COR-1002-SOP-Read-Document.md
-      - 'SOP-1004: Create Routing Document': COR-1004-SOP-Create-Routing-Document.md
-      - 'SOP-1100: Create Decision Record': COR-1100-SOP-Create-Decision-Record.md
-      - 'SOP-1101: Submit Change Request': COR-1101-SOP-Submit-Change-Request.md
-      - 'SOP-1102: Create Proposal': COR-1102-SOP-Create-Proposal.md
-      - 'SOP-1103: Workflow Routing': COR-1103-SOP-Workflow-Routing.md
-      - 'SOP-1200: Session Retrospective': COR-1200-SOP-Session-Retrospective.md
-      - 'SOP-1201: Discussion Tracking': COR-1201-SOP-Discussion-Tracking.md
-      - 'SOP-1300: Update Document': COR-1300-SOP-Update-Document.md
-      - 'SOP-1301: Deprecate Document': COR-1301-SOP-Deprecate-Document.md
-      - 'SOP-1302: Maintain Document Index': COR-1302-SOP-Maintain-Document-Index.md
-      - 'SOP-1400: Atomic SOP Principle': COR-1400-SOP-Atomic-SOP-Principle.md
-      - 'SOP-1401: Documentation Language Policy': COR-1401-SOP-Documentation-Language-Policy.md
-      - 'SOP-1402: Declare Active Process': COR-1402-SOP-Declare-Active-Process.md
-      - 'SOP-1403: Interactive Question Principle': COR-1403-SOP-Interactive-Question-Principle.md
-      - 'SOP-1404: Interactive Question — Claude Code Implementation': COR-1404-SOP-Interactive-Question-Claude-Code.md
-      - 'SOP-1405: Interactive Question — GitHub Copilot Implementation': COR-1405-SOP-Interactive-Question-GitHub-Copilot.md
-      - 'SOP-1500: TDD Development Workflow': COR-1500-SOP-TDD-Development-Workflow.md
-      - 'SOP-1501: Create GitHub Issue': COR-1501-SOP-Create-GitHub-Issue.md
-      - 'SOP-1502: Git Branch Naming': COR-1502-SOP-Git-Branch-Naming.md
-      - 'SOP-1503: Diagnose Feedback Loop': COR-1503-SOP-Diagnose-Feedback-Loop.md
-      - 'SOP-1600: Workflow — Direct Review Loop': COR-1600-SOP-Workflow-Direct-Review-Loop.md
-      - 'SOP-1601: Workflow — Leader Mediated Review Loop': COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop.md
-      - 'SOP-1602: Workflow — Multi Model Parallel Review': COR-1602-SOP-Workflow-Multi-Model-Parallel-Review.md
-      - 'SOP-1603: Workflow — Parallel Module Implementation': COR-1603-SOP-Workflow-Parallel-Module-Implementation.md
-      - 'SOP-1604: Workflow — Competitive Parallel Exploration': COR-1604-SOP-Workflow-Competitive-Parallel-Exploration.md
-      - 'SOP-1605: Workflow — Sequential Pipeline': COR-1605-SOP-Workflow-Sequential-Pipeline.md
-      - 'SOP-1606: Workflow — Selection': COR-1606-SOP-Workflow-Selection.md
-      - 'SOP-1607: Workflow Routing': COR-1607-SOP-Workflow-Routing.md
-      - 'SOP-1608: PRP Review Scoring': COR-1608-SOP-PRP-Review-Scoring.md
-      - 'SOP-1609: CHG Review Scoring': COR-1609-SOP-CHG-Review-Scoring.md
-      - 'SOP-1610: Code Review Scoring': COR-1610-SOP-Code-Review-Scoring.md
-      - 'SOP-1611: Reviewer Calibration Guide': COR-1611-SOP-Reviewer-Calibration-Guide.md
-      - 'SOP-1612: Respond To PR Review Comments': COR-1612-SOP-Respond-To-PR-Review-Comments.md
-      - 'SOP-1613: Council Review': COR-1613-SOP-Council-Review.md
-      - 'SOP-1700: Initialize Project': COR-1700-SOP-Initialize-Project.md
-      - 'SOP-1701: Archive Project': COR-1701-SOP-Archive-Project.md
-      - 'SOP-1702: Sync Project': COR-1702-SOP-Sync-Project.md
-      - 'SOP-1703: Fork Project': COR-1703-SOP-Fork-Project.md
+      - 'COR-1000: Create SOP': COR-1000-SOP-Create-SOP.md
+      - 'COR-1001: Create Document': COR-1001-SOP-Create-Document.md
+      - 'COR-1002: Read Document': COR-1002-SOP-Read-Document.md
+      - 'COR-1004: Create Routing Document': COR-1004-SOP-Create-Routing-Document.md
+      - 'COR-1100: Create Decision Record': COR-1100-SOP-Create-Decision-Record.md
+      - 'COR-1101: Submit Change Request': COR-1101-SOP-Submit-Change-Request.md
+      - 'COR-1102: Create Proposal': COR-1102-SOP-Create-Proposal.md
+      - 'COR-1103: Workflow Routing': COR-1103-SOP-Workflow-Routing.md
+      - 'COR-1104: CHG Sizing Decision Tree': COR-1104-SOP-CHG-Sizing-Decision-Tree.md
+      - 'COR-1200: Session Retrospective': COR-1200-SOP-Session-Retrospective.md
+      - 'COR-1201: Discussion Tracking': COR-1201-SOP-Discussion-Tracking.md
+      - 'COR-1202: Compose Session Plan': COR-1202-SOP-Compose-Session-Plan.md
+      - 'COR-1203: Pre-Task Alignment': COR-1203-SOP-Pre-Task-Alignment.md
+      - 'COR-1206: Emit Agent Activity': COR-1206-SOP-Emit-Agent-Activity.md
+      - 'COR-1207: Zoom Out': COR-1207-SOP-Zoom-Out.md
+      - 'COR-1208: Session Startup Sanity Check': COR-1208-SOP-Session-Startup-Sanity-Check.md
+      - 'COR-1300: Update Document': COR-1300-SOP-Update-Document.md
+      - 'COR-1301: Deprecate Document': COR-1301-SOP-Deprecate-Document.md
+      - 'COR-1302: Maintain Document Index': COR-1302-SOP-Maintain-Document-Index.md
+      - 'COR-1400: Atomic SOP Principle': COR-1400-SOP-Atomic-SOP-Principle.md
+      - 'COR-1401: Documentation Language Policy': COR-1401-SOP-Documentation-Language-Policy.md
+      - 'COR-1402: Declare Active Process': COR-1402-SOP-Declare-Active-Process.md
+      - 'COR-1403: Interactive Question Principle': COR-1403-SOP-Interactive-Question-Principle.md
+      - 'COR-1404: Interactive Question — Claude Code Implementation': COR-1404-SOP-Interactive-Question-Claude-Code.md
+      - 'COR-1405: Interactive Question — GitHub Copilot Implementation': COR-1405-SOP-Interactive-Question-GitHub-Copilot.md
+      - 'COR-1500: TDD Development Workflow': COR-1500-SOP-TDD-Development-Workflow.md
+      - 'COR-1501: Create GitHub Issue': COR-1501-SOP-Create-GitHub-Issue.md
+      - 'COR-1502: Git Branch Naming': COR-1502-SOP-Git-Branch-Naming.md
+      - 'COR-1503: Diagnose Feedback Loop': COR-1503-SOP-Diagnose-Feedback-Loop.md
+      - 'COR-1505: Branch and Identity Hygiene': COR-1505-SOP-Branch-and-Identity-Hygiene.md
+      - 'COR-1600: Workflow — Direct Review Loop': COR-1600-SOP-Workflow-Direct-Review-Loop.md
+      - 'COR-1601: Workflow — Leader Mediated Review Loop': COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop.md
+      - 'COR-1602: Workflow — Multi Model Parallel Review': COR-1602-SOP-Workflow-Multi-Model-Parallel-Review.md
+      - 'COR-1603: Workflow — Parallel Module Implementation': COR-1603-SOP-Workflow-Parallel-Module-Implementation.md
+      - 'COR-1604: Workflow — Competitive Parallel Exploration': COR-1604-SOP-Workflow-Competitive-Parallel-Exploration.md
+      - 'COR-1605: Workflow — Sequential Pipeline': COR-1605-SOP-Workflow-Sequential-Pipeline.md
+      - 'COR-1606: Workflow — Selection': COR-1606-SOP-Workflow-Selection.md
+      - 'COR-1607: Workflow Routing': COR-1607-SOP-Workflow-Routing.md
+      - 'COR-1608: PRP Review Scoring': COR-1608-SOP-PRP-Review-Scoring.md
+      - 'COR-1609: CHG Review Scoring': COR-1609-SOP-CHG-Review-Scoring.md
+      - 'COR-1610: Code Review Scoring': COR-1610-SOP-Code-Review-Scoring.md
+      - 'COR-1611: Reviewer Calibration Guide': COR-1611-SOP-Reviewer-Calibration-Guide.md
+      - 'COR-1612: Respond To PR Review Comments': COR-1612-SOP-Respond-To-PR-Review-Comments.md
+      - 'COR-1613: Council Review': COR-1613-SOP-Council-Review.md
+      - 'COR-1614: Multi Phase Execution Contract': COR-1614-SOP-Multi-Phase-Execution-Contract.md
+      - 'COR-1615: GitHub App PR Review Bot Loop': COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md
+      - 'COR-1616: Contract-First Delivery Workflow': COR-1616-SOP-Contract-First-Delivery-Workflow.md
+      - 'COR-1617: Multi-Agent Workflow Loop': COR-1617-SOP-Multi-Agent-Workflow-Loop.md
+      - 'COR-1618: Out-of-Band Consent Auto-Pick': COR-1618-SOP-Out-of-Band-Consent-Auto-Pick.md
+      - 'COR-1619: Orchestrator vs Worker Dispatch': COR-1619-SOP-Orchestrator-vs-Worker-Dispatch.md
+      - 'COR-1620: Self-Pacing Loop Primitives': COR-1620-SOP-Self-Pacing-Loop-Primitives.md
+      - 'COR-1621: Multi-Reviewer Triage and Severity': COR-1621-SOP-Multi-Reviewer-Triage-and-Severity.md
+      - 'COR-1700: Initialize Project': COR-1700-SOP-Initialize-Project.md
+      - 'COR-1701: Archive Project': COR-1701-SOP-Archive-Project.md
+      - 'COR-1702: Sync Project': COR-1702-SOP-Sync-Project.md
+      - 'COR-1703: Fork Project': COR-1703-SOP-Fork-Project.md
+      - 'COR-1706: Code Review — Structural Checks': COR-1706-SOP-Code-Review-Structural-Checks.md
+      - 'COR-1707: Code Review — Cross-Cutting Concerns': COR-1707-SOP-Code-Review-Cross-Cutting-Concerns.md
+      - 'COR-1708: Code Review — Domain-Specific Checks': COR-1708-SOP-Code-Review-Domain-Specific-Checks.md
+      - 'COR-1709: Code Review — AI-Assisted Code + Quick Reference': COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference.md
+      - 'COR-1801: Pattern Promotion': COR-1801-SOP-Pattern-Promotion.md
