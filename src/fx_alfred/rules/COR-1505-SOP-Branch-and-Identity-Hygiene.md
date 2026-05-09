@@ -57,7 +57,7 @@ The `--porcelain` flag is non-negotiable. Earlier wordings used `-uno` (tracked-
 ### 2. Branch create (create-only)
 
 ```bash
-git switch -c <type>/<issue>-<slug> origin/main || {
+git switch -c <type>/<issue-number>-<short-description> origin/main || {
     # Lowercase -c is create-only and FAILS if the branch already exists.
     # This protects against silently overwriting unpushed work from an
     # aborted earlier attempt or a parallel session. Uppercase -C
@@ -113,10 +113,10 @@ Parameterized invocation (substitute your project's `<gh-write-identity>` and `<
 ```bash
 git fetch origin main
 git status --porcelain                                    # (empty)
-git switch -c <type>/<issue>-<slug> origin/main           # (created)
+git switch -c <type>/<issue-number>-<short-description> origin/main           # (created)
 gh auth status                                            # must show <gh-write-identity> active
 # ... commits ...
-git push <fork-remote> <type>/<issue>-<slug>
+git push <fork-remote> <type>/<issue-number>-<short-description>
 ```
 
 ---
@@ -127,3 +127,4 @@ git push <fork-remote> <type>/<issue>-<slug>
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted from TRN-1008 §2 for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
 | 2026-05-09 | R2: §Examples replaced literal `ryosaeba1985` with parameterized `<gh-write-identity>` per glm R1 P1 finding (de-Babs leak) | Claude Opus 4.7 |
+| 2026-05-09 | R3: §Examples now uses `<issue-number>`/`<short-description>` to match §Steps + COR-1502 canonical names (was `<issue>`/`<slug>`); deepseek R2 advisory | Claude Opus 4.7 |
