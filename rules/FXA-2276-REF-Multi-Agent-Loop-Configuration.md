@@ -77,17 +77,19 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 
 ## Invocation
 
-Alfred-specific shorthand the operator can type in chat to start the COR-1617 loop with this REF's parameters. All variants are User-driven trigger #1 per COR-1617 §1 (gate-bypass per COR-1618 §Bypass — live chat input subsumes consent + intake-quality signals).
+Alfred-specific shorthand the operator types in chat to start the COR-1617 loop with this REF's parameters. The **initial** chat phrase is User-driven trigger #1 per COR-1617 §1 — gate-bypassed per COR-1618 §Normative Bypass Clause (live chat input subsumes consent + intake-quality signals for that one pick). **Subsequent picks** under looping mode (`follow FXA-2276` queue-drain) are Continuation or Loop-driven triggers per COR-1617 §1 — they re-apply COR-1618 `verify_consent_eligibility` in full.
 
 | Phrase the operator types | Behavior |
 |---|---|
-| `follow FXA-2276` | Start COR-1617 in **continuation mode** with these parameters: pick the lowest-rank-ID rocket-eligible open issue per COR-1618 + the COR-1617 §1 scope-rank tree, run phases 2–10 on it, on merge re-enter phase 1 (per §11 wake) and pick the next eligible issue. Idle-with-retry per §1 when the queue is empty. |
-| `follow FXA-2276 once` | Same as above but **stop after phase 10** of the first pick — no §11 wake, no autonomous continuation. Useful when the operator wants one PR shipped, not a queue drain. |
-| `follow FXA-2276 for #N` | **User-directed pick of issue #N** — gate-bypass per COR-1618 §Bypass clause (live chat input is consent), runs COR-1617 phases 2–10 on the named issue regardless of its rocket-gate state. Single-issue, no autonomous continuation. |
+| `follow FXA-2276` | Start COR-1617 in **looping mode**: the initial pick (live-chat-bypass) is the lowest-numbered RANK matching the COR-1617 §1 scope-rank tree (RANK 1 deferred tech-debt → RANK 2 unblocked → RANK 3 single-file CHG → RANK 4 multi-surface CHG); on a tie within the same rank, pick the smaller LoC estimate per COR-1617 §1. Run phases 2–10 on that pick. On merge, re-enter phase 1 via §11 wake and pick the next candidate **gated by full COR-1618 verify_consent_eligibility** (no bypass beyond the first pick). Idle-with-retry per §1 when the queue is empty. |
+| `follow FXA-2276 once` | Same initial-pick rule (live-chat-bypass; lowest-numbered RANK + LoC tie-break) but **stop after phase 10** of that one pick — no §11 wake, no autonomous continuation. |
+| `follow FXA-2276 for #N` | **User-directed pick of issue #N** — gate-bypassed per COR-1618 §Normative Bypass Clause (live chat input is consent), runs COR-1617 phases 2–10 on the named issue regardless of its rocket-gate state. Single-issue, no autonomous continuation. The named issue overrides the scope-rank tree. |
 
-The phrases extend COR-1617 §1's User-driven trigger row's phrase list (`"pick next issue" / "do <PREFIX>-<NNNN>" / "auto-pick"`) with alfred's own shorthand. They do not change the SOP's semantics — only add a project-specific synonym.
+**Composition rule**: the three variants are **mutually exclusive** — `follow FXA-2276 once for #N` and other combinations are not defined. Operator must pick exactly one variant per invocation. If a combined phrase appears, the orchestrator surfaces the ambiguity to the operator and does not pick.
 
-When `follow FXA-2276` is in continuation mode and the queue is empty, the orchestrator arms idle-with-retry per COR-1620 (1800 s cadence, capped at `<idle-cap>` = 12 wakes ≈ 6 hours). Operator can stop early by typing `stop` / `pause` / `hold` per COR-1620 §Primitive 2 (stop-marker).
+The phrases extend COR-1617 §1's User-driven trigger row's phrase list (`"pick next issue" / "do <PREFIX>-<NNNN>" / "auto-pick"`) with alfred's own shorthand. They do not change the SOP's semantics — only add project-specific synonyms with clearer parameter-set binding.
+
+When `follow FXA-2276` is in looping mode and the queue is empty, the orchestrator arms idle-with-retry per COR-1620 (1800 s cadence, capped at `<idle-cap>` = 12 wakes ≈ 6 hours). The operator can stop early by typing `stop` / `pause` / `hold` per COR-1620 §Primitive 2; that primitive places a **durable filesystem signal** at `$(git rev-parse --git-path trinity-loop-stopped)` which suppresses every subsequent wake until removed (the marker survives session restarts; resumption requires explicit operator removal or a fresh `follow FXA-2276` invocation).
 
 ---
 
@@ -97,7 +99,7 @@ Alfred today adopts a subset of COR-1617's 11 phases. The values above are fille
 
 | Phase | Today | Notes |
 |---|---|---|
-| 1 — Auto-pick | ❌ user-initiated | alfred sessions are user-driven; the rocket-gate parameters are filled in for the day alfred runs autonomous picks (e.g. via `/loop` cron). Until then, all picks bypass per COR-1618 §Normative Bypass Clause. |
+| 1 — Auto-pick | ⚠ conditional | **Default sessions** (no `follow FXA-2276` invocation): user-initiated; the initial pick is bypassed per COR-1618 §Normative Bypass Clause. **Looping mode** (under `follow FXA-2276` queue-drain — see §Invocation): Phase 1 runs automatically post-§11 wake with full COR-1618 verify_consent_eligibility on every continuation candidate; the initial chat phrase remains user-driven and gate-bypassed for the *first* pick only. |
 | 2 — Branch & identity | ✓ adopted | COR-1505 followed for every PR (PR #117 R1: branch base + `gh auth status`). |
 | 3 — Plan | ✓ adopted | COR-1104 sizing applied; CHGs drafted for substantive changes (FXA-2275, FXA-2277). |
 | 4 — Plan-review | ✓ adopted | trinity panel via `Skill(trinity)`; PR #117 R1 panel scored glm 9.40 / deepseek 9.00 against doc-only weights. |
@@ -107,9 +109,9 @@ Alfred today adopts a subset of COR-1617's 11 phases. The values above are fille
 | 8 — Iterate (CI + bot + code-review) | ✓ adopted | Codex bot reviews every push; PR #117 ran 12 R-rounds. CI checks via GitHub Actions. |
 | 9 — Triage | ✓ adopted | COR-1621 severity vocab (P0–P3) applied; convergence rule + hallucinated-finding rejection used in PR #117. |
 | 10 — Handoff + merge-watch | ⚠ partial | "mergeable" declaration is manual operator-to-operator; merge-watch wakeup arming not yet automated. |
-| 11 — Loop restart | ❌ not adopted | sessions end at PR-merged; no automatic next-pick wake. Available for adoption when alfred runs `/loop` mode. |
+| 11 — Loop restart | ⚠ conditional | **Default sessions**: not adopted; sessions end at PR-merged; no automatic next-pick wake. **Looping mode** (under `follow FXA-2276` queue-drain — see §Invocation): adopted; post-merge §11 wake (60 s) re-enters phase 1 to scan for the next eligible candidate. Available for adoption regardless of `/loop` cron. |
 
-Legend: ✓ = automated/SOP-followed today; ⚠ = adopted with manual elements; ❌ = aspirational, parameters filled but not run.
+Legend: ✓ = automated/SOP-followed today; ⚠ = adopted with manual elements OR conditional on a specific invocation mode (e.g. `follow FXA-2276` looping); ❌ = aspirational, parameters filled but not run.
 
 ---
 
@@ -150,3 +152,4 @@ These project-specific deviations are intentional and not gaps in the SOP:
 | 2026-05-09 | Initial version — alfred's first instantiation of COR-1622, filed alongside FXA-2277 (which closes the schema gaps surfaced during this draft) | Claude Opus 4.7 |
 | 2026-05-09 | R2: codex bot R1 P2 — `<weights-doc>` map keys (`code`, `PRP`) were not in the `<spec-format>` enum (`CHG | ADR | RFC | inline-PR-body`). Replaced with valid enum keys per COR-1617 §Phase 4 mapping. Added "Known limitation" section documenting the underlying artifact-type vs `<spec-format>` conflation as a deferred follow-up. | Claude Opus 4.7 |
 | 2026-05-09 | Added §Invocation section documenting alfred-specific shorthand phrases (`follow FXA-2276`, `follow FXA-2276 once`, `follow FXA-2276 for #N`) that extend COR-1617 §1 User-driven trigger phrase list. Per-project synonym; no PKG SOP change. | Claude Opus 4.7 |
+| 2026-05-09 | R3 (PR #120): trinity panel + codex bot R1 findings folded. (a) `lowest-rank-ID` (deepseek B1 + glm advisory convergent) → rewrote to match COR-1617 §1 actual rule (lowest-numbered RANK + LoC tie-break). (b) composition undefined (deepseek B2) → declared three variants mutually exclusive; combined phrases surface ambiguity to operator. (c) bypass scoping (bot R1#1) → bypass clause now scoped to the *initial* live-chat trigger only; subsequent looping-mode picks re-apply COR-1618 in full. (d) §Adoption Status (bot R1#2) → Phase 1 + Phase 11 moved from ❌ to ⚠ conditional, gated to looping mode. (e) `continuation mode` → `looping mode` (glm advisory; avoids overload with COR-1617 §1 "Continuation" trigger pattern name). (f) `§Bypass` → `§Normative Bypass Clause` (deepseek A1 typo ×3). (g) stop-marker durability noted explicitly per COR-1620 §Primitive 2 (deepseek A2). | Claude Opus 4.7 |
