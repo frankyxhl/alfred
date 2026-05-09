@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.15.0 (2026-05-10)
+
+Docs-shipped-as-PKG-SOPs release. No CLI / behavior changes; SOP corrections and refinements.
+
+### Changed
+
+- **COR-1501 Create GitHub Issue** — aligned with current alfred/iterwheel conventions:
+  `Applies to:` scoped to repos using iterwheel intake bots; label taxonomy completed with
+  `stack-area-infra` and `stack-area-unknown` (9 types, 9 areas); Step 4 edit command uses
+  `--body-file`; portability note added for non-alfred repos. (alfred#127, PRs #131)
+- **COR-1617 §Phase 10/11** — loop advances when PR becomes mergeable
+  (`mergeStateStatus == "CLEAN"`) instead of waiting for merge commit; reduces loop
+  latency by ~60 s per iteration. (FXA-2280, PR #129)
+- **COR-1617 §Phase 7** — closing-token prescription tightened: bare `Closes #<N>`
+  required; verify via `gh pr view <N> --json closingIssuesReferences` before merge;
+  phrasings with intervening words silently fail GitHub's auto-linker. (PR #132)
+
+### Fixed
+
+- Nav labels in PKG SOPs now use canonical `PREFIX-ACID` format instead of `TYPE-ACID`. (PR #125)
+
 ## v1.14.0 (2026-05-09)
 
 Docs-shipped-as-PKG-SOPs release. No CLI / behavior changes; new bundled COR documents.
