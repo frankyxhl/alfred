@@ -128,7 +128,7 @@ Apply COR-1104 to decide skip / inline / full CHG. For full CHGs, draft under `r
 Dispatch `<panel-providers>` in parallel via the project's review-dispatch mechanism. Compose COR-1602 with these specifics:
 
 - **Weights table**: pass `<weights-doc>` verbatim in every prompt. Do NOT substitute another project's weights.
-- **Spec format**: `<spec-format>` selects review rubric — `CHG` → COR-1609; `code` → COR-1610; `PRP` → COR-1608.
+- **Spec format**: `<spec-format>` selects the review rubric. The four enum values map as follows: `CHG` → COR-1609; `ADR` → COR-1609 (decision-record-shaped, same scoring surface); `RFC` → COR-1608 (proposal-shaped); `inline-PR-body` → use the rubric matching the artifact the inline spec describes (CHG-shaped → COR-1609; PRP-shaped → COR-1608). Code-review (phase 8) uses COR-1610 regardless of `<spec-format>` — that rubric is selected by review-phase, not by spec form.
 - **Gate**: `decision == PASS AND weighted_score ≥ <panel-pass-threshold> AND blocking == []` for **every viable reviewer**. Mean is informational only.
 - **Viability**: at least 3 viable verdicts required. With < 3, abort and surface the outage. See §Failure Modes.
 
@@ -285,3 +285,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-09 | Initial version — umbrella SOP composing COR-1602 + COR-1615 + COR-1618/1619/1620/1621 + COR-1505 + COR-1104; generalized from trinity TRN-1008 (alfred#115) | Claude Opus 4.7 |
+| 2026-05-09 | R4: §Phase 4 spec-format mapping rewritten — was `CHG/code/PRP` (different namespace from `<spec-format>` enum); now maps the four enum values (CHG, ADR, RFC, inline-PR-body) to COR-1608/1609 explicitly + clarifies that COR-1610 is selected by code-review-phase, not by spec form. Codex bot R3 P2 finding. | Claude Opus 4.7 |

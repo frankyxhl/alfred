@@ -58,7 +58,7 @@ flowchart TD
     E -- Yes --> F[INLINE CHG<br/>embedded in PR body]
     E -- No --> C
     F --> P{Inline-CHG ≥30 LoC<br/>OR contract change?}
-    P -- Yes --> H[Plan-review<br/>per COR-1602]
+    P -- Yes --> C
     P -- No --> K[Status: Approved<br/>→ implement]
     C --> G[Status: Proposed]
     G --> H
@@ -124,3 +124,4 @@ When in doubt, write the FULL CHG. Five minutes drafting is cheaper than a panel
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted from TRN-1008 §3 for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
+| 2026-05-09 | R4: tree node `P -- Yes` redirected to FULL-CHG creation (`C`) instead of straight to plan-review. Previous edge contradicted §Guard Rails ("never run plan-review against an oversized inline-CHG; upgrade to FULL first"). Codex bot R3 P2 finding. | Claude Opus 4.7 |
