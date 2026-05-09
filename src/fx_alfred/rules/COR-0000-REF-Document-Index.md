@@ -1,8 +1,8 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-07
-**Last reviewed:** 2026-05-07
+**Last updated:** 2026-05-09
+**Last reviewed:** 2026-05-09
 **Status:** Active
 
 ---
@@ -23,6 +23,7 @@ A reference index of all documents in the COR system.
 | 1100 | SOP | Create Decision Record |
 | 1101 | SOP | Submit Change Request |
 | 1102 | SOP | Create Proposal |
+| 1104 | SOP | CHG Sizing Decision Tree |
 | 1200 | SOP | Session Retrospective |
 | 1201 | SOP | Discussion Tracking |
 | 1202 | SOP | Compose Session Plan |
@@ -46,6 +47,7 @@ A reference index of all documents in the COR system.
 | 1502 | SOP | Git Branch Naming |
 | 1503 | SOP | Diagnose Feedback Loop |
 | 1504 | REF | Diagnose Phase Gates |
+| 1505 | SOP | Branch and Identity Hygiene |
 | 1600 | SOP | Workflow — Direct Review Loop |
 | 1601 | SOP | Workflow — Leader Mediated Review Loop |
 | 1602 | SOP | Workflow — Multi Model Parallel Review |
@@ -63,6 +65,12 @@ A reference index of all documents in the COR system.
 | 1614 | SOP | Multi Phase Execution Contract |
 | 1615 | SOP | GitHub App PR Review Bot Loop |
 | 1616 | SOP | Contract-First Delivery Workflow |
+| 1617 | SOP | Multi-Agent Workflow Loop |
+| 1618 | SOP | Out-of-Band Consent Auto-Pick |
+| 1619 | SOP | Orchestrator vs Worker Dispatch |
+| 1620 | SOP | Self-Pacing Loop Primitives |
+| 1621 | SOP | Multi-Reviewer Triage and Severity |
+| 1622 | REF | Multi-Agent Loop Project Configuration |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
@@ -90,3 +98,4 @@ A reference index of all documents in the COR system.
 | 2026-05-06 | Added COR-1705–1709 (Code Review Checklists per FXA-2240). | Frank Xu |
 | 2026-05-06 | Added COR-1614 (Multi Phase Execution Contract). | Codex |
 | 2026-05-07 | Added COR-1616 (Contract-First Delivery Workflow — promoted from BAB-1503 per issue #106). | Claude Code |
+| 2026-05-09 | Added COR-1617 cluster (1617/1618/1619/1620/1621/1622) + COR-1505 + COR-1104 — promoted from trinity TRN-1008 per alfred#115. | Claude Opus 4.7 |
