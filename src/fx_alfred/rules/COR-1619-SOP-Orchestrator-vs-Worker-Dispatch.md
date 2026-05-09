@@ -52,7 +52,7 @@ flowchart TD
     H0 -- Yes --> W4[WORKER]
     H0 -- No --> H{Single doc file, ≥3 sections changed?}
     H -- Yes --> W4
-    H -- No --> C{≤ 2 lines in one function?}
+    H -- No --> C{"≤ &lt;worker-min-loc&gt; lines<br/>in one function?<br/>(default: 30)"}
     C -- Yes --> O2[ORCHESTRATOR<br/>direct edit]
     C -- No --> D{Signature change crossing call sites?}
     D -- Yes --> W1[WORKER]
@@ -65,7 +65,7 @@ flowchart TD
     G -- No --> O4[ORCHESTRATOR]
 ```
 
-The `<worker-min-loc>` parameter (default 30) sets the LoC threshold inside the "≤ 2 lines" branch — projects with different worker latency profiles tune this. The structural questions (signature crossing, multi-file, multi-section doc, test count) are not LoC-bounded.
+The `<worker-min-loc>` parameter (default 30) sets the LoC threshold for the single-function trivial-fix branch — at or below this line count, the orchestrator edits directly; above, dispatch to `<worker-agent>`. Projects with different worker latency profiles tune this value. The structural questions (signature crossing, multi-file, multi-section doc, test count) are NOT LoC-bounded — they dispatch to the worker regardless of `<worker-min-loc>`.
 
 ### Edge cases not in the tree
 
@@ -139,3 +139,4 @@ If any check fails, fix locally before push (or re-dispatch worker for substanti
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted from TRN-1008 §5 + §6 for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
+| 2026-05-09 | R2: tree node C parameterized as `≤ <worker-min-loc> lines` (was hardcoded `≤ 2 lines`); prose tightened to scope `<worker-min-loc>` to the single-function trivial-fix branch only — per deepseek R1 P1 (tree-vs-prose contradiction) + glm R1 advisory convergent | Claude Opus 4.7 |

@@ -108,15 +108,15 @@ When this SOP runs inside COR-1617, `<gh-write-identity>` comes from the project
 
 ## Examples
 
-Trinity-style invocation (with `<gh-write-identity>` = `ryosaeba1985`, `<fork-remote>` = `fork`):
+Parameterized invocation (substitute your project's `<gh-write-identity>` and `<fork-remote>` from its COR-1622 instantiation):
 
 ```bash
 git fetch origin main
 git status --porcelain                                    # (empty)
-git switch -c docs/115-cor-1617-cluster origin/main       # (created)
-gh auth status                                            # (ryosaeba1985 active)
+git switch -c <type>/<issue>-<slug> origin/main           # (created)
+gh auth status                                            # must show <gh-write-identity> active
 # ... commits ...
-git push fork docs/115-cor-1617-cluster
+git push <fork-remote> <type>/<issue>-<slug>
 ```
 
 ---
@@ -126,3 +126,4 @@ git push fork docs/115-cor-1617-cluster
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted from TRN-1008 §2 for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
+| 2026-05-09 | R2: §Examples replaced literal `ryosaeba1985` with parameterized `<gh-write-identity>` per glm R1 P1 finding (de-Babs leak) | Claude Opus 4.7 |
