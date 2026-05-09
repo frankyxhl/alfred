@@ -1,6 +1,6 @@
 # SOP-1501: Create GitHub Issue
 
-**Applies to:** All projects using the COR document system
+**Applies to:** Repos using the Iterwheel intake bots (`iterwheel-blueprint[bot]` for body intake, `iterwheel-stack[bot]` for `stack-*` label pairs). The procedure (template, CLI, verify) generalizes; the label tables below reflect alfred's labels and must be substituted for repos with a different label set.
 **Last updated:** 2026-05-10
 **Last reviewed:** 2026-05-10
 **Status:** Active
@@ -96,7 +96,9 @@ P2 — <one-line justification>
 
 ### 1. Determine issue type and area
 
-This repo uses paired `stack-type-*` + `stack-area-*` labels (the `iterwheel-stack[bot]` may auto-classify, but pre-applying the correct pair speeds intake). The pair replaces older single-label conventions like `sop` / `automation` / `bug` / `enhancement` / `docs` — do not use those.
+This repo (alfred) uses paired `stack-type-*` + `stack-area-*` labels (the `iterwheel-stack[bot]` may auto-classify, but pre-applying the correct pair speeds intake). The pair replaces older single-label conventions like `sop` / `automation` / `bug` / `enhancement` / `docs` — do not use those on alfred.
+
+If you are following this SOP from a non-alfred repo, run `gh label list --repo <owner>/<repo>` first to enumerate the actual labels there, and substitute the correct pair into Step 3's `--label` argument; the framework (`stack-type-*` + `stack-area-*` pair model, blueprint template, `[Type]:` title chip, `--repo` flag, `gh issue view` verify) is portable, but the specific label values below are not.
 
 **Type labels** (`stack-type-*` — pick exactly one):
 
