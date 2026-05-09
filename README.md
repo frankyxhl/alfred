@@ -21,7 +21,8 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
-- **NEW in v1.13.0** — Per-user document bookmarking: `af star <ID>`, `af unstar <ID>`, `af starred`. Bookmark any doc directly by ACID; persists in `~/.alfred/preferences.yaml`; documents are not modified.
+- **NEW in v1.14.0** — [Multi-Agent Workflow Loop (COR-1617 cluster)](src/fx_alfred/rules/COR-1617-SOP-Multi-Agent-Workflow-Loop.md) — umbrella SOP for consensus-driven multi-agent task execution with consent gates, worker dispatch, and loop primitives. Ships COR-1617/1618/1619/1620/1621/1622. Also: COR-1612 §Scoping bot reviews via PR body; COR-1615 pointer; new `.github/ISSUE_TEMPLATE/blueprint.md` for iterwheel intake.
+- **v1.13.0** — Per-user document bookmarking: `af star <ID>`, `af unstar <ID>`, `af starred`. Bookmark any doc directly by ACID; persists in `~/.alfred/preferences.yaml`; documents are not modified.
 - **v1.12.0** — [Contract-First Delivery Workflow (COR-1616)](src/fx_alfred/rules/COR-1616-SOP-Contract-First-Delivery-Workflow.md) — project-neutral reviewed-delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out), promoted from Babs `BAB-1503`. Also: pytest test-marker governance gate, skills-absorption round 5 (COR-1207, COR-1208, FXA-2248).
 - **v1.10.0** — Agent-editable helpers and skill documents: `af agent call/run`, `af skill list/read`, and `af plan --with-skills`
 - **v1.9.1** — [GitHub App PR Review Bot Loop (COR-1615)](src/fx_alfred/rules/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md) for Codex Connector / Copilot PR review loops; v1.9.0 added [Council Review (COR-1613)](src/fx_alfred/rules/COR-1613-SOP-Council-Review.md) and [Diagnose Feedback Loop (COR-1503)](src/fx_alfred/rules/COR-1503-SOP-Diagnose-Feedback-Loop.md)
@@ -354,6 +355,7 @@ graph TD
 | COR-1612 | Respond to PR review comments on GitHub |
 | COR-1615 | GitHub App PR Review Bot Loop — trigger/poll/match-head loop for Codex Connector, Copilot, and other GitHub App reviewers |
 | COR-1616 | Contract-First Delivery Workflow — project-neutral reviewed delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out) |
+| COR-1617 | Multi-Agent Workflow Loop — consensus-driven task execution with consent gates, worker dispatch, and structured loop primitives |
 | COR-1608 | PRP Review Scoring rubric |
 | COR-1611 | Reviewer Calibration Guide |
 | COR-1613 | Council Review — multi-reviewer decision mechanism (14 voting rules) |
