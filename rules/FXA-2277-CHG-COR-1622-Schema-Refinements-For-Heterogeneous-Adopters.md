@@ -40,7 +40,7 @@ Both surface honestly only when a non-trinity project tries to instantiate. Alfr
 **Behavioural impact**
 
 - Trinity's existing instantiation continues working unchanged: `<weights-doc>: TRN-1800` is still a valid scalar value; `<pr-push-remote>: fork` is the renamed equivalent of `<fork-remote>: fork`.
-- Alfred can now express its actual rubric routing: `<weights-doc>: {CHG → COR-1609, code → COR-1610, PRP → COR-1608}`.
+- Alfred can now express its actual rubric routing: `<weights-doc>: {CHG → COR-1609, ADR → COR-1609, RFC → COR-1608, inline-PR-body → COR-1609}` — using only valid `<spec-format>` enum keys; code review uses COR-1610 by phase per COR-1617 §Phase 4 (NOT a valid map key).
 - No code change anywhere — pure SOP doc edits.
 
 **Out of scope** (explicitly deferred)
@@ -68,3 +68,4 @@ Both surface honestly only when a non-trinity project tries to instantiate. Alfr
 | 2026-05-09 | Initial version — proposed during alfred FXA-2276 instantiation when schema gaps surfaced | Claude Opus 4.7 |
 | 2026-05-09 | R2: glm + deepseek panel R1 convergent advisory — Implementation Plan steps 4-5 phrased the COR-1617/COR-1505 edits inaccurately (Plan said COR-1505 §Steps was edited; actual edits in frontmatter Related, §Guard Rails, §Examples). Renumbered and rewrote steps 4-5 to match the change-history rows; reduced step count from 10 to 9 by merging adjacent COR-1617 sub-steps. No functional change. | Claude Opus 4.7 |
 | 2026-05-09 | R4 (PR #119): codex bot R3 P2 — §What item 1 example map still showed `{CHG → COR-1609, code → COR-1610, PRP → COR-1608}` (invalid keys). Third propagation site for the same fix: R2 fixed FXA-2276, R3 fixed COR-1622 schema-row, R4 now fixes the CHG itself. Replaced with valid `<spec-format>` enum keys + explicit note that `code` is NOT valid. | Claude Opus 4.7 |
+| 2026-05-09 | R5 (PR #119): codex bot R4 P2 — §Behavioral impact bullet ALSO had the stale `code/PRP` map example (fifth propagation site). My R4 commit-message claim "no more known stale sites" was wrong; the bot caught one more in the same CHG body. Fix applied here + comprehensive grep sweep (`grep -rn 'code: COR-1610\|code → COR-1610' rules/ src/'`) confirms no further occurrences. Pattern lesson: do the comprehensive sweep BEFORE pushing the first fix, not one site at a time. | Claude Opus 4.7 |
