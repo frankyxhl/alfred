@@ -71,6 +71,7 @@ Core invariant: a PR is not clear until the latest review result applies to the 
 - Do not publish private IPs, local filesystem paths, tokens, private hostnames, or host-specific secrets in PR bodies, comments, commits, or review packets.
 - For all actionable findings, hand off to COR-1612: classify comments, fix blockers and adopted advisories, rerun relevant validation, commit, push, and reply where needed.
 - After pushing fixes from COR-1612, return to this SOP Step 1 for the new `headRefOid`.
+- For long iteration loops on the same PR, see COR-1612 §Scoping bot reviews via PR body for an optional, bot-vendor-dependent PR-body scope-hint technique.
 
 ---
 
@@ -346,5 +347,6 @@ Use the GitHub App PR review bot loop:
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-06 | Added pre-trigger finalization gate to avoid wasting bot review passes on heads that already have known local follow-up commits pending. | Codex |
+| 2026-05-09 | Added one-line pointer in §Operator Checklist to COR-1612 §Scoping bot reviews via PR body for the optional PR-body scope-hint technique on long iteration loops. CHG-2279. | Claude Opus 4.7 |
 | 2026-05-05 | Added compact operator checklist and portable prompt for current-head review-loop non-negotiables. | Codex |
 | 2026-05-05 | Initial COR-level version promoted from BAB-1504, generalized from Codex-specific Babs wording to GitHub App PR review bots. | Codex |

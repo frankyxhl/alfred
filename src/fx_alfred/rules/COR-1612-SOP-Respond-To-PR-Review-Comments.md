@@ -496,6 +496,60 @@ This suggestion is incorrect — the INC template places Date before Severity (s
 - **Treating thread-ID disappearance as a bug rather than resolution:** if a thread ID present in fetch round N is absent in round N+1, the bot retracted the finding (it self-corrected) or GitHub auto-removed an invalid line anchor. Treat the disappearance as resolution. (See §Step 6 stop-cond #2.)
 - **Assuming a multi-model panel is available** when this SOP was written. The original draft hardcoded a specific tool (`/trinity` skill) — that was wrong. The "Reviewer Detector Classes" table now describes panel review as project-specific; check what tooling your project has before relying on a panel pass.
 
+## Scoping bot reviews via PR body (optional, GitHub App review bots only)
+
+When a pull request is large enough to attract many rounds of GitHub App review bot iteration, an optional `## Scope hints for automated reviewers` section in the PR body can declare which finding classes the author wants the bot to flag versus defer to a follow-up batch. Bots that read PR body context as a directive (e.g. `chatgpt-codex-connector[bot]`) appear to honor these hints empirically — see "Empirical evidence" below for the alfred PR observations.
+
+**Applies only to GitHub App review bots** (the §Reviewer Detector Classes "GitHub App review bot" row). The technique is **GitHub-platform-specific**, **bot-vendor-dependent**, and **optional**. Non-GitHub reviewer-detector classes — CI-side static analyzers, multi-model panel review tooling — do **not** apply: static analyzers don't read PR body text; multi-model panels read the artifact directly, not the PR body framing. Adopters in other projects must verify their installed bot honors PR-body directives empirically; behavior on bots other than `chatgpt-codex-connector[bot]` is currently untested.
+
+### Recommended PR-body template
+
+````markdown
+## Scope hints for automated reviewers
+
+**In-scope (please flag):**
+- P0/P1 — security, fail-OPEN gates, correctness regressions, cross-doc contract violations.
+- P2 — cross-doc / cross-recipe drift between sibling SOPs.
+- Anything that would break a real adopter following the recipe verbatim.
+
+**Out-of-scope (please skip or batch into a follow-up):**
+- P3 cosmetic — naming preferences, footnote/header polish.
+- Future-refactor suggestions.
+- Minor wording inconsistencies that don't change the contract.
+- "Could be more thorough" suggestions when the existing recipe meets its declared invariant.
+````
+
+Severity tags (P0/P1/P2/P3) match COR-1621 verbatim. The "in-scope / out-of-scope" framing maps to the actionable-vs-polish distinction already implicit in §Reviewer Detector Classes — no new vocabulary is introduced.
+
+### When most useful
+
+- A PR has been through 5+ rounds of GitHub App bot iteration and remaining items are tightening edge cases rather than catching defects.
+- A long-running CHG / SOP edit PR where the author wants the bot to keep diff-mode-scanning for cross-reference / contract-drift bugs but stop spending rounds on cosmetic polish that can land in a follow-up.
+
+### When NOT useful (skip the technique)
+
+- The installed bot already produces zero off-scope findings **AND** per-round finding volume is already acceptably low. Both conditions matter — "zero off-scope alone" would wrongly exclude repos like alfred where the bot was already P1/P2-focused but per-round volume still benefited from hints (1.5 → 1.0 findings/round across PR #117 R11–R12 + PR #119 R1–R5).
+- The PR is small / uncertain scope and there is no prior signal that the installed bot over-flags. (Caveat: this rule does NOT apply when the PR is known up-front to be long-running — e.g. a large CHG / SOP edit, a multi-file refactor, or an artifact in a class where the project's bot has historically iterated 5+ rounds. In those cases, adding hints from R1 is the documented usage pattern — alfred PR #119 and #120 both used hints from R1 to good effect. The "skip if uncertain" guidance is for genuinely small PRs where hints would be premature optimization.)
+- The reviewer is anything other than a GitHub App review bot. Static analyzers and multi-model panels do not read the PR body as a directive.
+
+### Important: not a way to suppress real findings
+
+The technique is a **directive about which findings to defer to a follow-up batch**, not a way to suppress real defects. The intended effect is for the bot to spend rounds on in-scope items and batch out-of-scope polish into a follow-up; the per-class flag rate is not directly measured by alfred's evidence base (the alfred bot was already at zero off-scope pre-hints, so the observed 1.5 → 1.0 volume drop is necessarily in items the bot was already classifying as actionable — meaning hints can affect what the bot flags as actionable, not just what it defers). Adopters should treat the technique as needing **per-project verification that real-defect catches are preserved**: if a PR uses scope hints and the bot stops flagging known-broken behavior, the technique is being mis-applied, or the bot isn't honoring hints, or the bot is interpreting "in-scope" too narrowly — diagnose before continuing to iterate with hints.
+
+### Empirical evidence base
+
+Across alfred PR #117 (12 codex bot rounds, hints added at R11), PR #119 (hints from R1), and PR #120 (hints from R1, qualitative observation only):
+
+| PR | Rounds | Avg findings/round | Off-scope class findings |
+|---|---|---|---|
+| #117 R1–R10 (pre-hints) | 10 | 1.5 | 0 (bot already P1/P2-focused) |
+| #117 R11–R12 (post-hints) | 2 | 1.0 | 0 |
+| #119 R1–R5 (with hints from start) | 5 | 1.0 | 0 |
+
+Across 7 post-hint rounds (PR #117 + PR #119 quantitative; PR #120 qualitative), per-round finding volume dropped 1.5 → 1.0 and the off-scope class count stayed at 0 in both pre- and post-hint conditions. The shift is in volume, not in distribution. N=7 is suggestive, not conclusive — the more reliable claim is the **consistent-zero off-scope count across all hint-applied rounds**, suggesting the technique at minimum does not provoke off-scope findings.
+
+---
+
 ## Why bot reviewers catch what humans/panels miss
 
 Five structural mechanisms (PR #78 / #80 / #82 / #84 evidence base, 12+ caught bugs):
@@ -522,3 +576,6 @@ These are orthogonal mechanisms — none is "bot is smarter." The defensive prac
 | 2026-05-02 | Major amendment driven by PR #78 / #80 / #82 / #84 evidence (12+ GitHub App bot real-bug catches missed by panel + author): (a) Add Reviewer Detector Classes table to §What Is It (bot vs panel vs human vs author — orthogonal, not interchangeable). (b) §Step 5 mandates behaviour-verification for any reply that asserts behaviour — reasoning-only assertions are forbidden (PR #84 R6 caught my own reply where I claimed errors surface when they didn't). (c) §Step 6 reframes "wait for CI" as "wait for CI AND the next bot review pass" — bot auto-re-reviews each commit within 30–90s; iteration is normal (PR #84 ran 6 rounds). (d) New §Step 8 mandates `set -euo pipefail` pre-publish testing of every doc-shell example in 3 representative states (fresh / happy-path / edge cases). (e) §Pitfalls expanded with 3 new entries (unverified behaviour claims, single-round closing, treating bot as lint). (f) New §Why bot reviewers catch what humans/panels miss section explains the 5 structural mechanisms (diff-mode, no-author-bias, exec-simulator, no-pack-framing, execution focus) and the 5 derived defensive practices. | Frank + Claude (PR #84 retrospective) |
 | 2026-05-02 | Iteration on the same amendment per session feedback: (1) Depersonalised "Trinity 4-reviewer panel" → generic "Multi-model panel review" with project-specific tooling examples (`/trinity`, CodeRabbit Pro, Greptile, custom, or none). Multi-model panel is NOT universally available; SOP applies regardless. (2) Generalised "Codex bot" → "GitHub App review bot" with examples (Codex, Copilot, CodeRabbit, Greptile, Sourcery) — exact bot identity varies by repo settings. (3) Added explicit Mermaid decision tree to §Step 6 making the agent self-driven loop visual. (4) Added strict "wait 3-5 min, do NOT exit / hand back to user" invariant + harness-specific wait mechanisms (Claude Code ScheduleWakeup, CI sleep, manual). (5) Added §Step 6 sub-section on detecting reviewer-side resolution via GraphQL `isResolved`/`isOutdated`. (6) New §Pitfalls entries: "Asking the user to remind you to re-check" (anti-pattern explicitly forbidden) + "Assuming a multi-model panel is available". | Frank + Claude (post-amendment iteration) |
 | 2026-05-05 | Add related pointer and boundary note for COR-1615, which covers triggering and polling GitHub App PR review bot passes before fetched findings are processed here. | Codex |
+| 2026-05-09 | Add §Scoping bot reviews via PR body (optional, GitHub App review bots only) section — codifies the PR-body scope-hint technique observed empirically on alfred PR #117 R11–R12 + PR #119 R1–R5 (N=7 post-hint rounds, per-round finding volume 1.5 → 1.0, off-scope class count 0 in both pre- and post-hint conditions). Technique is GitHub-App-bot-vendor-dependent; only `chatgpt-codex-connector[bot]` empirically tested. CHG-2279. | Claude Opus 4.7 |
+| 2026-05-09 | R2: codex bot R1 P2 (PR #122) — §Important: not a way to suppress real findings claimed bots "still flag in-scope items at the same rate", but the alfred evidence base shows off-scope was 0 pre-hints, so the 1.5→1.0 drop is necessarily in items the bot was classifying as actionable. The "same rate" claim was unsupported. Rewrote to acknowledge hints can affect what the bot flags as actionable (not just what it defers); added explicit "per-project verification that real-defect catches are preserved" guidance. CHG-2279 R2. | Claude Opus 4.7 |
+| 2026-05-09 | R3: codex bot R2 P2 (PR #122) — §When NOT useful skip rule "PR has fewer than 3 review rounds" contradicted the §Empirical evidence base (PR #119 + #120 both used hints from R1) and the CHG-2279 §Implementation Plan step 4 (eat-our-own-dogfood asks PRs to add hints before observing the bot). Adopters following the rule literally would never use hints from R1, losing the from-start usage pattern the SOP itself records. Narrowed to "small / uncertain scope PRs with no prior signal that the installed bot over-flags"; added explicit caveat that PRs known up-front to be long-running (large CHG/SOP, multi-file refactor) should add hints from R1. CHG-2279 R3. | Claude Opus 4.7 |
