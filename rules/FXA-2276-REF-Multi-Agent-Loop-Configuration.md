@@ -75,6 +75,22 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 
 ---
 
+## Invocation
+
+Alfred-specific shorthand the operator can type in chat to start the COR-1617 loop with this REF's parameters. All variants are User-driven trigger #1 per COR-1617 §1 (gate-bypass per COR-1618 §Bypass — live chat input subsumes consent + intake-quality signals).
+
+| Phrase the operator types | Behavior |
+|---|---|
+| `follow FXA-2276` | Start COR-1617 in **continuation mode** with these parameters: pick the lowest-rank-ID rocket-eligible open issue per COR-1618 + the COR-1617 §1 scope-rank tree, run phases 2–10 on it, on merge re-enter phase 1 (per §11 wake) and pick the next eligible issue. Idle-with-retry per §1 when the queue is empty. |
+| `follow FXA-2276 once` | Same as above but **stop after phase 10** of the first pick — no §11 wake, no autonomous continuation. Useful when the operator wants one PR shipped, not a queue drain. |
+| `follow FXA-2276 for #N` | **User-directed pick of issue #N** — gate-bypass per COR-1618 §Bypass clause (live chat input is consent), runs COR-1617 phases 2–10 on the named issue regardless of its rocket-gate state. Single-issue, no autonomous continuation. |
+
+The phrases extend COR-1617 §1's User-driven trigger row's phrase list (`"pick next issue" / "do <PREFIX>-<NNNN>" / "auto-pick"`) with alfred's own shorthand. They do not change the SOP's semantics — only add a project-specific synonym.
+
+When `follow FXA-2276` is in continuation mode and the queue is empty, the orchestrator arms idle-with-retry per COR-1620 (1800 s cadence, capped at `<idle-cap>` = 12 wakes ≈ 6 hours). Operator can stop early by typing `stop` / `pause` / `hold` per COR-1620 §Primitive 2 (stop-marker).
+
+---
+
 ## Adoption Status by Phase
 
 Alfred today adopts a subset of COR-1617's 11 phases. The values above are filled aspirationally for the full cluster; the table below shows which phases run automatically vs which are user-initiated or manual today.
@@ -133,3 +149,4 @@ These project-specific deviations are intentional and not gaps in the SOP:
 |------|--------|----|
 | 2026-05-09 | Initial version — alfred's first instantiation of COR-1622, filed alongside FXA-2277 (which closes the schema gaps surfaced during this draft) | Claude Opus 4.7 |
 | 2026-05-09 | R2: codex bot R1 P2 — `<weights-doc>` map keys (`code`, `PRP`) were not in the `<spec-format>` enum (`CHG | ADR | RFC | inline-PR-body`). Replaced with valid enum keys per COR-1617 §Phase 4 mapping. Added "Known limitation" section documenting the underlying artifact-type vs `<spec-format>` conflation as a deferred follow-up. | Claude Opus 4.7 |
+| 2026-05-09 | Added §Invocation section documenting alfred-specific shorthand phrases (`follow FXA-2276`, `follow FXA-2276 once`, `follow FXA-2276 for #N`) that extend COR-1617 §1 User-driven trigger phrase list. Per-project synonym; no PKG SOP change. | Claude Opus 4.7 |
