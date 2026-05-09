@@ -18,9 +18,11 @@ Add a new top-level §Invocation section to FXA-2276 documenting three alfred-sp
 
 | Phrase | Behavior |
 |---|---|
-| `follow FXA-2276` | Continuation mode — pick lowest-rank-ID rocket-eligible issue, run phases 2–10, on merge re-enter phase 1 until queue idle |
-| `follow FXA-2276 once` | Single pick, stop after phase 10 (no §11 wake) |
-| `follow FXA-2276 for #N` | User-directed pick of issue #N, gate-bypass per COR-1618 §Bypass |
+| `follow FXA-2276` | Looping mode — initial pick is lowest-numbered RANK matching COR-1617 §1 scope-rank tree (RANK 1–4, smaller LoC tie-break), gate-bypassed per COR-1618 §Normative Bypass Clause; on merge re-enter phase 1 via §11 wake; subsequent picks re-apply COR-1618 verify_consent_eligibility in full until queue idle |
+| `follow FXA-2276 once` | Single pick, same initial-pick rule, stop after phase 10 (no §11 wake) |
+| `follow FXA-2276 for #N` | User-directed pick of issue #N, gate-bypass per COR-1618 §Normative Bypass Clause |
+
+The three variants are mutually exclusive — `follow FXA-2276 once for #N` and other combinations are not defined per FXA-2276 §Invocation (operator picks one). For full semantics, including the looping-mode continuation gate behavior and stop-marker durability, see FXA-2276 §Invocation as the canonical reference (this CHG documents *what changed*; FXA-2276 §Invocation documents *how it works*).
 
 The phrases extend COR-1617 §1's User-driven trigger row's existing phrase list (`"pick next issue" / "do <PREFIX>-<NNNN>" / "auto-pick"`) with alfred-specific synonyms. They are not a new SOP — they are a project-specific synonym layer for the existing User-driven trigger pattern.
 
@@ -64,3 +66,4 @@ The variants `once` and `for #N` cover common operator intents: a single pick (n
 |------|--------|----|
 | 2026-05-09 | Initial version — drafted retroactively to satisfy COR-1104 §3 documentation requirement for PR #120's §Invocation addition. **This is a procedural deviation from COR-1104**, not a sanctioned shortcut: COR-1104's flow is `Status: Proposed` → plan-review → implement, but PR #120's implementation landed first as orchestrator-direct (~17-line single-file edit, fits COR-1619 direct lane); the CHG is captured here to keep the project's spec record intact. The deviation is acknowledged openly rather than concealed. Future routine post-implementation CHGs (if they recur) would warrant a PKG-layer SOP codifying the pattern with explicit gates — out of scope for this CHG. | Claude Opus 4.7 |
 | 2026-05-09 | R3 (PR #120 review): deepseek panel A3+A4 advisories — initial change-history row cited (1) "COR-1617 §3 shortcut for post-implementation drafting" which does not exist in the PKG SOP, and (2) "FXA-2275 / PR #117 post-push precedent" which is a one-time operator decision, not a documented rule. Both citations were aspirational/loose. Removed; replaced with explicit acknowledgement that this is a procedural deviation, not a precedent-backed shortcut. | Claude Opus 4.7 |
+| 2026-05-09 | R4 (PR #120 review): codex bot R3 P2 + glm R3 cosmetic advisory (convergent) — FXA-2278 §What table (rows 21, 23) carried pre-R3 terminology (`Continuation mode`, `lowest-rank-ID`, `§Bypass`) while FXA-2276 had been corrected. Cross-doc-propagation drift class (same as PR #119 R2→R5). Fixed via comprehensive sweep this round, not one-at-a-time: §What table now uses corrected terminology (`Looping mode`, `lowest-numbered RANK + LoC tie-break`, `§Normative Bypass Clause`); composition-rule note added pointing readers at FXA-2276 §Invocation as canonical reference. | Claude Opus 4.7 |
