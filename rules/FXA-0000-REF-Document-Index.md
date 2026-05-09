@@ -187,6 +187,7 @@
 | 2275 | CHG | FXA 2102 Promote README Check To Numbered Step |
 | 2276 | REF | Multi Agent Loop Configuration |
 | 2277 | CHG | COR 1622 Schema Refinements For Heterogeneous Adopters |
+| 2278 | CHG | Add FXA 2276 Invocation Shorthand |
 
 ---
 
