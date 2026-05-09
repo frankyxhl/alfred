@@ -52,7 +52,7 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 |-----|------|----------|---------|-------------|
 | `<repo>` | string | yes | derived from `gh repo view --json nameWithOwner` | The `owner/name` repo path. Used in every `gh api repos/<repo>/...` call. |
 | `<repo-owner>` | string | yes | the owner segment of `<repo>` | The GitHub login that owns `<repo>`. Convenience derivation; stated explicitly so other keys can default to it. |
-| `<repo-trusted-reactor-list>` | list[string] | yes | `[<repo-owner>]` | GitHub logins whose `<consent-signal>` reaction grants auto-pick eligibility. Multiple entries permitted; matched via `IN([...])`. |
+| `<repo-trusted-reactor-list>` | list[string] | yes | `[<repo-owner>]` | GitHub logins whose `<consent-signal>` reaction grants auto-pick eligibility. Multiple entries permitted; tested via jq array-membership (`<list> \| index(<login>)`) — see COR-1618 check 2 for the exact recipe. Note: jq's `IN(...)` is a stream-membership test, not array-membership, and cannot be passed a list parameter. |
 | `<gh-write-identity>` | string | yes | — | The active `gh` account expected for all GitHub-visible writes (PRs, issue comments, review submissions). Verified by `gh auth status` per COR-1505. |
 | `<fork-remote>` | string | yes | `fork` | Remote name for the forked workflow. PRs are pushed here, never to `origin/main`. |
 
@@ -139,3 +139,4 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted parameter schema from TRN-1008 R1–R26 to support COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
 | 2026-05-09 | R2: added §Placeholder Convention distinguishing project-config keys from runtime variables (convergent advisory from glm+deepseek R1 panel); added `<repo-owner>` row (deepseek R1 advisory) | Claude Opus 4.7 |
+| 2026-05-09 | R6: `<repo-trusted-reactor-list>` description updated — was "matched via `IN([...])`"; now correctly documents jq's `index` array-membership and notes that `IN(...)` is a stream-membership test that cannot take a list parameter. Aligns with COR-1618 R5 recipe. Codex bot R5 P2 cross-doc-drift finding. | Claude Opus 4.7 |

@@ -262,7 +262,7 @@ The auto-pick mandate is checked at phase 1, but the user can revoke or redirect
 
 ### CHG abandonment after R3+ reveals wrong approach
 
-When 3+ rounds converge on "this approach is structurally wrong, not just buggy" (multiple reviewers flag the same architectural blocker in R3 that they raised in R1), do NOT loop indefinitely. Exit: draft a `## Lessons Learned` section in the CHG, set `Status: Abandoned`, file a follow-up issue/CHG with the alternative approach, close the PR pointing at the follow-up. The abandoned CHG stays as historical record.
+When 3+ rounds converge on "this approach is structurally wrong, not just buggy" (multiple reviewers flag the same architectural blocker in R3 that they raised in R1), do NOT loop indefinitely. Exit: draft a `## Lessons Learned` section in the CHG, set `Status: Rolled Back` (per COR-0002 allowed CHG status values), file a follow-up issue/CHG with the alternative approach, close the PR pointing at the follow-up. The rolled-back CHG stays as historical record.
 
 ### Wakeup tool unavailable / loop stop conditions
 
@@ -286,3 +286,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 |------|--------|----|
 | 2026-05-09 | Initial version — umbrella SOP composing COR-1602 + COR-1615 + COR-1618/1619/1620/1621 + COR-1505 + COR-1104; generalized from trinity TRN-1008 (alfred#115) | Claude Opus 4.7 |
 | 2026-05-09 | R4: §Phase 4 spec-format mapping rewritten — was `CHG/code/PRP` (different namespace from `<spec-format>` enum); now maps the four enum values (CHG, ADR, RFC, inline-PR-body) to COR-1608/1609 explicitly + clarifies that COR-1610 is selected by code-review-phase, not by spec form. Codex bot R3 P2 finding. | Claude Opus 4.7 |
+| 2026-05-09 | R6: §Failure Modes "CHG abandonment" — `Status: Abandoned` is not in COR-0002's allowed CHG status enum (Proposed/Approved/In Progress/Completed/Rolled Back). Replaced with `Status: Rolled Back`. Codex bot R5 P2 finding (`af validate` would reject CHGs following the previous guidance). | Claude Opus 4.7 |
