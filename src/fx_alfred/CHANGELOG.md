@@ -1,5 +1,42 @@
 # Changelog
 
+## v1.14.0 (2026-05-09)
+
+Docs-shipped-as-PKG-SOPs release. No CLI / behavior changes; new bundled COR documents.
+
+### Added
+
+- **COR-1617 Multi-Agent Workflow Loop cluster** — promoted from trinity
+  TRN-1008 (alfred#115, PRs #117 + #119). Eleven-phase umbrella SOP
+  composing existing PKG SOPs, plus the supporting cluster:
+  - `COR-1617` — Multi-Agent Workflow Loop (umbrella).
+  - `COR-1618` — Auto-pick consent gate.
+  - `COR-1619` — Worker dispatch contract.
+  - `COR-1620` — Loop primitives (wakeup, idle-with-retry,
+    merge-watch, stop-marker).
+  - `COR-1621` — Triage tree + severity vocabulary (P0–P3).
+  - `COR-1622` — Parameter schema (instantiated per-project).
+- **COR-1612 §Scoping bot reviews via PR body (optional, GitHub App
+  review bots only)** — codifies the PR-body scope-hint technique
+  observed empirically on alfred PR #117 R11–R12 + PR #119 R1–R5
+  (FXA-2279, PR #122). Includes recommended template, when-most-useful
+  / when-NOT-useful heuristics, the non-substitution caveat, and the
+  evidence table.
+- **COR-1615 §Operator Checklist pointer** to COR-1612 §Scoping for
+  operators on long iteration loops (FXA-2279, PR #122).
+- **`.github/ISSUE_TEMPLATE/blueprint.md`** — Iterwheel Blueprint
+  intake template (alfred#116, PR #121). Markdown form (not Issue
+  Forms YAML) so the rendered body uses the H2 section headings the
+  `iterwheel-blueprint[bot]` intake check detects.
+
+### Changed
+
+- `pyproject.toml` version bump 1.13.0 → 1.14.0.
+
+### Removed
+
+- None.
+
 ## v1.13.0 (2026-05-07)
 
 Minor release: per-user document bookmarking via `af star`.
