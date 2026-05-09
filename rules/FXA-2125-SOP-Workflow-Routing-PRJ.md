@@ -81,6 +81,10 @@ What do you need to do in the FXA project?
    └── .venv/bin/pytest tests/ -v --tb=short      (tests)
        .venv/bin/ruff check .                       (lint)
        af validate --root fx_alfred                (document validation)
+
+9. Create a task ticket / GitHub issue?
+   └── COR-1501 (Create GitHub Issue)
+       Determine type → write with blueprint template → gh issue create --repo <repo> → gh issue view <number>
 ```
 
 ## Project Context
@@ -106,6 +110,7 @@ COR-1500: Any code change → TDD: failing test first, then green, then refactor
 af create: Never manually create .md files, always af create --prefix FXA --area 21
 af validate: Run after document migrations to confirm 0 issues
 fx_alfred: Documents live in rules/ (PRJ layer), document changes committed with code
+COR-1501: GitHub issue = blueprint template + stack-type-* / stack-area-* label pair
 ```
 
 ## Steps
@@ -124,3 +129,4 @@ This is a routing SOP — no procedural steps. The Project Decision Tree above i
 | 2026-03-21 | Added Steps section (routing SOP, no procedural steps) | Claude Code |
 | 2026-03-30 | CHG FXA-2153: Translated decision tree from Chinese to English (COR-0002/COR-1401 compliance) | Claude Code |
 | 2026-04-04 | CHG FXA-2190: Remove deprecated FXA-2127 ref from decision tree, fix stale "no remote" golden rule | Claude Code |
+| 2026-05-10 | issue #126: add branch 9 (Create GitHub issue → COR-1501) to decision tree; add COR-1501 traceability line to Golden Rules | Claude Opus 4.7 |
