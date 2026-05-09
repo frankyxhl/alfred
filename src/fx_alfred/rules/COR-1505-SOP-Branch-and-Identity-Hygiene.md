@@ -4,7 +4,7 @@
 **Last updated:** 2026-05-09
 **Last reviewed:** 2026-05-09
 **Status:** Active
-**Related:** COR-1502 (Git Branch Naming), COR-1617 (Multi-Agent Workflow Loop), COR-1622 (parameter schema — `<gh-write-identity>`, `<fork-remote>`)
+**Related:** COR-1502 (Git Branch Naming), COR-1617 (Multi-Agent Workflow Loop), COR-1622 (parameter schema — `<gh-write-identity>`, `<pr-push-remote>`)
 
 ---
 
@@ -90,7 +90,7 @@ When this SOP runs inside COR-1617, `<gh-write-identity>` comes from the project
 
 - Never use `git status -uno`. Untracked-file blindness is the failure mode.
 - Never use `git switch -C` (uppercase) to create a branch. Force-create silently overwrites unpushed work.
-- Never push to `origin/main` from this branch. Push to `<fork-remote>` (default `fork`).
+- Never push to `origin/main` from this branch. Push to `<pr-push-remote>` (default `fork`).
 - Never bypass the identity gate. A passing `gh auth status` is the consent signal for any GitHub-visible write.
 
 ---
@@ -108,7 +108,7 @@ When this SOP runs inside COR-1617, `<gh-write-identity>` comes from the project
 
 ## Examples
 
-Parameterized invocation (substitute your project's `<gh-write-identity>` and `<fork-remote>` from its COR-1622 instantiation):
+Parameterized invocation (substitute your project's `<gh-write-identity>` and `<pr-push-remote>` from its COR-1622 instantiation):
 
 ```bash
 git fetch origin main
@@ -116,7 +116,7 @@ git status --porcelain                                    # (empty)
 git switch -c <type>/<issue-number>-<short-description> origin/main           # (created)
 gh auth status                                            # must show <gh-write-identity> active
 # ... commits ...
-git push <fork-remote> <type>/<issue-number>-<short-description>
+git push <pr-push-remote> <type>/<issue-number>-<short-description>
 ```
 
 ---
@@ -128,3 +128,4 @@ git push <fork-remote> <type>/<issue-number>-<short-description>
 | 2026-05-09 | Initial version — extracted from TRN-1008 §2 for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
 | 2026-05-09 | R2: §Examples replaced literal `ryosaeba1985` with parameterized `<gh-write-identity>` per glm R1 P1 finding (de-Babs leak) | Claude Opus 4.7 |
 | 2026-05-09 | R3: §Examples now uses `<issue-number>`/`<short-description>` to match §Steps + COR-1502 canonical names (was `<issue>`/`<slug>`); deepseek R2 advisory | Claude Opus 4.7 |
+| 2026-05-09 | FXA-2277: `<fork-remote>` references renamed to `<pr-push-remote>` (3 sites — frontmatter Related, §Guard Rails, §Examples + §Examples shell snippet). Semantic invariant preserved. | Claude Opus 4.7 |

@@ -54,7 +54,7 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 | `<repo-owner>` | string | yes | the owner segment of `<repo>` | The GitHub login that owns `<repo>`. Convenience derivation; stated explicitly so other keys can default to it. |
 | `<repo-trusted-reactor-list>` | list[string] | yes | `[<repo-owner>]` | GitHub logins whose `<consent-signal>` reaction grants auto-pick eligibility. Multiple entries permitted; tested via jq array-membership (`<list> \| index(<login>)`) — see COR-1618 check 2 for the exact recipe. Note: jq's `IN(...)` is a stream-membership test, not array-membership, and cannot be passed a list parameter. |
 | `<gh-write-identity>` | string | yes | — | The active `gh` account expected for all GitHub-visible writes (PRs, issue comments, review submissions). Verified by `gh auth status` per COR-1505. |
-| `<fork-remote>` | string | yes | `fork` | Remote name for the forked workflow. PRs are pushed here, never to `origin/main`. |
+| `<pr-push-remote>` | string | yes | `fork` | The git remote that PR head branches push to; never `origin/main` directly. Single-remote projects (no fork) set this to `origin`; fork-PR projects set it to the fork remote (commonly `fork`). The invariant is "PR push goes here, not to `origin/main`" — the topology underneath is project-specific. (Renamed from `<fork-remote>` per FXA-2277 — original name presupposed a forked workflow that not all adopters use.) |
 
 ### Consent gate (COR-1618)
 
@@ -70,7 +70,7 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 | Key | Type | Required | Default | Description |
 |-----|------|----------|---------|-------------|
 | `<panel-providers>` | list[string] | yes | — | The provider identifiers dispatched in parallel for plan-review and code-review (e.g. `[gemini, codex, glm, deepseek]`). Minimum **3 viable** verdicts required to enforce the gate. |
-| `<weights-doc>` | string | yes | — | ACID of the project's review-weights document (e.g. `TRN-1800`). Referenced verbatim in every panel-review prompt; substituting weights from a different project is a guard-rail violation. |
+| `<weights-doc>` | string \| map<<spec-format>, string> | yes | — | The review-weights pointer the panel-review prompt cites verbatim. Two valid forms: (1) **Scalar**: a single ACID covering all artifact types (e.g. trinity's `TRN-1800`). (2) **Map**: keyed by `<spec-format>` enum values (`CHG`, `ADR`, `RFC`, `inline-PR-body` — see next row), each entry is the ACID whose rubric is loaded when an artifact of that form is reviewed (e.g. alfred's `{CHG: COR-1609, ADR: COR-1609, RFC: COR-1608, inline-PR-body: COR-1609}`). Adopters with one rubric across all artifact types use the scalar form; adopters keying off `<spec-format>` use the map form. **Code-review (phase 8) uses COR-1610 implicitly per COR-1617 §Phase 4 — selected by review-phase, not by `<spec-format>` — so `code` is NOT a valid map key.** Substituting weights from a different project is a guard-rail violation regardless of form. |
 | `<spec-format>` | enum | yes | `CHG` | The artifact form plan-review scores: `CHG`, `ADR`, `RFC`, or `inline-PR-body`. Determines which review-scoring rubric (COR-1608/1609/1610) applies. |
 | `<panel-pass-threshold>` | number | yes | `9.0` | All-individual score threshold; PASS requires every viable reviewer at or above this AND `blocking == []`. |
 
@@ -107,7 +107,7 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | `<repo-owner>` | `frankyxhl` |
 | `<repo-trusted-reactor-list>` | `[frankyxhl]` |
 | `<gh-write-identity>` | `ryosaeba1985` |
-| `<fork-remote>` | `fork` |
+| `<pr-push-remote>` | `fork` |
 | `<consent-signal>` | `rocket` |
 | `<intake-quality-mode>` | `2FA` |
 | `<intake-quality-label>` | `blueprint-ready` |
@@ -141,3 +141,5 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | 2026-05-09 | R2: added §Placeholder Convention distinguishing project-config keys from runtime variables (convergent advisory from glm+deepseek R1 panel); added `<repo-owner>` row (deepseek R1 advisory) | Claude Opus 4.7 |
 | 2026-05-09 | R6: `<repo-trusted-reactor-list>` description updated — was "matched via `IN([...])`"; now correctly documents jq's `index` array-membership and notes that `IN(...)` is a stream-membership test that cannot take a list parameter. Aligns with COR-1618 R5 recipe. Codex bot R5 P2 cross-doc-drift finding. | Claude Opus 4.7 |
 | 2026-05-09 | R9: `<worker-min-loc>` boundary semantics aligned with COR-1619 §Decision Tree — was "at or above → worker" (so the value 30 went to worker); now "at or below → orchestrator, above → worker" (so 30 stays with orchestrator). COR-1619 was the operative dispatch SOP and already used "at or below"; this fixes the contract divergence. Codex bot R8 P2 boundary finding. | Claude Opus 4.7 |
+| 2026-05-09 | FXA-2277: two schema refinements surfaced when alfred attempted to instantiate. (1) `<fork-remote>` renamed to `<pr-push-remote>` — original name presupposed a forked-fork workflow that not all adopters use; alfred pushes feature branches to `origin` directly. The invariant ("never push to `origin/main`") is preserved; only the name changed. (2) `<weights-doc>` type widened from `string` to `string \| map<<spec-format>, string>` — adopters with one rubric across artifact types use the scalar form (trinity's `TRN-1800`); adopters keying off `<spec-format>` use the map form. Trinity's existing instantiation continues working unchanged. | Claude Opus 4.7 |
+| 2026-05-09 | R3 (PR #119): codex bot R2 P2 — `<weights-doc>` schema-row description showed an example with invalid map keys (`code`, `PRP` — not in the `<spec-format>` enum). Same class of bug fixed in FXA-2276 R2 but not propagated to COR-1622 itself. Replaced with valid enum keys (alfred's actual map: `{CHG: COR-1609, ADR: COR-1609, RFC: COR-1608, inline-PR-body: COR-1609}`); added explicit note that `code` is not a valid key (code review uses COR-1610 by phase per COR-1617 §Phase 4). Adopters copying the schema row now get a valid instantiation. | Claude Opus 4.7 |
