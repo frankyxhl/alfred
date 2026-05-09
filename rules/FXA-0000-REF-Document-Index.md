@@ -188,6 +188,7 @@
 | 2276 | REF | Multi Agent Loop Configuration |
 | 2277 | CHG | COR 1622 Schema Refinements For Heterogeneous Adopters |
 | 2278 | CHG | Add FXA 2276 Invocation Shorthand |
+| 2279 | CHG | Codify GitHub App PR Review Bot Scope Hint Technique In COR 1612 + COR 1615 |
 
 ---
 
