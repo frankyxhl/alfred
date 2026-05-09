@@ -123,6 +123,8 @@ This repo uses paired `stack-type-*` + `stack-area-*` labels (the `iterwheel-sta
 | `stack-area-tests` | Test infrastructure |
 | `stack-area-backend` | Server / library code |
 | `stack-area-frontend` | UI / client code |
+| `stack-area-infra` | Hosting, runtime, deployment, environments |
+| `stack-area-unknown` | Area cannot be determined yet — `iterwheel-stack[bot]` may rewrite this on intake |
 
 If you mis-pair, `iterwheel-stack[bot]` may swap one label after intake (observed on issue #127: hand-applied `stack-area-docs` was replaced with `stack-area-github`). Treat that as confirmation, not a rejection.
 
@@ -195,7 +197,7 @@ The `--repo` flag is required when the working directory is not the target repo'
 gh issue view <number> --repo <owner>/<repo>
 ```
 
-`gh issue list` only confirms the issue exists; `gh issue view` confirms the body rendered correctly and lets you inspect intake-bot signals — look for `blueprint-ready` (intake passed) or `blueprint-requests-revision` (a required H2 section is missing or `- [ ]` is absent under `## Acceptance Criteria`). If revision is requested, edit the body via `gh issue edit <number> --body-file <path>` and re-verify.
+`gh issue list` only confirms the issue exists; `gh issue view` confirms the body rendered correctly and lets you inspect intake-bot signals — look for `blueprint-ready` (intake passed) or `blueprint-requests-revision` (a required H2 section is missing or `- [ ]` is absent under `## Acceptance Criteria`). If revision is requested, edit the body via `gh issue edit <number> --repo <owner>/<repo> --body-file <path>` and re-verify (the same `--repo` rule from Step 3 applies — without it, `gh` falls back to the current working directory's repo).
 
 ---
 
