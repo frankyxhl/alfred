@@ -79,7 +79,7 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 | Key | Type | Required | Default | Description |
 |-----|------|----------|---------|-------------|
 | `<worker-agent>` | string | yes | — | The coding worker identifier the orchestrator delegates substantial implementation to (e.g. `trinity-glm via droid exec`). |
-| `<worker-min-loc>` | integer | yes | `30` | Lines-of-change threshold below which the orchestrator edits directly; at or above, dispatch to `<worker-agent>`. |
+| `<worker-min-loc>` | integer | yes | `30` | Lines-of-change threshold for the single-function trivial-fix branch. **At or below** this count: orchestrator edits directly. **Above**: dispatch to `<worker-agent>`. (Boundary alignment with COR-1619 §Decision Tree node C — both docs treat the threshold value itself as the orchestrator-direct ceiling.) |
 
 ### Bot polling (COR-1615 binding)
 
@@ -140,3 +140,4 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | 2026-05-09 | Initial version — extracted parameter schema from TRN-1008 R1–R26 to support COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
 | 2026-05-09 | R2: added §Placeholder Convention distinguishing project-config keys from runtime variables (convergent advisory from glm+deepseek R1 panel); added `<repo-owner>` row (deepseek R1 advisory) | Claude Opus 4.7 |
 | 2026-05-09 | R6: `<repo-trusted-reactor-list>` description updated — was "matched via `IN([...])`"; now correctly documents jq's `index` array-membership and notes that `IN(...)` is a stream-membership test that cannot take a list parameter. Aligns with COR-1618 R5 recipe. Codex bot R5 P2 cross-doc-drift finding. | Claude Opus 4.7 |
+| 2026-05-09 | R9: `<worker-min-loc>` boundary semantics aligned with COR-1619 §Decision Tree — was "at or above → worker" (so the value 30 went to worker); now "at or below → orchestrator, above → worker" (so 30 stays with orchestrator). COR-1619 was the operative dispatch SOP and already used "at or below"; this fixes the contract divergence. Codex bot R8 P2 boundary finding. | Claude Opus 4.7 |
