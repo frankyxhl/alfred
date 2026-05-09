@@ -48,7 +48,7 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 | Key | Alfred value | Notes |
 |-----|--------------|-------|
 | `<panel-providers>` | `[glm, deepseek, codex, gemini]` | full quartet via `Skill(trinity)` dispatch; minimum 3 viable per COR-1602 viability rule |
-| `<weights-doc>` | `{CHG: COR-1609, code: COR-1610, PRP: COR-1608}` | **map form** (per FXA-2277) — alfred routes to the appropriate review-scoring rubric by artifact type rather than using a single project weights doc |
+| `<weights-doc>` | `{CHG: COR-1609, ADR: COR-1609, RFC: COR-1608, inline-PR-body: COR-1609}` | **map form** (per FXA-2277), keyed only by valid `<spec-format>` enum values per COR-1622. CHGs and ADRs both use COR-1609 (CHG/decision rubric, same scoring surface per COR-1617 §Phase 4). RFC uses COR-1608 (proposal/PRP-shaped). inline-PR-body defaults to COR-1609 since alfred's inline specs are CHG-shaped. **Code-review (phase 8) uses COR-1610 implicitly** per COR-1617 §Phase 4 — selected by review-phase, not by `<spec-format>`, so it does NOT appear as a map key. See "Known limitation" below for the deeper artifact-type vs spec-format gap. |
 | `<spec-format>` | `CHG` | alfred's primary spec form; PRP used for larger proposals; ADR / RFC / inline-PR-body all valid per COR-1622 enum |
 | `<panel-pass-threshold>` | `9.0` | per COR-1602 default |
 
@@ -104,6 +104,18 @@ Two gaps surfaced when this REF was first drafted; both are addressed by FXA-227
 1. **`<weights-doc>` was scalar-only.** Alfred uses three different rubrics keyed by artifact type (COR-1608/1609/1610). A single-string `<weights-doc>` could not express that. FXA-2277 widens the type to `string | map<<spec-format>, string>`.
 2. **`<fork-remote>` presupposed a forked workflow.** Alfred pushes feature branches to `origin` directly; the original key name implied a `fork` remote that doesn't exist. FXA-2277 renames the key to `<pr-push-remote>` while preserving the "never push to `origin/main`" invariant.
 
+## Known limitation — artifact-type vs `<spec-format>` conflation
+
+The COR-1622 schema (and TRN-1008 before it) uses `<spec-format>` as both:
+- the *form* the project's primary specs take (one value: e.g. `CHG`)
+- the *map key* for `<weights-doc>` routing (an enum: `CHG | ADR | RFC | inline-PR-body`)
+
+Alfred's actual rubric routing is by **artifact type** under review (CHG, code, PRP, ADR), which doesn't cleanly fit the `<spec-format>` enum:
+- `code` — not in the enum; per COR-1617 §Phase 4, code review uses COR-1610 by *phase* (phase 8), not by spec form. Adopters wanting a code-review rubric pick it up implicitly via phase selection, not via `<weights-doc>`.
+- `PRP` — not in the enum; COR-1617 maps PRP-shaped specs to the `RFC` enum value, which then routes to COR-1608. Functionally equivalent but the naming is indirect.
+
+The map above uses only valid `<spec-format>` enum keys per the contract. A future evolution could split `<spec-format>` (project's spec form) from `<artifact-rubric-map>` (review-time routing) for cleaner semantics; deferred to evidence-driven follow-up if the conflation produces real adopter confusion.
+
 ---
 
 ## When alfred deviates from COR-1617
@@ -120,3 +132,4 @@ These project-specific deviations are intentional and not gaps in the SOP:
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-09 | Initial version — alfred's first instantiation of COR-1622, filed alongside FXA-2277 (which closes the schema gaps surfaced during this draft) | Claude Opus 4.7 |
+| 2026-05-09 | R2: codex bot R1 P2 — `<weights-doc>` map keys (`code`, `PRP`) were not in the `<spec-format>` enum (`CHG | ADR | RFC | inline-PR-body`). Replaced with valid enum keys per COR-1617 §Phase 4 mapping. Added "Known limitation" section documenting the underlying artifact-type vs `<spec-format>` conflation as a deferred follow-up. | Claude Opus 4.7 |

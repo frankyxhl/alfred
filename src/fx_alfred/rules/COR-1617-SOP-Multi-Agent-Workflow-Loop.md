@@ -83,7 +83,7 @@ The loop has **11 phases**:
 | 4 | Plan-review | parallel dispatch of `<panel-providers>`; gate enforcement (`all-individual ≥ <panel-pass-threshold>` AND `blocking == []`); `<weights-doc>` selection | **COR-1602** (Reviewer fan-in pattern) |
 | 5 | Dispatch | direct-vs-worker decision | **COR-1619** (decision tree + worker contract) |
 | 6 | Verify | run verification commands; spot-check invariants | — |
-| 7 | PR open | push to `<pr-push-remote>`; `gh pr create --base main --head <gh-write-identity>:<branch>` | — |
+| 7 | PR open | push to `<pr-push-remote>`; `gh pr create --base main --head <head-spec>` (form depends on topology — see §Phase 7) | — |
 | 8 | Iterate | per-R-push wake-arming (270 s active poll); 3-endpoint bot poll | **COR-1615** (bot-loop semantics); **COR-1602** (code-review panel); **COR-1620** (wake mechanics) |
 | 9 | Triage | finding routing | **COR-1621** (triage tree + severity) |
 | 10 | Handoff + merge-watch | "mergeable" declaration; arm merge-watch wake | **COR-1620** (wake mechanics, merge-watch counter, branch guard) |
@@ -172,9 +172,18 @@ Spot-check 1–2 key invariants from the CHG by reading code (regex flags, const
 ```bash
 git add <specific-paths>                              # never -A
 git commit -m "..."                                   # HEREDOC for formatting
-git push <pr-push-remote> <branch-name>                  # never to origin/main
+git push <pr-push-remote> <branch-name>               # never to origin/main
+
+# gh pr create --head form depends on topology:
+#   Fork-PR    (<pr-push-remote> = a fork remote owned by <gh-write-identity>):
+#     --head <gh-write-identity>:<branch>
+#   Single-remote (<pr-push-remote> = "origin", same repo as <repo>):
+#     --head <branch>     OR     --head <repo-owner>:<branch>
+# The `--head <user>:<branch>` form selects a head repo by owner; pointing at
+# <gh-write-identity> when the branch actually lives on <repo-owner>'s repo
+# would resolve to the wrong head repository or fail to create the PR.
 gh pr create --repo "<repo>" --base main \
-             --head <gh-write-identity>:<branch> ...
+             --head <head-spec> ...
 ```
 
 PR body includes: Summary / Why / Surfaces / Test plan / Files / `Closes #<issue>`. Plan-review gate scores belong in the body when applicable.
@@ -288,3 +297,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-09 | R4: §Phase 4 spec-format mapping rewritten — was `CHG/code/PRP` (different namespace from `<spec-format>` enum); now maps the four enum values (CHG, ADR, RFC, inline-PR-body) to COR-1608/1609 explicitly + clarifies that COR-1610 is selected by code-review-phase, not by spec form. Codex bot R3 P2 finding. | Claude Opus 4.7 |
 | 2026-05-09 | R6: §Failure Modes "CHG abandonment" — `Status: Abandoned` is not in COR-0002's allowed CHG status enum (Proposed/Approved/In Progress/Completed/Rolled Back). Replaced with `Status: Rolled Back`. Codex bot R5 P2 finding (`af validate` would reject CHGs following the previous guidance). | Claude Opus 4.7 |
 | 2026-05-09 | FXA-2277: `<fork-remote>` references renamed to `<pr-push-remote>` (4 sites — §Phases TOC, §Phase 7 routing row, §Phase 7 shell snippet, §Guard Rails). Semantic invariant preserved; only the name changed to accommodate single-remote adopters like alfred. | Claude Opus 4.7 |
+| 2026-05-09 | R2 (PR #119): codex bot R1 P2 — §Phase 7 `gh pr create --head` form was hardcoded to `<gh-write-identity>:<branch>`, which works for fork-PR but breaks for single-remote topology where the branch lives on `<repo-owner>`'s repo. Snippet now documents both forms with topology-conditional comment; `--head <head-spec>` placeholder lets the adopter substitute. Routing-table row also updated. | Claude Opus 4.7 |

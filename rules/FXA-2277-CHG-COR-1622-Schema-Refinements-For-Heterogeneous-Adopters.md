@@ -54,16 +54,16 @@ Both surface honestly only when a non-trinity project tries to instantiate. Alfr
 1. Edit COR-1622 §Identity & repository row for `<fork-remote>` → rename to `<pr-push-remote>` with updated description ("the git remote that PR head branches push to; never `origin/main` directly. Single-remote projects use `origin`; fork-PR projects use `fork`.").
 2. Edit COR-1622 §Review panel row for `<weights-doc>` → change type to `string | map<<spec-format>, string>` and update description.
 3. Edit COR-1622 §Worked Example rows: rename `<fork-remote>` → `<pr-push-remote>` (value stays `fork` for trinity).
-4. Edit COR-1617 §Phase 7 PR-open shell snippet — `<fork-remote>` → `<pr-push-remote>`.
-5. Edit COR-1617 §Guard Rails — `<fork-remote>` → `<pr-push-remote>`.
-6. Edit COR-1505 §Steps + §Examples + §Guard Rails — every `<fork-remote>` → `<pr-push-remote>`.
-7. Add change-history rows on all three files.
-8. Run `af validate --root .` to confirm no structural issues.
-9. (Companion in same PR) Create FXA-2276-REF using the new schema.
-10. Commit + push + PR; trinity panel-review (glm + deepseek) + codex bot iteration.
+4. Edit COR-1617 — every `<fork-remote>` → `<pr-push-remote>`. Sites: §Phases TOC, §Phase 7 routing-table row, §Phase 7 shell snippet, §Guard Rails (4 sites total).
+5. Edit COR-1505 — every `<fork-remote>` → `<pr-push-remote>`. Sites: frontmatter `Related:` field, §Guard Rails, §Examples prose, §Examples shell snippet (3 unique sites; no §Steps reference — that section covers branch creation and identity, not push).
+6. Add change-history rows on all three files.
+7. Run `af validate --root .` to confirm no structural issues.
+8. (Companion in same PR) Create FXA-2276-REF using the new schema.
+9. Commit + push + PR; trinity panel-review (glm + deepseek) + codex bot iteration.
 
 ## Change History
 
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-09 | Initial version — proposed during alfred FXA-2276 instantiation when schema gaps surfaced | Claude Opus 4.7 |
+| 2026-05-09 | R2: glm + deepseek panel R1 convergent advisory — Implementation Plan steps 4-5 phrased the COR-1617/COR-1505 edits inaccurately (Plan said COR-1505 §Steps was edited; actual edits in frontmatter Related, §Guard Rails, §Examples). Renumbered and rewrote steps 4-5 to match the change-history rows; reduced step count from 10 to 9 by merging adjacent COR-1617 sub-steps. No functional change. | Claude Opus 4.7 |
