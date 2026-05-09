@@ -185,6 +185,8 @@
 | 2273 | PRP | AF Tag Star Command And List Filter |
 | 2274 | PRP | AF Star Command Bookmark Documents |
 | 2275 | CHG | FXA 2102 Promote README Check To Numbered Step |
+| 2276 | REF | Multi Agent Loop Configuration |
+| 2277 | CHG | COR 1622 Schema Refinements For Heterogeneous Adopters |
 
 ---
 

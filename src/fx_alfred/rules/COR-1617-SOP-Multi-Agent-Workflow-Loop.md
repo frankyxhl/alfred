@@ -66,7 +66,7 @@ The loop has **11 phases**:
 4. Plan-review             ← N-provider panel per COR-1602
 5. Dispatch                ← orchestrator-vs-worker per COR-1619
 6. Verify implementation   ← read symbols, tests, lint, validate
-7. PR open                 ← push to <fork-remote>; gh pr create
+7. PR open                 ← push to <pr-push-remote>; gh pr create
 8. Iterate                 ← CI poll + bot poll per COR-1615 + code-review panel per COR-1602
 9. Triage                  ← per COR-1621
 10. Handoff + merge-watch  ← user merges; merge-watch wake per COR-1620
@@ -83,7 +83,7 @@ The loop has **11 phases**:
 | 4 | Plan-review | parallel dispatch of `<panel-providers>`; gate enforcement (`all-individual ≥ <panel-pass-threshold>` AND `blocking == []`); `<weights-doc>` selection | **COR-1602** (Reviewer fan-in pattern) |
 | 5 | Dispatch | direct-vs-worker decision | **COR-1619** (decision tree + worker contract) |
 | 6 | Verify | run verification commands; spot-check invariants | — |
-| 7 | PR open | push to `<fork-remote>`; `gh pr create --base main --head <gh-write-identity>:<branch>` | — |
+| 7 | PR open | push to `<pr-push-remote>`; `gh pr create --base main --head <gh-write-identity>:<branch>` | — |
 | 8 | Iterate | per-R-push wake-arming (270 s active poll); 3-endpoint bot poll | **COR-1615** (bot-loop semantics); **COR-1602** (code-review panel); **COR-1620** (wake mechanics) |
 | 9 | Triage | finding routing | **COR-1621** (triage tree + severity) |
 | 10 | Handoff + merge-watch | "mergeable" declaration; arm merge-watch wake | **COR-1620** (wake mechanics, merge-watch counter, branch guard) |
@@ -172,7 +172,7 @@ Spot-check 1–2 key invariants from the CHG by reading code (regex flags, const
 ```bash
 git add <specific-paths>                              # never -A
 git commit -m "..."                                   # HEREDOC for formatting
-git push <fork-remote> <branch-name>                  # never to origin/main
+git push <pr-push-remote> <branch-name>                  # never to origin/main
 gh pr create --repo "<repo>" --base main \
              --head <gh-write-identity>:<branch> ...
 ```
@@ -235,7 +235,7 @@ If a future retrospective phase is added (e.g., per-PR retro), it inserts BEFORE
 - For autonomous picks, never invent work when no candidate is consent-eligible. Idle is not exit — phase 1 arms idle-with-retry per COR-1620 until interrupted (live-chat user-directed pick) or stopped (per COR-1620 §Stop conditions).
 - Never panel-review without `<weights-doc>` in the prompt.
 - Never accept 3-of-N PASS as gate-met when the dissenter raises a blocker (per COR-1621).
-- Never push to `origin/main`. Push to `<fork-remote>`.
+- Never push to `origin/main`. Push to `<pr-push-remote>`.
 - Never bypass the identity gate (per COR-1505).
 - Never trust worker reports without spot-checking (per COR-1619 §Verification).
 - Never sleep > 270 s when actively polling (per COR-1620 cadence rules).
@@ -287,3 +287,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-09 | Initial version — umbrella SOP composing COR-1602 + COR-1615 + COR-1618/1619/1620/1621 + COR-1505 + COR-1104; generalized from trinity TRN-1008 (alfred#115) | Claude Opus 4.7 |
 | 2026-05-09 | R4: §Phase 4 spec-format mapping rewritten — was `CHG/code/PRP` (different namespace from `<spec-format>` enum); now maps the four enum values (CHG, ADR, RFC, inline-PR-body) to COR-1608/1609 explicitly + clarifies that COR-1610 is selected by code-review-phase, not by spec form. Codex bot R3 P2 finding. | Claude Opus 4.7 |
 | 2026-05-09 | R6: §Failure Modes "CHG abandonment" — `Status: Abandoned` is not in COR-0002's allowed CHG status enum (Proposed/Approved/In Progress/Completed/Rolled Back). Replaced with `Status: Rolled Back`. Codex bot R5 P2 finding (`af validate` would reject CHGs following the previous guidance). | Claude Opus 4.7 |
+| 2026-05-09 | FXA-2277: `<fork-remote>` references renamed to `<pr-push-remote>` (4 sites — §Phases TOC, §Phase 7 routing row, §Phase 7 shell snippet, §Guard Rails). Semantic invariant preserved; only the name changed to accommodate single-remote adopters like alfred. | Claude Opus 4.7 |
