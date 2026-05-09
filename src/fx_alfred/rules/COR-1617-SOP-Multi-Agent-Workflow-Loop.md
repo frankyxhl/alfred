@@ -188,6 +188,10 @@ gh pr create --repo "<repo>" --base main \
 
 PR body includes: Summary / Why / Surfaces / Test plan / Files / `Closes #<issue>`. Plan-review gate scores belong in the body when applicable.
 
+The closing token must be **bare** — `Closes #<N>` (or `Fixes #<N>` / `Resolves #<N>`) with nothing between the verb and the `#<N>` ref except whitespace, since GitHub's auto-linker matches `(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+(?:[\w.-]+/[\w.-]+)?#\d+`. Phrasings like `Closes routing gap from issue #126` or `Closes issue #127` do not fire the parser, even though they read naturally — the issue stays open after merge and must be closed by hand. Place the token on its own line or as a leading clause of a sentence; the descriptive scope sentence ("…closes the routing gap surfaced in issue #126…") goes elsewhere.
+
+Verify the auto-link before merge: `gh pr view <N> --repo <repo> --json closingIssuesReferences` must list every issue this PR is intended to close. An empty array means the parser didn't match — fix the body via `gh pr edit <N> --body-file <path>` and re-check, rather than relying on a manual close after merge.
+
 ### Phase 8 — Iterate
 
 After every R-push, arm a poll wake per COR-1620 (cadence 270 s for active polling, 1200–1800 s for long-running CI/panel).
@@ -298,3 +302,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-09 | R6: §Failure Modes "CHG abandonment" — `Status: Abandoned` is not in COR-0002's allowed CHG status enum (Proposed/Approved/In Progress/Completed/Rolled Back). Replaced with `Status: Rolled Back`. Codex bot R5 P2 finding (`af validate` would reject CHGs following the previous guidance). | Claude Opus 4.7 |
 | 2026-05-09 | FXA-2277: `<fork-remote>` references renamed to `<pr-push-remote>` (4 sites — §Phases TOC, §Phase 7 routing row, §Phase 7 shell snippet, §Guard Rails). Semantic invariant preserved; only the name changed to accommodate single-remote adopters like alfred. | Claude Opus 4.7 |
 | 2026-05-09 | R2 (PR #119): codex bot R1 P2 — §Phase 7 `gh pr create --head` form was hardcoded to `<gh-write-identity>:<branch>`, which works for fork-PR but breaks for single-remote topology where the branch lives on `<repo-owner>`'s repo. Snippet now documents both forms with topology-conditional comment; `--head <head-spec>` placeholder lets the adopter substitute. Routing-table row also updated. | Claude Opus 4.7 |
+| 2026-05-10 | §Phase 7: tighten `Closes #<issue>` prescription — the token must be a bare `verb + #N` match for GitHub's auto-linker regex; any intervening words ("Closes routing gap from issue #126", "Closes issue #127") silently disable auto-close on merge. Added the regex inline + a `gh pr view <N> --json closingIssuesReferences` verify step that fires before merge instead of after, so the post-merge "manually close" recovery path is no longer necessary. Evidence: alfred PR #130 (issue #126 stayed open after merge with the first phrasing) and PR #131 (issue #127 with the second phrasing). | Claude Opus 4.7 |
