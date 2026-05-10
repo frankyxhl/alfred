@@ -104,9 +104,11 @@ If a case produces the wrong action: identify the miscalibrated dimension and ad
 
 ### Step 6 — Set action thresholds
 
-1. Pick the clearest "definitely action X" case → its composite is the floor of band X
-2. Pick the clearest "definitely not action X" case → its composite is the ceiling of the band below X
-3. The gap is the "uncertain" middle band — **strongly preferred**. A pure binary threshold (no middle band) is permitted only with explicit written justification. Note: COR-1608/1609/1610 use binary pass/fail (≥9.0) — intentional exceptions, not violations.
+Use boundary cases — the weakest acceptable and the strongest unacceptable — not the clearest extremes:
+
+1. Pick the **weakest case that still clearly deserves action X** → its composite is the upper evidence bound for the threshold (threshold must be ≤ this composite)
+2. Pick the **strongest case that clearly does NOT deserve action X** → its composite is the lower evidence bound (threshold must be > this composite)
+3. Set the threshold in the gap between those two composites. That gap is the **"uncertain" middle band** — strongly preferred. A pure binary threshold (no middle band) is permitted only with explicit written justification. Note: COR-1608/1609/1610 use binary pass/fail (≥9.0) — intentional exceptions, not violations.
 
 ### Step 7 — Validate
 

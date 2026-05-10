@@ -74,6 +74,7 @@ Discard any dimension that fails any test. If you have > 6 passing dimensions, t
 3. Apply the **isolation test**: *"If all other dimensions score 5, does moving THIS dimension from 0 → 10 change the composite outcome in a way that feels right?"*
 4. Warning: weight > 40% → consider as a gate condition instead
 5. Warning: weight < 10% → drop or merge
+6. **Equal weights after forced ranking are permitted** when two adjacent-ranked dimensions are genuinely indistinguishable in importance — the ranking still records the tiebreaker for edge cases even when weights are the same.
 
 ### Step 4 — Write anchors
 
@@ -138,7 +139,7 @@ Five dimensions pass all four tests.
 
 **Weight assignment (Step 3):**
 
-Forced ranking from most to least critical: Correctness = Test Coverage > Simplicity > Code Style = Security. Authors assigned:
+Forced ranking (no ties): Correctness (1st) > Test Coverage (2nd) > Simplicity (3rd) > Security (4th) > Code Style (5th). The top two and bottom two pairs are close in importance; per Step 3 rule 6, equal weights are assigned where importance is genuinely indistinguishable:
 
 | Dimension | Weight | Isolation test result |
 |-----------|--------|-----------------------|
@@ -221,3 +222,4 @@ Composite: 0.25×9 + 0.25×10 + 0.15×8 + 0.15×10 + 0.20×9 = 2.25 + 2.5 + 1.2 
 | 2026-05-10 | Initial version per CHG FXA-2281 (issue #135). ACID disambiguation verified: COR-1802 resolves to this file; CLD-1802 resolves to `~/.claude/rules/CLD-1802-CHG-Atomicity-Surface-Definition-+-Signal-Grep-Scope.md`. | Claude Sonnet 4.6 |
 | 2026-05-10 | R2: fix isolation-test arithmetic in §Worked Example (codex bot P2). For a dimension with weight w%, the isolation-test range is 5(1−w)→5+5w with all others at 5. Five rows corrected: Correctness/TestCoverage 3.75→6.25, Simplicity 4.0→6.0, CodeStyle/Security 4.25→5.75. | Claude Sonnet 4.6 |
 | 2026-05-10 | R3: fix Step 6 threshold instruction (codex bot P2). Use weakest-acceptable/strongest-unacceptable as boundary evidence, not clearest extremes. Updated worked example §Threshold to use Case C (9.25 weakest PASS) and Case B (5.65 strongest FIX) as the boundary pair. | Claude Sonnet 4.6 |
+| 2026-05-10 | R4: (1) fix CHG §SOP Draft Step 6 to match corrected SOP wording (codex bot P2 on CHG line 109); (2) break tied-rank notation in §Worked Example (codex bot P2 on line 141) — now strict ordering with equal-weight clarification added to Step 3 rule 6. | Claude Sonnet 4.6 |
