@@ -48,6 +48,7 @@ A reference index of all documents in the COR system.
 | 1503 | SOP | Diagnose Feedback Loop |
 | 1504 | REF | Diagnose Phase Gates |
 | 1505 | SOP | Branch and Identity Hygiene |
+| 1506 | SOP | Review GitHub Issue Quality |
 | 1600 | SOP | Workflow — Direct Review Loop |
 | 1601 | SOP | Workflow — Leader Mediated Review Loop |
 | 1602 | SOP | Workflow — Multi Model Parallel Review |
@@ -101,3 +102,4 @@ A reference index of all documents in the COR system.
 | 2026-05-07 | Added COR-1616 (Contract-First Delivery Workflow — promoted from BAB-1503 per issue #106). | Claude Code |
 | 2026-05-09 | Added COR-1617 cluster (1617/1618/1619/1620/1621/1622) + COR-1505 + COR-1104 — promoted from trinity TRN-1008 per alfred#115. | Claude Opus 4.7 |
 | 2026-05-10 | Added COR-1802 (Build Weighted Decision Matrix) per CHG FXA-2281 (issue #135). | Claude Sonnet 4.6 |
+| 2026-05-10 | Added COR-1506 (Review GitHub Issue Quality) per issue #136. | Claude Sonnet 4.6 |
