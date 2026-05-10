@@ -140,11 +140,11 @@ Forced ranking from most to least critical: Correctness = Test Coverage > Simpli
 
 | Dimension | Weight | Isolation test result |
 |-----------|--------|-----------------------|
-| Correctness | 25% | Moving correctness 0→10 (all others at 5) shifts composite from 5.0 to 7.5 — meaningful, feels right |
-| Test Coverage | 25% | Same delta — confirms equal standing with correctness |
-| Simplicity | 20% | Shifts composite 5.0→6.0 — appropriate third-tier influence |
-| Code Style | 15% | Shifts composite 5.0→5.75 — advisory-level influence |
-| Security | 15% | Same as Code Style numerically, but any security issue would score near 0, making this effectively a gate in practice |
+| Correctness | 25% | Moving correctness 0→10 (all others at 5) shifts composite from 3.75 to 6.25 — a 2.5-point swing, meaningful relative to a 10-point range |
+| Test Coverage | 25% | Same delta (3.75→6.25) — confirms equal standing with correctness |
+| Simplicity | 20% | Shifts composite 4.0→6.0 — appropriate third-tier influence |
+| Code Style | 15% | Shifts composite 4.25→5.75 — advisory-level influence |
+| Security | 15% | Same delta as Code Style (4.25→5.75), but any security issue would score near 0, making this effectively a gate in practice |
 
 No weight exceeds 40%, no weight falls below 10%. All weights sum to 100%.
 
@@ -217,3 +217,4 @@ Composite: 0.25×9 + 0.25×10 + 0.15×8 + 0.15×10 + 0.20×9 = 2.25 + 2.5 + 1.2 
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-10 | Initial version per CHG FXA-2281 (issue #135). ACID disambiguation verified: COR-1802 resolves to this file; CLD-1802 resolves to `~/.claude/rules/CLD-1802-CHG-Atomicity-Surface-Definition-+-Signal-Grep-Scope.md`. | Claude Sonnet 4.6 |
+| 2026-05-10 | R2: fix isolation-test arithmetic in §Worked Example (codex bot P2). For a dimension with weight w%, the isolation-test range is 5(1−w)→5+5w with all others at 5. Five rows corrected: Correctness/TestCoverage 3.75→6.25, Simplicity 4.0→6.0, CodeStyle/Security 4.25→5.75. | Claude Sonnet 4.6 |
