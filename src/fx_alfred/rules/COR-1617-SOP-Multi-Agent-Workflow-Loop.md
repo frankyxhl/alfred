@@ -295,7 +295,7 @@ The wake's prompt MUST include the FIRST stop-marker guard and SECOND branch gua
 
 ### Reviewer / provider unavailability
 
-A provider call that times out, returns non-2xx, or emits malformed JSON does NOT count as a verdict. Retry per `<cli-retry-attempts>` (default 3 per COR-1622 §Resilience) with the same prompt; if all attempts fail, mark the provider unavailable for this round. Proceed with N-1 only if N-1 ≥ 3 AND the failed provider wasn't the prior round's dissenter; otherwise abort the panel and surface the outage. Always document the missing reviewer in the PR body.
+A provider call that times out, returns non-2xx, or emits malformed JSON does NOT count as a verdict. Retry per `<cli-retry-attempts>` (default 3 per COR-1622 §Resilience) with the same prompt; if all attempts fail, apply `<cli-retry-on-failure>` (default `pause-and-ask` per COR-1622 §Resilience). When `<cli-retry-on-failure>` = `mark-non-viable`: proceed with N-1 only if N-1 ≥ 3 AND the failed provider wasn't the prior round's dissenter; otherwise abort the panel and surface the outage. Always document the missing reviewer in the PR body.
 
 Below 3 viable: convergence signal collapses; do NOT proceed with 2-of-2.
 
@@ -343,4 +343,5 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-10 | FXA-2283 R5: §Phase 11 Step 1 R-count command — `gh pr view #<N>` → `gh pr view <N>` with note that `#` after whitespace starts a POSIX comment and drops the argument. Codex bot R4 P2 finding. | Claude Code |
 | 2026-05-10 | FXA-2283 R6: §Phase 11 Step 1 — R-count note updated: commit count is accurate only when one-commit-per-round guard rail holds; if admin-only commits precede a review request, adjust manually (codex bot R5 P2 / Thread 5). Trinity-miss/codex-catch definition updated: requires panel findings posted as GitHub review comments; if panel ran in-session via Skill(trinity), output `n/a — panel findings not GitHub-accessible` (Thread 6). Emit template updated to allow `n/a`. | Claude Code |
 | 2026-05-10 | FXA-2283 R7: §Phase 11 Step 1 R-count — "adjust manually" expanded with method hint (inspect commit messages/timestamps, subtract admin-only commits). GLM advisory A4. | Claude Code |
-| 2026-05-10 | FXA-148: §Failure Modes — "Retry once" → "Retry per `<cli-retry-attempts>` (default 3 per COR-1622 §Resilience)"; "if it still fails" → "if all attempts fail". Parameterizes the hardcoded retry count to defer to COR-1622. GLM/DeepSeek advisory on PR #147 R1. | Claude Sonnet 4.6 |
+| 2026-05-10 | FXA-148 R1: §Failure Modes — "Retry once" → "Retry per `<cli-retry-attempts>` (default 3 per COR-1622 §Resilience)"; "if it still fails" → "if all attempts fail". Parameterizes the hardcoded retry count to defer to COR-1622. GLM/DeepSeek advisory on PR #147 R1. | Claude Sonnet 4.6 |
+| 2026-05-10 | FXA-148 R2: §Failure Modes — also parameterize exhaustion action: "mark the provider unavailable for this round" → "apply `<cli-retry-on-failure>` (default `pause-and-ask`)"; N-1/dissenter guard-rail conditionalized to `mark-non-viable` branch only. GLM P1-B1 on PR #149 R1. | Claude Sonnet 4.6 |
