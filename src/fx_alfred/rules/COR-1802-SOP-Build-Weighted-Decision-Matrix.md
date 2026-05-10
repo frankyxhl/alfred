@@ -93,9 +93,11 @@ If a case produces the wrong action: identify the miscalibrated dimension and ad
 
 ### Step 6 — Set action thresholds
 
-1. Pick the clearest "definitely action X" case → its composite is the floor of band X
-2. Pick the clearest "definitely not action X" case → its composite is the ceiling of the band below X
-3. The gap is the "uncertain" middle band — **strongly preferred**. A pure binary threshold (no middle band) is permitted only with explicit written justification. Note: COR-1608/1609/1610 use binary pass/fail (≥9.0) — intentional exceptions, not violations.
+Use boundary cases — the weakest acceptable and the strongest unacceptable — not the clearest extremes:
+
+1. Pick the **weakest case that still clearly deserves action X** → its composite is the upper evidence bound for the threshold (threshold must be ≤ this composite)
+2. Pick the **strongest case that clearly does NOT deserve action X** → its composite is the lower evidence bound (threshold must be > this composite)
+3. Set the threshold in the gap between those two composites. That gap is the **"uncertain" middle band** — strongly preferred. A pure binary threshold (no middle band) is permitted only with explicit written justification. Note: COR-1608/1609/1610 use binary pass/fail (≥9.0) — intentional exceptions, not violations.
 
 ### Step 7 — Validate
 
@@ -194,7 +196,7 @@ Composite: 0.25×6 + 0.25×0 + 0.15×8 + 0.15×9 + 0.20×8 = 1.5 + 0 + 1.2 + 1.3
 
 Composite: 0.25×9 + 0.25×10 + 0.15×8 + 0.15×10 + 0.20×9 = 2.25 + 2.5 + 1.2 + 1.5 + 1.8 = **9.25 → PASS**. Calibration: correct.
 
-**Threshold (Step 6):** Case A (10.0) is the clearest PASS; Case B (5.65) is the clearest FIX. The ≥9.0 threshold is set between them. Binary threshold is explicitly justified: code review decisions require a deterministic merge gate — human negotiation of a "maybe" band would slow delivery without improving quality, and advisory findings are already captured in reviewer comments rather than the score.
+**Threshold (Step 6):** The boundary cases are: Case C (9.25) is the weakest case that clearly deserves PASS (threshold must be ≤ 9.25); Case B (5.65) is the strongest case that clearly deserves FIX (threshold must be > 5.65). The ≥9.0 threshold is set in the gap between 5.65 and 9.25, anchored near the weakest-PASS bound. Binary threshold is explicitly justified: code review decisions require a deterministic merge gate — human negotiation of a "maybe" band would slow delivery without improving quality, and advisory findings are already captured in reviewer comments rather than the score.
 
 **Validation (Step 7):** All three calibration cases cover the two bands (FIX, PASS). Case C (9.25) is a boundary case within ±0.5 of the 9.0 cutoff. Case B is initially counterintuitive (a clean-looking refactor fails) — exactly the edge case type Step 7 requires.
 
@@ -218,3 +220,4 @@ Composite: 0.25×9 + 0.25×10 + 0.15×8 + 0.15×10 + 0.20×9 = 2.25 + 2.5 + 1.2 
 |------|--------|----|
 | 2026-05-10 | Initial version per CHG FXA-2281 (issue #135). ACID disambiguation verified: COR-1802 resolves to this file; CLD-1802 resolves to `~/.claude/rules/CLD-1802-CHG-Atomicity-Surface-Definition-+-Signal-Grep-Scope.md`. | Claude Sonnet 4.6 |
 | 2026-05-10 | R2: fix isolation-test arithmetic in §Worked Example (codex bot P2). For a dimension with weight w%, the isolation-test range is 5(1−w)→5+5w with all others at 5. Five rows corrected: Correctness/TestCoverage 3.75→6.25, Simplicity 4.0→6.0, CodeStyle/Security 4.25→5.75. | Claude Sonnet 4.6 |
+| 2026-05-10 | R3: fix Step 6 threshold instruction (codex bot P2). Use weakest-acceptable/strongest-unacceptable as boundary evidence, not clearest extremes. Updated worked example §Threshold to use Case C (9.25 weakest PASS) and Case B (5.65 strongest FIX) as the boundary pair. | Claude Sonnet 4.6 |
