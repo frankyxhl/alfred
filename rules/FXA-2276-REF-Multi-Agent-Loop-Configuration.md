@@ -73,6 +73,14 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 | `<idle-cap>` | `12` | default — 6 h @ 1800 s |
 | `<merge-watch-cap>` | `24` | default — 12 h @ 1800 s |
 
+### R-count cap (COR-1617 §Phase 8)
+
+| Key | Alfred value | Notes |
+|-----|--------------|-------|
+| `<max-r-count>` | `10` | default |
+| `<max-r-count-extension>` | `3` | default — hard stop at R13 |
+| `<convergence-severity>` | `advisory` | default — P0/P1/P2 open blocks extension; advisory-only triggers convergence |
+
 ---
 
 ## Invocation
@@ -170,3 +178,4 @@ These project-specific deviations are intentional and not gaps in the SOP:
 | 2026-05-10 | FXA-2283 R2: renumber 11-phase → 12-phase; Phase 11 = Retrospective (new synchronous phase); Phase 12 = Loop restart (formerly Phase 11); update all §11 references to §12; add Phase 11 Retrospective row to §Adoption Status; update §Invocation `follow FXA-2276 once` to stop after phase 11; update Known Risk §11 → §12. | Claude Code |
 | 2026-05-10 | FXA-2283 R3: Phase 11 row — add alfred deviation note (git-pull no-op pre-merge under FXA-2280 mergeable trigger; update COR-1615 endpoint reference to §Commands); `follow FXA-2276 for #N` — fix phases 2–10 → 2–11, add "no §12 wake" clause. | Claude Code |
 | 2026-05-10 | FXA-2283 R6: Phase 11 row — add Alfred deviation note for Trinity-miss/codex-catch: alfred dispatches the panel via Skill(trinity) in-session; findings not GitHub-re-fetchable; output `n/a — panel findings not GitHub-accessible`. | Claude Code |
+| 2026-05-10 | Issue #144: add §R-count cap section instantiating `<max-r-count>` = 10, `<max-r-count-extension>` = 3, `<convergence-severity>` = advisory (all defaults). | Claude Sonnet 4.6 |

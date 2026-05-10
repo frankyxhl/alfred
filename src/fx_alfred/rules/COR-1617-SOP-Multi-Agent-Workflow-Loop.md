@@ -219,6 +219,18 @@ CI status splits four ways:
 
 Code-review panel runs once per HEAD when CI is green AND bot has reviewed the current HEAD. Panel gate per phase 4. If gate met → phase 10. If gate not met → triage per phase 9 → push R<n+1> → loop back.
 
+### Round-count cap
+
+Cap check fires on every round where R-number ≥ `<max-r-count>` (default 10 per COR-1622 §R-count cap). Evaluate in order:
+
+| Case | Condition | Action |
+|------|-----------|--------|
+| **A — Converged** | All remaining findings are at or below `<convergence-severity>` (default `advisory` — no P0/P1/P2 open) | Declare convergence. Proceed to Phase 10. No user alert. |
+| **B — Extension** | P0/P1/P2 still open AND R-number < `<max-r-count>` + `<max-r-count-extension>` | Log: "R\<N\>: unresolved P\<k\> findings; self-authorizing extension round \<ext#\>." Continue Phase 8. |
+| **C — Hard stop** | R-number == `<max-r-count>` + `<max-r-count-extension>` | Halt. Surface to user: "PR #\<N\> reached R\<count\> (soft cap `<max-r-count>` + `<max-r-count-extension>` extension rounds). Remaining: P0=\<n\> P1=\<n\> P2=\<n\> advisory=\<n\>. Trend: \<converging / flat / diverging\>. Recommend: [merge as-is / address manually / close]. Awaiting decision." |
+
+Case C check takes priority: evaluate C first, then A, then B. If C fires, do NOT proceed to Phase 10 — await operator decision.
+
 ### Phase 9 — Triage
 
 Apply COR-1621 to every finding. Plan-review architectural blockers go back to phase 4 (re-dispatch panel after CHG fix); code-review and bot findings flow through the severity tree. Re-dispatch the panel only when blockers (or convergent advisories) were addressed.
@@ -347,3 +359,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-10 | FXA-148 R2: §Failure Modes — also parameterize exhaustion action: "mark the provider unavailable for this round" → "apply `<cli-retry-on-failure>` (default `pause-and-ask`)"; N-1/dissenter guard-rail conditionalized to `mark-non-viable` branch only. GLM P1-B1 on PR #149 R1. | Claude Sonnet 4.6 |
 | 2026-05-10 | FXA-148 R3: §Failure Modes — add `<cli-retry-backoff-seconds>` (default 600 s) between retry attempts; codex bot P2 Thread 2 on PR #149 R2. | Claude Sonnet 4.6 |
 | 2026-05-10 | FXA-148 R4: §Failure Modes — expand failure-condition list to include "exits non-zero" and "uses a missing binary" (matching COR-1622 §Resilience trigger list); previously only timeout/non-2xx/malformed-JSON were listed, leaving CLI-specific failure modes outside the retry path. | Claude Sonnet 4.6 |
+| 2026-05-10 | Issue #144: §Phase 8 — add §Round-count cap: three-tier logic (Case A converged / Case B extension / Case C hard stop) with parameters `<max-r-count>` (default 10), `<max-r-count-extension>` (default 3), `<convergence-severity>` (default advisory) defined in COR-1622 §R-count cap. Prevents unbounded iteration loops. | Claude Sonnet 4.6 |
