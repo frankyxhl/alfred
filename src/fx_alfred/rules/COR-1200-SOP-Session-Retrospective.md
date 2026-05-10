@@ -1,8 +1,8 @@
 # SOP-1200: Session Retrospective
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-17
-**Last reviewed:** 2026-03-17
+**Last updated:** 2026-05-10
+**Last reviewed:** 2026-05-10
 **Status:** Active
 **Last executed:** —
 
