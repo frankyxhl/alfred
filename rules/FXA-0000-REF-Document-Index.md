@@ -190,6 +190,8 @@
 | 2278 | CHG | Add FXA 2276 Invocation Shorthand |
 | 2279 | CHG | Codify GitHub App PR Review Bot Scope Hint Technique In COR 1612 + COR 1615 |
 | 2280 | CHG | FXA 2276 Phase 10 Mergeable Trigger |
+| 2281 | CHG | Add COR 1802 Build Weighted Decision Matrix SOP |
+| 2282 | CHG | Add Scoring to COR 1200 Session Retrospective |
 | 2283 | CHG | Add Retrospective Phase to COR 1617 |
 
 ---
