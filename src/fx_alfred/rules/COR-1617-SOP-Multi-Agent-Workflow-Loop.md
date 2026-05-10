@@ -295,7 +295,7 @@ The wake's prompt MUST include the FIRST stop-marker guard and SECOND branch gua
 
 ### Reviewer / provider unavailability
 
-A provider call that times out, returns non-2xx, or emits malformed JSON does NOT count as a verdict. Retry per `<cli-retry-attempts>` (default 3 per COR-1622 §Resilience), waiting `<cli-retry-backoff-seconds>` between attempts (default 600 s); if all attempts fail, apply `<cli-retry-on-failure>` (default `pause-and-ask` per COR-1622 §Resilience). When `<cli-retry-on-failure>` = `mark-non-viable`: proceed with N-1 only if N-1 ≥ 3 AND the failed provider wasn't the prior round's dissenter; otherwise abort the panel and surface the outage. Always document the missing reviewer in the PR body.
+A provider call that times out, exits non-zero, uses a missing binary, returns non-2xx, or emits malformed JSON does NOT count as a verdict. Retry per `<cli-retry-attempts>` (default 3 per COR-1622 §Resilience), waiting `<cli-retry-backoff-seconds>` between attempts (default 600 s); if all attempts fail, apply `<cli-retry-on-failure>` (default `pause-and-ask` per COR-1622 §Resilience). When `<cli-retry-on-failure>` = `mark-non-viable`: proceed with N-1 only if N-1 ≥ 3 AND the failed provider wasn't the prior round's dissenter; otherwise abort the panel and surface the outage. Always document the missing reviewer in the PR body.
 
 Below 3 viable: convergence signal collapses; do NOT proceed with 2-of-2.
 
@@ -346,3 +346,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-10 | FXA-148 R1: §Failure Modes — "Retry once" → "Retry per `<cli-retry-attempts>` (default 3 per COR-1622 §Resilience)"; "if it still fails" → "if all attempts fail". Parameterizes the hardcoded retry count to defer to COR-1622. GLM/DeepSeek advisory on PR #147 R1. | Claude Sonnet 4.6 |
 | 2026-05-10 | FXA-148 R2: §Failure Modes — also parameterize exhaustion action: "mark the provider unavailable for this round" → "apply `<cli-retry-on-failure>` (default `pause-and-ask`)"; N-1/dissenter guard-rail conditionalized to `mark-non-viable` branch only. GLM P1-B1 on PR #149 R1. | Claude Sonnet 4.6 |
 | 2026-05-10 | FXA-148 R3: §Failure Modes — add `<cli-retry-backoff-seconds>` (default 600 s) between retry attempts; codex bot P2 Thread 2 on PR #149 R2. | Claude Sonnet 4.6 |
+| 2026-05-10 | FXA-148 R4: §Failure Modes — expand failure-condition list to include "exits non-zero" and "uses a missing binary" (matching COR-1622 §Resilience trigger list); previously only timeout/non-2xx/malformed-JSON were listed, leaving CLI-specific failure modes outside the retry path. | Claude Sonnet 4.6 |
