@@ -52,7 +52,7 @@ COR-1802 fills the gap: any agent or human follows it to produce a well-formed, 
    - §Steps 1–8 (see §SOP Draft below for content)
    - §Worked Example — trace COR-1610 (Code Review Scoring, already existing) through all 8 steps
    - §Guard Rails
-3. Edit `COR-1800` §Evaluation Rubric intro: add forward-reference line "See COR-1802 for the meta-framework for building and calibrating weighted rubrics like this one." (not a compliance claim — COR-1800 pre-dates COR-1802)
+3. Edit `COR-1800` §Evaluation Rubric intro: add forward-reference clause "See COR-1802 for the meta-framework for building and calibrating weighted rubrics like this one." (not a compliance claim — COR-1800 pre-dates COR-1802)
 4. `af validate --root /Users/frank/Projects/alfred` — must pass
 5. Verify `af read COR-1802` and `af read CLD-1802` each resolve to their respective docs
 6. Push branch `fxa-135-cor-1802-weighted-decision-matrix`, open PR with `Closes #135`
