@@ -16,7 +16,7 @@
 
 Add `COR-1802-SOP-Build-Weighted-Decision-Matrix.md` — a PKG-layer SOP that codifies how to design, calibrate, and validate a weighted scoring rubric for any decision domain (retrospective findings, code review, evolution candidates, PR triage, etc.).
 
-Also add a one-line "built per COR-1802" back-reference to `COR-1800-REF-Evolution-Philosophy.md` §Evaluation Rubric.
+Also add a one-line forward-reference to COR-1802 in `COR-1800-REF-Evolution-Philosophy.md` §Evaluation Rubric (not a compliance claim — COR-1800 pre-dates COR-1802).
 
 No CLI changes. No new schema fields.
 
