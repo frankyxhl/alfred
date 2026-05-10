@@ -77,7 +77,7 @@ Trinity-miss/codex-catch: <finding class or "none">
 - If found: note "matches memory entry — known pattern, no write needed."
 - If not found AND (class recurred ≥2 rounds in this PR OR was a codex-only catch): present memory candidate to user; write only on confirmation.
 
-**Step 3 — CHG nomination.** Using only in-PR evidence (session state from this Phase 11 turn — verdict log and bot findings), nominate a CHG if any of these holds:
+**Step 3 — CHG nomination.** Using only in-PR evidence (GitHub PR evidence re-fetched in Step 1 — bot review comments and R-count from PR #<N>), nominate a CHG if any of these holds:
 - Same finding class recurred across ≥2 rounds within this PR
 - Same codex-vs-trinity detection gap repeated across ≥2 rounds
 - R-count ≥ 4 on the same class
@@ -113,3 +113,4 @@ Output a 3-line nomination (target SOP, evidence — round numbers and finding c
 | 2026-05-10 | R1 fixes: added Impact Analysis (B1/GLM); added COR-1620 §Primitives AC (A1/GLM); scoped Step 3 to in-PR evidence only to resolve statefulness gap (B2/DeepSeek); added COR-1621 ref to Step 1; abstracted MEMORY path (A2/GLM) | Claude Code |
 | 2026-05-10 | R2 fixes (bot P2s): Step 1 — add GitHub re-fetch instruction (session state unavailable in merge-watch wake turn); Step 3 — replace "session state" with "GitHub PR evidence re-fetched in Step 1"; update COR-1200 §Scoring note (PR #138 shipped); add FXA-2276 to Targets + Surfaces + Impact Analysis (stale 11→12 references fixed). | Claude Code |
 | 2026-05-10 | R3 fixes (GLM B1/A, DeepSeek B1/A1/A2/A3 convergent): Step 1 — explicit jq R-count command + assumption note; COR-1615 §Commands three endpoints named; COR-1621 re-apply instruction; Late-catch and Trinity-miss derivation rules added. Step 3 note: "interim" → "remains the default". FXA-2276: Phase 11 deviation note (git-pull no-op pre-merge); `for #N` phases 2–10 → 2–11. | Claude Code |
+| 2026-05-10 | R4 (bot P2): §Phase 11 Draft Content Step 3 — replace stale "session state from this Phase 11 turn" with "GitHub PR evidence re-fetched in Step 1" to match COR-1617 R2/R3 fix. | Claude Code |
