@@ -37,7 +37,7 @@ Signal Collection → Candidate Generation → Evaluation → Implementation →
 
 ## Evaluation Rubric
 
-Numeric, project-customizable via COR-to-PRJ override contract (see below). Built per COR-1802 (Build Weighted Decision Matrix).
+Numeric, project-customizable via COR-to-PRJ override contract (see below). See COR-1802 for the meta-framework for building and calibrating weighted rubrics like this one.
 
 ### Code Evolution (default weights)
 

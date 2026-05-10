@@ -34,7 +34,7 @@ COR-1802 fills the gap: any agent or human follows it to produce a well-formed, 
 | File | Action |
 |------|--------|
 | `src/fx_alfred/rules/COR-1802-SOP-Build-Weighted-Decision-Matrix.md` | **Create** — new PKG-layer SOP |
-| `src/fx_alfred/rules/COR-1800-REF-Evolution-Philosophy.md` | **Edit** — add one-line "Per COR-1802" note to §Evaluation Rubric |
+| `src/fx_alfred/rules/COR-1800-REF-Evolution-Philosophy.md` | **Edit** — add one-line forward-reference to COR-1802 in §Evaluation Rubric (not a compliance claim; COR-1800 pre-dates COR-1802 and lacks required anchors/calibration sections) |
 
 **Out of scope in this CHG:** `COR-1200-SOP-Session-Retrospective.md` also receives a "built per COR-1802" back-reference, but COR-1200 §Scoring does not yet exist — that edit is deferred to the issue #134 implementer, who adds it as part of creating §Scoring.
 
@@ -153,7 +153,7 @@ Do not build a weighted matrix when any of the following conditions apply:
 - [ ] Threshold: middle "uncertain" band required (pure binary forbidden without justification)
 - [ ] "When NOT to Use" covers ≥3 disqualifying conditions
 - [ ] ≥1 worked example using COR-1610 (or other real existing COR matrix)
-- [ ] COR-1800 adds one-line "built per COR-1802" back-reference
+- [ ] COR-1800 adds one-line forward-reference to COR-1802 (not a compliance claim)
 - [ ] `af validate --root /Users/frank/Projects/alfred` passes
 - [ ] `af read COR-1802` and `af read CLD-1802` each resolve correctly
 - [ ] Trinity fast-review (glm + deepseek) both ≥ 9.0
