@@ -1,8 +1,8 @@
 # SOP-1617: Multi-Agent Workflow Loop
 
 **Applies to:** All projects with a multi-provider review setup and an autonomous-orchestrator capability
-**Last updated:** 2026-05-09
-**Last reviewed:** 2026-05-09
+**Last updated:** 2026-05-10
+**Last reviewed:** 2026-05-10
 **Status:** Active
 **Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema)
 
@@ -12,7 +12,7 @@
 
 The end-to-end loop a multi-agent orchestrator runs to ship a PR through a multi-provider review panel: pick the next issue, plan, panel-review the plan, dispatch implementation, verify, panel-review the code, iterate on bot/CI findings, hand off to the user for merge, then auto-pick the next issue.
 
-This SOP is the **umbrella**: it sequences the eleven phases and routes each phase to its atomic SOP. It does not own consent-gate semantics (COR-1618), worker-dispatch decisions (COR-1619), wakeup mechanics (COR-1620), or triage logic (COR-1621); each is a single-surface SOP composed here.
+This SOP is the **umbrella**: it sequences the twelve phases and routes each phase to its atomic SOP. It does not own consent-gate semantics (COR-1618), worker-dispatch decisions (COR-1619), wakeup mechanics (COR-1620), or triage logic (COR-1621); each is a single-surface SOP composed here.
 
 It also does not own the panel-review pattern itself (delegated to COR-1602) or the bot-poll pattern (delegated to COR-1615) — those are the prior-art PKG SOPs this loop is built on top of.
 
@@ -57,7 +57,7 @@ The phases below reference parameters by `<key>`. See COR-1622 for the full key 
 
 ## Phases
 
-The loop has **11 phases**:
+The loop has **12 phases**:
 
 ```
 1. Auto-pick               ← consent gate per COR-1618
@@ -70,7 +70,8 @@ The loop has **11 phases**:
 8. Iterate                 ← CI poll + bot poll per COR-1615 + code-review panel per COR-1602
 9. Triage                  ← per COR-1621
 10. Handoff + merge-watch  ← user merges; merge-watch wake per COR-1620
-11. Loop restart           ← post-handoff wake per COR-1620
+11. Retrospective          ← synchronous; no wakeup
+12. Loop restart           ← post-handoff wake per COR-1620
 ```
 
 ### Phase-to-SOP routing
@@ -87,7 +88,8 @@ The loop has **11 phases**:
 | 8 | Iterate | per-R-push wake-arming (270 s active poll); 3-endpoint bot poll | **COR-1615** (bot-loop semantics); **COR-1602** (code-review panel); **COR-1620** (wake mechanics) |
 | 9 | Triage | finding routing | **COR-1621** (triage tree + severity) |
 | 10 | Handoff + merge-watch | "mergeable" declaration; arm merge-watch wake | **COR-1620** (wake mechanics, merge-watch counter, branch guard) |
-| 11 | Loop restart | post-handoff 60 s wake to re-enter phase 1 | **COR-1620** (wake mechanics) |
+| 11 | Retrospective | metrics block; pattern check; CHG nomination | — (synchronous; no delegation) |
+| 12 | Loop restart | post-handoff 60 s wake to re-enter phase 1 | **COR-1620** (wake mechanics) |
 
 ### Phase 1 — Auto-pick
 
@@ -229,17 +231,49 @@ When PR is mergeable (CI green, bot 👍, panel gate met, no open blockers):
 - The repo owner merges manually. `<gh-write-identity>` typically cannot merge under branch protection — that is intentional.
 - Do NOT spam `gh pr merge --auto` retries; the GraphQL endpoint will reject.
 - Arm a **merge-watch** wake per COR-1620: 1800 s cadence, counter `merge-watch wake N of <merge-watch-cap> for branch <BRANCH_NAME>`, polls `gh pr view <N> --json mergedAt -q .mergedAt` on wake.
-- On merge detected: cleanup (`git switch main && git pull --ff-only origin main`) and arm phase 11.
+- On merge detected: cleanup (`git switch main && git pull --ff-only origin main`), execute Phase 11 (Retrospective), then arm Phase 12.
 
 The merge-watch wake's branch guard (per COR-1620 Primitive 3) ensures that if the user switches off the watched branch to do other work, the wake becomes a no-op without auto-switching.
 
-### Phase 11 — Loop restart
+### Phase 11 — Retrospective
 
-After phase 10 completes (PR merged + main checked out + main pulled), arm a single 60 s wake (per COR-1620's hard floor) whose prompt re-runs phase 1. The 60 s captures the post-handoff burst window where the operator may signal a queued issue immediately after merge.
+Synchronous — runs immediately after Phase 10 cleanup (`git switch main && git pull --ff-only origin main`). No wakeup armed; no panel review. Optional steps (Steps 2–3) require user confirmation before writing.
+
+**Step 1 — Metrics block.** Re-fetch evidence from GitHub before emitting (Phase 11 runs in the merge-watch wake turn; Phase 8 session state is not available):
+- **R-count**: `gh pr view <N> --json commits --jq '.commits | length'` — accurate when the guard rail (one commit per round, never amend) is followed. If admin-only commits were added within a round before requesting the next review (e.g., COR-1615 CHG closeout/status/index updates), commit count overstates R-count; adjust manually. Use the bare number (not `#<N>`) — in POSIX shell, `#` after whitespace starts a comment and drops the argument.
+- **Findings (P0–P3)**: Fetch bot review comments via COR-1615 §Commands fetch endpoints (`gh api .../pulls/<N>/reviews`, `.../issues/<N>/comments`, `.../pulls/<N>/comments`); re-apply COR-1621 triage to each raw finding to produce P0–P3 classification. Codex finding count = comments from the codex bot identity across all three endpoints.
+- **Late-catch (R3+)**: A finding whose first appearance (by review timestamp) is on round R3 or later.
+- **Trinity-miss/codex-catch**: A finding that appears in codex bot comments but not in any panel (GLM/DeepSeek) comment on the same round. Requires panel findings to be posted as GitHub PR review comments or another durable GitHub-re-fetchable artifact. If the panel ran in-session (e.g., via `Skill(trinity)`) without posting findings to GitHub, output `n/a — panel findings not GitHub-accessible`.
+
+Emit:
+```
+Retro PR #<N> (closes #<issue>): R<count> rounds
+Findings: P0=<n> P1=<n> P2=<n> P3=<n> | Codex: <k> findings
+Late-catch (R3+): <finding class or "none">
+Trinity-miss/codex-catch: <finding class, "none", or "n/a — panel findings not GitHub-accessible">
+```
+
+**Step 2 — Pattern check.** For each finding class surfaced in Step 1:
+- Search project memory for an existing entry covering it.
+- If found: note "matches memory entry — known pattern, no write needed."
+- If not found AND (class recurred ≥2 rounds in this PR OR was a codex-only catch): present memory candidate to user; write only on confirmation.
+
+**Step 3 — CHG nomination.** Using only in-PR evidence (GitHub PR evidence re-fetched in Step 1 — bot review comments and R-count from PR #<N>), nominate a CHG if any of these holds:
+- Same finding class recurred across ≥2 rounds within this PR
+- Same codex-vs-trinity detection gap repeated across ≥2 rounds
+- R-count ≥ 4 on the same class
+
+Output a 3-line nomination (target SOP, evidence — round numbers and finding class, one-sentence proposed amendment). Present to user; on confirmation, create a GitHub issue per COR-1501.
+
+*Note: COR-1200 §Scoring (shipped in PR #138) defines a 4-dimension rubric (Frequency/Actionability/Impact/Detection gap) with composite threshold ≥7.5 = create issue. Adopters MAY use that rubric instead of the count rule above; the count rule remains the default.*
+
+**Step 4 — Hand off.** Print "Retro complete." and proceed to Phase 12 (Loop restart).
+
+### Phase 12 — Loop restart
+
+After phase 10 completes (PR merged + main checked out + main pulled) and phase 11 (Retrospective) finishes, arm a single 60 s wake (per COR-1620's hard floor) whose prompt re-runs phase 1. The 60 s captures the post-handoff burst window where the operator may signal a queued issue immediately after merge.
 
 The wake's prompt MUST include the FIRST stop-marker guard and SECOND branch guard from COR-1620.
-
-If a future retrospective phase is added (e.g., per-PR retro), it inserts BEFORE this §11 step; renumber accordingly. Retrospective-then-loop-restart is the natural pipeline order.
 
 ---
 
@@ -302,4 +336,9 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-09 | R6: §Failure Modes "CHG abandonment" — `Status: Abandoned` is not in COR-0002's allowed CHG status enum (Proposed/Approved/In Progress/Completed/Rolled Back). Replaced with `Status: Rolled Back`. Codex bot R5 P2 finding (`af validate` would reject CHGs following the previous guidance). | Claude Opus 4.7 |
 | 2026-05-09 | FXA-2277: `<fork-remote>` references renamed to `<pr-push-remote>` (4 sites — §Phases TOC, §Phase 7 routing row, §Phase 7 shell snippet, §Guard Rails). Semantic invariant preserved; only the name changed to accommodate single-remote adopters like alfred. | Claude Opus 4.7 |
 | 2026-05-09 | R2 (PR #119): codex bot R1 P2 — §Phase 7 `gh pr create --head` form was hardcoded to `<gh-write-identity>:<branch>`, which works for fork-PR but breaks for single-remote topology where the branch lives on `<repo-owner>`'s repo. Snippet now documents both forms with topology-conditional comment; `--head <head-spec>` placeholder lets the adopter substitute. Routing-table row also updated. | Claude Opus 4.7 |
+| 2026-05-10 | FXA-2283: Insert §Phase 11 (Retrospective) in reserved slot; renumber Loop restart §11→§12; update phase count (11→12), ASCII block, routing table, §Phase 10 cleanup line, §What Is It? description. Phase 11 is synchronous — 4 steps: metrics block (COR-1621 P0–P3), pattern check (project memory), CHG nomination (in-PR evidence, ≥2 rounds), hand off. | Claude Code |
+| 2026-05-10 | FXA-2283 R2: Step 1 — add GitHub re-fetch instruction (Phase 8 session state unavailable in merge-watch wake turn); Step 3 — replace "session state" with "GitHub PR evidence re-fetched in Step 1"; update COR-1200 §Scoring note (PR #138 shipped). | Claude Code |
+| 2026-05-10 | FXA-2283 R3: Step 1 — expand re-fetch instructions: explicit jq R-count command + single-commit-per-round assumption; COR-1615 §Commands three fetch endpoints named; COR-1621 triage re-apply instruction; Late-catch and Trinity-miss derivation rules. Step 3 note: "interim default" → "remains the default". | Claude Code |
 | 2026-05-10 | §Phase 7: tighten `Closes #<issue>` prescription — the token must be a bare `verb + #N` match for GitHub's auto-linker regex; any intervening words ("Closes routing gap from issue #126", "Closes issue #127") silently disable auto-close on merge. Added the regex inline + a `gh pr view <N> --json closingIssuesReferences` verify step that fires before merge instead of after, so the post-merge "manually close" recovery path is no longer necessary. Evidence: alfred PR #130 (issue #126 stayed open after merge with the first phrasing) and PR #131 (issue #127 with the second phrasing). | Claude Opus 4.7 |
+| 2026-05-10 | FXA-2283 R5: §Phase 11 Step 1 R-count command — `gh pr view #<N>` → `gh pr view <N>` with note that `#` after whitespace starts a POSIX comment and drops the argument. Codex bot R4 P2 finding. | Claude Code |
+| 2026-05-10 | FXA-2283 R6: §Phase 11 Step 1 — R-count note updated: commit count is accurate only when one-commit-per-round guard rail holds; if admin-only commits precede a review request, adjust manually (codex bot R5 P2 / Thread 5). Trinity-miss/codex-catch definition updated: requires panel findings posted as GitHub review comments; if panel ran in-session via Skill(trinity), output `n/a — panel findings not GitHub-accessible` (Thread 6). Emit template updated to allow `n/a`. | Claude Code |

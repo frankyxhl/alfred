@@ -192,6 +192,7 @@
 | 2280 | CHG | FXA 2276 Phase 10 Mergeable Trigger |
 | 2281 | CHG | Add COR 1802 Build Weighted Decision Matrix SOP |
 | 2282 | CHG | Add Scoring to COR 1200 Session Retrospective |
+| 2283 | CHG | Add Retrospective Phase to COR 1617 |
 
 ---
 
