@@ -40,7 +40,7 @@ A human or agent following this procedure reads the actual file content (not the
 
 - `gh` CLI authenticated with read access to the repo
 - The PR branch is checked out locally (or files are accessible via `gh api`)
-- The list of open threads has been collected (COR-1617 §Phase 11 provides this)
+- Open threads are enumerated in Step 1 of this SOP (or obtained from a prior COR-1615 or COR-1612 inspection)
 
 ---
 
@@ -48,16 +48,24 @@ A human or agent following this procedure reads the actual file content (not the
 
 ### Step 1 — Enumerate open threads
 
-Fetch all unresolved review threads from the PR:
+Fetch all unresolved review threads from the PR via GraphQL (supports `isResolved` filtering):
 
 ```bash
-gh pr view <pr> --repo <repo> --json reviewThreads \
-  --jq '.reviewThreads[] | select(.isResolved == false) |
-    {id: .id, path: .path, line: .line,
-     body: (.comments.nodes[0].body | .[0:120])}'
+gh api graphql -f query='
+  query($owner:String!,$repo:String!,$number:Int!){
+    repository(owner:$owner,name:$repo){
+      pullRequest(number:$number){
+        reviewThreads(first:100){
+          nodes{ id isResolved path line originalLine
+            comments(first:1){nodes{body}} }}}}}' \
+  -f owner=<owner> -f repo=<repo> -F number=<pr> \
+  --jq '.data.repository.pullRequest.reviewThreads.nodes[]
+    | select(.isResolved == false)
+    | {id, path, line: .originalLine,
+       body: (.comments.nodes[0].body // "" | .[0:120])}'
 ```
 
-For the raw per-comment view (useful when `reviewThreads` is empty due to API lag):
+Fallback via REST (no `isResolved` field — includes all top-level comments; filter manually):
 
 ```bash
 gh api repos/<repo>/pulls/<pr>/comments \
@@ -76,7 +84,7 @@ For each thread, identify the exact source location it references:
 1. Extract `path` (file path) and `line` (line number) from the thread record.
 2. If `line` is null — thread on a deleted line or an outdated diff position — use the lead comment text to identify the construct (function name, variable, section heading) and `grep` for it instead.
 
-Note: `original_line` is the line number at comment-post time; it may differ from the current line if the file changed since. Use the construct name as a fallback locator when line numbers have drifted.
+Note: GraphQL returns `originalLine` (camelCase); REST returns `original_line` (snake_case). Both are the line number at comment-post time and drift when the file changes afterward. Use the construct name as a fallback locator when line numbers have drifted. If the file no longer exists (deleted), classify the thread as NEEDS-FOLLOWUP unless the reviewer's concern was the file's existence itself.
 
 ### Step 3 — Verify against source
 
@@ -126,7 +134,7 @@ Verified against: <branch-sha>
 **Summary:** <n> RESOLVED-IN-CODE · <n> GENUINELY-OPEN · <n> NEEDS-FOLLOWUP
 ```
 
-After posting: resolve the RESOLVED-IN-CODE threads explicitly on GitHub so bots see the updated state. Do not resolve GENUINELY-OPEN or NEEDS-FOLLOWUP threads.
+After posting: for each RESOLVED-IN-CODE thread, reply referencing the relevant report row as evidence. Per COR-1612 §Step 7, do not self-resolve — the original reviewer must resolve the thread. Do not reply to GENUINELY-OPEN or NEEDS-FOLLOWUP threads; address their findings in the next round.
 
 ---
 
@@ -135,7 +143,7 @@ After posting: resolve the RESOLVED-IN-CODE threads explicitly on GitHub so bots
 - **Read the file, not the diff.** The diff is what the bot reads and why it fails. Always read actual file content at the current HEAD.
 - **`original_line` drifts.** If the file changed after the review comment was posted, `original_line` no longer points to the right place. Use the construct name and `grep` to re-locate.
 - **Deletion ≠ fix.** If the flagged code was deleted rather than replaced with a correct version, verify whether deletion satisfies the reviewer's concern — it may or may not.
-- **RESOLVED-IN-CODE is not the same as thread resolved.** Post the report and then resolve threads explicitly on GitHub; bots read thread resolution state, not comments.
+- **RESOLVED-IN-CODE is not the same as thread resolved.** Post the report and reply to each RESOLVED-IN-CODE thread with the relevant evidence row. Bots read thread resolution state; per COR-1612 §Step 7, only the original reviewer can resolve a thread — prompt them if timely resolution is critical.
 - **Classify by file content, not author intent.** What the author said they would do is irrelevant — classify by what is in the file at the verified SHA.
 
 ---
@@ -145,3 +153,4 @@ After posting: resolve the RESOLVED-IN-CODE threads explicitly on GitHub so bots
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-10 | Initial version — 4-step procedure (Enumerate / Locate / Verify / Classify) for auditing PR review threads against source file content. Addresses false-positive bot verdicts observed on PR #141 (alfred). Composable with COR-1617 §Phase 11 Retrospective. Issue #142. | Claude Sonnet 4.6 |
+| 2026-05-10 | R1 fixes: B1 — replaced invalid `gh pr view --json reviewThreads` with `gh api graphql` primary + REST fallback (field not supported by gh CLI); B2 — removed self-resolve instruction (contradicts COR-1612 §Step 7); A1 — fixed prerequisite claim (Phase 11 does not enumerate threads; Step 1 does); A2 — added deleted-file classification note; A4 — documented REST/GraphQL field-name difference (`original_line` vs `originalLine`). | Claude Sonnet 4.6 |
