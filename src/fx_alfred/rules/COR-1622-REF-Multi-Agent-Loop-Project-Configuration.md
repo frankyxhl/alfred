@@ -87,7 +87,7 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 |-----|------|----------|---------|-------------|
 | `<max-r-count>` | integer | yes | `10` | Soft cap — round at which the cap check first fires. On this round and every round thereafter, the orchestrator evaluates Case C / A / B before continuing. |
 | `<max-r-count-extension>` | integer | yes | `3` | Additional rounds auto-authorized when P0/P1/P2 findings remain open. Hard stop (Case C) triggers at `<max-r-count>` + `<max-r-count-extension>`. |
-| `<convergence-severity>` | enum | yes | `advisory` | Finding severity at or below which the PR is considered converged (Case A). One of: `advisory` (no P0/P1/P2 open), `p2` (no P0/P1 open), `p1` (no P0 open). |
+| `<convergence-severity>` | enum | yes | `advisory` | Finding severity at or below which the PR is considered converged (Case A). Enum values in ascending severity order: `advisory` (no P0/P1/P2 open) < `p2` (no P0/P1 open) < `p1` (no P0 open). Note: `advisory` here is a threshold label, not COR-1621's "advisory" finding class. |
 
 ### Resilience (CLI retry / failure escalation)
 
@@ -169,3 +169,4 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | 2026-05-10 | FXA-146: add §Resilience parameter group (`<cli-retry-attempts>`, `<cli-retry-backoff-seconds>`, `<cli-retry-on-failure>`) covering CLI/provider-failure retry behavior. Defaults (3 attempts / 600 s / pause-and-ask) match Babs operator policy. Guard rail added for `mark-non-viable` interaction with 3-viable-minimum. Worked Example updated with trinity's effective defaults (all three keys inherit schema defaults; no behavior change). | Claude Sonnet 4.6 |
 | 2026-05-10 | DeepSeek R1 advisory fixes: `<cli-retry-attempts>` — added per-provider-per-round scope and explicit COR-1617 §Failure Modes override note; guard rail — added dissenter exception condition; Worked Example — moved three resilience rows to match schema section order (after §Worker dispatch, before §Bot polling). | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #144: add §R-count cap parameter group (`<max-r-count>`, `<max-r-count-extension>`, `<convergence-severity>`) for COR-1617 §Phase 8 round-count guard. Defaults (10 / 3 / advisory) define soft cap R10, hard stop R13. Worked Example updated with trinity's effective defaults (all three inherit schema defaults). | Claude Sonnet 4.6 |
+| 2026-05-10 | Issue #144 R2: `<convergence-severity>` — add enum ordering note (advisory < p2 < p1) and clarify that `advisory` is a threshold label, not COR-1621's "advisory" finding class (GLM P1 / DeepSeek P3). | Claude Sonnet 4.6 |
