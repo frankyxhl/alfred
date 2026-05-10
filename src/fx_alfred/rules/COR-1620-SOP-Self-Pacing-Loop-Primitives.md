@@ -1,10 +1,10 @@
 # SOP-1620: Self-Pacing Loop Primitives
 
 **Applies to:** Claude-Code-runtime orchestrators adopting COR-1617; alternative runtimes substitute their own primitive
-**Last updated:** 2026-05-09
-**Last reviewed:** 2026-05-09
+**Last updated:** 2026-05-10
+**Last reviewed:** 2026-05-10
 **Status:** Active
-**Related:** COR-1617 (umbrella; uses these primitives in §1 idle-with-retry, §8 iterate, §10 merge-watch, §11 loop restart), COR-1622 (parameter schema — `<wakeup-tool>`, `<idle-cap>`, `<merge-watch-cap>`)
+**Related:** COR-1617 (umbrella; uses these primitives in §1 idle-with-retry, §8 iterate, §10 merge-watch, §12 loop restart; §11 retrospective is synchronous — no primitive needed), COR-1622 (parameter schema — `<wakeup-tool>`, `<idle-cap>`, `<merge-watch-cap>`)
 
 ---
 
@@ -36,7 +36,7 @@ Three failure modes when wakeup mechanics are improvised inline:
 - COR-1617 §1 idle-with-retry (no eligible candidate; arm a recheck wake).
 - COR-1617 §8 iterate (post-R-push; arm a poll wake for CI + bot review).
 - COR-1617 §10 merge-watch (PR mergeable; arm a watch wake until human merges).
-- COR-1617 §11 loop restart (post-handoff; arm a 60 s wake to re-enter phase 1).
+- COR-1617 §12 loop restart (post-handoff; arm a 60 s wake to re-enter phase 1).
 
 ## When NOT to Use
 
@@ -113,6 +113,7 @@ Wakes are self-contained turns; there is no external state between them. The cou
 |------|--------------|-----|
 | Idle-with-retry | `idle wake N of <idle-cap>` | `<idle-cap>` (default 12 → 6 h @ 1800 s) |
 | Merge-watch | `merge-watch wake N of <merge-watch-cap> for branch <BRANCH_NAME>` | `<merge-watch-cap>` (default 24 → 12 h @ 1800 s) |
+| Retrospective | (synchronous — no counter; runs in same turn as Phase 10 cleanup) | — |
 | Loop restart | (no counter — single fire post-handoff) | — |
 
 **On wake**, the orchestrator reads N from the prompt. If N == cap, fire the stop condition (surface to user, do NOT arm next wake). If N < cap, arm the next wake with `prompt=` containing `... wake <N+1> of cap`. A successful eligible candidate (idle) or merge-detected (merge-watch) resets the counter — next idle/merge-watch starts again at 1.
@@ -203,3 +204,4 @@ Set `<wakeup-tool>` in the project's COR-1622 instantiation accordingly.
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted from TRN-1008 §1 idle-with-retry / §8 / §10 / §11 + §Failure Modes (a)–(f) for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
+| 2026-05-10 | FXA-2283: §When to Use — §11 loop restart → §12 loop restart; Related metadata — add §11 retrospective (synchronous); §Primitives table — add Retrospective row (synchronous, no counter) | Claude Code |
