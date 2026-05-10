@@ -79,7 +79,7 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 |-----|--------------|-------|
 | `<max-r-count>` | `10` | default |
 | `<max-r-count-extension>` | `3` | default — hard stop at R13 |
-| `<convergence-severity>` | `advisory` | default — P0/P1/P2 open blocks extension; advisory-only triggers convergence |
+| `<convergence-severity>` | `advisory` | default — advisory-only findings → converge (Case A); P0/P1/P2 open → self-authorized extension (Case B) until hard stop at R13 |
 
 ---
 
