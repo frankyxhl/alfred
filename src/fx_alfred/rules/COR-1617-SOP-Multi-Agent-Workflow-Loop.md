@@ -4,7 +4,7 @@
 **Last updated:** 2026-05-10
 **Last reviewed:** 2026-05-10
 **Status:** Active
-**Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema)
+**Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema), COR-1506 (issue quality gate — Phase 1 autonomous picks)
 
 ---
 
@@ -78,7 +78,7 @@ The loop has **12 phases**:
 
 | # | Phase | Owns | Delegates to |
 |---|-------|------|--------------|
-| 1 | Auto-pick | trigger-pattern selection (user-driven / continuation / loop-driven); idle-with-retry arming | **COR-1618** (consent gate); **COR-1620** (wake mechanics) |
+| 1 | Auto-pick | trigger-pattern selection (user-driven / continuation / loop-driven); idle-with-retry arming | **COR-1618** (consent gate); **COR-1506** (issue quality gate — autonomous picks only); **COR-1620** (wake mechanics) |
 | 2 | Branch & identity | — | **COR-1505** (branch base, create-only, identity gate) |
 | 3 | Plan | issue → CHG decision | **COR-1104** (skip / inline / full) |
 | 4 | Plan-review | parallel dispatch of `<panel-providers>`; gate enforcement (`all-individual ≥ <panel-pass-threshold>` AND `blocking == []`); `<weights-doc>` selection | **COR-1602** (Reviewer fan-in pattern) |
@@ -101,7 +101,7 @@ Three trigger patterns:
 | **Continuation** | Just-merged a PR while a prior auto-pick mandate is still in force | Mandate carried forward; consent gate applies |
 | **Loop-driven** | A periodic re-fire scheduled by a wakeup primitive (per COR-1620) | Mandate is the loop invocation itself; consent gate applies on every tick |
 
-For autonomous picks (continuation, loop-driven), apply COR-1618 `verify_consent_eligibility(<issue_num>)`. Pass → continue to scope-rank tree. Fail → arm idle-with-retry per COR-1620 (cadence 1800 s; counter `idle wake N of <idle-cap>`).
+For autonomous picks (continuation, loop-driven), apply COR-1618 `verify_consent_eligibility(<issue_num>)`. Pass → apply COR-1506 quality check. If COR-1506 score ≥ 8.0 → continue to scope-rank tree. If COR-1506 score < 8.0 → apply label / skip per COR-1506 §Integration with COR-1617; advance to next consent-eligible candidate. Consent fail → arm idle-with-retry per COR-1620 (cadence 1800 s; counter `idle wake N of <idle-cap>`).
 
 #### Scope-rank tree (after consent gate passes)
 
@@ -361,3 +361,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-10 | FXA-148 R4: §Failure Modes — expand failure-condition list to include "exits non-zero" and "uses a missing binary" (matching COR-1622 §Resilience trigger list); previously only timeout/non-2xx/malformed-JSON were listed, leaving CLI-specific failure modes outside the retry path. | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #144: §Phase 8 — add §Round-count cap: three-tier logic (Case A converged / Case B extension / Case C hard stop) with parameters `<max-r-count>` (default 10), `<max-r-count-extension>` (default 3), `<convergence-severity>` (default advisory) defined in COR-1622 §R-count cap. Prevents unbounded iteration loops. | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #144 R2: §Round-count cap — (1) Case C condition `==` → `≥` (GLM P0/DeepSeek P2: equality left R>hard-stop with no case firing); (2) reorder table to C→A→B to match evaluation priority; (3) update trailing note to include rationale for C-first ordering. | Claude Sonnet 4.6 |
+| 2026-05-11 | PR #154 codex-bot Thread 1: wire COR-1506 quality gate into Phase 1 — Related header, routing table row 1, and phase flow (consent pass → COR-1506 check → scope-rank tree). Autonomous picks now explicitly apply the quality gate before the scope-rank tree. | Claude Sonnet 4.6 |

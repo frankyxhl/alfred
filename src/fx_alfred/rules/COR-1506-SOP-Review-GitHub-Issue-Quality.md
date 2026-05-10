@@ -78,7 +78,7 @@ Score dimensions independently — an issue can have an executable task plan and
 
 | Composite | Action |
 |-----------|--------|
-| **≥ 8.0** | **Approve** — issue is eligible for COR-1617 autonomous auto-pick; post approval comment with score breakdown |
+| **≥ 8.0** | **Approve** — issue is eligible for COR-1617 autonomous auto-pick; post approval comment with score breakdown; remove `needs-revision` label if present |
 | **6.0 – 7.9** | **Request revision** — post comment with score breakdown + specific asks per failing dimension; apply `needs-revision` label; issue is ineligible for autonomous auto-pick until re-scored ≥ 8.0 |
 | **< 6.0** | **Reject** — fundamental gaps; post comment recommending full rewrite per COR-1501; apply `needs-revision` label; remove `blueprint-ready` label if present |
 
@@ -192,7 +192,7 @@ COR-1506 applies **only to autonomous auto-pick** (COR-1617 Phase 1, rows 2–3 
 
 1. Run Structural Pre-check (§Structural Pre-check above).
 2. Score the issue per §Scoring.
-3. If composite ≥ 8.0 → proceed with auto-pick.
+3. If composite ≥ 8.0 → remove `needs-revision` label if present; proceed with auto-pick.
 4. If composite 6.0–7.9 → post revision request comment; apply `needs-revision` label; skip this issue; advance to next eligible issue.
 5. If composite < 6.0 → post rejection comment; apply `needs-revision` label; remove `blueprint-ready` label; skip this issue; advance to next eligible issue.
 
@@ -217,3 +217,4 @@ COR-1506 applies **only to autonomous auto-pick** (COR-1617 Phase 1, rows 2–3 
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-10 | Initial version — 5-dimension scoring rubric, 4 calibration examples (all 3 bands), COR-1617 Phase 1 integration gate, feedback format, re-scoring mechanism. Issue #136. | Claude Sonnet 4.6 |
+| 2026-05-11 | PR #154 codex-bot threads: (1) Approve action removes `needs-revision` label if present — §Action Thresholds + §Integration step 3; (2) COR-1617 Phase 1 wired to apply COR-1506 quality gate after consent pass. | Claude Sonnet 4.6 |
