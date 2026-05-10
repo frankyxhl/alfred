@@ -240,17 +240,17 @@ The merge-watch wake's branch guard (per COR-1620 Primitive 3) ensures that if t
 Synchronous — runs immediately after Phase 10 cleanup (`git switch main && git pull --ff-only origin main`). No wakeup armed; no panel review. Optional steps (Steps 2–3) require user confirmation before writing.
 
 **Step 1 — Metrics block.** Re-fetch evidence from GitHub before emitting (Phase 11 runs in the merge-watch wake turn; Phase 8 session state is not available):
-- **R-count**: `gh pr view <N> --json commits --jq '.commits | length'` — each R-round = one commit (COR-1617 guard rail: never amend, add a new commit per round). Use the bare number (not `#<N>`) — in POSIX shell, `#` after whitespace starts a comment and drops the argument.
+- **R-count**: `gh pr view <N> --json commits --jq '.commits | length'` — accurate when the guard rail (one commit per round, never amend) is followed. If admin-only commits were added within a round before requesting the next review (e.g., COR-1615 CHG closeout/status/index updates), commit count overstates R-count; adjust manually. Use the bare number (not `#<N>`) — in POSIX shell, `#` after whitespace starts a comment and drops the argument.
 - **Findings (P0–P3)**: Fetch bot review comments via COR-1615 §Commands fetch endpoints (`gh api .../pulls/<N>/reviews`, `.../issues/<N>/comments`, `.../pulls/<N>/comments`); re-apply COR-1621 triage to each raw finding to produce P0–P3 classification. Codex finding count = comments from the codex bot identity across all three endpoints.
 - **Late-catch (R3+)**: A finding whose first appearance (by review timestamp) is on round R3 or later.
-- **Trinity-miss/codex-catch**: A finding that appears in codex bot comments but not in any panel (GLM/DeepSeek) comment on the same round.
+- **Trinity-miss/codex-catch**: A finding that appears in codex bot comments but not in any panel (GLM/DeepSeek) comment on the same round. Requires panel findings to be posted as GitHub PR review comments or another durable GitHub-re-fetchable artifact. If the panel ran in-session (e.g., via `Skill(trinity)`) without posting findings to GitHub, output `n/a — panel findings not GitHub-accessible`.
 
 Emit:
 ```
 Retro PR #<N> (closes #<issue>): R<count> rounds
 Findings: P0=<n> P1=<n> P2=<n> P3=<n> | Codex: <k> findings
 Late-catch (R3+): <finding class or "none">
-Trinity-miss/codex-catch: <finding class or "none">
+Trinity-miss/codex-catch: <finding class, "none", or "n/a — panel findings not GitHub-accessible">
 ```
 
 **Step 2 — Pattern check.** For each finding class surfaced in Step 1:
@@ -341,3 +341,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-10 | FXA-2283 R3: Step 1 — expand re-fetch instructions: explicit jq R-count command + single-commit-per-round assumption; COR-1615 §Commands three fetch endpoints named; COR-1621 triage re-apply instruction; Late-catch and Trinity-miss derivation rules. Step 3 note: "interim default" → "remains the default". | Claude Code |
 | 2026-05-10 | §Phase 7: tighten `Closes #<issue>` prescription — the token must be a bare `verb + #N` match for GitHub's auto-linker regex; any intervening words ("Closes routing gap from issue #126", "Closes issue #127") silently disable auto-close on merge. Added the regex inline + a `gh pr view <N> --json closingIssuesReferences` verify step that fires before merge instead of after, so the post-merge "manually close" recovery path is no longer necessary. Evidence: alfred PR #130 (issue #126 stayed open after merge with the first phrasing) and PR #131 (issue #127 with the second phrasing). | Claude Opus 4.7 |
 | 2026-05-10 | FXA-2283 R5: §Phase 11 Step 1 R-count command — `gh pr view #<N>` → `gh pr view <N>` with note that `#` after whitespace starts a POSIX comment and drops the argument. Codex bot R4 P2 finding. | Claude Code |
+| 2026-05-10 | FXA-2283 R6: §Phase 11 Step 1 — R-count note updated: commit count is accurate only when one-commit-per-round guard rail holds; if admin-only commits precede a review request, adjust manually (codex bot R5 P2 / Thread 5). Trinity-miss/codex-catch definition updated: requires panel findings posted as GitHub review comments; if panel ran in-session via Skill(trinity), output `n/a — panel findings not GitHub-accessible` (Thread 6). Emit template updated to allow `n/a`. | Claude Code |

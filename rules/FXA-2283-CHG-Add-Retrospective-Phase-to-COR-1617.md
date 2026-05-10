@@ -69,7 +69,7 @@ Synchronous — runs immediately after Phase 10 cleanup (`git switch main && git
 Retro PR #<N> (closes #<issue>): R<count> rounds
 Findings: P0=<n> P1=<n> P2=<n> P3=<n> | Codex: <k> findings
 Late-catch (R3+): <finding class or "none">
-Trinity-miss/codex-catch: <finding class or "none">
+Trinity-miss/codex-catch: <finding class, "none", or "n/a — panel findings not GitHub-accessible">
 ```
 
 **Step 2 — Pattern check.** For each finding class surfaced in Step 1:
@@ -115,3 +115,4 @@ Output a 3-line nomination (target SOP, evidence — round numbers and finding c
 | 2026-05-10 | R3 fixes (GLM B1/A, DeepSeek B1/A1/A2/A3 convergent): Step 1 — explicit jq R-count command + assumption note; COR-1615 §Commands three endpoints named; COR-1621 re-apply instruction; Late-catch and Trinity-miss derivation rules added. Step 3 note: "interim" → "remains the default". FXA-2276: Phase 11 deviation note (git-pull no-op pre-merge); `for #N` phases 2–10 → 2–11. | Claude Code |
 | 2026-05-10 | R4 (bot P2): §Phase 11 Draft Content Step 3 — replace stale "session state from this Phase 11 turn" with "GitHub PR evidence re-fetched in Step 1" to match COR-1617 R2/R3 fix. | Claude Code |
 | 2026-05-10 | R5 (bot P2): COR-1617 §Phase 11 Step 1 R-count command — `gh pr view #<N>` → `gh pr view <N>`; in POSIX shell `#` after whitespace starts a comment and drops the argument. | Claude Code |
+| 2026-05-10 | R6 (bot P2 Threads 5+6): COR-1617 §Phase 11 Step 1 R-count note — commit count overstates when admin-only commits precede review request; adjust manually. Trinity-miss/codex-catch — added `n/a` path for in-session panels not posted to GitHub. Emit template allows `n/a`. FXA-2276 Phase 11 row — Alfred deviation note added for Trinity-miss. CHG draft template synced. | Claude Code |
