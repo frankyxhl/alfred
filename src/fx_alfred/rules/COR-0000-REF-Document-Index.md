@@ -72,6 +72,7 @@ A reference index of all documents in the COR system.
 | 1620 | SOP | Self-Pacing Loop Primitives |
 | 1621 | SOP | Multi-Reviewer Triage and Severity |
 | 1622 | REF | Multi-Agent Loop Project Configuration |
+| 1623 | SOP | PR Review Thread Verification |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
@@ -103,3 +104,4 @@ A reference index of all documents in the COR system.
 | 2026-05-09 | Added COR-1617 cluster (1617/1618/1619/1620/1621/1622) + COR-1505 + COR-1104 — promoted from trinity TRN-1008 per alfred#115. | Claude Opus 4.7 |
 | 2026-05-10 | Added COR-1802 (Build Weighted Decision Matrix) per CHG FXA-2281 (issue #135). | Claude Sonnet 4.6 |
 | 2026-05-10 | Added COR-1506 (Review GitHub Issue Quality) per issue #136. | Claude Sonnet 4.6 |
+| 2026-05-10 | Added COR-1623 (PR Review Thread Verification) per issue #142. | Claude Sonnet 4.6 |
