@@ -70,7 +70,7 @@ Score each dimension 0–10 using the anchor table below. Composite = Σ(weight 
 | **Dependency completeness** | 15% | No "Depends on" stated despite visible upstream deps; downstream impact unmentioned | "Depends on" present but informal — buried in prose rather than Context §Depends on; downstream impact missing | All upstream deps in Context §Depends on with merge-order note; downstream impact explicitly stated (who to notify on merge) |
 | **Scope precision** | 10% | No Out of Scope section; obvious creep risks unnamed | Out of Scope present but misses ≥1 obvious creep risk given this issue's actual size | Out of Scope calibrated to actual scope: small-atomic issues may have ≤1 item; large cross-cutting issues name 2–3 most likely creep risks. Penalizes both omission of obvious risks AND padding with fabricated boundaries |
 
-Score dimensions independently — an issue can have an executable task plan and vague ACs simultaneously; each dimension scores only its declared section.
+Score dimensions independently — an issue can have an executable task plan and vague ACs simultaneously; each dimension scores only its declared section. The rubric structure (0/5/10 anchors, weighted composite) follows COR-1802 (Build Weighted Decision Matrix).
 
 ---
 
