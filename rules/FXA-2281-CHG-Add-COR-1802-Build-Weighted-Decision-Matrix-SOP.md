@@ -86,13 +86,14 @@ Discard any dimension that fails any test. If you have > 6 passing dimensions, t
 3. Apply the **isolation test**: *"If all other dimensions score 5, does moving THIS dimension from 0 → 10 change the composite outcome in a way that feels right?"*
 4. Warning: weight > 40% → consider as a gate condition instead
 5. Warning: weight < 10% → drop or merge
+6. **Equal weights after forced ranking are permitted** when two adjacent-ranked dimensions are genuinely indistinguishable in importance — the ranking still records the tiebreaker for edge cases even when weights are the same.
 
 ### Step 4 — Write anchors
 
 For each dimension, write three anchor descriptions at 0, 5, and 10:
 - **Behaviors, not adjectives.** "First time seen in any context" not "low recurrence"
 - **Anchors must be mutually exclusive** — a real case maps to exactly one anchor
-- If 5 is hard to define, use 0 and 10 only and interpolate linearly
+- If writing a 5 anchor is genuinely difficult, return to Step 2 — consider dropping or splitting the dimension rather than omitting the midpoint anchor
 
 ### Step 5 — Calibrate with known cases
 
