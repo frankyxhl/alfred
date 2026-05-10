@@ -8,9 +8,9 @@
 **Requested by:** Frank Xu (session 2026-05-10)
 **Priority:** Medium
 **Change Type:** Normal
-**Targets:** `src/fx_alfred/rules/COR-1617-SOP-Multi-Agent-Workflow-Loop.md`, `src/fx_alfred/rules/COR-1620-SOP-Self-Pacing-Loop-Primitives.md`
+**Targets:** `src/fx_alfred/rules/COR-1617-SOP-Multi-Agent-Workflow-Loop.md`, `src/fx_alfred/rules/COR-1620-SOP-Self-Pacing-Loop-Primitives.md`, `rules/FXA-2276-REF-Multi-Agent-Loop-Configuration.md`
 **Closes:** #133
-**Depends on:** #134 (soft — §Phase 11 Step 3 threshold references COR-1200 §Scoring once shipped; this CHG uses a hard-coded count rule in the interim)
+**Depends on:** #134 (shipped PR #138 — COR-1200 §Scoring now active; Step 3 note updated accordingly)
 
 ---
 
@@ -34,8 +34,9 @@ Evidence from this session (alfred PRs #126–#132): codex bot caught `--repo` p
 
 | File | Change |
 |------|--------|
-| `src/fx_alfred/rules/COR-1617-SOP-Multi-Agent-Workflow-Loop.md` | Phase count 11→12; ASCII phase block: add "11. Retrospective", renumber Loop restart to 12; routing table: add Phase 11 row, renumber Phase 11→12; §Phase 10: "arm phase 11" → "execute Phase 11 (Retrospective), then arm Phase 12"; insert new §Phase 11 (Retrospective) with 4 steps; §Phase 12 (renumbered): remove forward-pointer note; Change History row |
+| `src/fx_alfred/rules/COR-1617-SOP-Multi-Agent-Workflow-Loop.md` | Phase count 11→12; ASCII phase block: add "11. Retrospective", renumber Loop restart to 12; routing table: add Phase 11 row, renumber Phase 11→12; §Phase 10: "arm phase 11" → "execute Phase 11 (Retrospective), then arm Phase 12"; insert new §Phase 11 (Retrospective) with 4 steps; §Phase 12 (renumbered): remove forward-pointer note; Change History rows |
 | `src/fx_alfred/rules/COR-1620-SOP-Self-Pacing-Loop-Primitives.md` | Related metadata: add §11 retrospective; §When to Use: §11 loop restart → §12 loop restart; §Primitives table: add synchronous note for Retrospective; Change History row |
+| `rules/FXA-2276-REF-Multi-Agent-Loop-Configuration.md` | 11-phase → 12-phase; §Invocation: §11 wake → §12 wake; §Adoption Status: Phase 10 row updated (Retrospective synchronous before Phase 12 arm), new Phase 11 Retrospective row, Phase 12 Loop restart row; Known Risk §11 → §12; Change History row |
 
 **Out of scope:** New COR-1622 parameters, automated MEMORY writes or issue creation, changes to COR-1618/COR-1619/COR-1621.
 
@@ -43,7 +44,7 @@ Evidence from this session (alfred PRs #126–#132): codex bot caught `--repo` p
 
 - **Adopters affected:** All projects adopting COR-1617; alfred project (FXA-2276 instantiation) immediately.
 - **Mandatory vs. opt-in:** Phase 11 (Retrospective) is mandatory in the pipeline ordering, but Steps 2–3 within it are opt-in (user-confirmed). An adopter that wants zero friction can confirm "no" to both optional steps and Phase 11 completes in ~2 seconds.
-- **Phase renumber impact:** Existing phases 1–10 are semantically unchanged. COR-1620's Loop restart primitive is re-labeled §12 but its behavior is identical. Any project-layer SOPs that hardcode "§11 loop restart" must update to "§12 loop restart" (COR-1620 §When to Use is the only known reference).
+- **Phase renumber impact:** Existing phases 1–10 are semantically unchanged. COR-1620's Loop restart primitive is re-labeled §12 but its behavior is identical. Project-layer documents that hardcode "§11 loop restart" must update to "§12 loop restart" (COR-1620 §When to Use and FXA-2276 §Invocation/§Adoption Status are updated in this CHG; no other known references).
 - **Rollback:** `git revert` on both COR-1617 and COR-1620 commits restores the 11-phase structure and forward-pointer note.
 
 ## Implementation Plan
@@ -110,3 +111,4 @@ Output a 3-line nomination (target SOP, evidence — round numbers and finding c
 |------|--------|----|
 | 2026-05-10 | Initial version per issue #133 | Claude Code |
 | 2026-05-10 | R1 fixes: added Impact Analysis (B1/GLM); added COR-1620 §Primitives AC (A1/GLM); scoped Step 3 to in-PR evidence only to resolve statefulness gap (B2/DeepSeek); added COR-1621 ref to Step 1; abstracted MEMORY path (A2/GLM) | Claude Code |
+| 2026-05-10 | R2 fixes (bot P2s): Step 1 — add GitHub re-fetch instruction (session state unavailable in merge-watch wake turn); Step 3 — replace "session state" with "GitHub PR evidence re-fetched in Step 1"; update COR-1200 §Scoring note (PR #138 shipped); add FXA-2276 to Targets + Surfaces + Impact Analysis (stale 11→12 references fixed). | Claude Code |

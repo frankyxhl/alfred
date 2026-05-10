@@ -239,7 +239,7 @@ The merge-watch wake's branch guard (per COR-1620 Primitive 3) ensures that if t
 
 Synchronous — runs immediately after Phase 10 cleanup (`git switch main && git pull --ff-only origin main`). No wakeup armed; no panel review. Optional steps (Steps 2–3) require user confirmation before writing.
 
-**Step 1 — Metrics block.** Emit (use COR-1621 severity classifications P0–P3):
+**Step 1 — Metrics block.** Re-fetch evidence from GitHub before emitting (Phase 11 runs in the merge-watch wake turn; Phase 8 session state is not available): use `gh pr view #<N> --json commits` for R-count, and COR-1615 endpoints for bot review comments and findings. Emit (use COR-1621 severity classifications P0–P3):
 ```
 Retro PR #<N> (closes #<issue>): R<count> rounds
 Findings: P0=<n> P1=<n> P2=<n> P3=<n> | Codex: <k> findings
@@ -252,14 +252,14 @@ Trinity-miss/codex-catch: <finding class or "none">
 - If found: note "matches memory entry — known pattern, no write needed."
 - If not found AND (class recurred ≥2 rounds in this PR OR was a codex-only catch): present memory candidate to user; write only on confirmation.
 
-**Step 3 — CHG nomination.** Using only in-PR evidence (session state from this Phase 11 turn — verdict log and bot findings), nominate a CHG if any of these holds:
+**Step 3 — CHG nomination.** Using only in-PR evidence (GitHub PR evidence re-fetched in Step 1 — bot review comments and R-count from PR #<N>), nominate a CHG if any of these holds:
 - Same finding class recurred across ≥2 rounds within this PR
 - Same codex-vs-trinity detection gap repeated across ≥2 rounds
 - R-count ≥ 4 on the same class
 
 Output a 3-line nomination (target SOP, evidence — round numbers and finding class, one-sentence proposed amendment). Present to user; on confirmation, create a GitHub issue per COR-1501.
 
-*Note: once COR-1200 §Scoring ships (issue #134), score findings per COR-1200 §Scoring; use the composite threshold (≥7.5 = create issue) instead of the count rule above.*
+*Note: COR-1200 §Scoring (shipped in PR #138) defines a 4-dimension rubric (Frequency/Actionability/Impact/Detection gap) with composite threshold ≥7.5 = create issue. Adopters MAY use that rubric instead of the count rule above; the count rule is the interim default.*
 
 **Step 4 — Hand off.** Print "Retro complete." and proceed to Phase 12 (Loop restart).
 
@@ -331,4 +331,5 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-09 | FXA-2277: `<fork-remote>` references renamed to `<pr-push-remote>` (4 sites — §Phases TOC, §Phase 7 routing row, §Phase 7 shell snippet, §Guard Rails). Semantic invariant preserved; only the name changed to accommodate single-remote adopters like alfred. | Claude Opus 4.7 |
 | 2026-05-09 | R2 (PR #119): codex bot R1 P2 — §Phase 7 `gh pr create --head` form was hardcoded to `<gh-write-identity>:<branch>`, which works for fork-PR but breaks for single-remote topology where the branch lives on `<repo-owner>`'s repo. Snippet now documents both forms with topology-conditional comment; `--head <head-spec>` placeholder lets the adopter substitute. Routing-table row also updated. | Claude Opus 4.7 |
 | 2026-05-10 | FXA-2283: Insert §Phase 11 (Retrospective) in reserved slot; renumber Loop restart §11→§12; update phase count (11→12), ASCII block, routing table, §Phase 10 cleanup line, §What Is It? description. Phase 11 is synchronous — 4 steps: metrics block (COR-1621 P0–P3), pattern check (project memory), CHG nomination (in-PR evidence, ≥2 rounds), hand off. | Claude Code |
+| 2026-05-10 | FXA-2283 R2: Step 1 — add GitHub re-fetch instruction (Phase 8 session state unavailable in merge-watch wake turn); Step 3 — replace "session state" with "GitHub PR evidence re-fetched in Step 1"; update COR-1200 §Scoring note (PR #138 shipped). | Claude Code |
 | 2026-05-10 | §Phase 7: tighten `Closes #<issue>` prescription — the token must be a bare `verb + #N` match for GitHub's auto-linker regex; any intervening words ("Closes routing gap from issue #126", "Closes issue #127") silently disable auto-close on merge. Added the regex inline + a `gh pr view <N> --json closingIssuesReferences` verify step that fires before merge instead of after, so the post-merge "manually close" recovery path is no longer necessary. Evidence: alfred PR #130 (issue #126 stayed open after merge with the first phrasing) and PR #131 (issue #127 with the second phrasing). | Claude Opus 4.7 |
