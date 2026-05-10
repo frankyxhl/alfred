@@ -48,7 +48,7 @@ A human or agent following this procedure reads the actual file content (not the
 
 ### Step 1 — Enumerate open threads
 
-Fetch all unresolved review threads from the PR via GraphQL (supports `isResolved` filtering):
+Fetch up to 100 unresolved review threads from the PR via GraphQL (supports `isResolved` filtering; GitHub caps `first` at 100 — use the REST fallback for PRs with more than 100 threads):
 
 ```bash
 gh api graphql -f query='
@@ -65,7 +65,7 @@ gh api graphql -f query='
        body: (.comments.nodes[0].body // "" | .[0:120])}'
 ```
 
-Fallback via REST (no `isResolved` field — includes all top-level comments; filter manually):
+Fallback via REST (no `isResolved` field; paginated; compare against GitHub UI thread count to identify resolved threads):
 
 ```bash
 gh api repos/<repo>/pulls/<pr>/comments \
@@ -168,6 +168,7 @@ gh api repos/<repo>/pulls/<pr>/comments \
 - **`original_line` drifts.** If the file changed after the review comment was posted, `original_line` no longer points to the right place. Use the construct name and `grep` to re-locate.
 - **Deletion ≠ fix.** If the flagged code was deleted rather than replaced with a correct version, verify whether deletion satisfies the reviewer's concern — it may or may not.
 - **RESOLVED-IN-CODE is not the same as thread resolved.** Post the report and reply to each RESOLVED-IN-CODE thread with the relevant evidence row. Bots read thread resolution state; per COR-1612 §Step 7, only the original reviewer can resolve a thread — prompt them if timely resolution is critical.
+- **GraphQL caps at 100 threads.** If the PR has more than 100 review threads, the GraphQL primary silently omits the rest. Use the REST fallback with `--paginate` for large PRs and filter resolved threads manually.
 - **Classify by file content, not author intent.** What the author said they would do is irrelevant — classify by what is in the file at the verified SHA.
 
 ---
@@ -178,4 +179,5 @@ gh api repos/<repo>/pulls/<pr>/comments \
 |------|--------|----|
 | 2026-05-10 | Initial version — 4-step procedure (Enumerate / Locate / Verify / Classify) for auditing PR review threads against source file content. Addresses false-positive bot verdicts observed on PR #141 (alfred). Composable with COR-1617 §Phase 8 Iterate. Issue #142. | Claude Sonnet 4.6 |
 | 2026-05-10 | R1 fixes (DeepSeek panel): B1 — replaced invalid `gh pr view --json reviewThreads` with `gh api graphql` primary + REST fallback (field not supported by gh CLI); B2 — removed self-resolve instruction (contradicts COR-1612 §Step 7); A1 — fixed prerequisite claim (Phase 11 does not enumerate threads; Step 1 does); A2 — added deleted-file classification note; A4 — documented REST/GraphQL field-name difference (`original_line` vs `originalLine`). | Claude Sonnet 4.6 |
+| 2026-05-10 | R2 fix (DeepSeek B1): GraphQL `first:100` caps at 100 — replaced "Fetch all" claim with accurate "Fetch up to 100"; added Pitfalls entry directing to REST `--paginate` for large PRs; clarified REST fallback description. | Claude Sonnet 4.6 |
 | 2026-05-10 | R1 fixes (GLM panel): P0 — corrected remaining Phase 11 references to Phase 8 Iterate (Related: header, §When to Use, §Change History); P1-1 — added `gh pr comment` command for posting report; P1-2 — added GraphQL/REST thread reply commands (COR-1612 §Step 7 requires reply-not-resolve); P2-1 — noted GraphQL node ID vs REST numeric ID difference for reply commands. | Claude Sonnet 4.6 |
