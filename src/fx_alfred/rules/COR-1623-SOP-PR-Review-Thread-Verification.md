@@ -4,7 +4,7 @@
 **Last updated:** 2026-05-10
 **Last reviewed:** 2026-05-10
 **Status:** Active
-**Related:** COR-1617 (§Phase 11 Retrospective — composable sub-procedure), COR-1615 (GitHub App PR Review Bot Loop)
+**Related:** COR-1617 (§Phase 8 Iterate — composable sub-procedure for bot thread verification), COR-1615 (GitHub App PR Review Bot Loop)
 
 ---
 
@@ -24,7 +24,7 @@ A human or agent following this procedure reads the actual file content (not the
 
 ## When to Use
 
-- During COR-1617 §Phase 11 Retrospective, when a PR has threads marked unresolved by a bot
+- During COR-1617 §Phase 8 Iterate, after CI passes and bot review is complete on the current HEAD, when threads remain unresolved despite fixes being present
 - Any time a bot flags a thread as OPEN/NEEDS_HUMAN_JUDGMENT and the fix appears to be present in the codebase
 - Before pushing an additional round solely to address threads the bot cannot confirm as resolved
 
@@ -74,6 +74,8 @@ gh api repos/<repo>/pulls/<pr>/comments \
     {id: .id, path: .path, line: .original_line,
      body: (.body | .[0:120])}'
 ```
+
+Note: the GraphQL primary returns global node IDs (`PRRT_kwDO…`); the REST fallback returns numeric comment IDs. Choose the matching reply command in §Verification Report.
 
 Record each unresolved thread: thread ID, file path, line number, and the finding summary (first ~120 chars of the lead comment).
 
@@ -134,7 +136,29 @@ Verified against: <branch-sha>
 **Summary:** <n> RESOLVED-IN-CODE · <n> GENUINELY-OPEN · <n> NEEDS-FOLLOWUP
 ```
 
+Post the report:
+
+```bash
+gh pr comment <pr> --repo <repo> --body "## PR Review Thread Verification Report
+..."
+```
+
 After posting: for each RESOLVED-IN-CODE thread, reply referencing the relevant report row as evidence. Per COR-1612 §Step 7, do not self-resolve — the original reviewer must resolve the thread. Do not reply to GENUINELY-OPEN or NEEDS-FOLLOWUP threads; address their findings in the next round.
+
+Reply commands (choose based on ID type from Step 1):
+
+```bash
+# GraphQL reply (uses global node ID from primary command)
+gh api graphql -f query='mutation($t:ID!,$b:String!){
+  addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$t,body:$b}){
+    comment{url}}}' \
+  -f t="<PRRT_...>" -f b="Verified RESOLVED-IN-CODE — see verification report."
+
+# REST reply (uses numeric comment ID from fallback)
+gh api repos/<repo>/pulls/<pr>/comments \
+  -f body="Verified RESOLVED-IN-CODE — see verification report." \
+  -f in_reply_to_id=<comment-id>
+```
 
 ---
 
@@ -152,5 +176,6 @@ After posting: for each RESOLVED-IN-CODE thread, reply referencing the relevant 
 
 | Date | Change | By |
 |------|--------|----|
-| 2026-05-10 | Initial version — 4-step procedure (Enumerate / Locate / Verify / Classify) for auditing PR review threads against source file content. Addresses false-positive bot verdicts observed on PR #141 (alfred). Composable with COR-1617 §Phase 11 Retrospective. Issue #142. | Claude Sonnet 4.6 |
-| 2026-05-10 | R1 fixes: B1 — replaced invalid `gh pr view --json reviewThreads` with `gh api graphql` primary + REST fallback (field not supported by gh CLI); B2 — removed self-resolve instruction (contradicts COR-1612 §Step 7); A1 — fixed prerequisite claim (Phase 11 does not enumerate threads; Step 1 does); A2 — added deleted-file classification note; A4 — documented REST/GraphQL field-name difference (`original_line` vs `originalLine`). | Claude Sonnet 4.6 |
+| 2026-05-10 | Initial version — 4-step procedure (Enumerate / Locate / Verify / Classify) for auditing PR review threads against source file content. Addresses false-positive bot verdicts observed on PR #141 (alfred). Composable with COR-1617 §Phase 8 Iterate. Issue #142. | Claude Sonnet 4.6 |
+| 2026-05-10 | R1 fixes (DeepSeek panel): B1 — replaced invalid `gh pr view --json reviewThreads` with `gh api graphql` primary + REST fallback (field not supported by gh CLI); B2 — removed self-resolve instruction (contradicts COR-1612 §Step 7); A1 — fixed prerequisite claim (Phase 11 does not enumerate threads; Step 1 does); A2 — added deleted-file classification note; A4 — documented REST/GraphQL field-name difference (`original_line` vs `originalLine`). | Claude Sonnet 4.6 |
+| 2026-05-10 | R1 fixes (GLM panel): P0 — corrected remaining Phase 11 references to Phase 8 Iterate (Related: header, §When to Use, §Change History); P1-1 — added `gh pr comment` command for posting report; P1-2 — added GraphQL/REST thread reply commands (COR-1612 §Step 7 requires reply-not-resolve); P2-1 — noted GraphQL node ID vs REST numeric ID difference for reply commands. | Claude Sonnet 4.6 |
