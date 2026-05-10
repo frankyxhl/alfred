@@ -154,10 +154,9 @@ gh api graphql -f query='mutation($t:ID!,$b:String!){
     comment{url}}}' \
   -f t="<PRRT_...>" -f b="Verified RESOLVED-IN-CODE — see verification report."
 
-# REST reply (uses numeric comment ID from fallback)
-gh api repos/<repo>/pulls/<pr>/comments \
-  -f body="Verified RESOLVED-IN-CODE — see verification report." \
-  -f in_reply_to_id=<comment-id>
+# REST reply (uses numeric comment ID from fallback — dedicated replies endpoint)
+gh api repos/<repo>/pulls/<pr>/comments/<comment-id>/replies \
+  -f body="Verified RESOLVED-IN-CODE — see verification report."
 ```
 
 ---
@@ -179,5 +178,6 @@ gh api repos/<repo>/pulls/<pr>/comments \
 |------|--------|----|
 | 2026-05-10 | Initial version — 4-step procedure (Enumerate / Locate / Verify / Classify) for auditing PR review threads against source file content. Addresses false-positive bot verdicts observed on PR #141 (alfred). Composable with COR-1617 §Phase 8 Iterate. Issue #142. | Claude Sonnet 4.6 |
 | 2026-05-10 | R1 fixes (DeepSeek panel): B1 — replaced invalid `gh pr view --json reviewThreads` with `gh api graphql` primary + REST fallback (field not supported by gh CLI); B2 — removed self-resolve instruction (contradicts COR-1612 §Step 7); A1 — fixed prerequisite claim (Phase 11 does not enumerate threads; Step 1 does); A2 — added deleted-file classification note; A4 — documented REST/GraphQL field-name difference (`original_line` vs `originalLine`). | Claude Sonnet 4.6 |
+| 2026-05-10 | R2 fix (GLM B1): REST reply command used wrong pattern (`POST /comments` with `in_reply_to_id`); replaced with dedicated replies endpoint (`POST /comments/<id>/replies`) which only requires `body`. | Claude Sonnet 4.6 |
 | 2026-05-10 | R2 fix (DeepSeek B1): GraphQL `first:100` caps at 100 — replaced "Fetch all" claim with accurate "Fetch up to 100"; added Pitfalls entry directing to REST `--paginate` for large PRs; clarified REST fallback description. | Claude Sonnet 4.6 |
 | 2026-05-10 | R1 fixes (GLM panel): P0 — corrected remaining Phase 11 references to Phase 8 Iterate (Related: header, §When to Use, §Change History); P1-1 — added `gh pr comment` command for posting report; P1-2 — added GraphQL/REST thread reply commands (COR-1612 §Step 7 requires reply-not-resolve); P2-1 — noted GraphQL node ID vs REST numeric ID difference for reply commands. | Claude Sonnet 4.6 |
