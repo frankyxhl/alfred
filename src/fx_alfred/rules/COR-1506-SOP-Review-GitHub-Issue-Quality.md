@@ -79,7 +79,7 @@ Score dimensions independently — an issue can have an executable task plan and
 | Composite | Action |
 |-----------|--------|
 | **≥ 8.0** | **Approve** — issue is eligible for COR-1617 autonomous auto-pick; post approval comment with score breakdown |
-| **6.0 – 7.9** | **Request revision** — post comment with score breakdown + specific asks per failing dimension; issue is ineligible for autonomous auto-pick until re-scored ≥ 8.0 |
+| **6.0 – 7.9** | **Request revision** — post comment with score breakdown + specific asks per failing dimension; apply `needs-revision` label; issue is ineligible for autonomous auto-pick until re-scored ≥ 8.0 |
 | **< 6.0** | **Reject** — fundamental gaps; post comment recommending full rewrite per COR-1501; apply `needs-revision` label; remove `blueprint-ready` label if present |
 
 ---
