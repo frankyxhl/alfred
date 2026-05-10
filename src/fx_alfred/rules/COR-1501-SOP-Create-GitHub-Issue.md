@@ -201,6 +201,8 @@ gh issue view <number> --repo <owner>/<repo>
 
 `gh issue list` only confirms the issue exists; `gh issue view` confirms the body rendered correctly and lets you inspect intake-bot signals — look for `blueprint-ready` (intake passed) or `blueprint-requests-revision` (a required H2 section is missing or `- [ ]` is absent under `## Acceptance Criteria`). If revision is requested, edit the body via `gh issue edit <number> --repo <owner>/<repo> --body-file <path>` and re-verify (the same `--repo` rule from Step 3 applies — without it, `gh` falls back to the current working directory's repo).
 
+Once `blueprint-ready` is confirmed, validate content quality per **COR-1506** before assigning to an implementer or submitting for COR-1617 autonomous auto-pick.
+
 ---
 
 ## Naming Conventions
@@ -230,3 +232,4 @@ gh issue view <number> --repo <owner>/<repo>
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1003 to ALF-2101 | Claude Code |
 | 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |
 | 2026-05-10 | issue #127: align with current alfred repo conventions — stack-type-* + stack-area-* label pair (replaces old `sop`/`automation`/etc. taxonomy), Iterwheel Blueprint template (replaces Summary/Context template), `[Task]:` title chip, `--repo` flag in CLI example, `gh issue view` verify with intake-bot label check | Claude Opus 4.7 |
+| 2026-05-10 | issue #136: added COR-1506 quality-gate pointer after blueprint-ready verify step | Claude Sonnet 4.6 |
