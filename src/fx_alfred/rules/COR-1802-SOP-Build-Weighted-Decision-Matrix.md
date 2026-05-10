@@ -110,11 +110,11 @@ Run at least:
 
 ### Step 8 — Document
 
-Use the COR-1800 table format. Required consuming-document sections:
+Use COR-1800's table format for the scoring rubric and action thresholds tables. Required consuming-document sections:
 
-- **Scoring rubric** table (Steps 3–4 output)
-- **Action thresholds** table (Step 6 output)
-- **Calibration examples** section with ≥3 worked cases (Step 5 output)
+- **Scoring rubric** table (Steps 3–4 output) — use COR-1800 table style
+- **Action thresholds** table (Step 6 output) — use COR-1800 table style
+- **Calibration examples** section with ≥3 worked cases (Step 5 output) — additional COR-1802 requirement; COR-1800 does not include this section
 
 ---
 
@@ -225,3 +225,4 @@ Composite: 0.25×9 + 0.25×10 + 0.15×8 + 0.15×10 + 0.20×9 = 2.25 + 2.5 + 1.2 
 | 2026-05-10 | R4: (1) fix CHG §SOP Draft Step 6 to match corrected SOP wording (codex bot P2 on CHG line 109); (2) break tied-rank notation in §Worked Example (codex bot P2 on line 141) — now strict ordering with equal-weight clarification added to Step 3 rule 6. | Claude Sonnet 4.6 |
 | 2026-05-10 | R5: fix COR-1800 back-reference (codex bot P2). Changed "Built per COR-1802" → "See COR-1802 for the meta-framework" to avoid false compliance claim — COR-1800 pre-dates COR-1802 and lacks the required 0/5/10 anchors and calibration examples sections. | Claude Sonnet 4.6 |
 | 2026-05-10 | R6: (1) remove Step 4 "interpolate linearly" exception — contradicts anchor-testability requirement from Step 2; replaced with guidance to return to Step 2 if midpoint anchor is hard (codex bot P2); (2) sync CHG Step 3 to include equal-weight rule 6 (codex bot P2 on CHG line 84). | Claude Sonnet 4.6 |
+| 2026-05-10 | Issue #139: §Step 8 — clarify "COR-1800 table format" applies to scoring rubric and action thresholds only; calibration examples is an additional COR-1802 requirement not present in COR-1800. Codex bot finding on PR #137. | Claude Sonnet 4.6 |
