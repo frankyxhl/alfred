@@ -84,7 +84,7 @@ Trinity-miss/codex-catch: <finding class, "none", or "n/a — panel findings not
 
 Output a 3-line nomination (target SOP, evidence — round numbers and finding class, one-sentence proposed amendment). Present to user; on confirmation, create a GitHub issue per COR-1501.
 
-*Note: once COR-1200 §Scoring ships (issue #134), score findings per COR-1200 §Scoring; use the composite threshold (≥7.5 = create issue) instead of the count rule above.*
+*Note: COR-1200 §Scoring shipped in PR #138. Adopters MAY score findings per COR-1200's 4-dimension rubric (Frequency/Actionability/Impact/Detection gap, threshold ≥7.5 = create issue) instead of the count rule above; the count rule remains the default.*
 
 **Step 4 — Hand off.** Print "Retro complete." and proceed to Phase 12 (Loop restart).
 
@@ -116,3 +116,4 @@ Output a 3-line nomination (target SOP, evidence — round numbers and finding c
 | 2026-05-10 | R4 (bot P2): §Phase 11 Draft Content Step 3 — replace stale "session state from this Phase 11 turn" with "GitHub PR evidence re-fetched in Step 1" to match COR-1617 R2/R3 fix. | Claude Code |
 | 2026-05-10 | R5 (bot P2): COR-1617 §Phase 11 Step 1 R-count command — `gh pr view #<N>` → `gh pr view <N>`; in POSIX shell `#` after whitespace starts a comment and drops the argument. | Claude Code |
 | 2026-05-10 | R6 (bot P2 Threads 5+6): COR-1617 §Phase 11 Step 1 R-count note — commit count overstates when admin-only commits precede review request; adjust manually. Trinity-miss/codex-catch — added `n/a` path for in-session panels not posted to GitHub. Emit template allows `n/a`. FXA-2276 Phase 11 row — Alfred deviation note added for Trinity-miss. CHG draft template synced. | Claude Code |
+| 2026-05-10 | R7 (GLM advisories A1/A4): COR-1617 Step 1 R-count — "adjust manually" expanded with method hint (inspect commit messages/timestamps, subtract admin-only commits). FXA-2283 Step 3 note — updated from "once COR-1200 §Scoring ships (issue #134)" to "shipped in PR #138; count rule remains default". | Claude Code |
