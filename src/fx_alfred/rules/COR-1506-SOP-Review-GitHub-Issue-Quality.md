@@ -198,7 +198,7 @@ COR-1506 applies **only to autonomous auto-pick** (COR-1617 Phase 1, rows 2–3 
 
 **User-directed picks:** orchestrator MAY surface the COR-1506 score as informational but MUST NOT block. If the user explicitly names an issue, proceed regardless of score.
 
-**Re-scoring:** Once the issue author edits the body (which re-triggers `iterwheel-blueprint[bot]`), and once `blueprint-ready` re-applies and `needs-revision` is removed, the issue is eligible for COR-1506 re-review. The orchestrator treats a re-labeled `blueprint-ready` issue as a fresh candidate.
+**Re-scoring:** Once the issue author edits the body (which re-triggers `iterwheel-blueprint[bot]`) and `blueprint-ready` re-applies, the issue is eligible for COR-1506 re-review — even while `needs-revision` is still present (§Structural Pre-check step 3 explicitly permits scoring in this state). The orchestrator treats a re-labeled `blueprint-ready` issue as a fresh candidate and runs steps 1–5 above; if the re-score is ≥ 8.0, step 3 removes `needs-revision` as part of the approval action.
 
 ---
 
@@ -217,4 +217,4 @@ COR-1506 applies **only to autonomous auto-pick** (COR-1617 Phase 1, rows 2–3 
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-10 | Initial version — 5-dimension scoring rubric, 4 calibration examples (all 3 bands), COR-1617 Phase 1 integration gate, feedback format, re-scoring mechanism. Issue #136. | Claude Sonnet 4.6 |
-| 2026-05-11 | PR #154 codex-bot threads: (1) Approve action removes `needs-revision` label if present — §Action Thresholds + §Integration step 3; (2) COR-1617 Phase 1 wired to apply COR-1506 quality gate after consent pass. | Claude Sonnet 4.6 |
+| 2026-05-11 | PR #154 codex-bot threads: (1) Approve action removes `needs-revision` label if present — §Action Thresholds + §Integration step 3; (2) COR-1617 Phase 1 wired to apply COR-1506 quality gate after consent pass; (3) Re-scoring paragraph rewritten — `needs-revision` removal is now an outcome of ≥8.0 re-score (step 3), not a precondition for re-review eligibility. | Claude Sonnet 4.6 |
