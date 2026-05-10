@@ -90,7 +90,7 @@ Score 0–10 on each dimension. Composite = Σ(weight × score).
 
 **Example 1 — First codex catch, trinity missed** (`--repo` gap, PR #131 R1):
 Frequency=0, Actionability=8, Impact=5, Detection gap=10
-→ 0×0.35 + 8×0.30 + 5×0.20 + 10×0.15 = **4.9 → Discard** (first occurrence; if this class recurs next PR, Frequency rises to 5 and composite crosses into Log band at 6.95)
+→ 0×0.35 + 8×0.30 + 5×0.20 + 10×0.15 = **4.9 → Discard** (first occurrence; if this class recurs next PR, Frequency rises to 5 and composite crosses into Log band at 6.65)
 
 **Example 2 — Same class recurs in the next PR**:
 Frequency=5, Actionability=9, Impact=5, Detection gap=10
