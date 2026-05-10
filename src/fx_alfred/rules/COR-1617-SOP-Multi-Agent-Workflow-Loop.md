@@ -239,7 +239,13 @@ The merge-watch wake's branch guard (per COR-1620 Primitive 3) ensures that if t
 
 Synchronous — runs immediately after Phase 10 cleanup (`git switch main && git pull --ff-only origin main`). No wakeup armed; no panel review. Optional steps (Steps 2–3) require user confirmation before writing.
 
-**Step 1 — Metrics block.** Re-fetch evidence from GitHub before emitting (Phase 11 runs in the merge-watch wake turn; Phase 8 session state is not available): use `gh pr view #<N> --json commits` for R-count, and COR-1615 endpoints for bot review comments and findings. Emit (use COR-1621 severity classifications P0–P3):
+**Step 1 — Metrics block.** Re-fetch evidence from GitHub before emitting (Phase 11 runs in the merge-watch wake turn; Phase 8 session state is not available):
+- **R-count**: `gh pr view #<N> --json commits --jq '.commits | length'` — each R-round = one commit (COR-1617 guard rail: never amend, add a new commit per round).
+- **Findings (P0–P3)**: Fetch bot review comments via COR-1615 §Commands fetch endpoints (`gh api .../pulls/<N>/reviews`, `.../issues/<N>/comments`, `.../pulls/<N>/comments`); re-apply COR-1621 triage to each raw finding to produce P0–P3 classification. Codex finding count = comments from the codex bot identity across all three endpoints.
+- **Late-catch (R3+)**: A finding whose first appearance (by review timestamp) is on round R3 or later.
+- **Trinity-miss/codex-catch**: A finding that appears in codex bot comments but not in any panel (GLM/DeepSeek) comment on the same round.
+
+Emit:
 ```
 Retro PR #<N> (closes #<issue>): R<count> rounds
 Findings: P0=<n> P1=<n> P2=<n> P3=<n> | Codex: <k> findings
@@ -259,7 +265,7 @@ Trinity-miss/codex-catch: <finding class or "none">
 
 Output a 3-line nomination (target SOP, evidence — round numbers and finding class, one-sentence proposed amendment). Present to user; on confirmation, create a GitHub issue per COR-1501.
 
-*Note: COR-1200 §Scoring (shipped in PR #138) defines a 4-dimension rubric (Frequency/Actionability/Impact/Detection gap) with composite threshold ≥7.5 = create issue. Adopters MAY use that rubric instead of the count rule above; the count rule is the interim default.*
+*Note: COR-1200 §Scoring (shipped in PR #138) defines a 4-dimension rubric (Frequency/Actionability/Impact/Detection gap) with composite threshold ≥7.5 = create issue. Adopters MAY use that rubric instead of the count rule above; the count rule remains the default.*
 
 **Step 4 — Hand off.** Print "Retro complete." and proceed to Phase 12 (Loop restart).
 
@@ -332,4 +338,5 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-09 | R2 (PR #119): codex bot R1 P2 — §Phase 7 `gh pr create --head` form was hardcoded to `<gh-write-identity>:<branch>`, which works for fork-PR but breaks for single-remote topology where the branch lives on `<repo-owner>`'s repo. Snippet now documents both forms with topology-conditional comment; `--head <head-spec>` placeholder lets the adopter substitute. Routing-table row also updated. | Claude Opus 4.7 |
 | 2026-05-10 | FXA-2283: Insert §Phase 11 (Retrospective) in reserved slot; renumber Loop restart §11→§12; update phase count (11→12), ASCII block, routing table, §Phase 10 cleanup line, §What Is It? description. Phase 11 is synchronous — 4 steps: metrics block (COR-1621 P0–P3), pattern check (project memory), CHG nomination (in-PR evidence, ≥2 rounds), hand off. | Claude Code |
 | 2026-05-10 | FXA-2283 R2: Step 1 — add GitHub re-fetch instruction (Phase 8 session state unavailable in merge-watch wake turn); Step 3 — replace "session state" with "GitHub PR evidence re-fetched in Step 1"; update COR-1200 §Scoring note (PR #138 shipped). | Claude Code |
+| 2026-05-10 | FXA-2283 R3: Step 1 — expand re-fetch instructions: explicit jq R-count command + single-commit-per-round assumption; COR-1615 §Commands three fetch endpoints named; COR-1621 triage re-apply instruction; Late-catch and Trinity-miss derivation rules. Step 3 note: "interim default" → "remains the default". | Claude Code |
 | 2026-05-10 | §Phase 7: tighten `Closes #<issue>` prescription — the token must be a bare `verb + #N` match for GitHub's auto-linker regex; any intervening words ("Closes routing gap from issue #126", "Closes issue #127") silently disable auto-close on merge. Added the regex inline + a `gh pr view <N> --json closingIssuesReferences` verify step that fires before merge instead of after, so the post-merge "manually close" recovery path is no longer necessary. Evidence: alfred PR #130 (issue #126 stayed open after merge with the first phrasing) and PR #131 (issue #127 with the second phrasing). | Claude Opus 4.7 |
