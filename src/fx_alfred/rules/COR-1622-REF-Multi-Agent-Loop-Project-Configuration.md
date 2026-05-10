@@ -85,7 +85,7 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 
 | Key | Type | Required | Default | Description |
 |-----|------|----------|---------|-------------|
-| `<cli-retry-attempts>` | integer | yes | `3` | Maximum retry attempts when a panel-provider CLI fails (timeout, non-zero exit, or missing binary). `0` = fail-fast: surface the failure immediately without retrying. |
+| `<cli-retry-attempts>` | integer | yes | `3` | Maximum retry attempts per provider per round when a panel-provider CLI fails (timeout, non-zero exit, or missing binary). `0` = fail-fast: surface the failure immediately without retrying. This value governs retry count in place of COR-1617 §Failure Modes' hardcoded "retry once" rule — adopters that set this key get `<cli-retry-attempts>` retries, not 1. |
 | `<cli-retry-backoff-seconds>` | integer | yes | `600` | Seconds to wait between retry attempts. |
 | `<cli-retry-on-failure>` | enum | yes | `pause-and-ask` | Action when all retry attempts are exhausted. One of: `pause-and-ask` — surface the failure to the operator and wait for instruction; `mark-non-viable` — treat the provider as non-viable for this run and continue if the panel retains ≥3 viable verdicts (see §Review panel `<panel-providers>`); `abort-loop` — stop the run entirely. |
 
@@ -126,13 +126,13 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | `<panel-pass-threshold>` | `9.0` |
 | `<worker-agent>` | `trinity-glm via droid exec` |
 | `<worker-min-loc>` | `30` |
+| `<cli-retry-attempts>` | `3` (default) |
+| `<cli-retry-backoff-seconds>` | `600` (default) |
+| `<cli-retry-on-failure>` | `pause-and-ask` (default) |
 | `<bot-actors>` | `[chatgpt-codex-connector[bot]]` |
 | `<wakeup-tool>` | `ScheduleWakeup` |
 | `<idle-cap>` | `12` |
 | `<merge-watch-cap>` | `24` |
-| `<cli-retry-attempts>` | `3` (default) |
-| `<cli-retry-backoff-seconds>` | `600` (default) |
-| `<cli-retry-on-failure>` | `pause-and-ask` (default) |
 
 ---
 
@@ -141,7 +141,7 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 - A project that adopts COR-1617 MUST instantiate this schema before any orchestrator session runs the loop. Missing or `unset` required keys is a hard error — orchestrator aborts and surfaces.
 - Substituting `<weights-doc>` with a foreign project's weights doc is a guard-rail violation. Each project's panel-review uses the project's own weights table.
 - `<intake-quality-mode>` may not silently change between sessions. If a project moves from `1FA` to `2FA` mid-flight, every previously-rocket-eligible issue must be re-checked against the new mode.
-- `<cli-retry-on-failure>` = `mark-non-viable` interacts with the `<panel-providers>` 3-viable-minimum rule: after marking a provider non-viable, verify the remaining panel still meets the 3-viable gate before continuing. If it does not, escalate to the operator regardless of this setting.
+- `<cli-retry-on-failure>` = `mark-non-viable` interacts with the `<panel-providers>` 3-viable-minimum rule: after marking a provider non-viable, verify the remaining panel still meets the 3-viable gate before continuing, AND that the failed provider was not the prior round's sole dissenter (per COR-1617 §Failure Modes). If either condition fails, escalate to the operator regardless of this setting.
 
 ---
 
@@ -156,3 +156,4 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | 2026-05-09 | FXA-2277: two schema refinements surfaced when alfred attempted to instantiate. (1) `<fork-remote>` renamed to `<pr-push-remote>` — original name presupposed a forked-fork workflow that not all adopters use; alfred pushes feature branches to `origin` directly. The invariant ("never push to `origin/main`") is preserved; only the name changed. (2) `<weights-doc>` type widened from `string` to `string \| map<<spec-format>, string>` — adopters with one rubric across artifact types use the scalar form (trinity's `TRN-1800`); adopters keying off `<spec-format>` use the map form. Trinity's existing instantiation continues working unchanged. | Claude Opus 4.7 |
 | 2026-05-09 | R3 (PR #119): codex bot R2 P2 — `<weights-doc>` schema-row description showed an example with invalid map keys (`code`, `PRP` — not in the `<spec-format>` enum). Same class of bug fixed in FXA-2276 R2 but not propagated to COR-1622 itself. Replaced with valid enum keys (alfred's actual map: `{CHG: COR-1609, ADR: COR-1609, RFC: COR-1608, inline-PR-body: COR-1609}`); added explicit note that `code` is not a valid key (code review uses COR-1610 by phase per COR-1617 §Phase 4). Adopters copying the schema row now get a valid instantiation. | Claude Opus 4.7 |
 | 2026-05-10 | FXA-146: add §Resilience parameter group (`<cli-retry-attempts>`, `<cli-retry-backoff-seconds>`, `<cli-retry-on-failure>`) covering CLI/provider-failure retry behavior. Defaults (3 attempts / 600 s / pause-and-ask) match Babs operator policy. Guard rail added for `mark-non-viable` interaction with 3-viable-minimum. Worked Example updated with trinity's effective defaults (all three keys inherit schema defaults; no behavior change). | Claude Sonnet 4.6 |
+| 2026-05-10 | DeepSeek R1 advisory fixes: `<cli-retry-attempts>` — added per-provider-per-round scope and explicit COR-1617 §Failure Modes override note; guard rail — added dissenter exception condition; Worked Example — moved three resilience rows to match schema section order (after §Worker dispatch, before §Bot polling). | Claude Sonnet 4.6 |
