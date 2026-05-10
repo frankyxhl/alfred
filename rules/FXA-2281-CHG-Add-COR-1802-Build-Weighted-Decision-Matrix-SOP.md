@@ -52,7 +52,7 @@ COR-1802 fills the gap: any agent or human follows it to produce a well-formed, 
    - §Steps 1–8 (see §SOP Draft below for content)
    - §Worked Example — trace COR-1610 (Code Review Scoring, already existing) through all 8 steps
    - §Guard Rails
-3. Edit `COR-1800` §Evaluation Rubric intro: add "built per COR-1802" reference line
+3. Edit `COR-1800` §Evaluation Rubric intro: add forward-reference clause "See COR-1802 for the meta-framework for building and calibrating weighted rubrics like this one." (not a compliance claim — COR-1800 pre-dates COR-1802)
 4. `af validate --root /Users/frank/Projects/alfred` — must pass
 5. Verify `af read COR-1802` and `af read CLD-1802` each resolve to their respective docs
 6. Push branch `fxa-135-cor-1802-weighted-decision-matrix`, open PR with `Closes #135`
@@ -168,3 +168,4 @@ Do not build a weighted matrix when any of the following conditions apply:
 | 2026-05-10 | Initial version | Claude Sonnet 4.6 |
 | 2026-05-10 | R2: fix GLM B1 — add §When NOT to Use to SOP Draft (3 conditions from issue body); fix convergent COR-1200 advisory — add Out of Scope note scoping COR-1200 back-reference to #134 implementer; fix A1 — add calibration sourcing guidance to Step 5; fix A2 — clarify COR-1200 §Scoring phrasing in §Why | Claude Sonnet 4.6 |
 | 2026-05-10 | §Out of scope note — updated from "COR-1200 §Scoring does not yet exist" to "shipped as part of COR-1200 §Scoring (PR #138)". DeepSeek blocker B1 on PR #145. | Claude Code |
+| 2026-05-10 | Issue #140: §Implementation Plan step 3 — sync phrasing to match R5 actual wording ("See COR-1802 for the meta-framework…" forward-reference, not compliance claim "built per COR-1802"). Codex bot finding on PR #137. | Claude Sonnet 4.6 |
