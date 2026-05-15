@@ -1,8 +1,8 @@
 # SOP-1623: PR Review Thread Verification
 
 **Applies to:** All projects using GitHub PR review workflows
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-15
+**Last reviewed:** 2026-05-15
 **Status:** Active
 **Related:** COR-1617 (§Phase 8 Iterate — composable sub-procedure for bot thread verification), COR-1615 (GitHub App PR Review Bot Loop)
 
@@ -48,30 +48,32 @@ A human or agent following this procedure reads the actual file content (not the
 
 ### Step 1 — Enumerate open threads
 
-Fetch up to 100 unresolved review threads from the PR via GraphQL (supports `isResolved` filtering; GitHub caps `first` at 100 — use the REST fallback for PRs with more than 100 threads):
+Fetch unresolved, non-outdated review threads from the PR via paginated GraphQL (supports `isResolved` / `isOutdated` filtering):
 
 ```bash
-gh api graphql -f query='
-  query($owner:String!,$repo:String!,$number:Int!){
+gh api graphql --paginate -f query='
+  query($owner:String!,$repo:String!,$number:Int!,$endCursor:String){
     repository(owner:$owner,name:$repo){
       pullRequest(number:$number){
-        reviewThreads(first:100){
-          nodes{ id isResolved path line originalLine
-            comments(first:1){nodes{body}} }}}}}' \
+        reviewThreads(first:100, after:$endCursor){
+          nodes{ id isResolved isOutdated path line originalLine
+            comments(first:1){nodes{body}} }
+          pageInfo{hasNextPage endCursor}
+        }}}}' \
   -f owner=<owner> -f repo=<repo> -F number=<pr> \
   --jq '.data.repository.pullRequest.reviewThreads.nodes[]
-    | select(.isResolved == false)
-    | {id, path, line: .originalLine,
+    | select((.isResolved == false) and (.isOutdated == false))
+    | {id, path, line: (.line // .originalLine),
        body: (.comments.nodes[0].body // "" | .[0:120])}'
 ```
 
-Fallback via REST (no `isResolved` field; paginated; compare against GitHub UI thread count to identify resolved threads):
+Fallback via REST when GraphQL is unavailable or API lag hides thread nodes (no `isResolved` / `isOutdated` fields; compare against GitHub UI thread count to identify resolved or outdated threads):
 
 ```bash
 gh api repos/<repo>/pulls/<pr>/comments \
   --paginate \
   --jq '.[] | select(.in_reply_to_id == null) |
-    {id: .id, path: .path, line: .original_line,
+    {id: .id, path: .path, line: (.line // .original_line),
      body: (.body | .[0:120])}'
 ```
 
@@ -86,7 +88,7 @@ For each thread, identify the exact source location it references:
 1. Extract `path` (file path) and `line` (line number) from the thread record.
 2. If `line` is null — thread on a deleted line or an outdated diff position — use the lead comment text to identify the construct (function name, variable, section heading) and `grep` for it instead.
 
-Note: GraphQL returns `originalLine` (camelCase); REST returns `original_line` (snake_case). Both are the line number at comment-post time and drift when the file changes afterward. Use the construct name as a fallback locator when line numbers have drifted. If the file no longer exists (deleted), classify the thread as NEEDS-FOLLOWUP unless the reviewer's concern was the file's existence itself.
+Note: the Step 1 commands emit the current line anchor when available (`line`), falling back to the original line anchor (`originalLine` in GraphQL, `original_line` in REST). Line anchors can still drift when files change after a comment is posted. Use the construct name as a fallback locator when line numbers no longer point to the reviewed code. If the file no longer exists (deleted), classify the thread as NEEDS-FOLLOWUP unless the reviewer's concern was the file's existence itself.
 
 ### Step 3 — Verify against source
 
@@ -95,11 +97,13 @@ Read the actual file at the identified location — **not** the diff:
 ```bash
 # Via git (local checkout) — LINE is the line number from Step 1
 LINE=<line>
-sed -n "$((LINE-20)),$((LINE+20))p" <path>
+START=$(( LINE > 20 ? LINE - 20 : 1 ))
+END=$(( LINE + 20 ))
+sed -n "${START},${END}p" <path>
 
 # Via GitHub API (no local checkout needed)
 gh api "repos/<repo>/contents/<path>?ref=<branch-sha>" \
-  --jq '.content' | base64 -d | sed -n "$((LINE-20)),$((LINE+20))p"
+  --jq '.content' | base64 -d | sed -n "${START},${END}p"
 ```
 
 Note: the Contents API returns `content: null` for files larger than 1 MB — use the local checkout method for large files.
@@ -166,10 +170,10 @@ gh api repos/<repo>/pulls/<pr>/comments/<comment-id>/replies \
 ## Pitfalls
 
 - **Read the file, not the diff.** The diff is what the bot reads and why it fails. Always read actual file content at the current HEAD.
-- **Line numbers drift.** The `line` field in Step 1 output (remapped from `originalLine`/`original_line`) is the line at comment-post time. If the file changed since, it no longer points to the right place. Use the construct name and `grep` to re-locate.
+- **Line numbers drift.** The `line` field in Step 1 output is GitHub's current line anchor when available, otherwise the original anchor. If the file changed after GitHub computed that anchor, it can still point to the wrong place. Use the construct name and `grep` to re-locate.
 - **Deletion ≠ fix.** If the flagged code was deleted rather than replaced with a correct version, verify whether deletion satisfies the reviewer's concern — it may or may not.
 - **RESOLVED-IN-CODE is not the same as thread resolved.** Post the report and reply to each RESOLVED-IN-CODE thread with the relevant evidence row. Bots read thread resolution state; per COR-1612 §Step 7, only the original reviewer can resolve a thread — prompt them if timely resolution is critical.
-- **GraphQL caps at 100 threads.** If the PR has more than 100 review threads, the GraphQL primary silently omits the rest. Use the REST fallback with `--paginate` for large PRs and filter resolved threads manually.
+- **Pagination is part of correctness.** Do not remove GraphQL `--paginate`, `$endCursor`, or `pageInfo`; without them, PRs with more than 100 review threads silently omit later threads.
 - **Classify by file content, not author intent.** What the author said they would do is irrelevant — classify by what is in the file at the verified SHA.
 
 ---
@@ -184,3 +188,4 @@ gh api repos/<repo>/pulls/<pr>/comments/<comment-id>/replies \
 | 2026-05-10 | R2 fix (GLM B1): REST reply command used wrong pattern (`POST /comments` with `in_reply_to_id`); replaced with dedicated replies endpoint (`POST /comments/<id>/replies`) which only requires `body`. | Claude Sonnet 4.6 |
 | 2026-05-10 | R2 fix (DeepSeek B1): GraphQL `first:100` caps at 100 — replaced "Fetch all" claim with accurate "Fetch up to 100"; added Pitfalls entry directing to REST `--paginate` for large PRs; clarified REST fallback description. | Claude Sonnet 4.6 |
 | 2026-05-10 | R1 fixes (GLM panel): P0 — corrected remaining Phase 11 references to Phase 8 Iterate (Related: header, §When to Use, §Change History); P1-1 — added `gh pr comment` command for posting report; P1-2 — added GraphQL/REST thread reply commands (COR-1612 §Step 7 requires reply-not-resolve); P2-1 — noted GraphQL node ID vs REST numeric ID difference for reply commands. | Claude Sonnet 4.6 |
+| 2026-05-15 | PR #153 review follow-up: Step 1 now uses paginated GraphQL with `$endCursor` / `pageInfo`, filters out outdated threads, emits current `line` before falling back to original anchors, and the REST fallback mirrors current-line preference. Step 3 clamps the `sed` context start to line 1. | Codex |
