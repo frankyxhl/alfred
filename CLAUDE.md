@@ -2,7 +2,7 @@
 
 ## Project
 
-- **Package:** fx-alfred v1.8.0
+- **Package:** fx-alfred v1.17.0
 - **Description:** Alfred — Agent Runbook: workflow routing, SOP checklists, and document management
 - **Language:** Python 3.10+, Click 8.0+
 - **Entry point:** `af = fx_alfred.cli:cli`
@@ -113,9 +113,12 @@ af list --root /Users/frank/Projects/alfred
 | COR-1101 | Submit Change Request (CHG) |
 | COR-1500 | TDD Development Workflow |
 | COR-1602 | Multi-Model Parallel Review |
+| COR-1612 | Respond To PR Review Comments |
+| COR-1615 | GitHub App PR Review Bot Loop |
 | COR-1608/1609/1610 | Review Scoring (PRP/CHG/Code rubrics) |
 | COR-1611 | Reviewer Calibration Guide |
 | COR-1613 | Council Review — decision-mechanism contract for multi-reviewer negotiation |
+| COR-1623 | PR Review Thread Verification — verify unresolved PR threads against exact PR head source content |
 | COR-1503 | Diagnose Feedback Loop — 6-phase bug/perf diagnosis with enforcement gates |
 
 ## Active PRPs (Draft)
@@ -136,6 +139,7 @@ af list --root /Users/frank/Projects/alfred
 - All code changes go through `/trinity` dispatch (GLM = Worker, Codex/Gemini = Reviewer)
 - TDD mandatory: COR-1500 (Red-Green-Refactor)
 - Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (both >= 9.0 to pass)
+- PR review loop: use COR-1615 to match GitHub App reviews to the current head, COR-1612 to process actionable comments, and COR-1623 when unresolved/outdated bot threads remain but the fix appears present in source.
 - Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
 - Documents: always `af create`, never manual files
 - Documents live in top-level `rules/` (PRJ layer)
