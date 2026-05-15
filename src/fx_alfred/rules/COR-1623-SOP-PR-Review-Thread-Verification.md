@@ -55,21 +55,32 @@ gh api graphql --paginate -f query='
   query($owner:String!,$repo:String!,$number:Int!,$endCursor:String){
     repository(owner:$owner,name:$repo){
       pullRequest(number:$number){
+        number
+        headRefOid
+        headRepository{nameWithOwner}
         reviewThreads(first:100, after:$endCursor){
           nodes{ id isResolved isOutdated path line originalLine
             comments(first:1){nodes{body}} }
           pageInfo{hasNextPage endCursor}
         }}}}' \
   -f owner=<owner> -f repo=<repo> -F number=<pr> \
-  --jq '.data.repository.pullRequest.reviewThreads.nodes[]
+  --jq '.data.repository.pullRequest as $pr
+    | $pr.reviewThreads.nodes[]
     | select((.isResolved == false) and (.isOutdated == false))
-    | {id, path, line: (.line // .originalLine),
+    | {id, pr: $pr.number,
+       headRepo: ($pr.headRepository.nameWithOwner // "<deleted-head-repo>"),
+       branchSha: $pr.headRefOid,
+       path, line: (.line // .originalLine),
        body: (.comments.nodes[0].body // "" | .[0:120])}'
 ```
 
 Fallback via REST when GraphQL is unavailable or API lag hides thread nodes (no `isResolved` / `isOutdated` fields; compare against GitHub UI thread count to identify resolved or outdated threads):
 
 ```bash
+gh pr view <pr> --repo <repo> --json number,headRefOid,headRepository \
+  --jq '{pr: .number, branchSha: .headRefOid,
+         headRepo: .headRepository.nameWithOwner}'
+
 gh api repos/<repo>/pulls/<pr>/comments \
   --paginate \
   --jq '.[] | select(.in_reply_to_id == null) |
@@ -96,21 +107,25 @@ Read the actual file at the identified location and exact PR head SHA — **not*
 
 ```bash
 # Via git object lookup — BRANCH_SHA is the PR head used in the report
+PR_NUM=<pr>
+HEAD_REPO=<head-owner/head-repo>
 BRANCH_SHA=<branch-sha>
 FILE_PATH=<path>
 LINE=<line>
 START=$(( LINE > 20 ? LINE - 20 : 1 ))
 END=$(( LINE + 20 ))
 
-git cat-file -e "${BRANCH_SHA}^{commit}" || git fetch origin "${BRANCH_SHA}"
+if ! git cat-file -e "${BRANCH_SHA}^{commit}"; then
+  git fetch origin "refs/pull/${PR_NUM}/head"
+fi
 git show "${BRANCH_SHA}:${FILE_PATH}" | sed -n "${START},${END}p"
 
 # Via GitHub API (no local checkout needed)
-gh api "repos/<repo>/contents/${FILE_PATH}?ref=${BRANCH_SHA}" \
+gh api "repos/${HEAD_REPO}/contents/${FILE_PATH}?ref=${BRANCH_SHA}" \
   --jq '.content' | base64 -d | sed -n "${START},${END}p"
 ```
 
-Note: the Contents API returns `content: null` for files larger than 1 MB — use the local Git object lookup for large files.
+Note: `origin` must be the base repository remote so `refs/pull/<pr>/head` is available. For fork PRs, use `HEAD_REPO` for the Contents API; reading from the base repo can fail when the head commit only exists in the fork. The Contents API returns `content: null` for files larger than 1 MB — use the local Git object lookup for large files.
 
 Use a window of ±20 lines around the flagged line to capture context.
 
@@ -194,3 +209,4 @@ gh api repos/<repo>/pulls/<pr>/comments/<comment-id>/replies \
 | 2026-05-10 | R1 fixes (GLM panel): P0 — corrected remaining Phase 11 references to Phase 8 Iterate (Related: header, §When to Use, §Change History); P1-1 — added `gh pr comment` command for posting report; P1-2 — added GraphQL/REST thread reply commands (COR-1612 §Step 7 requires reply-not-resolve); P2-1 — noted GraphQL node ID vs REST numeric ID difference for reply commands. | Claude Sonnet 4.6 |
 | 2026-05-15 | PR #153 review follow-up: Step 1 now uses paginated GraphQL with `$endCursor` / `pageInfo`, filters out outdated threads, emits current `line` before falling back to original anchors, and the REST fallback mirrors current-line preference. Step 3 clamps the `sed` context start to line 1. | Codex |
 | 2026-05-15 | PR #153 review follow-up: Step 3 now verifies source against the exact PR head SHA via `git show <sha>:<path>` or the Contents API `ref`, preventing stale local working trees from producing false thread classifications. | Codex |
+| 2026-05-15 | PR #153 review follow-up: Step 1 now emits PR number, head repository, and head SHA; Step 3 fetches `refs/pull/<pr>/head` instead of relying on a bare SHA fetch and reads fork PR content through `HEAD_REPO`. | Codex |
