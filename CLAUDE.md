@@ -139,7 +139,7 @@ af list --root /Users/frank/Projects/alfred
 - All code changes go through `/trinity` dispatch (GLM = Worker, Codex/Gemini = Reviewer)
 - TDD mandatory: COR-1500 (Red-Green-Refactor)
 - Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (both >= 9.0 to pass)
-- PR review loop: use COR-1615 to match GitHub App reviews to the current head, COR-1612 to process actionable comments, and COR-1623 when unresolved/outdated bot threads remain but the fix appears present in source.
+- PR review loop: use COR-1615 to match GitHub App reviews to the current head, COR-1612 to process actionable comments, and COR-1623 for operator-specified PR/thread verification. For repo-level scan/watch requests, use FXA-1623 to discover candidate PRs and delegate thread decisions back to COR-1623.
 - Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
 - Documents: always `af create`, never manual files
 - Documents live in top-level `rules/` (PRJ layer)
