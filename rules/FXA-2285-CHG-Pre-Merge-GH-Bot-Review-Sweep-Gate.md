@@ -37,7 +37,7 @@ Issue #156 records three real-session misses in the trinity review loop: voyager
 - **Systems affected:** COR review workflow docs bundled in `src/fx_alfred/rules/`; downstream agents that follow COR-1602, COR-1612, or COR-1615 before PR handoff.
 - **Behavioral impact:** Agents must run a GitHub-side sweep before declaring merge-ready in PR-context work. Trinity/panel PASS remains necessary where configured, but it is no longer sufficient when GitHub-side review threads exist.
 - **Compatibility:** Existing COR-1613 decision-mechanism rules stay intact; this CHG adds a PR-readiness precondition outside the Council vote itself.
-- **Zero-thread / no-bot case:** If no GitHub App review bot is installed, or the sweep finds zero non-bookkeeping GitHub-side review threads, the gate is vacuously satisfied after the sweep is recorded.
+- **Zero-thread / no-bot case:** If no GitHub App review bot is installed, the bot-specific portion of the sweep is empty, but human and code-review-app GitHub threads still count. The gate is satisfied only when the sweep finds zero non-bookkeeping GitHub-side review threads, or every such thread is resolved, outdated, or author-addressed.
 - **Rollback plan:** Keep the three target SOP edits atomic in one implementation commit; rollback by reverting that commit plus this CHG/tracker/index commit if separated, then rerun `.venv/bin/af validate --root /Users/frank/Projects/alfred`.
 
 
@@ -67,7 +67,8 @@ Issue #156 records three real-session misses in the trinity review loop: voyager
 
 | Date       | Change                                                                                                                                                                                                   | By    |
 |------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|
-| 2026-05-15 | Initial plan for issue #156 pre-merge GitHub-bot review sweep gate | Codex |
-| 2026-05-15 | Plan-review PASS from Trinity panel (GLM 9.2, Gemini 9.3, DeepSeek 9.3); folded convergent advisories on metadata, zero-thread behavior, command reuse, rollback atomicity, and example provenance | Codex |
+| 2026-05-15 | Initial plan for issue #156 pre-merge GitHub-bot review sweep gate                                                                                                                                       | Codex |
+| 2026-05-15 | Plan-review PASS from Trinity panel (GLM 9.2, Gemini 9.3, DeepSeek 9.3); folded convergent advisories on metadata, zero-thread behavior, command reuse, rollback atomicity, and example provenance       | Codex |
 | 2026-05-15 | Implemented COR-1602/COR-1612/COR-1615 pre-merge GitHub-side review sweep gate; local verification passed: shell snippets under set -euo pipefail, af validate, pytest, ruff check, ruff format --check. | Codex |
-| 2026-05-15 | R1 bot fix: added fail-closed nested review-thread comment pagination guard to COR-1615 GraphQL sweep example. | Codex |
+| 2026-05-15 | R1 bot fix: added fail-closed nested review-thread comment pagination guard to COR-1615 GraphQL sweep example.                                                                                           | Codex |
+| 2026-05-15 | R2 bot fix: clarified no-bot repos still must clear human and code-review-app GitHub threads before merge-ready.                                                                                         | Codex |

@@ -244,7 +244,7 @@ gh api graphql \
   '
 ```
 
-The pre-merge gate passes when the sweep returns zero non-bookkeeping GitHub-side review threads, or every returned thread is resolved, outdated, or has an author reply that addresses it per COR-1612. If no GitHub App review bot is installed, the same sweep returns no bot findings and the gate is vacuously satisfied after recording the result.
+The pre-merge gate passes when the sweep returns zero non-bookkeeping GitHub-side review threads, or every returned thread is resolved, outdated, or has an author reply that addresses it per COR-1612. If no GitHub App review bot is installed, the bot-specific portion is empty; the gate is still blocked by any unresolved or unreplied human or code-review-app GitHub thread.
 
 ---
 
@@ -349,7 +349,7 @@ Every push creates a new `headRefOid`. Return to Step 1, then request or wait fo
 
 The loop is complete when the latest bot result applies to current `headRefOid`, no new actionable comments remain, required checks are settled, no review request for the current head is still pending, and the pre-merge sweep above has no unresolved or unreplied non-bookkeeping GitHub-side review threads.
 
-If the sweep finds unresolved threads, route them to COR-1612 before declaring merge-ready. If the sweep finds zero non-bookkeeping GitHub-side review threads, record "pre-merge sweep: clear" in the PR checklist or handoff note; that includes repositories with no installed GitHub App review bot.
+If the sweep finds unresolved threads, route them to COR-1612 before declaring merge-ready. If the sweep finds zero non-bookkeeping GitHub-side review threads, record "pre-merge sweep: clear" in the PR checklist or handoff note. In repositories with no installed GitHub App review bot, this clear result still requires checking for human and code-review-app GitHub threads.
 
 ---
 
@@ -477,3 +477,4 @@ Use the GitHub App PR review bot loop:
 | 2026-05-05 | Initial COR-level version promoted from BAB-1504, generalized from Codex-specific Babs wording to GitHub App PR review bots. | Codex |
 | 2026-05-15 | FXA-2285: add pre-merge sweep trigger, non-bookkeeping thread filters, no-bot/zero-thread vacuous pass behavior, and real-session example for panel-missed GitHub App review threads. | Codex |
 | 2026-05-15 | FXA-2285 R1: add fail-closed nested comment pagination guard to the GraphQL review-thread sweep example. | Codex |
+| 2026-05-15 | FXA-2285 R2: clarify no-bot repos do not waive unresolved human or code-review-app GitHub threads. | Codex |

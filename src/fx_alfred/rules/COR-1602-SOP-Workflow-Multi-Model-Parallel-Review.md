@@ -108,7 +108,7 @@ When off: Reviewers analyze once, Leader synthesizes and decides. No re-review r
 - Or: maximum iteration count reached (default: 3 rounds), Leader makes final call
 - For PR-context artifacts, GitHub-side review channels are an independent readiness gate: before declaring merge-ready, run the COR-1615 pre-merge sweep and route any non-bookkeeping GitHub App review bot, code-review app, or human GitHub review-thread findings through COR-1612.
 - In-conversation panel PASS is necessary where this SOP is the selected review workflow, but it is not sufficient when unresolved or unreplied GitHub-side review threads exist. The PR is not done until each non-bookkeeping GitHub-side thread is resolved, outdated, or has an author reply addressing it per COR-1612.
-- If the repository has no GitHub App review bot installed, or the COR-1615 sweep finds zero non-bookkeeping GitHub-side review threads, this PR-readiness gate is vacuously satisfied after recording that result.
+- If the repository has no GitHub App review bot installed, the bot-specific portion of the sweep is empty; human and code-review-app GitHub threads still count. This PR-readiness gate is satisfied only when the COR-1615 sweep finds zero non-bookkeeping GitHub-side review threads, or every such thread is resolved, outdated, or author-addressed.
 
 ---
 
@@ -184,3 +184,4 @@ The GitHub-side pre-merge sweep above is not a Council decision mechanism and do
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
 | 2026-05-03 | FXA-2264: add "Relationship to COR-1613 (Council Review)" subsection clarifying COR-1602 as workflow-pattern layered with Council's mechanism contract. | Frank Xu |
 | 2026-05-15 | FXA-2285: add GitHub-side pre-merge review-thread gate; panel PASS is necessary but not sufficient when unresolved GitHub PR threads exist. | Codex |
+| 2026-05-15 | FXA-2285 R2: clarify no-bot repos still must clear human and code-review-app GitHub threads before merge-ready. | Codex |
