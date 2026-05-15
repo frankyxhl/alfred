@@ -211,7 +211,8 @@ gh api graphql \
               id
               isResolved
               isOutdated
-              comments(first:20) {
+              comments(first:100) {
+                pageInfo { hasNextPage endCursor }
                 nodes { databaseId author { login } body path line url }
               }
             }
@@ -224,6 +225,8 @@ gh api graphql \
     .data.repository.pullRequest.reviewThreads as $threads
     | if $threads.pageInfo.hasNextPage then
         error("reviewThreads truncated; use COR-1612 Detecting reviewer-side resolution pagination")
+      elif any($threads.nodes[]; .comments.pageInfo.hasNextPage) then
+        error("reviewThread comments truncated; use COR-1612 Detecting reviewer-side resolution pagination")
       else
         $threads.nodes
         | map({
@@ -473,3 +476,4 @@ Use the GitHub App PR review bot loop:
 | 2026-05-05 | Added compact operator checklist and portable prompt for current-head review-loop non-negotiables. | Codex |
 | 2026-05-05 | Initial COR-level version promoted from BAB-1504, generalized from Codex-specific Babs wording to GitHub App PR review bots. | Codex |
 | 2026-05-15 | FXA-2285: add pre-merge sweep trigger, non-bookkeeping thread filters, no-bot/zero-thread vacuous pass behavior, and real-session example for panel-missed GitHub App review threads. | Codex |
+| 2026-05-15 | FXA-2285 R1: add fail-closed nested comment pagination guard to the GraphQL review-thread sweep example. | Codex |

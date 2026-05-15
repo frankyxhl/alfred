@@ -67,6 +67,7 @@ Issue #156 records three real-session misses in the trinity review loop: voyager
 
 | Date       | Change                                                                                                                                                                                                   | By    |
 |------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------|
-| 2026-05-15 | Initial plan for issue #156 pre-merge GitHub-bot review sweep gate                                                                                                                                       | Codex |
-| 2026-05-15 | Plan-review PASS from Trinity panel (GLM 9.2, Gemini 9.3, DeepSeek 9.3); folded convergent advisories on metadata, zero-thread behavior, command reuse, rollback atomicity, and example provenance       | Codex |
+| 2026-05-15 | Initial plan for issue #156 pre-merge GitHub-bot review sweep gate | Codex |
+| 2026-05-15 | Plan-review PASS from Trinity panel (GLM 9.2, Gemini 9.3, DeepSeek 9.3); folded convergent advisories on metadata, zero-thread behavior, command reuse, rollback atomicity, and example provenance | Codex |
 | 2026-05-15 | Implemented COR-1602/COR-1612/COR-1615 pre-merge GitHub-side review sweep gate; local verification passed: shell snippets under set -euo pipefail, af validate, pytest, ruff check, ruff format --check. | Codex |
+| 2026-05-15 | R1 bot fix: added fail-closed nested review-thread comment pagination guard to COR-1615 GraphQL sweep example. | Codex |
