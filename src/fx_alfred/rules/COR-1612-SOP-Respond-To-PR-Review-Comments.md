@@ -1,10 +1,10 @@
 # SOP-1612: Respond To PR Review Comments
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-05
-**Last reviewed:** 2026-05-05
+**Last updated:** 2026-05-15
+**Last reviewed:** 2026-05-15
 **Status:** Draft
-**Related:** COR-1615 (GitHub App PR Review Bot Loop)
+**Related:** COR-1602 (Multi Model Parallel Review), COR-1615 (GitHub App PR Review Bot Loop)
 
 ---
 
@@ -44,6 +44,7 @@ Without a standard process, review comments get fixed without replies, missed en
 - A PR has received review comments (inline, review summary, or bot suggestions)
 - After pushing code to a PR that has pending review threads
 - Any workflow that involves a PR merge step
+- Before declaring a PR merge-ready, after COR-1615's pre-merge sweep has fetched GitHub-side review threads
 
 ---
 
@@ -53,6 +54,20 @@ Without a standard process, review comments get fixed without replies, missed en
 - Review scoring during COR-1602 parallel review (that's a separate scoring flow)
 - Draft PRs where comments are self-notes
 - Comments on closed/merged PRs (address in a follow-up PR if needed)
+
+---
+
+## Pre-Merge Sweep
+
+Before declaring any PR merge-ready, run the COR-1615 pre-merge sweep. This is required even when COR-1602 or another in-conversation panel has already passed: panel PASS is necessary for that review lane, but GitHub-side review threads are an independent detector surface.
+
+Route every non-bookkeeping GitHub-side review thread found by COR-1615 into this SOP:
+
+- **Resolved or outdated on GitHub:** record the sweep result; no further reply is required.
+- **Unresolved with an existing author reply that addresses the finding:** record the reply as the resolution evidence. For bots that cannot resolve threads, this counts as addressed and the user can manually resolve the thread if desired.
+- **Unresolved with no addressing reply:** classify it under Step 2 below, then fix/reply/escalate through Steps 3-6 before merge-ready can be declared.
+
+Bookkeeping bot markers, such as `iterwheel-clearance[bot]` thread-conclusion comments, are excluded by COR-1615 before findings enter this SOP. If the sweep returns zero non-bookkeeping GitHub-side review threads, or the repo has no GitHub App review bot installed, the pre-merge gate is vacuously satisfied after recording that result.
 
 ---
 
@@ -579,3 +594,4 @@ These are orthogonal mechanisms — none is "bot is smarter." The defensive prac
 | 2026-05-09 | Add §Scoping bot reviews via PR body (optional, GitHub App review bots only) section — codifies the PR-body scope-hint technique observed empirically on alfred PR #117 R11–R12 + PR #119 R1–R5 (N=7 post-hint rounds, per-round finding volume 1.5 → 1.0, off-scope class count 0 in both pre- and post-hint conditions). Technique is GitHub-App-bot-vendor-dependent; only `chatgpt-codex-connector[bot]` empirically tested. CHG-2279. | Claude Opus 4.7 |
 | 2026-05-09 | R2: codex bot R1 P2 (PR #122) — §Important: not a way to suppress real findings claimed bots "still flag in-scope items at the same rate", but the alfred evidence base shows off-scope was 0 pre-hints, so the 1.5→1.0 drop is necessarily in items the bot was classifying as actionable. The "same rate" claim was unsupported. Rewrote to acknowledge hints can affect what the bot flags as actionable (not just what it defers); added explicit "per-project verification that real-defect catches are preserved" guidance. CHG-2279 R2. | Claude Opus 4.7 |
 | 2026-05-09 | R3: codex bot R2 P2 (PR #122) — §When NOT useful skip rule "PR has fewer than 3 review rounds" contradicted the §Empirical evidence base (PR #119 + #120 both used hints from R1) and the CHG-2279 §Implementation Plan step 4 (eat-our-own-dogfood asks PRs to add hints before observing the bot). Adopters following the rule literally would never use hints from R1, losing the from-start usage pattern the SOP itself records. Narrowed to "small / uncertain scope PRs with no prior signal that the installed bot over-flags"; added explicit caveat that PRs known up-front to be long-running (large CHG/SOP, multi-file refactor) should add hints from R1. CHG-2279 R3. | Claude Opus 4.7 |
+| 2026-05-15 | FXA-2285: add pre-merge sweep routing from COR-1615; GitHub-side review threads must be resolved, outdated, or author-addressed before merge-ready. | Codex |

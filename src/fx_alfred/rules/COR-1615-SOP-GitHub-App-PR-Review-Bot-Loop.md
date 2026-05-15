@@ -1,10 +1,10 @@
 # SOP-1615: GitHub App PR Review Bot Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-06
-**Last reviewed:** 2026-05-06
+**Last updated:** 2026-05-15
+**Last reviewed:** 2026-05-15
 **Status:** Active
-**Related:** COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
+**Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
 **Task tags:** [github, github-app, pull-request, pr-review, review, bot-review, codex, copilot]
 **Authored from:** BAB-1504-SOP-GitHub-Codex-PR-Review-Loop
 
@@ -30,6 +30,7 @@ GitHub App review bots are useful but easy to misread. A reaction on a request c
 - A branch has been pushed after addressing PR feedback and needs review on the new head commit.
 - A workflow treats a GitHub App review bot as one detector in the PR readiness gate.
 - The operator needs to distinguish pending bot work from a completed review result.
+- Before declaring a PR merge-ready, even when an in-conversation panel review such as COR-1602 has already passed. GitHub App bots post asynchronously on GitHub, so their threads can exist outside the panel transcript.
 
 ## When NOT to Use
 
@@ -71,6 +72,7 @@ Core invariant: a PR is not clear until the latest review result applies to the 
 - Do not publish private IPs, local filesystem paths, tokens, private hostnames, or host-specific secrets in PR bodies, comments, commits, or review packets.
 - For all actionable findings, hand off to COR-1612: classify comments, fix blockers and adopted advisories, rerun relevant validation, commit, push, and reply where needed.
 - After pushing fixes from COR-1612, return to this SOP Step 1 for the new `headRefOid`.
+- Before saying "merge-ready", run the pre-merge sweep in §Commands. Trinity/panel PASS is necessary for that lane but not sufficient while non-bookkeeping GitHub-side review threads remain unresolved or unreplied.
 - For long iteration loops on the same PR, see COR-1612 §Scoping bot reviews via PR body for an optional, bot-vendor-dependent PR-body scope-hint technique.
 
 ---
@@ -140,6 +142,106 @@ gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
 ```
 
 When thread state matters, use a GraphQL or project helper that exposes `isOutdated` and `isResolved`; REST flat comments do not expose the full thread state.
+
+Pre-merge sweep, excluding bookkeeping bots:
+
+```bash
+OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
+REPO="${REPO:?set REPO=<repo-name>}"
+PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
+
+# Bots whose comments only mark bookkeeping state, not actionable findings.
+BOOKKEEPING_BOTS_JSON='["iterwheel-clearance[bot]"]'
+
+# Inline review comments on changed lines. Keep in_reply_to_id so author
+# replies can be distinguished from top-level findings before COR-1612 routing.
+gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/comments" --paginate |
+  jq -s --argjson bookkeeping "$BOOKKEEPING_BOTS_JSON" '
+    flatten
+    | map(select(.user.login as $u | ($bookkeeping | index($u) | not)))
+    | map({
+        type: "inline",
+        id,
+        in_reply_to_id,
+        user: .user.login,
+        path,
+        line,
+        commit_id,
+        created_at,
+        body,
+        html_url
+      })
+  '
+
+# Review summaries. Empty-body approvals are ignored; CHANGES_REQUESTED reviews
+# are retained even if their body is empty.
+gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate |
+  jq -s --argjson bookkeeping "$BOOKKEEPING_BOTS_JSON" '
+    flatten
+    | map(select((.user.login as $u | ($bookkeeping | index($u) | not))
+        and (.state == "CHANGES_REQUESTED" or ((.body // "") != ""))))
+    | map({
+        type: "review_summary",
+        id,
+        state,
+        user: .user.login,
+        commit_id,
+        created_at: .submitted_at,
+        body
+      })
+  '
+```
+
+Thread-aware state for unresolved vs resolved/outdated:
+
+```bash
+OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
+REPO="${REPO:?set REPO=<repo-name>}"
+PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
+BOOKKEEPING_BOTS_JSON='["iterwheel-clearance[bot]"]'
+
+gh api graphql \
+  -f query='
+    query($owner:String!, $repo:String!, $pr:Int!) {
+      repository(owner:$owner, name:$repo) {
+        pullRequest(number:$pr) {
+          reviewThreads(first:100) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              id
+              isResolved
+              isOutdated
+              comments(first:20) {
+                nodes { databaseId author { login } body path line url }
+              }
+            }
+          }
+        }
+      }
+    }' \
+  -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUM" |
+  jq --argjson bookkeeping "$BOOKKEEPING_BOTS_JSON" '
+    .data.repository.pullRequest.reviewThreads as $threads
+    | if $threads.pageInfo.hasNextPage then
+        error("reviewThreads truncated; use COR-1612 Detecting reviewer-side resolution pagination")
+      else
+        $threads.nodes
+        | map({
+            id,
+            isResolved,
+            isOutdated,
+            comments: [
+              .comments.nodes[]
+              | select(.author.login as $u | ($bookkeeping | index($u) | not))
+              | {id: .databaseId, user: .author.login, path, line, body, url}
+            ]
+          })
+        | map(select((.comments | length) > 0))
+      end
+  '
+```
+
+The pre-merge gate passes when the sweep returns zero non-bookkeeping GitHub-side review threads, or every returned thread is resolved, outdated, or has an author reply that addresses it per COR-1612. If no GitHub App review bot is installed, the same sweep returns no bot findings and the gate is vacuously satisfied after recording the result.
 
 ---
 
@@ -242,7 +344,9 @@ Every push creates a new `headRefOid`. Return to Step 1, then request or wait fo
 
 ### 12. Stop only when the current head is clear
 
-The loop is complete when the latest bot result applies to current `headRefOid`, no new actionable comments remain, required checks are settled, and no review request for the current head is still pending.
+The loop is complete when the latest bot result applies to current `headRefOid`, no new actionable comments remain, required checks are settled, no review request for the current head is still pending, and the pre-merge sweep above has no unresolved or unreplied non-bookkeeping GitHub-side review threads.
+
+If the sweep finds unresolved threads, route them to COR-1612 before declaring merge-ready. If the sweep finds zero non-bookkeeping GitHub-side review threads, record "pre-merge sweep: clear" in the PR checklist or handoff note; that includes repositories with no installed GitHub App review bot.
 
 ---
 
@@ -254,6 +358,7 @@ The loop is complete when the latest bot result applies to current `headRefOid`,
   requested.
 - Latest review result is matched to current `headRefOid`, or a no-suggestion signal is tied to the current request/head.
 - No new actionable PR comments remain unhandled.
+- Pre-merge sweep finds no unresolved or unreplied non-bookkeeping GitHub-side review threads. If the sweep finds zero such threads, the gate is clear.
 - Relevant validation or CI has passed after the last fix push.
 - Any remaining blockers are explicitly external to the GitHub App review loop.
 
@@ -314,6 +419,22 @@ The loop is complete when the latest bot result applies to current `headRefOid`,
    push already happened, restart the loop for `def456` and record the
    sequencing miss in the CHG or retrospective if useful.
 
+### Example 6 - Pre-merge sweep catches a panel-missed thread
+
+1. A docs PR receives in-conversation panel PASS and the agent is ready to say
+   "merge-ready."
+2. Before handoff, the agent runs the pre-merge sweep. The inline-comments
+   surface returns one non-bookkeeping GitHub App bot P2 thread on the current
+   head; the thread-aware state shows `isResolved: false` and `isOutdated:
+   false`.
+3. The agent routes the finding through COR-1612 instead of declaring
+   merge-ready. In the real-session evidence behind issue #156, this class of
+   sweep caught multiple GitHub-bot findings that the panel transcript did not
+   contain, including P1/P2 harness and cross-reference defects.
+4. Correct action: fix or reply to the GitHub-side thread, push if needed,
+   restart this SOP for the new head, and only hand off once the pre-merge
+   sweep is clear.
+
 ---
 
 ## Portable Operator Prompt
@@ -329,6 +450,7 @@ Use the GitHub App PR review bot loop:
 - Treat eyes reactions as queued or in-progress, not approval.
 - Do not post duplicate review triggers while one request is in progress.
 - Fix all actionable findings, validate, commit, push, and restart the current-head review loop.
+- Before declaring merge-ready, run the pre-merge sweep and confirm no non-bookkeeping GitHub-side review thread remains unresolved or unreplied.
 - Verify the visible-write identity with gh auth status.
 - Do not publish private IPs, local paths, tokens, or host-specific details in public PR text or commits.
 ```
@@ -350,3 +472,4 @@ Use the GitHub App PR review bot loop:
 | 2026-05-09 | Added one-line pointer in §Operator Checklist to COR-1612 §Scoping bot reviews via PR body for the optional PR-body scope-hint technique on long iteration loops. CHG-2279. | Claude Opus 4.7 |
 | 2026-05-05 | Added compact operator checklist and portable prompt for current-head review-loop non-negotiables. | Codex |
 | 2026-05-05 | Initial COR-level version promoted from BAB-1504, generalized from Codex-specific Babs wording to GitHub App PR review bots. | Codex |
+| 2026-05-15 | FXA-2285: add pre-merge sweep trigger, non-bookkeeping thread filters, no-bot/zero-thread vacuous pass behavior, and real-session example for panel-missed GitHub App review threads. | Codex |

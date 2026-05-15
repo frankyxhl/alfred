@@ -1,9 +1,10 @@
 # SOP-1602: Workflow — Multi Model Parallel Review
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-06
-**Last reviewed:** 2026-05-06
+**Last updated:** 2026-05-15
+**Last reviewed:** 2026-05-15
 **Status:** Active
+**Related:** COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review), COR-1615 (GitHub App PR Review Bot Loop)
 **Workflow loops:** [{id: review-retry, from: 7, to: 3, max_iterations: 3, condition: "iteration is on and not all reviewers approve"}]
 **Task tags:** [review, code-review, plan-review, multi-model, prp-review, implement]
 
@@ -105,6 +106,9 @@ When off: Reviewers analyze once, Leader synthesizes and decides. No re-review r
 - All Reviewers approve the (revised) artifact
 - Or: Leader accepts the synthesis (with justification)
 - Or: maximum iteration count reached (default: 3 rounds), Leader makes final call
+- For PR-context artifacts, GitHub-side review channels are an independent readiness gate: before declaring merge-ready, run the COR-1615 pre-merge sweep and route any non-bookkeeping GitHub App review bot, code-review app, or human GitHub review-thread findings through COR-1612.
+- In-conversation panel PASS is necessary where this SOP is the selected review workflow, but it is not sufficient when unresolved or unreplied GitHub-side review threads exist. The PR is not done until each non-bookkeeping GitHub-side thread is resolved, outdated, or has an author reply addressing it per COR-1612.
+- If the repository has no GitHub App review bot installed, or the COR-1615 sweep finds zero non-bookkeeping GitHub-side review threads, this PR-readiness gate is vacuously satisfied after recording that result.
 
 ---
 
@@ -167,6 +171,8 @@ COR-1602 specifies the *workflow pattern* for parallel-dispatch reviews (how rev
 
 Reviewers may declare a different mechanism (Veto, Consensus, etc.) when the target's risk profile warrants it. **When the declared Council mechanism is anything other than `decision_matrix`, COR-1602's Leader-override termination paths are suspended** — specifically, "Leader accepts" approval and "max rounds ... Leader makes final call" cannot override the declared mechanism's outcome. A Veto-objected target cannot be approved by Leader override; a Consensus-blocked target cannot be approved by Leader override. The Leader's role in non-Decision-Matrix mode is reduced to dispatch + synthesis + recording the mechanism-determined outcome. This preserves the Step-1 freeze guarantee in COR-1613.
 
+The GitHub-side pre-merge sweep above is not a Council decision mechanism and does not alter a declared Review Unit's frozen mechanism, threshold, or reviewer set. It is a PR-readiness precondition that runs after or alongside the mechanism result, because GitHub App review bots and inline review threads are detector surfaces outside the in-conversation panel.
+
 ---
 
 ## Change History
@@ -177,3 +183,4 @@ Reviewers may declare a different mechanism (Veto, Consensus, etc.) when the tar
 | 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
 | 2026-05-03 | FXA-2264: add "Relationship to COR-1613 (Council Review)" subsection clarifying COR-1602 as workflow-pattern layered with Council's mechanism contract. | Frank Xu |
+| 2026-05-15 | FXA-2285: add GitHub-side pre-merge review-thread gate; panel PASS is necessary but not sufficient when unresolved GitHub PR threads exist. | Codex |
