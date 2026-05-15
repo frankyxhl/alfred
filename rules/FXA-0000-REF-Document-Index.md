@@ -194,6 +194,8 @@
 | 2281 | CHG | Add COR 1802 Build Weighted Decision Matrix SOP |
 | 2282 | CHG | Add Scoring to COR 1200 Session Retrospective |
 | 2283 | CHG | Add Retrospective Phase to COR 1617 |
+| 2284 | REF | Discussion Tracker 2026 05 15 |
+| 2285 | CHG | Pre Merge GH Bot Review Sweep Gate |
 
 ---
 
