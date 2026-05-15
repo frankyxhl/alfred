@@ -49,7 +49,8 @@ decision and update this adapter afterward.
 
 - As an unbounded background daemon. This SOP only runs inside an active session
   or an explicitly configured scheduler.
-- When there are no open PRs.
+- As a watch loop when the operator only asked for a one-time scan. In scan-once
+  mode, no open PRs means stop after reporting the empty scan.
 - When open threads are clearly design discussions or genuinely unimplemented
   requests; route those through `COR-1612` instead.
 - When CI or current-head bot review has not completed yet; use `COR-1615` to
@@ -60,20 +61,24 @@ decision and update this adapter afterward.
 ## Defaults
 
 - **Repository:** `frankyxhl/alfred`
+- **Mode:** `watch` when the operator says watch, keep checking, or similar;
+  `scan-once` when the operator asks only for the current state
 - **Poll interval:** 5 minutes
-- **Default watch window:** 30 minutes or until no candidate PR remains,
-  whichever comes first
-- **Candidate PR:** open, non-draft, current-head CI green, GitHub App review
-  complete for the current `headRefOid`, and at least one unresolved review
-  thread
+- **Default watch window:** 30 minutes. In `watch` mode, an empty open-PR scan
+  is not terminal; sleep for the poll interval and scan again until the window
+  expires. In `scan-once` mode, stop after the first scan.
+- **Candidate PR:** open, current-head CI green, GitHub App review complete for
+  the current `headRefOid`, and at least one unresolved review thread. Draft /
+  Ready-for-review status is informational only; do not require a PR to be
+  marked ready before review-thread scanning.
 - **Escalation:** stop and report if a thread is `GENUINELY-OPEN` or
   `NEEDS-FOLLOWUP`; do not hide real work by resolving it
 
 ## Steps
 
-1. **Declare the watch window** — State the repository, poll interval, and stop
-   time before the first scan. If the operator did not specify values, use the
-   defaults above.
+1. **Declare the mode and watch window** — State the repository, mode, poll
+   interval, and stop time before the first scan. If the operator did not
+   specify values, use the defaults above.
 2. **List candidate PRs** — Scan open PRs:
 
    ```bash
@@ -81,13 +86,16 @@ decision and update this adapter afterward.
      --json number,title,isDraft,headRefOid,reviewDecision,statusCheckRollup,url
    ```
 
-   Stop the loop if this returns no open PRs. If the command fails because of
-   auth, rate-limit, network, or GitHub API errors, report the error and retry
-   on the next poll; do not treat a failed scan as an empty repo.
-3. **Apply the coarse gate** — Skip draft PRs, PRs with failing/pending required
-   checks, and PRs whose latest GitHub App review does not match the current
-   `headRefOid`. Use `COR-1615` for current-head matching. Re-check the PR
-   `headRefOid` immediately before classifying threads; if it changed since
+   If this returns no open PRs, report the empty scan. In `scan-once` mode,
+   stop. In `watch` mode, sleep for the poll interval and return to Step 2 until
+   the watch window expires. If the command fails because of auth, rate-limit,
+   network, or GitHub API errors, report the error and retry on the next poll;
+   do not treat a failed scan as an empty repo.
+3. **Apply the coarse gate** — Do not gate on Draft / Ready-for-review status;
+   use `isDraft` only as reporting context. Skip PRs with failing/pending
+   required checks and PRs whose latest GitHub App review does not match the
+   current `headRefOid`. Use `COR-1615` for current-head matching. Re-check the
+   PR `headRefOid` immediately before classifying threads; if it changed since
    Step 2, restart the gate for that PR.
 4. **Enumerate unresolved threads** — For each gated PR, run `COR-1623` Step 1
    to fetch unresolved, non-outdated review threads. If no unresolved threads
@@ -104,8 +112,10 @@ decision and update this adapter afterward.
    - `NEEDS-FOLLOWUP`: leave the thread open and report the remaining gap.
 7. **Poll or stop** — If the watch window remains open, sleep for the poll
    interval and return to Step 2. In shell sessions, the default 5-minute poll
-   interval is `sleep 300`. Stop immediately when all open PRs are clear, when
-   the watch window expires, or when a real follow-up is required.
+   interval is `sleep 300`. Stop when the watch window expires, when scan-once
+   mode completes its first scan, or when a real follow-up is required. Do not
+   stop watch mode merely because the current scan has no open PRs or no
+   candidate PRs.
 8. **Report outcome** — Summarize scanned PRs, thread classifications, actions
    taken, validation commands, and any PRs that still need human/operator work.
 
@@ -119,13 +129,15 @@ Default operator request:
 
 Agent execution:
 
-1. State: "Using `FXA-1623`: repo `frankyxhl/alfred`, 5-minute interval,
-   30-minute window."
+1. State: "Using `FXA-1623`: repo `frankyxhl/alfred`, mode `watch`,
+   5-minute interval, 30-minute window."
 2. Run the PR list command from Step 2.
-3. For every gated PR, apply `COR-1615`; if current-head review is complete,
+3. If no open PRs exist, report the empty scan, run `sleep 300`, and repeat
+   until the watch window expires.
+4. For every gated PR, apply `COR-1615`; if current-head review is complete,
    enumerate unresolved threads.
-4. For each unresolved thread, run `COR-1623` classification.
-5. Reply only to `RESOLVED-IN-CODE` threads with evidence, route real gaps
+5. For each unresolved thread, run `COR-1623` classification.
+6. Reply only to `RESOLVED-IN-CODE` threads with evidence, route real gaps
    through `COR-1612`, and report the final PR/thread list.
 
 ---
@@ -136,3 +148,5 @@ Agent execution:
 |------|--------|----|
 | 2026-05-15 | Initial version: Alfred-local watchdog adapter for scanning open PRs and invoking COR-1615/COR-1612/COR-1623 only when candidate review threads exist. | Codex |
 | 2026-05-15 | Trinity review fixes: align RESOLVED-IN-CODE action with COR-1612/COR-1623 no-self-resolve policy, remove misleading `mergeable` scan field, and document scan failure, head-change, and poll sleep behavior. | Codex |
+| 2026-05-15 | Clarify `watch` vs `scan-once`: no open PRs stops only scan-once mode; watch mode sleeps and retries until the declared window expires. | Codex |
+| 2026-05-15 | Clarify Draft / Ready-for-review status is informational only; FXA-1623 review-thread scanning does not require a PR to be marked ready for review. | Codex |
