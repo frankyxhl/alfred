@@ -92,21 +92,25 @@ Note: the Step 1 commands emit the current line anchor when available (`line`), 
 
 ### Step 3 — Verify against source
 
-Read the actual file at the identified location — **not** the diff:
+Read the actual file at the identified location and exact PR head SHA — **not** the diff and not whatever happens to be in the local working tree:
 
 ```bash
-# Via git (local checkout) — LINE is the line number from Step 1
+# Via git object lookup — BRANCH_SHA is the PR head used in the report
+BRANCH_SHA=<branch-sha>
+FILE_PATH=<path>
 LINE=<line>
 START=$(( LINE > 20 ? LINE - 20 : 1 ))
 END=$(( LINE + 20 ))
-sed -n "${START},${END}p" <path>
+
+git cat-file -e "${BRANCH_SHA}^{commit}" || git fetch origin "${BRANCH_SHA}"
+git show "${BRANCH_SHA}:${FILE_PATH}" | sed -n "${START},${END}p"
 
 # Via GitHub API (no local checkout needed)
-gh api "repos/<repo>/contents/<path>?ref=<branch-sha>" \
+gh api "repos/<repo>/contents/${FILE_PATH}?ref=${BRANCH_SHA}" \
   --jq '.content' | base64 -d | sed -n "${START},${END}p"
 ```
 
-Note: the Contents API returns `content: null` for files larger than 1 MB — use the local checkout method for large files.
+Note: the Contents API returns `content: null` for files larger than 1 MB — use the local Git object lookup for large files.
 
 Use a window of ±20 lines around the flagged line to capture context.
 
@@ -189,3 +193,4 @@ gh api repos/<repo>/pulls/<pr>/comments/<comment-id>/replies \
 | 2026-05-10 | R2 fix (DeepSeek B1): GraphQL `first:100` caps at 100 — replaced "Fetch all" claim with accurate "Fetch up to 100"; added Pitfalls entry directing to REST `--paginate` for large PRs; clarified REST fallback description. | Claude Sonnet 4.6 |
 | 2026-05-10 | R1 fixes (GLM panel): P0 — corrected remaining Phase 11 references to Phase 8 Iterate (Related: header, §When to Use, §Change History); P1-1 — added `gh pr comment` command for posting report; P1-2 — added GraphQL/REST thread reply commands (COR-1612 §Step 7 requires reply-not-resolve); P2-1 — noted GraphQL node ID vs REST numeric ID difference for reply commands. | Claude Sonnet 4.6 |
 | 2026-05-15 | PR #153 review follow-up: Step 1 now uses paginated GraphQL with `$endCursor` / `pageInfo`, filters out outdated threads, emits current `line` before falling back to original anchors, and the REST fallback mirrors current-line preference. Step 3 clamps the `sed` context start to line 1. | Codex |
+| 2026-05-15 | PR #153 review follow-up: Step 3 now verifies source against the exact PR head SHA via `git show <sha>:<path>` or the Contents API `ref`, preventing stale local working trees from producing false thread classifications. | Codex |
