@@ -21,7 +21,9 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
-- **NEW in v1.15.0** — COR-1501 aligned with iterwheel intake conventions (label taxonomy completed, `Applies to:` scoped, portability note); COR-1617 §Phase 7 closing-token prescription tightened (bare `Closes #N` required, verify via `closingIssuesReferences`); §Phase 10/11 advances on mergeable not merged.
+- **NEW in v1.17.0** — [PR Review Thread Verification (COR-1623)](src/fx_alfred/rules/COR-1623-SOP-PR-Review-Thread-Verification.md) audits unresolved GitHub PR review threads against exact source content at the PR head SHA; [Review GitHub Issue Quality (COR-1506)](src/fx_alfred/rules/COR-1506-SOP-Review-GitHub-Issue-Quality.md) scores `blueprint-ready` issues with a weighted implementation-readiness rubric.
+- **v1.16.0** — [Build Weighted Decision Matrix (COR-1802)](src/fx_alfred/rules/COR-1802-SOP-Build-Weighted-Decision-Matrix.md) codifies rubric design and calibration; COR-1200 gained retrospective scoring; COR-1617 added Phase 11 Retrospective; COR-1622 added resilience parameters.
+- **v1.15.0** — COR-1501 aligned with iterwheel intake conventions (label taxonomy completed, `Applies to:` scoped, portability note); COR-1617 §Phase 7 closing-token prescription tightened (bare `Closes #N` required, verify via `closingIssuesReferences`); §Phase 10/11 advances on mergeable not merged.
 - **v1.14.0** — [Multi-Agent Workflow Loop (COR-1617 cluster)](src/fx_alfred/rules/COR-1617-SOP-Multi-Agent-Workflow-Loop.md) — umbrella SOP for consensus-driven multi-agent task execution with consent gates, worker dispatch, and loop primitives. Ships COR-1617/1618/1619/1620/1621/1622. Also: COR-1612 §Scoping bot reviews via PR body; COR-1615 pointer; new `.github/ISSUE_TEMPLATE/blueprint.md` for iterwheel intake.
 - **v1.13.0** — Per-user document bookmarking: `af star <ID>`, `af unstar <ID>`, `af starred`. Bookmark any doc directly by ACID; persists in `~/.alfred/preferences.yaml`; documents are not modified.
 - **v1.12.0** — [Contract-First Delivery Workflow (COR-1616)](src/fx_alfred/rules/COR-1616-SOP-Contract-First-Delivery-Workflow.md) — project-neutral reviewed-delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out), promoted from Babs `BAB-1503`. Also: pytest test-marker governance gate, skills-absorption round 5 (COR-1207, COR-1208, FXA-2248).
@@ -352,11 +354,14 @@ graph TD
 | COR-1102 | Create Proposal (PRP lifecycle) |
 | COR-1101 | Submit Change Request (CHG) |
 | COR-1500 | TDD Development Workflow |
+| COR-1506 | Review GitHub Issue Quality — weighted rubric for `blueprint-ready` issue implementability |
 | COR-1602 | Multi-Model Parallel Review |
 | COR-1612 | Respond to PR review comments on GitHub |
 | COR-1615 | GitHub App PR Review Bot Loop — trigger/poll/match-head loop for Codex Connector, Copilot, and other GitHub App reviewers |
 | COR-1616 | Contract-First Delivery Workflow — project-neutral reviewed delivery loop (contract → plan review → TDD/BDD/E2E → impl review → identity-correct PR → PR review loop → close out) |
 | COR-1617 | Multi-Agent Workflow Loop — consensus-driven task execution with consent gates, worker dispatch, and structured loop primitives |
+| COR-1623 | PR Review Thread Verification — audit unresolved PR review threads against exact source content at the PR head SHA |
+| COR-1802 | Build Weighted Decision Matrix — design, calibrate, and validate weighted scoring rubrics |
 | COR-1608 | PRP Review Scoring rubric |
 | COR-1611 | Reviewer Calibration Guide |
 | COR-1613 | Council Review — multi-reviewer decision mechanism (14 voting rules) |

@@ -1,5 +1,74 @@
 # Changelog
 
+## v1.17.0 (2026-05-15)
+
+Docs-shipped-as-PKG-SOPs release. No CLI / behavior changes; new bundled COR
+documents and review-loop SOP refinements.
+
+### Added
+
+- **COR-1623 PR Review Thread Verification** — new PKG SOP for auditing
+  unresolved GitHub PR review threads against exact source content at the PR
+  head SHA. Covers paginated GraphQL thread enumeration, current-line anchors,
+  outdated-thread filtering, fork/head-repository fetches, and per-thread
+  classifications (`RESOLVED-IN-CODE`, `GENUINELY-OPEN`, `NEEDS-FOLLOWUP`).
+  (PR #153)
+- **COR-1506 Review GitHub Issue Quality** — new PKG SOP for post-intake
+  quality review of GitHub issues after `iterwheel-blueprint[bot]` grants
+  `blueprint-ready`. Scores problem evidence, acceptance criteria, task plan,
+  dependencies, and scope boundaries with a weighted rubric. (PR #154)
+- **AGENTS.md** symlink to `CLAUDE.md` so Codex and Claude agents read the
+  same project instructions from the repo root. (PR #153)
+
+### Changed
+
+- **COR-1617 §Phase 8** — added an R-count cap with adaptive extension for
+  review-loop convergence control. (PR #152)
+- **COR-1622** — parameterized COR-1617 failure-mode retry behavior through
+  the loop configuration schema. (PR #149)
+- **COR-1802** — clarified Step 8 template-reference scope and synced the
+  FXA-2281 implementation-plan wording. (PRs #150, #151)
+
+### Stats
+
+- 900 tests, all passing.
+- 270 documents validated, 0 issues.
+- 0 breaking changes.
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.17.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
+## v1.16.0 (2026-05-10)
+
+Docs-shipped-as-PKG-SOPs release. No CLI / behavior changes; new bundled COR
+documents and SOP refinements.
+
+### Added
+
+- **COR-1802 Build Weighted Decision Matrix** — 8-step process for designing,
+  calibrating, and validating weighted scoring rubrics. Includes
+  MECE/isolation tests, anchor rules, calibration with known cases, and a
+  worked example using COR-1610. (PR #137)
+- **COR-1200 §Scoring** — weighted retrospective scoring rubric for Session
+  Retrospective: Frequency, Actionability, Impact, Detection gap; threshold
+  ≥7.5 = create issue. (PR #138)
+- **COR-1617 §Phase 11 Retrospective** — synchronous retrospective phase:
+  metrics block, pattern check, CHG nomination, handoff. Loop restart
+  renumbered to §12. (PR #141)
+- **COR-1622 §Resilience** — CLI/provider-failure retry parameters:
+  `<cli-retry-attempts>`, `<cli-retry-backoff-seconds>`, and
+  `<cli-retry-on-failure>`. (PR #147)
+
+### Stats
+
+- 900 tests, all passing.
+- 267 documents validated, 0 issues.
+
 ## v1.15.0 (2026-05-10)
 
 Docs-shipped-as-PKG-SOPs release. No CLI / behavior changes; SOP corrections and refinements.
