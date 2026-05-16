@@ -89,9 +89,9 @@ What do you need to do in the FXA project?
 10. Pick next open issue / start autonomous loop?
     └── FXA-2276 (Multi-Agent Loop Configuration)
         Invocations (rocket-gate semantics per COR-1618 §Normative Bypass — bypass applies only when the operator names the target issue, e.g. `for #N`):
-        - `follow FXA-2276`        → looping mode: full COR-1618 verify_consent_eligibility on every pick (no bypass); pick lowest-rank rocket-eligible issue, run COR-1617 phases 2–10, on mergeable detection run Phase 11 (Retrospective) synchronously, then re-enter phase 1 via §12 wake; idle-retry 1800 s × 12 ≈ 6 h when queue empty
-        - `follow FXA-2276 once`   → same gate as `follow FXA-2276` (full COR-1618 on every pick) but single pick, run phases 2–11, stop after phase 11 (no §12 wake, no autonomous continuation)
-        - `follow FXA-2276 for #N` → user-directed pick of issue #N — gate-bypassed per COR-1618 §Normative Bypass Clause, run phases 2–11 regardless of rocket-gate state, stop after phase 11 (no §12 wake)
+        - `follow FXA-2276`        → looping mode: full COR-1618 verify_consent_eligibility + COR-1506 issue-quality check (score ≥ 8.0) on every pick (no bypass); from the COR-1506-passing candidates, pick lowest-rank per scope-rank tree, run COR-1617 phases 2–10, on mergeable detection run Phase 11 (Retrospective) synchronously, then re-enter phase 1 via §12 wake; idle-retry 1800 s × 12 ≈ 6 h when queue empty
+        - `follow FXA-2276 once`   → same gate as `follow FXA-2276` (full COR-1618 + COR-1506 on every pick) but single pick, run phases 2–11, stop after phase 11 (no §12 wake, no autonomous continuation)
+        - `follow FXA-2276 for #N` → user-directed pick of issue #N — gate-bypassed per COR-1618 §Normative Bypass Clause, run phases 2–11 regardless of rocket-gate state or COR-1506 score, stop after phase 11 (no §12 wake)
         Underlying chain (for drop-down debugging): COR-1617 §1 (Auto-pick) → COR-1618 (consent) → COR-1506 (quality) → scope-rank tree
 ```
 
