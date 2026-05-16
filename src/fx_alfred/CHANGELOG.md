@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.17.1 (2026-05-17)
+
+PRJ-layer documentation release. No CLI / behavior changes; new review-loop
+watchdog SOP and pre-merge bot sweep gate.
+
+### Docs
+
+- **FXA-1623 PR Review Thread Watchdog** — new PRJ SOP for monitoring open PRs
+  for unresolved review threads, with keep-alive on empty scans. (#157, #158)
+- **FXA-2285 Pre-Merge GH Bot Review Sweep Gate** — new CHG for a pre-merge
+  GitHub App review sweep gate in the agent guide. (#159)
+- **FXA-2125 / FXA-2276** — branch 10 entry-point and bypass scoping
+  tightening in workflow routing. (#164)
+- **COR-1602 / COR-1612 / COR-1615** — review-loop refinements for multi-model
+  parallel review, PR review comment responses, and GitHub App bot loop.
+
+### Stats
+
+- 900 tests, all passing.
+- 0 breaking changes.
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.17.1       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.17.0 (2026-05-15)
 
 Docs-shipped-as-PKG-SOPs release. No CLI / behavior changes; new bundled COR
