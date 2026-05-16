@@ -119,7 +119,7 @@ af create: Never manually create .md files, always af create --prefix FXA --area
 af validate: Run after document migrations to confirm 0 issues
 fx_alfred: Documents live in rules/ (PRJ layer), document changes committed with code
 COR-1501: GitHub issue = blueprint template + stack-type-* / stack-area-* label pair
-FXA-2276: "follow FXA-2276" is the alfred entry-point for picking the next open issue (User-driven trigger per COR-1617 §1, gate-bypassed per COR-1618 §Normative Bypass)
+FXA-2276: "follow FXA-2276" is the alfred entry-point for picking the next open issue (full COR-1618 verify_consent_eligibility on every pick; only `follow FXA-2276 for #N` is bypass-eligible per §Normative Bypass)
 ```
 
 ## Steps
