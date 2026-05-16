@@ -88,10 +88,10 @@ What do you need to do in the FXA project?
 
 10. Pick next open issue / start autonomous loop?
     └── FXA-2276 (Multi-Agent Loop Configuration)
-        User-driven invocations (live chat input = consent; COR-1618 gate BYPASSED per §Normative Bypass):
-        - `follow FXA-2276`        → looping mode: pick lowest-rank rocket-eligible issue, run COR-1617 phases 2–10, on mergeable detection run Phase 11 (Retrospective) synchronously, then re-enter phase 1 via §12 wake; idle-retry 1800 s × 12 ≈ 6 h when queue empty
-        - `follow FXA-2276 once`   → single pick, run phases 2–11, stop after phase 11 (no §12 wake, no autonomous continuation)
-        - `follow FXA-2276 for #N` → user-directed pick of issue #N, run phases 2–11 regardless of rocket-gate state, stop after phase 11 (no §12 wake)
+        Invocations (rocket-gate semantics per COR-1618 §Normative Bypass — bypass applies only when the operator names a specific ACID):
+        - `follow FXA-2276`        → looping mode: full COR-1618 verify_consent_eligibility on every pick (no bypass); pick lowest-rank rocket-eligible issue, run COR-1617 phases 2–10, on mergeable detection run Phase 11 (Retrospective) synchronously, then re-enter phase 1 via §12 wake; idle-retry 1800 s × 12 ≈ 6 h when queue empty
+        - `follow FXA-2276 once`   → same gate as `follow FXA-2276` (full COR-1618 on every pick) but single pick, run phases 2–11, stop after phase 11 (no §12 wake, no autonomous continuation)
+        - `follow FXA-2276 for #N` → user-directed pick of issue #N — gate-bypassed per COR-1618 §Normative Bypass Clause, run phases 2–11 regardless of rocket-gate state, stop after phase 11 (no §12 wake)
         Underlying chain (for drop-down debugging): COR-1617 §1 (Auto-pick) → COR-1618 (consent) → COR-1506 (quality) → scope-rank tree
 ```
 
@@ -140,3 +140,4 @@ This is a routing SOP — no procedural steps. The Project Decision Tree above i
 | 2026-04-04 | CHG FXA-2190: Remove deprecated FXA-2127 ref from decision tree, fix stale "no remote" golden rule | Claude Code |
 | 2026-05-10 | issue #126: add branch 9 (Create GitHub issue → COR-1501) to decision tree; add COR-1501 traceability line to Golden Rules | Claude Opus 4.7 |
 | 2026-05-16 | issue #162: add branch 10 (Pick next open issue / autonomous loop → FXA-2276) to decision tree; add FXA-2276 line to Golden Rules | Claude Opus 4.7 |
+| 2026-05-16 | issue #163 (bundled with #162 in PR #164): tighten branch 10 header — clarify that only `follow FXA-2276 for #N` is gate-bypassed; `follow FXA-2276` and `follow FXA-2276 once` apply full COR-1618 verify_consent_eligibility on every pick (aligns with the FXA-2276 §Invocation tightening in the same PR) | Claude Opus 4.7 |
