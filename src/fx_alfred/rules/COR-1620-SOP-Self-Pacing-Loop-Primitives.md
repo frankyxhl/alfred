@@ -1,8 +1,8 @@
 # SOP-1620: Self-Pacing Loop Primitives
 
 **Applies to:** Claude-Code-runtime orchestrators adopting COR-1617; alternative runtimes substitute their own primitive
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella; uses these primitives in §1 idle-with-retry, §8 iterate, §10 merge-watch, §12 loop restart; §11 retrospective is synchronous — no primitive needed), COR-1622 (parameter schema — `<wakeup-tool>`, `<idle-cap>`, `<merge-watch-cap>`)
 
@@ -16,8 +16,9 @@ The runtime primitives that let an orchestrator self-pace a long-running multi-p
 2. **Stop-marker** — a durable filesystem signal that suppresses scheduled wakes until removed.
 3. **Branch guard** — observable git state that distinguishes "loop continuing on watched branch" from "user has switched off to do something else."
 4. **Stateless counter** — round count carried in the wake prompt itself, since wakes are self-contained turns with no external state.
+5. **Status communication** — operator-visibility contract: every wake-arming pairs with a status surface. Runtime-independent — applies under ANY wakeup mechanism (Claude Code `ScheduleWakeup`, cron, lock file, etc.).
 
-These primitives are factored out of COR-1617 so an alternative orchestrator runtime (non-Claude-Code) can substitute equivalents (cron + lock file + branch check) and reuse the rest of the cluster unchanged.
+Primitives 1–4 are runtime-specific (factored out of COR-1617 so an alternative non-Claude-Code orchestrator can substitute equivalents — cron + lock file + branch check + counter-token-in-cron-arg — and reuse the rest of the cluster unchanged). **Primitive 5 is runtime-independent and binding regardless of substitution**: any consumer of any Primitive-1 substitute MUST satisfy Primitive 5 (status surface), or it is not a valid substitution.
 
 ---
 
@@ -120,6 +121,24 @@ Wakes are self-contained turns; there is no external state between them. The cou
 
 ---
 
+## Primitive 5: Status communication
+
+Every wake-arming MUST be paired with a status surface — either an in-chat message to the operator, a PR comment, or both. Silent wake-and-yield is forbidden.
+
+**Required elements** per wake-arming:
+
+1. **What just happened** — the R-round / fix / observation that triggered this wake.
+2. **What the wake will check** — concrete predicate (e.g. "CI status + codex review on commit `<sha>`").
+3. **Counter state** — declare every counter that applies in the current wake context, or `n/a` if none apply. The applicable counters depend on wake type per Primitive 4: §Phase 8 per-R-push reports R-count; idle-with-retry reports `idle wake N of <idle-cap>` only (no R-count); merge-watch reports `merge-watch N of <merge-watch-cap> for branch <BRANCH_NAME>` only; loop-restart reports `n/a` (single fire post-handoff, no counter per Primitive 4). Reporting a counter that the wake type doesn't have is itself a Primitive 5 violation.
+
+**Forbidden anti-pattern — "silent wake-and-yield"**: arming a `<wakeup-tool>` callback and ending the orchestrator turn with no chat message and no PR comment. The operator then cannot distinguish "still iterating" from "stalled" from "crashed" until the wake fires (up to 270 s later — past the prompt-cache TTL).
+
+**Why this is a primitive, not a soft convention**: in cache-warm windows (≤ 270 s wakes) the next bot/CI signal often arrives *before* the wake fires, so silent yield trades operator visibility for a few saved tokens — a bad ratio. In longer wakes (idle 1800 s, merge-watch 1800 s) the silence is even more confusing.
+
+This primitive binds every consumer of COR-1620 wake mechanics — §Phase 1 idle-with-retry (COR-1617), §Phase 8 per-R-push, §Phase 10 merge-watch, §Phase 12 loop-restart.
+
+---
+
 ## Cadence rules
 
 | Situation | Cadence |
@@ -181,6 +200,7 @@ ScheduleWakeup(
 - Never arm a wake without the FIRST stop-marker guard and SECOND branch guard in the prompt.
 - Never run a counter externally. Counters live in the wake prompt; otherwise wake-state is lost across the runtime boundary.
 - Never auto-switch-and-pull on wake when the branch guard mismatches. Operator decides resume.
+- Never end a turn with a wake armed and no status surfaced. Silent wake-and-yield is a Primitive 5 violation.
 
 ---
 
@@ -205,3 +225,6 @@ Set `<wakeup-tool>` in the project's COR-1622 instantiation accordingly.
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted from TRN-1008 §1 idle-with-retry / §8 / §10 / §11 + §Failure Modes (a)–(f) for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
 | 2026-05-10 | FXA-2283: §When to Use — §11 loop restart → §12 loop restart; Related metadata — add §11 retrospective (synchronous); §Primitives table — add Retrospective row (synchronous, no counter) | Claude Code |
+| 2026-05-17 | issue #165: add §Primitive 5 (Status communication contract) — forbid silent wake-and-yield. Every wake-arming MUST pair with a status surface (chat update or PR comment) covering (a) what just happened, (b) what the wake will check, (c) counter state. Binds every consumer of COR-1620 wake mechanics. New §Guard Rails bullet enforces. | Claude Opus 4.7 |
+| 2026-05-17 | issue #165 R2 (PR #182 codex bot P2): R1 wording "R-count and any wake-counter" was over-prescriptive — idle-with-retry has no R-round (no PR) and loop-restart has no counter per Primitive 4, so demanding R-count for those wake types creates impossible requirements. Fix: Counter-state element now context-specific — declare every counter that applies, or `n/a` if none apply; per-wake-type mapping spelled out (Phase 8 → R-count; idle → idle-wake-counter; merge-watch → merge-watch-counter + branch; loop-restart → n/a). Reporting a counter the wake type doesn't have is itself a violation. | Claude Opus 4.7 |
+| 2026-05-17 | issue #165 R3 (PR #182 codex bot P2): §What Is It? overview only enumerated Primitives 1–4, and the runtime-substitution sentence said an alternative non-Claude-Code orchestrator can substitute "the primitives" — mechanical follower could omit Primitive 5 (status communication) entirely when substituting cron + lock file + branch check. Fix: overview now lists 5 primitives; substitution paragraph explicitly marks Primitives 1–4 as runtime-specific and **Primitive 5 as runtime-independent / binding regardless of substitution** — any consumer of any Primitive-1 substitute MUST satisfy Primitive 5 (status surface) or it is not a valid substitution. | Claude Opus 4.7 |
