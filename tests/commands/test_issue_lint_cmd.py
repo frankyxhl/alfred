@@ -29,6 +29,7 @@ TBD_PHRASES = [
 # AC1 / AC22: help text
 # ---------------------------------------------------------------------------
 
+
 def test_lint_help_shows_body_file_and_json_flag():
     """AC1: af issue lint --help shows BODY_FILE positional and --json flag."""
     runner = CliRunner()
@@ -51,6 +52,7 @@ def test_lint_issue_help_shows_lint_subcommand():
 # AC2: clean body → PASS
 # ---------------------------------------------------------------------------
 
+
 def test_lint_clean_body_pass(tmp_path):
     """AC2: clean body with no TBD phrases → exit 0, PASS message."""
     body = tmp_path / "body.md"
@@ -64,6 +66,7 @@ def test_lint_clean_body_pass(tmp_path):
 # ---------------------------------------------------------------------------
 # AC3: violations — each phrase, multi-violation, multi-phrase
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("phrase", TBD_PHRASES)
 def test_lint_each_phrase_fails(tmp_path, phrase):
@@ -91,7 +94,7 @@ def test_lint_multi_violation_same_phrase(tmp_path):
     assert result.exit_code == 1
     assert "FAIL (3 violations)" in result.output
 
-    lines = [l for l in result.output.split("\n") if l.startswith("✗")]
+    lines = [ln for ln in result.output.split("\n") if ln.startswith("✗")]
     assert len(lines) == 3
     assert "line 2" in lines[0]
     assert "line 4" in lines[1]
@@ -112,7 +115,7 @@ def test_lint_multi_phrase_mixed_sorted(tmp_path):
     assert result.exit_code == 1
     assert "FAIL (2 violations)" in result.output
 
-    lines = [l for l in result.output.split("\n") if l.startswith("✗")]
+    lines = [ln for ln in result.output.split("\n") if ln.startswith("✗")]
     assert len(lines) == 2
     # sorted by line: line 2 then line 4
     assert "line 2" in lines[0]
@@ -124,6 +127,7 @@ def test_lint_multi_phrase_mixed_sorted(tmp_path):
 # ---------------------------------------------------------------------------
 # AC3: case-insensitive match
 # ---------------------------------------------------------------------------
+
 
 def test_lint_case_insensitive_detection(tmp_path):
     """AC3: each phrase detected in UPPERCASE, lowercase, and MiXeD case."""
@@ -141,7 +145,7 @@ def test_lint_case_insensitive_detection(tmp_path):
     assert "FAIL (5 violations)" in result.output
 
     # Each line should report the canonical phrase, not the input text
-    violations = [l for l in result.output.split("\n") if l.startswith("✗")]
+    violations = [ln for ln in result.output.split("\n") if ln.startswith("✗")]
     assert len(violations) == 5
     canonical_matches = []
     for v in violations:
@@ -157,6 +161,7 @@ def test_lint_case_insensitive_detection(tmp_path):
 # ---------------------------------------------------------------------------
 # AC3: embedded / fenced code
 # ---------------------------------------------------------------------------
+
 
 def test_lint_phrase_embedded_in_sentence(tmp_path):
     """AC3: phrase as substring in a longer sentence is matched."""
@@ -175,10 +180,7 @@ def test_lint_phrase_in_fenced_code_block(tmp_path):
     """AC3: phrase inside a fenced code block is matched (Phase 1 — deliberate)."""
     body = tmp_path / "body.md"
     body.write_text(
-        "```python\n"
-        "# TBD after option selection: choose parser\n"
-        "x = 1\n"
-        "```\n"
+        "```python\n# TBD after option selection: choose parser\nx = 1\n```\n"
     )
     runner = CliRunner()
     result = runner.invoke(cli, ["issue", "lint", str(body)])
@@ -190,11 +192,13 @@ def test_lint_phrase_in_fenced_code_block(tmp_path):
 # AC4: stdin via -
 # ---------------------------------------------------------------------------
 
+
 def test_lint_stdin_dash_clean():
     """AC4: af issue lint - reads clean stdin → PASS."""
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["issue", "lint", "-"],
+        cli,
+        ["issue", "lint", "-"],
         input="All decisions final.\nNo TBDs here.\n",
     )
     assert result.exit_code == 0
@@ -205,7 +209,8 @@ def test_lint_stdin_dash_dirty():
     """AC4: af issue lint - reads stdin with TBD phrase → FAIL."""
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["issue", "lint", "-"],
+        cli,
+        ["issue", "lint", "-"],
         input="implementer chooses: still open\n",
     )
     assert result.exit_code == 1
@@ -215,6 +220,7 @@ def test_lint_stdin_dash_dirty():
 # ---------------------------------------------------------------------------
 # AC5: --json output
 # ---------------------------------------------------------------------------
+
 
 def test_lint_json_clean(tmp_path):
     """AC5: --json on clean body → {result: PASS, violation_count: 0, violations: []}."""
@@ -233,10 +239,7 @@ def test_lint_json_with_violations(tmp_path):
     """AC5: --json with violations → proper JSON shape, violations sorted by line."""
     body = tmp_path / "body.md"
     body.write_text(
-        "line 1\n"
-        "TBD after PR review: pending\n"
-        "line 3\n"
-        "implementer chooses: toolkit\n"
+        "line 1\nTBD after PR review: pending\nline 3\nimplementer chooses: toolkit\n"
     )
     runner = CliRunner()
     result = runner.invoke(cli, ["issue", "lint", str(body), "--json"])
@@ -283,19 +286,17 @@ def test_lint_json_no_stray_text(tmp_path):
 # AC6: phrase-order / multiple-phrase semantics
 # ---------------------------------------------------------------------------
 
+
 def test_lint_two_phrases_same_line(tmp_path):
     """AC6: one line with 2 canonical phrases → 2 violations at same line number."""
     body = tmp_path / "body.md"
-    body.write_text(
-        "header\n"
-        "TBD after PR review and implementer chooses both apply\n"
-    )
+    body.write_text("header\nTBD after PR review and implementer chooses both apply\n")
     runner = CliRunner()
     result = runner.invoke(cli, ["issue", "lint", str(body)])
     assert result.exit_code == 1
     assert "FAIL (2 violations)" in result.output
 
-    violations = [l for l in result.output.split("\n") if l.startswith("✗")]
+    violations = [ln for ln in result.output.split("\n") if ln.startswith("✗")]
     assert len(violations) == 2
     # Both at the same line number (line 2, 1-based)
     assert "line 2" in violations[0]
@@ -317,9 +318,7 @@ def test_lint_substring_no_word_boundary(tmp_path):
 def test_lint_duplicate_phrase_same_line_counted_once(tmp_path):
     """Duplicate phrase on same line: substring check is boolean → 1 per phrase per line."""
     body = tmp_path / "body.md"
-    body.write_text(
-        "implementer chooses: A or implementer chooses: B, take pick\n"
-    )
+    body.write_text("implementer chooses: A or implementer chooses: B, take pick\n")
     runner = CliRunner()
     result = runner.invoke(cli, ["issue", "lint", str(body)])
     # "implementer chooses" appears twice on same line → counted once
@@ -330,11 +329,13 @@ def test_lint_duplicate_phrase_same_line_counted_once(tmp_path):
 # Edge cases: file I/O
 # ---------------------------------------------------------------------------
 
+
 def test_lint_file_not_found():
     """Non-existent file → non-zero exit code."""
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["issue", "lint", "/nonexistent/path/to/file.md"],
+        cli,
+        ["issue", "lint", "/nonexistent/path/to/file.md"],
     )
     assert result.exit_code != 0
 
@@ -376,6 +377,7 @@ def test_lint_utf8_with_emoji_and_chinese(tmp_path):
 # ---------------------------------------------------------------------------
 # Output structure / blank-line handling
 # ---------------------------------------------------------------------------
+
 
 def test_lint_output_blank_line_before_result(tmp_path):
     """A blank line separates the violations list from the Lint result line."""
