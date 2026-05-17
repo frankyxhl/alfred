@@ -197,6 +197,11 @@
 | 2284 | REF | Discussion Tracker 2026 05 15 |
 | 2285 | CHG | Pre Merge GH Bot Review Sweep Gate |
 | 2286 | CHG | Explicit UTF 8 For Alfred Document IO |
+| 2287 | CHG | COR 1500 Phase 1 Worker Assignment Sub Section |
+| 2288 | CHG | COR 1500 Phase 2 Implementer Reading Constraint |
+| 2289 | CHG | COR 1619 Two Worker TDD Dispatch Sub Section |
+| 2290 | CHG | COR 1619 Decision Tree Two Worker Branch |
+| 2291 | CHG | COR 1622 Test Writer Worker Agent Schema Row |
 
 ---
 
