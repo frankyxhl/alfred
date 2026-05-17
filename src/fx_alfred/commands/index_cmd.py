@@ -63,5 +63,5 @@ def index_cmd(ctx: click.Context):
         group_list = list(group)
         index_content = _build_index("Document Index", group_list, prefix)
         index_path = rules_dir / f"{prefix}-0000-REF-Document-Index.md"
-        index_path.write_text(index_content)
+        index_path.write_text(index_content, encoding="utf-8")
         click.echo(f"Updated {index_path}")

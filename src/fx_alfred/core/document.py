@@ -20,7 +20,7 @@ FILENAME_PATTERN = re.compile(r"^([A-Z]{3})-(\d{4})-([A-Z]{3})-(.+)\.md$")
 class Resource(Protocol):
     """Protocol for objects that support read_text()."""
 
-    def read_text(self) -> str:
+    def read_text(self, encoding: str | None = None) -> str:
         """Read and return the content as text."""
         ...
 
@@ -66,7 +66,7 @@ class Document:
     def tags(self) -> list[str]:
         """Parse Tags metadata field. Returns [] if absent or unreadable."""
         try:
-            content = self.resolve_resource().read_text()
+            content = self.resolve_resource().read_text(encoding="utf-8")
             # ACID=0000 index docs may have non-standard H1; substitute
             # a dummy H1 so the parser can extract metadata (same approach
             # as validate_cmd).

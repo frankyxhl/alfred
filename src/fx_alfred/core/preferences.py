@@ -35,7 +35,7 @@ def load_preferences() -> dict[str, Any]:
     path = preferences_path()
     if not path.exists():
         return {}
-    raw = path.read_text()
+    raw = path.read_text(encoding="utf-8")
     if not raw.strip():
         return {}
     try:
@@ -58,7 +58,7 @@ def _atomic_write(path: Path, content: str) -> None:
         prefix=".preferences.", suffix=".tmp", dir=str(path.parent)
     )
     try:
-        with os.fdopen(fd, "w") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
         os.replace(tmp_path, path)
     except Exception:
