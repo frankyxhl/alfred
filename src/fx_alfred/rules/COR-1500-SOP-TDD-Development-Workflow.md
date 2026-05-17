@@ -1,8 +1,8 @@
 # SOP-1500: TDD Development Workflow
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-15
-**Last reviewed:** 2026-03-15
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Task tags:** [implement, feature, tdd, code, code-change, fix]
 **Last executed:** —
@@ -71,6 +71,29 @@ pytest tests/test_feature.py::test_specific_behavior -v
 - Include edge cases and error scenarios
 - Each test must be independent — no shared mutable state, no ordering dependencies
 
+#### Worker assignment
+
+When the RED phase is dispatched to `<worker-agent>` (per COR-1619) AND the project's `<test-writer-worker-agent>` parameter is set to a value distinct from `<worker-agent>` (per COR-1622), the **test-writer worker** and the **implementer worker** for the GREEN phase MUST be distinct agent instances. "Distinct" means different model identifiers OR the same model with different `:instance` suffixes (e.g. `glm:writer` vs `glm:impl`).
+
+Scope of the constraint: the same agent identity MUST NOT author both the failing tests and the GREEN-phase implementation for the **same task**, regardless of session boundaries (a fresh session by the same agent for the same task does not satisfy the rule). The rule applies until the CHG/PR is merged; subsequent CHGs are new tasks with their own assignment.
+
+This rule subsumes COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 ("Agent must not write test and implementation simultaneously"): a distinct-instance requirement is strictly stronger than the simultaneity ban.
+
+When `<test-writer-worker-agent>` is unset (or equal to `<worker-agent>`), the two-worker split is OFF for this project; Rule #3 alone applies. The rest of this sub-section assumes the split is ON.
+
+Opt out (use a single worker even when the split is ON; document the reason in the CHG `## Implementation Order` section):
+
+| Opt-out class | Why single-worker is safe |
+|---------------|---------------------------|
+| Trivial single-function fix ≤ `<worker-min-loc>` (default 30) | COR-1619 routes this to the orchestrator already, so no worker is dispatched at all. |
+| Refactor with pre-existing test coverage covering the changed surface | The existing tests are the spec; no new test authorship is needed. CHG must name the specific tests covering the change so the reviewer can assert adequacy. |
+| Config / metadata-only change | No behaviour change to test; implement-to-fit bias has nothing to bias. |
+| Characterization tests on legacy code | Tests capture *actual* behaviour, not desired behaviour; the bias mode does not apply. Same agent characterizes + refactors per COR-1500 §Characterization Tests (Legacy Code). |
+| Generated test scaffolding | Deterministic codegen (e.g. pytest parametrize expansion, hypothesis strategies emitted from a schema); no human / agent judgment in the test body, so no bias to cross-validate. |
+| Vendored code update with no behaviour change | Bumping a dependency / re-importing upstream code; the upstream tests are authoritative. |
+
+Any other opt-out is a CHG-level argument and must be reviewed by the plan-review panel. In opt-out cases the two-worker split does not apply for this dispatch; COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 (no simultaneous test+impl by one agent) alone governs.
+
 **Test structure convention (Arrange-Act-Assert):**
 ```python
 def test_empty_cart_returns_zero_total():
@@ -107,6 +130,7 @@ pytest -v
 - Resist the urge to write more than needed
 - If you need to break another test to pass this one, stop and rethink
 - Prefer simple transformations: constant → variable → conditional → iteration (see Transformation Priority Premise in References)
+- When the two-worker split is in effect (i.e. RED was dispatched to a distinct test-writer worker per Phase 1's "Worker assignment" sub-section), the implementer worker MUST NOT read the test-writer's structured report, prose commentary, or session transcripts. The implementer reads (a) the failing test files committed by the test-writer, (b) the CHG/PRP body, and (c) the production source tree being modified — i.e., the existing codebase under change. The constraint forbids only the test-writer's *commentary channel*; the test is the spec, and the source is the substrate. Commentary may leak the test-writer's intended implementation, defeating the cross-validation the split exists to provide.
 
 ### Phase 3: REFACTOR — Clean Up
 
@@ -417,3 +441,4 @@ npm test -- --coverage --coverageThreshold='{"global":{"lines":80}}'
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1004 to ALF-2100 | Claude Code |
 | 2026-03-15 | Added Definition of Done (Cycle DoD + Phase DoD) and Progress Tracker template | Claude Code |
 | 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
+| 2026-05-17 | FXA-2287 (CHG-A of PRP-1507): added §Phase 1 (RED) "Worker assignment" sub-section gating on `<test-writer-worker-agent>` with 6-row opt-out table and Rule #3 subsumption sentence. FXA-2288 (CHG-B of PRP-1507): appended Phase 2 (GREEN) implementer reading constraint as new "Rules:" bullet. Two CHGs bundled in PR closing issue #175. | Claude Opus 4.7 |

@@ -1,8 +1,8 @@
 # REF-1622: Multi-Agent Loop Project Configuration
 
 **Applies to:** All projects adopting the COR-1617 Multi-Agent Workflow Loop
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella SOP), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage)
 
@@ -80,6 +80,7 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 |-----|------|----------|---------|-------------|
 | `<worker-agent>` | string | yes | — | The coding worker identifier the orchestrator delegates substantial implementation to (e.g. `trinity-glm via droid exec`). |
 | `<worker-min-loc>` | integer | yes | `30` | Lines-of-change threshold for the single-function trivial-fix branch. **At or below** this count: orchestrator edits directly. **Above**: dispatch to `<worker-agent>`. (Boundary alignment with COR-1619 §Decision Tree node C — both docs treat the threshold value itself as the orchestrator-direct ceiling.) |
+| `<test-writer-worker-agent>` | string | no | same value as `<worker-agent>` | Distinct agent instance for the RED-phase test-writer per COR-1500 §Phase 1 Worker assignment. When unset (or equal to `<worker-agent>`), the two-worker split is OFF for this adopter and COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 alone applies. Adopters opt in by setting this to a different model OR the same model with a different `:instance` suffix. **Adopters using the same model with different `:instance` suffix MUST verify with their dispatch backend that the suffix produces a fresh context (no shared KV cache / session state); if not verified, default to different-model differentiation.** |
 
 ### R-count cap (COR-1617 §Phase 8)
 
@@ -170,3 +171,4 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | 2026-05-10 | DeepSeek R1 advisory fixes: `<cli-retry-attempts>` — added per-provider-per-round scope and explicit COR-1617 §Failure Modes override note; guard rail — added dissenter exception condition; Worked Example — moved three resilience rows to match schema section order (after §Worker dispatch, before §Bot polling). | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #144: add §R-count cap parameter group (`<max-r-count>`, `<max-r-count-extension>`, `<convergence-severity>`) for COR-1617 §Phase 8 round-count guard. Defaults (10 / 3 / advisory) define soft cap R10, hard stop R13. Worked Example updated with trinity's effective defaults (all three inherit schema defaults). | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #144 R2: `<convergence-severity>` — add enum ordering note (advisory < p2 < p1) and clarify that `advisory` is a threshold label, not COR-1621's "advisory" finding class (GLM P1 / DeepSeek P3). | Claude Sonnet 4.6 |
+| 2026-05-17 | FXA-2291 (CHG-D of PRP-1507): added optional `<test-writer-worker-agent>` row under §Worker dispatch (COR-1619). Default = same value as `<worker-agent>` (split OFF for non-adopters; backwards-compatible). MUST-level `:instance` suffix verification note. Bundled with CHG-A/B/C1/C2 in PR closing issue #175. | Claude Opus 4.7 |
