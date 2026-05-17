@@ -128,7 +128,7 @@ Every wake-arming MUST be paired with a status surface — either an in-chat mes
 
 1. **What just happened** — the R-round / fix / observation that triggered this wake.
 2. **What the wake will check** — concrete predicate (e.g. "CI status + codex review on commit `<sha>`").
-3. **Counter state** — R-count and any wake-counter (idle wake N of `<idle-cap>`, merge-watch N of `<merge-watch-cap>`).
+3. **Counter state** — declare every counter that applies in the current wake context, or `n/a` if none apply. The applicable counters depend on wake type per Primitive 4: §Phase 8 per-R-push reports R-count; idle-with-retry reports `idle wake N of <idle-cap>` only (no R-count); merge-watch reports `merge-watch N of <merge-watch-cap> for branch <BRANCH_NAME>` only; loop-restart reports `n/a` (single fire post-handoff, no counter per Primitive 4). Reporting a counter that the wake type doesn't have is itself a Primitive 5 violation.
 
 **Forbidden anti-pattern — "silent wake-and-yield"**: arming a `<wakeup-tool>` callback and ending the orchestrator turn with no chat message and no PR comment. The operator then cannot distinguish "still iterating" from "stalled" from "crashed" until the wake fires (up to 270 s later — past the prompt-cache TTL).
 
@@ -225,3 +225,4 @@ Set `<wakeup-tool>` in the project's COR-1622 instantiation accordingly.
 | 2026-05-09 | Initial version — extracted from TRN-1008 §1 idle-with-retry / §8 / §10 / §11 + §Failure Modes (a)–(f) for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
 | 2026-05-10 | FXA-2283: §When to Use — §11 loop restart → §12 loop restart; Related metadata — add §11 retrospective (synchronous); §Primitives table — add Retrospective row (synchronous, no counter) | Claude Code |
 | 2026-05-17 | issue #165: add §Primitive 5 (Status communication contract) — forbid silent wake-and-yield. Every wake-arming MUST pair with a status surface (chat update or PR comment) covering (a) what just happened, (b) what the wake will check, (c) counter state. Binds every consumer of COR-1620 wake mechanics. New §Guard Rails bullet enforces. | Claude Opus 4.7 |
+| 2026-05-17 | issue #165 R2 (PR #182 codex bot P2): R1 wording "R-count and any wake-counter" was over-prescriptive — idle-with-retry has no R-round (no PR) and loop-restart has no counter per Primitive 4, so demanding R-count for those wake types creates impossible requirements. Fix: Counter-state element now context-specific — declare every counter that applies, or `n/a` if none apply; per-wake-type mapping spelled out (Phase 8 → R-count; idle → idle-wake-counter; merge-watch → merge-watch-counter + branch; loop-restart → n/a). Reporting a counter the wake type doesn't have is itself a violation. | Claude Opus 4.7 |
