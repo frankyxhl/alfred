@@ -1,8 +1,8 @@
 # SOP-1617: Multi-Agent Workflow Loop
 
 **Applies to:** All projects with a multi-provider review setup and an autonomous-orchestrator capability
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema), COR-1506 (issue quality gate — Phase 1 autonomous picks)
 
@@ -93,15 +93,16 @@ The loop has **12 phases**:
 
 ### Phase 1 — Auto-pick
 
-Three trigger patterns:
+Four trigger patterns:
 
 | Trigger | When | Mandate source |
 |---------|------|----------------|
-| **User-driven** | User explicitly says "pick next issue" / "do <PREFIX>-<NNNN>" / "auto-pick" in chat | Mandate granted by the message itself; consent gate **BYPASSED** per COR-1618 §Normative Bypass Clause |
+| **User-driven** | User explicitly names a target issue in chat (e.g. `do <PREFIX>-<NNNN>`, `follow FXA-2276 for #N`) | Mandate granted by the message itself; consent gate **BYPASSED** per COR-1618 §Normative Bypass Clause |
+| **Loop-start (user-initiated)** | User invokes a loop-starting phrase that names NO target issue (e.g. `pick next issue`, `auto-pick`, bare `follow FXA-2276`) | Mandate granted by the invocation, but the consent gate **APPLIES** — every pick (including the first) runs full `verify_consent_eligibility` + COR-1506 per COR-1618 §Normative Bypass Clause's strict definition. Subsequent ticks after the first pick fall through to Continuation or Loop-driven below depending on context. |
 | **Continuation** | Just-merged a PR while a prior auto-pick mandate is still in force | Mandate carried forward; consent gate applies |
 | **Loop-driven** | A periodic re-fire scheduled by a wakeup primitive (per COR-1620) | Mandate is the loop invocation itself; consent gate applies on every tick |
 
-For autonomous picks (continuation, loop-driven), apply COR-1618 `verify_consent_eligibility(<issue_num>)`. Pass → apply COR-1506 quality check. If COR-1506 score ≥ 8.0 → continue to scope-rank tree. If COR-1506 score < 8.0 → apply label / skip per COR-1506 §Integration with COR-1617; advance to next consent-eligible candidate. Consent fail → arm idle-with-retry per COR-1620 (cadence 1800 s; counter `idle wake N of <idle-cap>`).
+For autonomous picks (loop-start, continuation, loop-driven), apply COR-1618 `verify_consent_eligibility(<issue_num>)`. Pass → apply COR-1506 quality check. If COR-1506 score ≥ 8.0 → continue to scope-rank tree. If COR-1506 score < 8.0 → apply label / skip per COR-1506 §Integration with COR-1617; advance to next consent-eligible candidate. Consent fail → arm idle-with-retry per COR-1620 (cadence 1800 s; counter `idle wake N of <idle-cap>`).
 
 #### Scope-rank tree (after consent gate passes)
 
@@ -362,3 +363,5 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-10 | Issue #144: §Phase 8 — add §Round-count cap: three-tier logic (Case A converged / Case B extension / Case C hard stop) with parameters `<max-r-count>` (default 10), `<max-r-count-extension>` (default 3), `<convergence-severity>` (default advisory) defined in COR-1622 §R-count cap. Prevents unbounded iteration loops. | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #144 R2: §Round-count cap — (1) Case C condition `==` → `≥` (GLM P0/DeepSeek P2: equality left R>hard-stop with no case firing); (2) reorder table to C→A→B to match evaluation priority; (3) update trailing note to include rationale for C-first ordering. | Claude Sonnet 4.6 |
 | 2026-05-11 | PR #154 codex-bot Thread 1: wire COR-1506 quality gate into Phase 1 — Related header, routing table row 1, and phase flow (consent pass → COR-1506 check → scope-rank tree). Autonomous picks now explicitly apply the quality gate before the scope-rank tree. | Claude Sonnet 4.6 |
+| 2026-05-17 | issue #166: tighten §Phase 1 User-driven trigger row — only phrases that name a target issue (e.g. `do <PREFIX>-<NNNN>`) qualify for bypass; non-naming phrases (`pick next issue`, `auto-pick`) become autonomous triggers and apply full COR-1618 + COR-1506. Reconciles §Phase 1 with COR-1618 §Normative Bypass Clause's strict definition. | Claude Opus 4.7 |
+| 2026-05-17 | issue #166 R2 (PR #180 codex bot P2): R1's fall-through note from User-driven to "Continuation or Loop-driven" was broken — those rows cover post-merge mandate-carry and scheduled wakeup re-entry respectively, NOT initial user-typed loop-start. Added a 4th trigger row **Loop-start (user-initiated)** explicitly covering bare `pick next issue` / `auto-pick` / `follow FXA-2276` — mandate from invocation, consent gate applies on every pick including the first. Phrase-list table updated 3-row → 4-row; intro sentence updated accordingly. | Claude Opus 4.7 |
