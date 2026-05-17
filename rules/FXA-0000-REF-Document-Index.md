@@ -203,6 +203,7 @@
 | 2290 | CHG | COR 1619 Decision Tree Two Worker Branch |
 | 2291 | CHG | COR 1622 Test Writer Worker Agent Schema Row |
 | 2292 | CHG | Alfred Opt In Two Worker TDD Split |
+| 2293 | PRP | 11 Star SOP Experience Review |
 
 ---
 

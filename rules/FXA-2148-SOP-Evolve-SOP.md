@@ -4,7 +4,7 @@
 **Last updated:** 2026-03-30
 **Last reviewed:** 2026-03-30
 **Status:** Active
-**Workflow loops:** [{id: review-retry, from: 27, to: 24, max_iterations: 3, condition: "CI not green or unresolved comments"}]
+**Workflow loops:** [{id: review-retry, from: 28, to: 25, max_iterations: 3, condition: "CI not green or unresolved comments"}]
 **Task tags:** [evolve, sop, refactor-sop, improve-sop]
 
 ---
@@ -60,59 +60,66 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
 5. **Content analysis** — Read all SOPs via `af --root /path/to/fx_alfred list --type SOP --json`, then `af --root /path/to/fx_alfred read <ACID>` for each. Check for logic gaps, ambiguity, or drift vs COR-0002.
 6. **GitHub Issues** — `gh issue list --label agent-input --json number,title,body`. Record relevant issues.
 7. **Session logs** — Optional: scan Claude Code session history for SOP violation patterns. Skip if unavailable.
+8. **Experience-axis signals (optional)** — For each candidate target SOP, run a brief star-ladder exercise to surface friction the structural signals miss. Write a 1-line description for each rung:
+   - **1-star**: SOP is broken or causes the agent to take the wrong path.
+   - **5-star**: SOP as it currently reads — executable but mechanical.
+   - **7-star**: feasible magic — anticipates failure modes, includes recovery paths, gives clear gates.
+   - **11-star**: fantasy — the SOP plus tooling auto-detects intent and proposes fixes with zero operator burden.
+
+   Any 5→7 delta becomes a candidate signal (file path + proposed change + evidence). The 11-star rung is a discovery tool only — do NOT propose 11-star candidates. See FXA-2293 for full method. Skip this step if no target SOP feels experience-hostile.
 
 ### Phase 3: Generate candidates
 
-8. **Generator role** — Produce a list of improvement candidates based on signals collected. Each candidate must include: target SOP, proposed change, evidence source.
+9. **Generator role** — Produce a list of improvement candidates based on signals collected. Each candidate must include: target SOP, proposed change, evidence source.
 
 ### Phase 4: Evaluate candidates (Evaluator role)
 
-9. **Switch to Evaluator role** (skeptical by default). Score each candidate using Evolve-SOP weights from FXA-2146:
+10. **Switch to Evaluator role** (skeptical by default). Score each candidate using Evolve-SOP weights from FXA-2146:
    - Necessity 30% / Consistency 25% / Atomicity 20% / Actionability 15% / Impact 10%
-10. **Discard candidates scoring < 7.0**. Record scores and discards in the run log.
-11. **If no candidates pass** — update run log with "no-op: no candidate reached threshold", leave file as uncommitted working-tree file, exit.
+11. **Discard candidates scoring < 7.0**. Record scores and discards in the run log.
+12. **If no candidates pass** — update run log with "no-op: no candidate reached threshold", leave file as uncommitted working-tree file, exit.
 
 ### Phase 5: Implement (for each passing candidate)
 
-12. **Open GitHub issue** — `gh issue create --title "evolve: <change-title>" --label evolve`
-13. **Create branch** — `git checkout -b chore/<issue-number>-evolve-sop-YYYYMMDD`
-14. **Create PRP** — `af --root /path/to/fx_alfred create prp --prefix FXA --area 21 --title "<change-title>"`
-15. **Fill PRP** with candidate details (problem, proposed change, evidence).
-16. **Review PRP** — dispatch via `/trinity codex "Review PRP <ACID>" gemini "Review PRP <ACID>"`. Both must score >= 9.0. If either fails, revise PRP and re-dispatch following COR-1602 round rules.
-17. **Create CHG** — `af --root /path/to/fx_alfred create chg --prefix FXA --area 21 --title "<change-title>"`
-18. **Implement change** using Claude's built-in tools (Read, Write, Edit).
-19. **Hard gate** — `af --root /path/to/fx_alfred validate`. Must pass with 0 issues on modified documents. If it fails, fix and re-run.
-20. **Code review** — dispatch via `/trinity codex "Review CHG <ACID> implementation" gemini "Review CHG <ACID> implementation"`. Both must score >= 9.0. If either fails, revise and re-dispatch following COR-1602 round rules.
+13. **Open GitHub issue** — `gh issue create --title "evolve: <change-title>" --label evolve`
+14. **Create branch** — `git checkout -b chore/<issue-number>-evolve-sop-YYYYMMDD`
+15. **Create PRP** — `af --root /path/to/fx_alfred create prp --prefix FXA --area 21 --title "<change-title>"`
+16. **Fill PRP** with candidate details (problem, proposed change, evidence).
+17. **Review PRP** — dispatch via `/trinity codex "Review PRP <ACID>" gemini "Review PRP <ACID>"`. Both must score >= 9.0. If either fails, revise PRP and re-dispatch following COR-1602 round rules.
+18. **Create CHG** — `af --root /path/to/fx_alfred create chg --prefix FXA --area 21 --title "<change-title>"`
+19. **Implement change** using Claude's built-in tools (Read, Write, Edit).
+20. **Hard gate** — `af --root /path/to/fx_alfred validate`. Must pass with 0 issues on modified documents. If it fails, fix and re-run.
+21. **Code review** — dispatch via `/trinity codex "Review CHG <ACID> implementation" gemini "Review CHG <ACID> implementation"`. Both must score >= 9.0. If either fails, revise and re-dispatch following COR-1602 round rules.
 
 ### Phase 6: Git / PR
 
-21. **Commit changes** — stage modified/new files, `git commit`
-22. **Push branch** — `git push -u origin <branch>`
-23. **Open PR** — `gh pr create --title "evolve: <change-title>" --body "<run log summary: signals, scores, change>"` — body auto-populated from run log REF
+22. **Commit changes** — stage modified/new files, `git commit`
+23. **Push branch** — `git push -u origin <branch>`
+24. **Open PR** — `gh pr create --title "evolve: <change-title>" --body "<run log summary: signals, scores, change>"` — body auto-populated from run log REF
 
 ### Phase 7: Post-Push Review Loop
 
-> **Loop limit:** Steps 24–27 repeat at most **3 iterations** in total (counting both CI-wait retries and actionable-fix cycles). If the limit is reached, go to Step 28.
+> **Loop limit:** Steps 25–28 repeat at most **3 iterations** in total (counting both CI-wait retries and actionable-fix cycles). If the limit is reached, go to Step 29.
 
-24. **Wait for CI + automated reviews** — sleep 3 minutes after PR is opened (or after each fix-push), then:
+25. **Wait for CI + automated reviews** — sleep 3 minutes after PR is opened (or after each fix-push), then:
     ```bash
     gh pr checks <PR-number>
     gh api --paginate repos/{owner}/{repo}/pulls/<PR-number>/comments
     ```
-25. **Categorize each review comment:**
+26. **Categorize each review comment:**
     - **Actionable** — valid issue, fix it
     - **Advisory** — noted, no code change needed (reply explaining why)
     - **False positive** — reply with reasoning, no change
-26. **If actionable items exist:**
-    a. Fix the issues — fixes must be **mechanical** (doc wording, formatting, metadata). If a fix requires substantive content changes, stop the loop and re-run Phase 5 Step 20 (code review gate) instead.
+27. **If actionable items exist:**
+    a. Fix the issues — fixes must be **mechanical** (doc wording, formatting, metadata). If a fix requires substantive content changes, stop the loop and re-run Phase 5 Step 21 (code review gate) instead.
     b. Re-run hard gate (`af --root /path/to/fx_alfred validate` must pass with 0 issues on modified documents)
     c. Commit + push
-27. **Check CI** — if CI is not green and no fixes were pushed in Step 26, go to Step 24 (counts as one iteration). If fixes were pushed in Step 26, go to Step 24 (CI will re-run on the new push).
-28. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain, list them in the completion checklist for human review.
+28. **Check CI** — if CI is not green and no fixes were pushed in Step 27, go to Step 25 (counts as one iteration). If fixes were pushed in Step 27, go to Step 25 (CI will re-run on the new push).
+29. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain, list them in the completion checklist for human review.
 
 ### Phase 8: Completion Checklist
 
-29. **Display checklist** — After all phases complete (or on early exit at Step 11), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
+30. **Display checklist** — After all phases complete (or on early exit at Step 12), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
 
 ```
 ## Evolve-SOP Run Checklist
@@ -152,10 +159,11 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2148)"
 
 ## Change History
 
-| Date       | Change                                                                                                           | By             |
-|------------|------------------------------------------------------------------------------------------------------------------|----------------|
-| 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147                                                    | Frank + Claude |
-| 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5 (before PRP); D3: fix af where identifier in example | Frank + Claude |
-| 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions                                                         | Claude Code    |
-| 2026-04-06 | CHG FXA-2110: Add Phase 7 Completion Checklist — mandatory post-run audit trail                                  | Frank + Claude |
-| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8                                   | Frank + Claude |
+| Date       | Change                                                                                                                                                                                                                                                                           | By              |
+|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147                                                                                                                                                                                                                    | Frank + Claude  |
+| 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5 (before PRP); D3: fix af where identifier in example                                                                                                                                                                 | Frank + Claude  |
+| 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions                                                                                                                                                                                                                         | Claude Code     |
+| 2026-04-06 | CHG FXA-2110: Add Phase 7 Completion Checklist — mandatory post-run audit trail                                                                                                                                                                                                  | Frank + Claude  |
+| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8                                                                                                                                                                                                   | Frank + Claude  |
+| 2026-05-17 | issue #183: insert §Phase 2 Step 8 — optional star-ladder exercise for experience-axis signals; cascade-renumber Phase 3+ steps 8–29 → 9–30 (+ workflow_loops `from: 27, to: 24` → `from: 28, to: 25`, 6 prose Step-N cross-refs); implements Option B from PRP-2293 (FXA-2293). | Claude Opus 4.7 |
