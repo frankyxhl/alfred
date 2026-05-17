@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import io
 import re
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -55,14 +54,23 @@ def test_explicit_utf8_read_text_succeeds_under_ascii_locale(ascii_locale, tmp_p
 
 
 def _grep(pattern: str) -> list[str]:
-    """Run grep -rnE against src/fx_alfred/ *.py and return matching lines."""
-    result = subprocess.run(
-        ["grep", "-rnE", pattern, str(SRC), "--include=*.py"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return [line for line in result.stdout.splitlines() if line]
+    """Pure-Python scan of src/fx_alfred/ *.py for `pattern` — portable across Windows.
+
+    Uses Path.rglob + re instead of subprocess grep so the suite runs on Windows
+    too (stock Windows has no grep), which matters because this very PR fixes a
+    Windows-locale bug (codex bot R1 catch on PR #172).
+    """
+    regex = re.compile(pattern)
+    matches: list[str] = []
+    for py_file in SRC.rglob("*.py"):
+        try:
+            text = py_file.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if regex.search(line):
+                matches.append(f"{py_file}:{lineno}:{line}")
+    return matches
 
 
 def test_no_bare_read_text_in_production():
