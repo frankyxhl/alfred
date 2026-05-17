@@ -1,5 +1,63 @@
 # Changelog
 
+## v1.18.0 (2026-05-17)
+
+Minor release introducing one new CLI subcommand (`af issue lint`) plus a
+substantial PKG SOP set adding the two-worker TDD dispatch pattern,
+status-communication contract, and author-side issue-quality targets.
+
+### New Features
+
+- **`af issue lint <body-file>`** — Phase 1 MVP pre-creation linter for
+  GitHub issue bodies. Detects TBD-after-PR-review anti-patterns
+  (5 canonical phrases, case-insensitive substring match). Supports
+  `--json` output and `-` for stdin. Closes #169. (#179)
+
+### Docs / SOP
+
+- **PRP-1507 / COR-1500 / COR-1619 / COR-1622 — Two-Worker TDD Dispatch**
+  (#177, #178). New opt-in pattern for substantive code-bearing dispatches:
+  a test-writer worker writes the failing tests, an implementer worker
+  reads only the tests + spec + production source to make them pass —
+  structural cross-validation against implement-to-fit bias. Bundled
+  CHGs land COR-1500 §Phase 1 Worker assignment + Phase 2 implementer
+  reading constraint, COR-1619 new §Two-Worker TDD Dispatch sub-section
+  with 8-step contract + symmetric outage fallback + Phase 8 routing,
+  COR-1619 §Decision Tree with new gating nodes, COR-1622 new
+  `<test-writer-worker-agent>` schema row. Alfred opts in via FXA-2276:
+  `<test-writer-worker-agent> = trinity-deepseek` distinct from
+  `<worker-agent> = trinity-glm`.
+- **COR-1620 §Primitive 5 — Status Communication Contract** (#182).
+  Forbids silent wake-and-yield. Every wake-arming MUST pair with a
+  status surface (chat update or PR comment) covering: what happened,
+  what the wake will check, and applicable counter state. Runtime-
+  independent — binding regardless of `<wakeup-tool>` substitution.
+- **COR-1501 §Quality Criteria** (#181). Five author-side write-time
+  targets for GitHub issue bodies (anchor verbatim, cell-by-cell diff
+  for table edits, ≤100 LoC budget, fully pre-committed spec,
+  greppable references). Complements the reviewer-side COR-1506 gate.
+- **COR-1617 §Phase 1 ↔ COR-1618 §Normative Bypass reconciliation**
+  (#180). New "Loop-start (user-initiated)" trigger row covers
+  non-naming loop-starter phrases (`pick next issue`, `auto-pick`,
+  bare `follow FXA-2276`); only phrases that name a target issue
+  (`do PREFIX-NNNN`, `follow FXA-2276 for #N`) qualify for the
+  consent-gate bypass. COR-1506 scope extended to rows 2-4. FXA-2276
+  deviation note removed.
+
+### Stats
+
+- 935 tests (29 new), all passing.
+- 0 breaking changes.
+- New CLI subcommand: `af issue lint`.
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.18.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.17.1 (2026-05-17)
 
 PRJ-layer documentation release. No CLI / behavior changes; new review-loop
