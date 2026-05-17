@@ -1,0 +1,3239 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://frankyxhl.github.io/fx-alfred/COR-1619-SOP-Orchestrator-vs-Worker-Dispatch/">
+      
+      
+        <link rel="prev" href="../COR-1618-SOP-Out-of-Band-Consent-Auto-Pick/">
+      
+      
+        <link rel="next" href="../COR-1620-SOP-Self-Pacing-Loop-Primitives/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>COR-1619: Orchestrator vs Worker Dispatch - Alfred — Agent Runbook</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sop-1619-orchestrator-vs-worker-dispatch" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Alfred — Agent Runbook" class="md-header__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alfred — Agent Runbook
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              COR-1619: Orchestrator vs Worker Dispatch
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Alfred — Agent Runbook" class="md-nav__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Alfred — Agent Runbook
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PRP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    PRP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1507-PRP-Two-Worker-TDD-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1507: Two-Worker TDD Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REF
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    REF
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0000-REF-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0000: Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0001-REF-Glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0001: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0002-REF-Document-Format-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0002: Document Format Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1204-REF-CTX-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1204: CTX Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1205-REF-Agent-Activity-Log-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1205: Agent Activity Log Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1504-REF-Diagnose-Phase-Gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1504: Diagnose Phase Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1622-REF-Multi-Agent-Loop-Project-Configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1622: Multi-Agent Loop Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1705-REF-Code-Review-Classification-System/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1705: Code Review Classification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1800-REF-Evolution-Philosophy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1800: Evolution Philosophy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SOP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1000-SOP-Create-SOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1000: Create SOP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1001-SOP-Create-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1001: Create Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1002-SOP-Read-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1002: Read Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1004-SOP-Create-Routing-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1004: Create Routing Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1100-SOP-Create-Decision-Record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1100: Create Decision Record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1101-SOP-Submit-Change-Request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1101: Submit Change Request
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1102-SOP-Create-Proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1102: Create Proposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1103-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1103: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1104-SOP-CHG-Sizing-Decision-Tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1104: CHG Sizing Decision Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1200-SOP-Session-Retrospective/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1200: Session Retrospective
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1201-SOP-Discussion-Tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1201: Discussion Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1202-SOP-Compose-Session-Plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1202: Compose Session Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1203-SOP-Pre-Task-Alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1203: Pre-Task Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1206-SOP-Emit-Agent-Activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1206: Emit Agent Activity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1207-SOP-Zoom-Out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1207: Zoom Out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1208-SOP-Session-Startup-Sanity-Check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1208: Session Startup Sanity Check
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1300-SOP-Update-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1300: Update Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1301-SOP-Deprecate-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1301: Deprecate Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1302-SOP-Maintain-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1302: Maintain Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1400-SOP-Atomic-SOP-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1400: Atomic SOP Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1401-SOP-Documentation-Language-Policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1401: Documentation Language Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1402-SOP-Declare-Active-Process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1402: Declare Active Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1403-SOP-Interactive-Question-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1403: Interactive Question Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1404-SOP-Interactive-Question-Claude-Code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1404: Interactive Question — Claude Code Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1405-SOP-Interactive-Question-GitHub-Copilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1405: Interactive Question — GitHub Copilot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1500-SOP-TDD-Development-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1500: TDD Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1501-SOP-Create-GitHub-Issue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1501: Create GitHub Issue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1502-SOP-Git-Branch-Naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1502: Git Branch Naming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1503-SOP-Diagnose-Feedback-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1503: Diagnose Feedback Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1505-SOP-Branch-and-Identity-Hygiene/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1505: Branch and Identity Hygiene
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1506-SOP-Review-GitHub-Issue-Quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1506: Review GitHub Issue Quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1600-SOP-Workflow-Direct-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1600: Workflow — Direct Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1601: Workflow — Leader Mediated Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1602-SOP-Workflow-Multi-Model-Parallel-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1602: Workflow — Multi Model Parallel Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1603-SOP-Workflow-Parallel-Module-Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1603: Workflow — Parallel Module Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1604-SOP-Workflow-Competitive-Parallel-Exploration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1604: Workflow — Competitive Parallel Exploration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1605-SOP-Workflow-Sequential-Pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1605: Workflow — Sequential Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1606-SOP-Workflow-Selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1606: Workflow — Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1607-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1607: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1608-SOP-PRP-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1608: PRP Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1609-SOP-CHG-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1609: CHG Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1610-SOP-Code-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1610: Code Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1611-SOP-Reviewer-Calibration-Guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1611: Reviewer Calibration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1612-SOP-Respond-To-PR-Review-Comments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1612: Respond To PR Review Comments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1613-SOP-Council-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1613: Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1614-SOP-Multi-Phase-Execution-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1614: Multi Phase Execution Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1615: GitHub App PR Review Bot Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1616-SOP-Contract-First-Delivery-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1616: Contract-First Delivery Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1617-SOP-Multi-Agent-Workflow-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1617: Multi-Agent Workflow Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1618-SOP-Out-of-Band-Consent-Auto-Pick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1618: Out-of-Band Consent Auto-Pick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1619: Orchestrator vs Worker Dispatch
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1619: Orchestrator vs Worker Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Tree">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edge-cases-not-in-the-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge cases not in the tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worker-dispatch-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Dispatch Contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#two-worker-tdd-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two-Worker TDD Dispatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-post-dispatch-and-post-direct-edit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification (post-dispatch and post-direct-edit)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guard Rails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1620-SOP-Self-Pacing-Loop-Primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1620: Self-Pacing Loop Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1621-SOP-Multi-Reviewer-Triage-and-Severity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1621: Multi-Reviewer Triage and Severity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1623-SOP-PR-Review-Thread-Verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1623: PR Review Thread Verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1700-SOP-Initialize-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1700: Initialize Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1701-SOP-Archive-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1701: Archive Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1702-SOP-Sync-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1702: Sync Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1703-SOP-Fork-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1703: Fork Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1706-SOP-Code-Review-Structural-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1706: Code Review — Structural Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1707-SOP-Code-Review-Cross-Cutting-Concerns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1707: Code Review — Cross-Cutting Concerns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1708-SOP-Code-Review-Domain-Specific-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1708: Code Review — Domain-Specific Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1709: Code Review — AI-Assisted Code + Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1801-SOP-Pattern-Promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1801: Pattern Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1802-SOP-Build-Weighted-Decision-Matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1802: Build Weighted Decision Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Tree">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edge-cases-not-in-the-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge cases not in the tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worker-dispatch-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Dispatch Contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#two-worker-tdd-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two-Worker TDD Dispatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-post-dispatch-and-post-direct-edit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification (post-dispatch and post-direct-edit)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guard Rails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sop-1619-orchestrator-vs-worker-dispatch">SOP-1619: Orchestrator vs Worker Dispatch</h1>
+<p><strong>Applies to:</strong> All projects adopting COR-1617 with a coding-worker layer
+<strong>Last updated:</strong> 2026-05-17
+<strong>Last reviewed:</strong> 2026-05-17
+<strong>Status:</strong> Active
+<strong>Related:</strong> COR-1617 (umbrella), COR-1622 (parameter schema — <code>&lt;worker-agent&gt;</code>, <code>&lt;worker-min-loc&gt;</code>)</p>
+<hr />
+<h2 id="what-is-it">What Is It?</h2>
+<p>The decision tree that decides whether the orchestrator implements a change directly (in-context edit) or dispatches to <code>&lt;worker-agent&gt;</code> (sub-agent or external CLI). Plus the contract the orchestrator MUST honor when constructing a worker dispatch prompt.</p>
+<p>The two lanes are not interchangeable. Orchestrator-direct is fast and keeps context coherent for downstream phases (panel-review, triage). Worker dispatch buys parallelism and isolates large diffs from the orchestrator's context window, but pays a per-call latency tax and requires explicit verification of every worker claim.</p>
+<hr />
+<h2 id="why">Why</h2>
+<p>Two failure modes:</p>
+<ol>
+<li><strong>Wrong dispatch lane</strong> — orchestrator hand-edits a 200-line refactor that should go to a worker, exhausts its context window, and panel-review prompts get truncated. Or: a 2-line typo fix round-trips through <code>&lt;worker-agent&gt;</code> for ~30–90 s + a worker-side context window, for no gain.</li>
+<li><strong>Trust-but-don't-verify</strong> — accepting "tests green" / "lint clean" from a worker without re-running locally; subtle errors (regex flag mismatches, off-by-one, wrong constant) ship to PR review.</li>
+</ol>
+<p>The decision tree forces the call before dispatch; the worker contract makes verification non-optional.</p>
+<hr />
+<h2 id="when-to-use">When to Use</h2>
+<ul>
+<li>Any time a CHG (per COR-1104) is approved and implementation is about to start.</li>
+<li>Any time mid-PR a new change scope appears and the orchestrator must decide direct-vs-dispatch.</li>
+</ul>
+<h2 id="when-not-to-use">When NOT to Use</h2>
+<ul>
+<li>Generated-file regeneration (<code>make build</code>, <code>af index</code>). The generator is the implementation; no dispatch decision needed.</li>
+<li>Investigations that may or may not require code. Orchestrator first; promote to worker only if the diagnosis grows into a real change.</li>
+</ul>
+<hr />
+<h2 id="decision-tree">Decision Tree</h2>
+<pre class="mermaid"><code>flowchart TD
+    A[Implementation task] --&gt; B{Generated file regen only?}
+    B -- Yes --&gt; O1[ORCHESTRATOR&lt;br/&gt;run the generator]
+    B -- No --&gt; MIX{Mixed code+doc?}
+    MIX -- "Yes — code surface dominates" --&gt; C
+    MIX -- "Yes — doc surface dominates" --&gt; H
+    MIX -- No --&gt; H0{Multi-FILE multi-section doc edit?}
+    H0 -- Yes --&gt; W4[WORKER]
+    H0 -- No --&gt; H{Single doc file, ≥3 sections changed?}
+    H -- Yes --&gt; W4
+    H -- No --&gt; C{"≤ &amp;lt;worker-min-loc&amp;gt; lines&lt;br/&gt;in one function?&lt;br/&gt;(default: 30)"}
+    C -- Yes --&gt; O2[ORCHESTRATOR&lt;br/&gt;direct edit]
+    C -- No --&gt; D{Signature change crossing call sites?}
+    D -- Yes --&gt; W1[WORKER]
+    D -- No --&gt; E{New helpers / new files / multi-file refactor?}
+    E -- Yes --&gt; W2[WORKER]
+    E -- No --&gt; F{Test additions ≥ 5 cases?}
+    F -- Yes --&gt; W3[WORKER]
+    F -- No --&gt; G{Single file AND no contract change?}
+    G -- Yes --&gt; O3[ORCHESTRATOR]
+    G -- No --&gt; O4[ORCHESTRATOR]</code></pre>
+<p>The <code>&lt;worker-min-loc&gt;</code> parameter (default 30) sets the LoC threshold for the single-function trivial-fix branch — at or below this line count, the orchestrator edits directly; above, dispatch to <code>&lt;worker-agent&gt;</code>. Projects with different worker latency profiles tune this value. The structural questions (signature crossing, multi-file, multi-section doc, test count) are NOT LoC-bounded — they dispatch to the worker regardless of <code>&lt;worker-min-loc&gt;</code>.</p>
+<p><strong>Two-worker overlay</strong> (applies <em>after</em> the tree picks a WORKER leaf). When the tree routes to W1/W2/W3/W4 AND <code>&lt;test-writer-worker-agent&gt;</code> is set to a value distinct from <code>&lt;worker-agent&gt;</code> (per COR-1622) AND the change is substantive code with no opt-out class matching (per COR-1500 §Phase 1 Worker assignment), the worker dispatch follows §Two-Worker TDD Dispatch instead of the §Worker Dispatch Contract. Orchestrator-direct leaves (O1/O2/O3/O4) are unaffected — small single-function changes never trigger the two-worker overlay, matching COR-1500's wording that the rule applies only when the RED phase is dispatched to <code>&lt;worker-agent&gt;</code>. When the parameter is unset (or equal to <code>&lt;worker-agent&gt;</code>), or an opt-out class matches, the overlay is OFF for this dispatch and the §Worker Dispatch Contract applies as before.</p>
+<h3 id="edge-cases-not-in-the-tree">Edge cases not in the tree</h3>
+<ul>
+<li><strong>Symbol rename across N files</strong> → WORKER (even if each per-file change is small; the conceptual change crosses files).</li>
+<li><strong>Coordinated edit to one section + one test</strong> → ORCHESTRATOR (still single conceptual change).</li>
+<li><strong>5+ small fixes from a bot batch</strong> → ORCHESTRATOR, sequentially. Don't dispatch a worker for a list of grep-and-replaces.</li>
+<li><strong>Investigation that may or may not require code</strong> → ORCHESTRATOR first; promote to worker only if the diagnosis grows.</li>
+</ul>
+<hr />
+<h2 id="worker-dispatch-contract">Worker Dispatch Contract</h2>
+<p>When dispatching to <code>&lt;worker-agent&gt;</code>, the prompt MUST include all of the following. Omitting any item is a guard-rail violation.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spec pointer</td>
+<td>The CHG path (e.g. <code>rules/&lt;PRJ&gt;-&lt;ACID&gt;-CHG-*.md</code>). Do NOT inline the spec body — the worker reads the file.</td>
+</tr>
+<tr>
+<td>Implementation order</td>
+<td>Verbatim from the CHG's <code>## Implementation Order</code> section.</td>
+</tr>
+<tr>
+<td>Verification commands</td>
+<td>Exact commands the worker MUST run before reporting done. Examples: <code>pytest</code>, <code>ruff check</code>, <code>ruff format --check</code>, project-specific verifiers, <code>af validate --root .</code>. Repo-relative paths so the prompt is portable across clones.</td>
+</tr>
+<tr>
+<td>Push/commit constraint</td>
+<td>"Do NOT push or commit. Report files modified; orchestrator stages and commits."</td>
+</tr>
+<tr>
+<td>Structured report request</td>
+<td>Files modified; helpers added with <code>file:line</code>; modified signatures; test count + new test names; verification outputs (last 5 lines of each); ambiguities resolved with the resolution chosen.</td>
+</tr>
+</tbody>
+</table>
+<p>The worker's report is a <em>claim</em>, not proof. The orchestrator MUST re-run the verification commands locally before staging — see §Verification.</p>
+<hr />
+<h2 id="two-worker-tdd-dispatch">Two-Worker TDD Dispatch</h2>
+<p>When COR-1500 §Phase 1's "Worker assignment" rule applies (substantive code change, <code>&lt;test-writer-worker-agent&gt;</code> set distinct from <code>&lt;worker-agent&gt;</code>, no opt-out class matching), the orchestrator runs the following handoff contract instead of a single worker dispatch:</p>
+<ol>
+<li><strong>Dispatch test-writer worker</strong> (<code>&lt;test-writer-worker-agent&gt;</code>) with the COR-1619 §Worker Dispatch Contract items, plus:</li>
+<li>Spec pointer: the CHG/PRP path.</li>
+<li>Output constraint: failing tests only — NO implementation, NO stubs in production source.</li>
+<li>Verification commands: <code>&lt;test-runner&gt; &lt;test-paths&gt;</code> MUST report failures (RED).</li>
+<li>Push/commit constraint: do NOT push or commit; report files modified.</li>
+<li>
+<p><em>Enforcement note:</em> the push/commit constraint is orchestrator-trust-based; the dispatch backend may not enforce read-only mounts or commit-blocking flags. Orchestrator detects violations post-dispatch by comparing the worker's reported file list against <code>git status --porcelain</code> after the dispatch returns (the porcelain XY format covers both index state and worktree state, and since both workers commit through the orchestrator's identity, <code>git log --author=</code> cannot differentiate them).</p>
+<p><strong>Cleanup contract</strong> (on detection of a violation — worker modified production source files outside the reported list, OR reported a production-source edit, OR wrote files outside the test paths): the orchestrator MUST reset every off-test-path entry to its HEAD state — both index and worktree match HEAD, untracked additions are deleted, and rename entries are decomposed into restore-source + clean-target. Cleanup is whether-or-not the path appeared in the worker's reported list (a reported production-source edit is itself a violation of the RED-phase output constraint). The contract is normative; the implementation guidance below is non-exhaustive.</p>
+<p><strong>Implementation guidance</strong> for each <code>git status --porcelain</code> entry whose path is off-test:
+   - <strong>Tracked modifications / staged adds</strong> (porcelain first char ∈ <code>M A D</code>, second char in <code>M D</code>, etc.): <code>git restore --staged --worktree -- &lt;path&gt;</code> resets both index and worktree from HEAD. For staged-add entries (<code>A  path</code>) where HEAD doesn't contain the file, <code>--staged</code> un-stages it (leaving it as <code>??</code>); combine with <code>git clean -f -- &lt;path&gt;</code> to delete the untracked residual.
+   - <strong>Untracked additions</strong> (<code>?? path</code>): <code>git clean -f -- &lt;path&gt;</code> (a bare <code>git restore</code> is a no-op on these).
+   - <strong>Renames</strong> (<code>R  oldpath -&gt; newpath</code>): the rename target is staged (<code>A  newpath</code> in the index after one decomposes the porcelain) — <code>git clean -f</code> is a no-op on staged adds, so the target MUST be un-staged before it can be cleaned. Use the three-step sequence: <code>git reset HEAD -- &lt;oldpath&gt; &lt;newpath&gt;</code> (unstages both paths — oldpath returns to worktree-deleted, newpath returns to untracked-added), then <code>git checkout HEAD -- &lt;oldpath&gt;</code> (restores the original path's worktree content), then <code>git clean -f -- &lt;newpath&gt;</code> (deletes the now-untracked newpath). A single <code>git restore --staged --worktree -- &lt;path&gt;</code> cannot handle a rename entry — the porcelain reports both paths in one line and a single operation either errors on the literal <code>old -&gt; new</code> text or leaves the staged target behind.
+   - <em>Important:</em> there is no single one-shot batch command that handles every porcelain state across a mixed path set — <code>git checkout HEAD -- &lt;paths&gt;</code> aborts with <code>pathspec ... did not match any file(s) known to git</code> whenever the path set contains any entry not in HEAD (untracked additions, staged adds), leaving the entire batch unprocessed. Operators MUST classify each off-test path by its <code>git status --porcelain</code> XY prefix and apply the per-class command above on a per-path (or per-state-group) basis; do not batch heterogeneous paths through a single <code>git checkout</code> or <code>git restore --source=HEAD</code>.</p>
+<p>Orchestrator then surfaces the violation in the dispatch log + CHG <code>## Implementation Order</code>, and re-dispatches the test-writer with the violation as explicit feedback. Repeated violations (≥2 from the same worker on the same task) escalate per step 2's retry cap.
+2. <strong>Orchestrator verifies</strong> the tests fail on current HEAD by re-running <code>&lt;test-runner&gt;</code>. If any new test passes (i.e., the test does not actually fail on the un-implemented code), reject the test-writer's work and re-dispatch with the specific failing assertion as feedback. <strong>Maximum 2 re-dispatches</strong> of the test-writer per task; on the third failed attempt, escalate: the orchestrator either authors the test inline (only if the test fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619) or routes back to plan-review with a spec-ambiguity finding.
+3. Before committing, the orchestrator performs a <strong>test-quality gate</strong> on the test-writer's worktree changes, satisfying COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #4 (test-quality review before GREEN). The gate runs on the un-committed worktree so that rejected tests never enter the branch history (running it post-commit would leave a polluted <code>test:</code> commit on the branch even after re-dispatch — the next re-dispatch would layer on top of the bad commit, not replace it). The two-worker split structurally addresses Rule #4's primary failure mode (tests mirroring implementation — the test-writer had no implementation to mirror, by construction), but residual failure modes are NOT addressed by the structure alone and require explicit inspection:
+   - <strong>Vacuity</strong>: <code>grep -nE "^\s*assert (True|False|0|1|None|not None)\s*(#.*)?$" &lt;test-writer-paths&gt;</code> SHOULD return empty (those patterns flag trivially-true or trivially-false assertions that pass step 2's RED gate without constraining real behavior).
+   - <strong>Trivial RED</strong>: test functions whose body consists solely of <code>pass</code>, <code>raise NotImplementedError</code>, <code>pytest.fail(...)</code>, or unconditional <code>pytest.xfail(...)</code> — these fail at step 2's RED gate but the failure is structural, not behavioural.
+   - <strong>Zero-assertion bodies</strong>: <code>grep -L "assert " &lt;test-writer-paths&gt;</code> returns each path containing no <code>assert</code> keywords.
+   On detection of any residual failure mode: reject the test-writer's work and re-dispatch with the specific finding as feedback (counts against step 2's 2-retry cap). Before re-dispatch, the orchestrator MUST clean the worktree to remove BOTH (a) any off-test-path entries per step 1's Cleanup contract AND (b) the rejected test files themselves at <code>&lt;test-writer-paths&gt;</code> (which live INSIDE the allowed test paths and so are not covered by step 1's off-test-path scope) — for tracked entries <code>git restore --source=HEAD --staged --worktree -- &lt;test-writer-paths&gt;</code>, for newly-created test files at paths not in HEAD use <code>git reset HEAD -- &lt;new-test-paths&gt;</code> then <code>git clean -f -- &lt;new-test-paths&gt;</code>. No <code>test:</code> commit happens for the rejected attempt. Stronger projects MAY substitute a plan-review-panel inspection of the test diff for the grep-based gate.</p>
+</li>
+</ol>
+<p>On gate pass: <strong>orchestrator commits</strong> the test files with prefix <code>test:</code> per COR-1500 §Commit Strategy Option A.
+4. <strong>Dispatch implementer worker</strong> (<code>&lt;worker-agent&gt;</code>) with the COR-1619 §Worker Dispatch Contract items, plus:
+   - Spec pointer: the CHG/PRP path PLUS the failing-test commit SHA (so the implementer can <code>git show</code> the tests).
+   - Reading constraint: do NOT read the test-writer's structured report or any worker-output channel; the failing tests, CHG/PRP body, and existing production source are the only inputs.
+   - <strong>Test-file edit constraint</strong>: the implementer MUST NOT modify, delete, weaken, or skip any test file the test-writer committed in step 3. The implementer MAY add NEW test files (different paths from the test-writer's commit) that exercise the implementation's internal scaffolding, but these new tests are advisory and do NOT replace the test-writer's tests as the cross-validation surface. If the implementer believes a test-writer test is incorrect, the implementer reports the issue in its structured output and the orchestrator routes to step 2's escalation (re-dispatch test-writer or plan-review spec-ambiguity) — the implementer does not unilaterally fix it.
+   - Verification commands: <code>&lt;test-runner&gt;</code> MUST report all green (including tests the test-writer added — verify they are present and passing, not removed or skipped).
+   - <em>Enforcement note:</em> orchestrator inspects BOTH the worktree AND the index for changes against the test-writer-commit on <code>&lt;test-writer-paths&gt;</code> (the exact file list the test-writer committed in step 3, not a broader glob). Run BOTH <code>git diff &lt;test-writer-commit&gt; -- &lt;test-writer-paths&gt;</code> (worktree-vs-commit) AND <code>git diff --cached &lt;test-writer-commit&gt; -- &lt;test-writer-paths&gt;</code> (index-vs-commit); a worktree-only diff misses the case where a worker stages a weakening then restores the worktree before returning, leaving the weakened test in the index for the orchestrator's next commit. Any non-empty diff in EITHER form fires the test-file edit constraint violation handling — <code>git restore --source=&lt;test-writer-commit&gt; --staged --worktree -- &lt;test-writer-paths&gt;</code> to fully reset BOTH index and worktree to the test-writer-commit state (the default <code>git restore &lt;path&gt;</code> form only restores the worktree from the already-staged index, so a worker-staged weakening would survive a worktree-only reset), then surface the violation in the dispatch log + CHG <code>## Implementation Order</code>, and re-dispatch implementer with the violation as explicit feedback. Implementer-added test files at OTHER paths are NOT subject to the diff check — they are advisory and stay on the branch.
+5. <strong>Orchestrator verifies</strong> all tests pass by re-running <code>&lt;test-runner&gt;</code> plus the standard verification gates (<code>&lt;linter&gt;</code>, <code>&lt;formatter&gt; --check</code>, <code>af validate --root .</code>). Triage of any failures:
+   - Test added by test-writer fails on implementer's commit → re-dispatch implementer with the specific failing test name. Same 2-retry cap as step 2; on third failure, escalate to plan-review for spec ambiguity.
+   - Test in an unrelated module fails (regression in pre-existing code) → orchestrator triages per COR-1621: if scope is single-function and within <code>&lt;worker-min-loc&gt;</code>, orchestrator fixes inline; otherwise re-dispatch implementer with the regressed test paths added to the spec pointer. Do NOT silently skip / xfail the regression.
+6. <strong>Orchestrator commits</strong> the implementation with prefix <code>feat:</code> / <code>fix:</code> per COR-1500 §Commit Strategy Option A.
+7. <strong>Refactor pass</strong> (Phase 3 of COR-1500): the <strong>implementer worker</strong> runs the refactor by default per §Decisions item 2; the orchestrator may substitute only when the post-refactor diff fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619. The test-writer does NOT run the refactor in v1 (this preserves test-writer independence for the next cycle: the test-writer never sees the GREEN implementation, keeping its edge-case-probing posture for future tasks on the same module). During refactor only, the <strong>reading constraint</strong> of step 4 is lifted — the refactorer MAY read any artifact produced in this dispatch (tests, implementation, commentary), since the cross-validation served its purpose at GREEN. The <strong>test-file edit constraint</strong> of step 4 persists with a narrow carve-out: the refactorer MAY reorganise test structure (rename helpers, extract fixtures, reorder imports) but MUST NOT (a) weaken, remove, or skip any assertion from the test-writer's tests, (b) move tests between files (file-path changes alter test node IDs, which break the test-name-set check below and hide weakening behind movement), or (c) rename test functions in ways that change tested semantics.</p>
+<p><strong>Enforcement is two-tier, because semantic weakening cannot be reliably detected by automation:</strong>
+   - <em>Tier 1 (automated, fast)</em>: orchestrator runs <code>&lt;test-runner&gt;</code> with <code>--collect-only</code> (or equivalent) before and after the refactor and compares the test-name-set (qualified <code>file::class::test_name</code> IDs). Any removed test name, any test-name-set difference at all (additions OR removals), and any reduction in pass-count fires the violation handler immediately: revert refactor, re-dispatch implementer with explicit feedback. This catches removed tests, moved tests (file-path changes), and renamed tests — but does NOT catch in-place assertion weakening (same test name, same pass count, weakened assertion still passes).
+   - <em>Tier 2 (human review, surfaced in PR body)</em>: orchestrator emits the per-file diff under <code>&lt;test-writer-paths&gt;</code> in the CHG <code>## Implementation Order</code> AND in the PR body under a <code>### Refactor test-file changes</code> heading. The plan-review panel and code-review bot are explicitly asked to scan this diff for assertion weakening. This is a documented enforcement gap: in-place assertion weakening is detectable only by reading the diff, not by running tests. The PR is gated on Tier 2 reviewer attention; CHGs SHOULD NOT merge with Tier 1 green if Tier 2 review was skipped.</p>
+<p>Subsequent cycles re-apply the test-writer/implementer separation from step 1.
+8. <strong>Phase 8 (Iterate) re-dispatch routing.</strong> When COR-1617 §Phase 8 surfaces a new finding requiring code (bot review comment, CI failure, panel finding), the orchestrator decides between four mutually exclusive cases:
+   - <strong>(a) New test+implementation pair needed</strong> (e.g., reviewer asks "add a test for the empty-input edge case and handle it") → re-enter this contract from step 1 with the new scope. <strong>Pre-dispatch classification is required</strong>: the orchestrator MUST classify the reviewer's request as either (a.i) <code>new-behavior-and-test</code> (default — the reviewer expects a production change as well as the test, e.g. "handle it"/"fix it"/"add the case") OR (a.ii) <code>coverage-only</code> (rare — the reviewer explicitly states the implementation already handles the case and only asks for additional regression coverage, e.g. "add a test asserting current behavior", "add coverage for this scenario"). The classification is recorded in the iteration's CHG <code>## Implementation Order</code> row before dispatch.
+     - <strong>For <code>new-behavior-and-test</code> (a.i)</strong>: step 2's RED-must-fail gate applies unchanged. A passing test is REJECTED (the test-writer didn't author a behavioural constraint, or accidentally wrote a semantically wrong test that passes against current code). Re-dispatch with the rejection feedback (counts against step 2's 2-retry cap). On step 2 pass + step 3 quality gate pass → step 4 dispatch implementer → step 6 <code>feat:</code>/<code>fix:</code> commit. The standard two-worker flow.
+     - <strong>For <code>coverage-only</code> (a.ii)</strong>: step 2's RED gate is bypassed (the test is expected to pass). After test-writer dispatch returns, orchestrator runs the test-quality gate from step 3 directly on the un-committed worktree (vacuity / trivial RED / zero-assertion checks still apply — coverage tests must still be substantive). On gate pass: <code>test:</code> commit. Orchestrator THEN runs <code>&lt;test-runner&gt;</code> to confirm the test passes against current HEAD; <strong>if the test passes</strong> (confirming additive coverage), done — the <code>test:</code> commit is the final commit for this iteration. <strong>If the test FAILS</strong> despite the <code>coverage-only</code> classification (the reviewer's premise was wrong — the implementation actually doesn't cover the case), escalate: surface the misclassification to the reviewer/user, do NOT silently dispatch implementer, and do NOT commit the test (<code>git restore</code> cleanup per step 3 rejection path). The misclassification likely means the reviewer intended (a.i) but used (a.ii) language; require explicit confirmation before continuing.</p>
+<pre><code> The classification cannot be skipped: a blanket bypass of step 2 for all case-(a) iterations would let an accidentally-passing wrongly-written test (in an `new-behavior-and-test` request) commit and skip the implementer, marking the reviewer's edge-case request done with no production change.
+</code></pre>
+<ul>
+<li><strong>(b) Implementation-only fix to satisfy existing tests</strong> (e.g., CI failure on a test the test-writer already authored; reviewer asks to fix a regression flagged by an existing test) → if the fix scope is ≤ <code>&lt;worker-min-loc&gt;</code> lines in a single function per COR-1619's single-function rule, the orchestrator handles inline (no worker dispatch); otherwise dispatch implementer worker only, with the failing test name as feedback. No new test authorship, so no test-writer dispatch. This matches step 5's precedent (small-scope regression fix routes through the orchestrator; larger fixes route through the implementer).</li>
+<li><strong>(c) Test-only edit to existing tests</strong> (e.g., reviewer asks to tighten an assertion) → dispatch <code>&lt;test-writer-worker-agent&gt;</code> to author the edit. Orchestrator commits the edit per step 3 with <code>test:</code> prefix. Orchestrator runs <code>&lt;test-runner&gt;</code> locally on the just-committed test; <strong>if the test fails on the current implementation</strong> (the tightening surfaces a real defect or imposes a new constraint), dispatch implementer per step 4 (which produces a <code>feat:</code>/<code>fix:</code> commit per step 6); <strong>if the test still passes</strong> (the edit is a clarification or additive assertion that current code already satisfies), skip implementer dispatch — the test-writer's step-3 <code>test:</code> commit is the final commit for this iteration, no implementation commit is produced, and the iteration is done.</li>
+<li><strong>(d) Documentation / comment / config-only fix</strong> → orchestrator handles directly per COR-1619's existing tree (no worker dispatch needed).
+   Each iteration round is logged in the CHG <code>## Implementation Order</code> with the case (a/b/c/d) selected, the local-run gate outcome (for a/c), the orchestrator-inline-vs-worker decision (for b), and the rationale. Cases (a) and (c) re-apply the §Worker assignment rule for the test-writer; the implementer is dispatched only when the local-run gate confirms a real failure. Case (b) is a degenerate single-worker dispatch when above the inline threshold, or orchestrator-direct when below. Case (d) bypasses worker dispatch entirely.</li>
+</ul>
+<p><strong>Worker unavailability fallback.</strong> Two symmetric branches per COR-1622 §Resilience retry policy when <code>&lt;cli-retry-on-failure&gt;</code> is <code>mark-non-viable</code>:</p>
+<ul>
+<li><strong>Test-writer outage</strong> (<code>&lt;test-writer-worker-agent&gt;</code> CLI fails before step 3 commits): orchestrator authors the tests inline (effectively <code>test-writer = orchestrator</code> for this dispatch) if the test surface fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619; otherwise the dispatch is paused, the orchestrator surfaces the outage in the CHG <code>## Implementation Order</code>, and the loop arms a 1800 s wake per COR-1620 to retry the worker.</li>
+<li><strong>Implementer outage</strong> (<code>&lt;worker-agent&gt;</code> CLI fails after step 3 commits the test-writer's tests but before step 6): the test-writer's failing-test commit stays on the branch (it is already pushed in the orchestrator-commits-after-step-3 path; or held locally if not yet pushed — orchestrator records which case applies). Orchestrator falls back to authoring the implementation inline only if the implementation surface fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619; otherwise the dispatch is paused, the test-writer's commit remains (do NOT revert it — it is already validated cross-spec by the test-writer), the orchestrator surfaces the outage, and the loop arms a 1800 s wake per COR-1620 to retry the worker. <strong>Refactor-phase outage</strong> (both workers fail at step 7): orchestrator runs the refactor inline if the diff fits the ≤ <code>&lt;worker-min-loc&gt;</code> rule; otherwise the refactor is deferred to a follow-up CHG (the GREEN implementation already shipped a passing test suite).</li>
+</ul>
+<p>All fallbacks MUST be recorded in the CHG <code>## Implementation Order</code> section and surfaced in the PR body. Falling back does NOT alter the §Worker assignment rule for future dispatches.</p>
+<p><strong>Cost note.</strong> Two-worker dispatch roughly doubles per-task worker latency and token cost vs single-worker (one test-writer round-trip + one implementer round-trip in series, vs one combined round-trip). The PRP §Validation plan tracks defect-density and panel-review findings vs the single-worker baseline; if no measurable benefit appears after the first three two-worker dispatches, the default is revisited per a follow-up CHG.</p>
+<hr />
+<h2 id="verification-post-dispatch-and-post-direct-edit">Verification (post-dispatch and post-direct-edit)</h2>
+<p>The same verification applies whether the diff came from <code>&lt;worker-agent&gt;</code> or the orchestrator's own direct edits — the dispatch lane does not change the trust model:</p>
+<div class="highlight"><pre><span></span><code>grep<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;&lt;each-helper-name&gt;&quot;</span><span class="w"> </span>&lt;changed-files&gt;<span class="w">     </span><span class="c1"># symbols exist</span>
+&lt;test-runner&gt;<span class="w"> </span>&lt;changed-paths&gt;<span class="w">                    </span><span class="c1"># all green</span>
+&lt;linter&gt;<span class="w"> </span>&lt;changed-paths&gt;<span class="w">                         </span><span class="c1"># clean</span>
+&lt;formatter&gt;<span class="w"> </span>--check<span class="w"> </span>&lt;changed-paths&gt;<span class="w">              </span><span class="c1"># clean</span>
+af<span class="w"> </span>validate<span class="w"> </span>--root<span class="w"> </span>.<span class="w">                             </span><span class="c1"># repo-relative; works on any clone</span>
+</code></pre></div>
+<p>Spot-check one or two key invariants from the CHG by reading code (regex flags, constants, error-handler exception lists). The worker says "done"; the orchestrator verifies "done."</p>
+<p>If any check fails, fix locally before push (or re-dispatch worker for substantial gaps).</p>
+<hr />
+<h2 id="guard-rails">Guard Rails</h2>
+<ul>
+<li>Never trust worker claims without spot-checking. The worker reports; the orchestrator verifies.</li>
+<li>Never inline the CHG body in a worker prompt. Pass the path; the worker reads the file.</li>
+<li>Never skip the push/commit constraint in the dispatch prompt. The orchestrator stages and commits; the worker reports modifications.</li>
+<li>Never dispatch a worker for a 2-line typo fix. The latency tax is pure loss.</li>
+<li>Never hand-edit a multi-file refactor in the orchestrator. Context window cost compounds across downstream phases.</li>
+</ul>
+<hr />
+<h2 id="examples">Examples</h2>
+<table>
+<thead>
+<tr>
+<th>Change</th>
+<th>Lane</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fix a missing import</td>
+<td>ORCHESTRATOR</td>
+<td>≤ 2 lines, one function</td>
+</tr>
+<tr>
+<td>Rename a function across 8 call sites</td>
+<td>WORKER</td>
+<td>Signature change crossing call sites</td>
+</tr>
+<tr>
+<td>Add a new helper module + 12 tests</td>
+<td>WORKER</td>
+<td>New file + ≥ 5 tests</td>
+</tr>
+<tr>
+<td>Edit one section of a SOP</td>
+<td>ORCHESTRATOR</td>
+<td>Single doc, single section</td>
+</tr>
+<tr>
+<td>Edit 4 sections of a SOP</td>
+<td>WORKER</td>
+<td>Single doc, ≥ 3 sections</td>
+</tr>
+<tr>
+<td>Apply 6 grep-and-replace fixes from a bot batch</td>
+<td>ORCHESTRATOR</td>
+<td>Sequential small fixes; worker latency wastes time</td>
+</tr>
+<tr>
+<td>Investigate a failing test</td>
+<td>ORCHESTRATOR</td>
+<td>Investigation; promote to worker only if a real change emerges</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="change-history">Change History</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Change</th>
+<th>By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-05-09</td>
+<td>Initial version — extracted from TRN-1008 §5 + §6 for COR-1617 cluster promotion (alfred#115)</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-09</td>
+<td>R2: tree node C parameterized as <code>≤ &lt;worker-min-loc&gt; lines</code> (was hardcoded <code>≤ 2 lines</code>); prose tightened to scope <code>&lt;worker-min-loc&gt;</code> to the single-function trivial-fix branch only — per deepseek R1 P1 (tree-vs-prose contradiction) + glm R1 advisory convergent</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>FXA-2289 (CHG-C1 of PRP-1507): inserted §Two-Worker TDD Dispatch sub-section between §Worker Dispatch Contract and §Verification — 8-step handoff contract, symmetric worker-unavailability fallback (test-writer / implementer / refactor outage), cost note. FXA-2290 (CHG-C2 of PRP-1507): patched §Decision Tree mermaid block to insert <code>P</code> (<code>&lt;test-writer-worker-agent&gt;</code> set distinct?) and <code>TW</code> (Two-worker TDD applicable?) gating nodes ahead of <code>B</code>; existing chain from <code>MIX</code> onward preserved verbatim. Two CHGs bundled in PR closing issue #175.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>FXA-2289 R2 (PR #177 codex bot P2): step 1 enforcement note's <code>git restore</code> recovery scope broadened from "off-list paths" to "every modified path outside the approved test paths" — covers the case where a worker <em>reports</em> a production-source edit (in-list but outside test paths). Refinement of PRP-1507 §Proposed Solution line 104 verbatim text; PRP source has the same gap and will be amended by a separate cleanup CHG.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R3 (PR #177 codex bot P2 ×2 follow-on findings on R2 head): (1) <strong>FXA-2289</strong> step 1 enforcement note further refined — <code>git restore</code> is a no-op on untracked files (the <code>??</code> entries in <code>git status --porcelain</code>), so a test-writer that creates a NEW production stub would leave it on disk after recovery; cleanup now splits into <code>git restore -- &lt;path&gt;</code> for tracked modifications AND <code>git clean -f -- &lt;path&gt;</code> for untracked additions. (2) <strong>FXA-2290</strong> §Decision Tree restructured — the P + TW mermaid gating nodes at the head of the tree intercepted ALL substantive code tasks before the existing orchestrator-vs-worker decision was made, incorrectly routing some orchestrator-direct leaves (e.g., G-Yes → O3) through TW; the mermaid block is now restored to its original <code>A → B</code> head (chain preservation invariant strengthened to byte-for-byte the original tree), and the two-worker gate is expressed as a <strong>prose overlay paragraph</strong> below the tree that applies <em>after</em> the tree picks a WORKER leaf (W1/W2/W3/W4). Aligns COR-1619 routing with COR-1500's wording "when the RED phase is dispatched to <code>&lt;worker-agent&gt;</code>".</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R4 (PR #177 codex bot P2 on R3 head): <strong>FXA-2289</strong> step 4 enforcement note — bare <code>git restore &lt;test-writer-paths&gt;</code> only restores the worktree from the already-staged index, so a worker that <em>staged</em> a test weakening before returning would leave the weakened test in the index for the next commit. Fix: command now uses <code>git restore --source=&lt;test-writer-commit&gt; --staged --worktree -- &lt;test-writer-paths&gt;</code> to fully reset BOTH index and worktree to the test-writer-commit state. Same PRP-1507 deviation note as R2/R3.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R5 (PR #177 codex bot P2 on R4 head): <strong>FXA-2289</strong> step 1 enforcement note — same class of bug as R4 but on the RED-phase cleanup. Previous wording used bare <code>git restore -- &lt;path&gt;</code> which only resets worktree from the already-staged index, so a worker-staged production-source edit would survive cleanup and ship with the <code>test:</code> commit. Fix: command now uses <code>git restore --staged --worktree -- &lt;path&gt;</code> to reset BOTH from HEAD; for staged-add entries (<code>A  path</code>) combine with <code>git clean -f -- &lt;path&gt;</code>; for untracked <code>??</code> entries use <code>git clean -f --</code> directly. Same PRP-1507 deviation note as R2/R3/R4 — PRP source still needs the cleanup CHG (gap now in lines 104 + 112 of PRP §Proposed Solution).</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R6 (PR #177 codex bot P2 on R5 head): <strong>FXA-2289</strong> step 4 enforcement note — DETECTION gap (the R4 fix addressed only the recovery side). Bare <code>git diff &lt;test-writer-commit&gt; -- &lt;test-writer-paths&gt;</code> compares worktree-vs-commit only, missing the case where a worker stages a weakening to a test file and then restores the worktree copy before returning — <code>git diff</code> shows empty even though the staged index contains the weakened test, which would be picked up by the orchestrator's subsequent commit. Fix: detection now runs BOTH <code>git diff &lt;test-writer-commit&gt; -- &lt;test-writer-paths&gt;</code> (worktree) AND <code>git diff --cached &lt;test-writer-commit&gt; -- &lt;test-writer-paths&gt;</code> (index); any non-empty diff in EITHER fires the violation handler. Recovery (<code>git restore --source=… --staged --worktree …</code>) unchanged from R4 since it already covered both sides. Same PRP-1507 deviation note as R2-R5.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R7 (PR #177 codex bot P2 on R6 head): <strong>FXA-2289</strong> step 1 enforcement note — comprehensive rewrite from recipe-style commands to <strong>contract + implementation guidance</strong> to address codex's escalating series of git-edge-case findings (R2/R3/R5/R7 all targeted this section incrementally). The new wording: (a) declares the normative <strong>Cleanup contract</strong> — every off-test-path entry must be reset to HEAD state, untracked additions deleted, renames decomposed into restore-source + clean-target — independent of specific commands; (b) provides non-exhaustive <strong>Implementation guidance</strong> covering tracked entries (M/A/D), untracked (<code>??</code>), renames (<code>R  old -&gt; new</code>), and a catch-all (<code>git reset</code> + <code>git checkout</code> + <code>git clean</code>). The R7 finding triggering this rewrite was the rename case (<code>R  src/a.py -&gt; src/b.py</code>) — a single <code>git restore --staged --worktree -- &lt;path&gt;</code> cannot handle a porcelain rename entry because the path string is "old -&gt; new" not a single pathspec. Same PRP-1507 deviation note as R2-R6.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R8 (PR #177 codex bot P2 on R7 head): <strong>FXA-2289</strong> step 1 rename guidance — R7's first-option rename recipe (<code>git restore --staged --worktree --source=HEAD -- &lt;oldpath&gt;</code> AND <code>git clean -f -- &lt;newpath&gt;</code>) leaves the staged-add rename target intact, because <code>git clean -f</code> is a no-op on staged adds (<code>A  newpath</code>). The "or alternate" sentence had the correct unstage-then-rm sequence, but operators following the first option literally would still ship the staged rename target with the <code>test:</code> commit. Fix: rename guidance now mandates the three-step sequence <code>git reset HEAD -- &lt;oldpath&gt; &lt;newpath&gt;; git checkout HEAD -- &lt;oldpath&gt;; git clean -f -- &lt;newpath&gt;</code> (un-stages both paths, restores oldpath worktree, deletes the now-untracked newpath); the prior "either-or" wording is gone. Same PRP-1507 deviation note.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R9 (PR #177 codex bot P2 on R8 head): <strong>FXA-2289</strong> step 1 catch-all removed — R7's catch-all (<code>git reset HEAD -- &lt;paths&gt;</code> + <code>git checkout HEAD -- &lt;paths&gt;</code> + <code>git clean -f -- &lt;paths&gt;</code>) was itself broken: <code>git checkout HEAD -- &lt;paths&gt;</code> aborts with <code>pathspec ... did not match any file(s) known to git</code> when any path is not in HEAD (untracked additions, staged adds), leaving the entire batch unprocessed. Fix: replaced the broken catch-all with an explicit warning that there is no single one-shot batch command for heterogeneous path sets; operators MUST classify each path by its porcelain prefix and apply the per-class command. Same PRP-1507 deviation note.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R10 (PR #177 codex bot P2 on R9 head, soft cap evaluation): <strong>FXA-2289</strong> step 3 extended with a <strong>test-quality gate</strong> satisfying COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #4. R10's finding shifted class from git-edge-cases (R2-R9) to a semantic SOP gap: the two-worker dispatch skipped Mandatory Rule #4 (test-quality review before GREEN) entirely. Fix: step 3 now includes pre-step-4 inspection covering (a) vacuity (<code>assert True/False/0/1/None</code>), (b) trivial RED (<code>pass</code>/<code>NotImplementedError</code>/<code>pytest.fail</code>/<code>xfail</code>), (c) zero-assertion bodies (<code>grep -L "assert "</code>). The two-worker split structurally addresses Rule #4's primary failure mode (impl mirroring — test-writer has no impl), but residual modes (vacuity, trivial-RED) still apply. Detection rejects + counts against step 2's 2-retry cap. Stronger projects MAY substitute panel-review of test diff. R-count cap evaluation per FXA-2276: R10 finding is P2, so Case B (P0/P1/P2 open) self-authorizes extension up to R13 hard stop. Same PRP-1507 deviation note as R2-R9.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R11 (PR #177 codex bot P2 on R10 head): <strong>FXA-2289</strong> step 3 sequencing bug — R10's quality gate ran AFTER <code>test:</code> commit, so rejected tests would land in branch history; re-dispatch would layer new tests on top of the bad commit rather than replace it. Fix: gate now runs on the un-committed worktree BEFORE commit; on gate fail, orchestrator cleans the worktree per step 1's Cleanup contract and re-dispatches (no <code>test:</code> commit produced for the rejected attempt). On gate pass, the <code>test:</code> commit follows. Same PRP-1507 deviation note as R2-R10.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R12 (PR #177 codex bot P2 ×2 on R11 head): two follow-on findings — (1) <strong>FXA-2289</strong> step 3 rejection cleanup scope: R11's rejection path said "cleans worktree per step 1's Cleanup contract", but step 1's contract only covers OFF-test-path entries; rejected test files AT allowed test paths (e.g. vacuous test in <code>tests/test_foo.py</code>) remain dirty after rejection. Fix: rejection cleanup now explicitly restores <code>&lt;test-writer-paths&gt;</code> via <code>git restore --source=HEAD --staged --worktree -- &lt;test-writer-paths&gt;</code> plus <code>git reset HEAD -- &lt;new-test-paths&gt;</code> + <code>git clean -f -- &lt;new-test-paths&gt;</code> for new-test files not in HEAD. (2) <strong>FXA-2289</strong> step 8(a) additive-coverage unreachability: step 8(a) said "re-enter from step 1" but step 2's RED-must-fail gate unconditionally rejects passing tests; in the additive-coverage sub-case the test legitimately passes against current HEAD, so step 2 rejects and the documented additive-coverage branch becomes unreachable. Fix: step 8(a) now <strong>bypasses step 2's RED gate</strong> explicitly, going test-writer-dispatch → step 3 quality gate + commit → local-run classification (fails → dispatch implementer; passes → done with <code>test:</code> commit only). R-count = 12 / 13 hard stop per FXA-2276 Case B; one round remaining. Same PRP-1507 deviation note as R2-R11.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R13 (PR #177 codex bot P2 on R12 head — HARD STOP round per FXA-2276 Case C): <strong>FXA-2289</strong> step 8(a) blanket-bypass of step 2's RED gate (R12 fix) was too permissive. Codex caught: if the test-writer accidentally writes a semantically wrong but non-vacuous test that passes against current HEAD, the flow commits it and skips the implementer, so the reviewer's edge-case fix request is marked done with no production change. Fix: step 8(a) now requires <strong>pre-dispatch classification</strong> — orchestrator MUST classify each Phase 8 case (a) iteration as either (a.i) <code>new-behavior-and-test</code> (default, step 2 RED gate applies) OR (a.ii) <code>coverage-only</code> (rare, step 2 bypassed, test expected to pass). For (a.i), passing tests are rejected as before. For (a.ii), if the test unexpectedly fails on current HEAD, escalate (misclassification: reviewer intended (a.i) but used (a.ii) language). The classification cannot be skipped. <strong>R-count = 13 = hard stop per Case C</strong>; no further fixes allowed in this PR. Same PRP-1507 deviation note as R2-R12.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["search.suggest", "search.highlight", "navigation.sections", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

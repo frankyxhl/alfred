@@ -1,0 +1,3341 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://frankyxhl.github.io/fx-alfred/COR-1205-REF-Agent-Activity-Log-Format/">
+      
+      
+        <link rel="prev" href="../COR-1204-REF-CTX-Format/">
+      
+      
+        <link rel="next" href="../COR-1504-REF-Diagnose-Phase-Gates/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>COR-1205: Agent Activity Log Format - Alfred — Agent Runbook</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ref-1205-agent-activity-log-format" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Alfred — Agent Runbook" class="md-header__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alfred — Agent Runbook
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              COR-1205: Agent Activity Log Format
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Alfred — Agent Runbook" class="md-nav__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Alfred — Agent Runbook
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PRP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    PRP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1507-PRP-Two-Worker-TDD-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1507: Two-Worker TDD Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REF
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    REF
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0000-REF-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0000: Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0001-REF-Glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0001: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0002-REF-Document-Format-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0002: Document Format Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1204-REF-CTX-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1204: CTX Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1205: Agent Activity Log Format
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1205: Agent Activity Log Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-location" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage Location
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-fields-every-record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Fields (every record)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional Fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v1-event-enum" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1 Event Enum
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-record-line-size-cap-4-kib" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Record Line Size Cap (4 KiB)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotation-8-mib-pre-condition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotation (8 MiB Pre-condition)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#archival-5-step-procedure-atomic-replace-eventually-consistent-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archival (5-step procedure, atomic-replace + eventually-consistent cleanup)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Archival (5-step procedure, atomic-replace + eventually-consistent cleanup)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#procedure-5-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Procedure (5 steps)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Permissions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#default-git-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Git Policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-safety-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy &amp; Safety Constraints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retention-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retention Policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#out-of-scope-substrates-v1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-Scope Substrates (v1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1504-REF-Diagnose-Phase-Gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1504: Diagnose Phase Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1622-REF-Multi-Agent-Loop-Project-Configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1622: Multi-Agent Loop Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1705-REF-Code-Review-Classification-System/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1705: Code Review Classification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1800-REF-Evolution-Philosophy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1800: Evolution Philosophy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SOP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1000-SOP-Create-SOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1000: Create SOP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1001-SOP-Create-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1001: Create Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1002-SOP-Read-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1002: Read Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1004-SOP-Create-Routing-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1004: Create Routing Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1100-SOP-Create-Decision-Record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1100: Create Decision Record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1101-SOP-Submit-Change-Request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1101: Submit Change Request
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1102-SOP-Create-Proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1102: Create Proposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1103-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1103: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1104-SOP-CHG-Sizing-Decision-Tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1104: CHG Sizing Decision Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1200-SOP-Session-Retrospective/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1200: Session Retrospective
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1201-SOP-Discussion-Tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1201: Discussion Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1202-SOP-Compose-Session-Plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1202: Compose Session Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1203-SOP-Pre-Task-Alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1203: Pre-Task Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1206-SOP-Emit-Agent-Activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1206: Emit Agent Activity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1207-SOP-Zoom-Out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1207: Zoom Out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1208-SOP-Session-Startup-Sanity-Check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1208: Session Startup Sanity Check
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1300-SOP-Update-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1300: Update Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1301-SOP-Deprecate-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1301: Deprecate Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1302-SOP-Maintain-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1302: Maintain Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1400-SOP-Atomic-SOP-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1400: Atomic SOP Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1401-SOP-Documentation-Language-Policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1401: Documentation Language Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1402-SOP-Declare-Active-Process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1402: Declare Active Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1403-SOP-Interactive-Question-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1403: Interactive Question Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1404-SOP-Interactive-Question-Claude-Code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1404: Interactive Question — Claude Code Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1405-SOP-Interactive-Question-GitHub-Copilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1405: Interactive Question — GitHub Copilot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1500-SOP-TDD-Development-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1500: TDD Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1501-SOP-Create-GitHub-Issue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1501: Create GitHub Issue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1502-SOP-Git-Branch-Naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1502: Git Branch Naming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1503-SOP-Diagnose-Feedback-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1503: Diagnose Feedback Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1505-SOP-Branch-and-Identity-Hygiene/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1505: Branch and Identity Hygiene
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1506-SOP-Review-GitHub-Issue-Quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1506: Review GitHub Issue Quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1600-SOP-Workflow-Direct-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1600: Workflow — Direct Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1601: Workflow — Leader Mediated Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1602-SOP-Workflow-Multi-Model-Parallel-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1602: Workflow — Multi Model Parallel Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1603-SOP-Workflow-Parallel-Module-Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1603: Workflow — Parallel Module Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1604-SOP-Workflow-Competitive-Parallel-Exploration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1604: Workflow — Competitive Parallel Exploration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1605-SOP-Workflow-Sequential-Pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1605: Workflow — Sequential Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1606-SOP-Workflow-Selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1606: Workflow — Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1607-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1607: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1608-SOP-PRP-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1608: PRP Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1609-SOP-CHG-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1609: CHG Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1610-SOP-Code-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1610: Code Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1611-SOP-Reviewer-Calibration-Guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1611: Reviewer Calibration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1612-SOP-Respond-To-PR-Review-Comments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1612: Respond To PR Review Comments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1613-SOP-Council-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1613: Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1614-SOP-Multi-Phase-Execution-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1614: Multi Phase Execution Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1615: GitHub App PR Review Bot Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1616-SOP-Contract-First-Delivery-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1616: Contract-First Delivery Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1617-SOP-Multi-Agent-Workflow-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1617: Multi-Agent Workflow Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1618-SOP-Out-of-Band-Consent-Auto-Pick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1618: Out-of-Band Consent Auto-Pick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1619-SOP-Orchestrator-vs-Worker-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1619: Orchestrator vs Worker Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1620-SOP-Self-Pacing-Loop-Primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1620: Self-Pacing Loop Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1621-SOP-Multi-Reviewer-Triage-and-Severity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1621: Multi-Reviewer Triage and Severity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1623-SOP-PR-Review-Thread-Verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1623: PR Review Thread Verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1700-SOP-Initialize-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1700: Initialize Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1701-SOP-Archive-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1701: Archive Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1702-SOP-Sync-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1702: Sync Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1703-SOP-Fork-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1703: Fork Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1706-SOP-Code-Review-Structural-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1706: Code Review — Structural Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1707-SOP-Code-Review-Cross-Cutting-Concerns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1707: Code Review — Cross-Cutting Concerns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1708-SOP-Code-Review-Domain-Specific-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1708: Code Review — Domain-Specific Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1709: Code Review — AI-Assisted Code + Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1801-SOP-Pattern-Promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1801: Pattern Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1802-SOP-Build-Weighted-Decision-Matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1802: Build Weighted Decision Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-location" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage Location
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-fields-every-record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Fields (every record)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional Fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v1-event-enum" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1 Event Enum
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-record-line-size-cap-4-kib" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Record Line Size Cap (4 KiB)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotation-8-mib-pre-condition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotation (8 MiB Pre-condition)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#archival-5-step-procedure-atomic-replace-eventually-consistent-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archival (5-step procedure, atomic-replace + eventually-consistent cleanup)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Archival (5-step procedure, atomic-replace + eventually-consistent cleanup)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#procedure-5-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Procedure (5 steps)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Permissions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#default-git-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Git Policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-safety-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy &amp; Safety Constraints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retention-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retention Policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#out-of-scope-substrates-v1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-Scope Substrates (v1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ref-1205-agent-activity-log-format">REF-1205: Agent Activity Log Format</h1>
+<p><strong>Applies to:</strong> All projects using the COR document system
+<strong>Last updated:</strong> 2026-05-02
+<strong>Last reviewed:</strong> 2026-05-02
+<strong>Status:</strong> Active
+<strong>Related:</strong> COR-1206 (Emit Agent Activity SOP), COR-1200 (Session Retrospective — log consumer), PRP-2230 (originating proposal)</p>
+<hr />
+<h2 id="what-is-it">What Is It?</h2>
+<p>The canonical data contract for the Alfred activity log protocol. Defines the on-disk format, schema (<code>alfred.activity/v1</code>), required + optional fields, event enum, file rotation, archival procedure, and operational constraints. Any coding agent — Claude Code, GitHub Copilot, Cursor, Cline, Aider, Codex CLI, Gemini CLI, or any future tool — emits structured events to this format so "what was done in this session" becomes machine-readable across tools.</p>
+<p>This document defines the <strong>format</strong>. The <strong>emit protocol</strong> (mandatory triggers, per-agent integration recipes, scanner-skip enforcement) lives in COR-1206. The <strong>CLI surfaces</strong> that read and write this format are <code>af log</code>, <code>af log-validate</code>, <code>af log-archive</code> — <strong>scaffolded in CHG-2231 Phase 0 and implemented across Phases 2–5; target release v1.9.0</strong>. Until those phases land in <code>main</code>, the commands are placeholder modules and <code>af &lt;log|log-validate|log-archive&gt;</code> will return non-zero (command not registered); this REF still describes the eventual contract authoritatively.</p>
+<hr />
+<h2 id="why">Why</h2>
+<p>Without a stable cross-tool format, each agent's session work lives in a private store and <code>COR-1200</code> step 1 reduces to chat-history recollection. Standardizing the format unlocks:
+- Shared session memory across agents (Claude Code morning, Cursor afternoon, Copilot evening — one trail).
+- Replay-not-recall retrospectives (<code>COR-1200</code> step 1 reads the log).
+- Forensic auditability of agent behavior (append-only, schema-validated, line-atomic).</p>
+<hr />
+<h2 id="storage-location">Storage Location</h2>
+<ul>
+<li><strong>PRJ layer</strong>: <code>./rules/logs/YYYY-MM-DD.jsonl</code> (one file per UTC day in the project)</li>
+<li><strong>USR layer fallback</strong>: <code>~/.alfred/logs/YYYY-MM-DD.jsonl</code> when no project context resolves</li>
+</ul>
+<p>The <code>rules/logs/</code> subtree is <strong>reserved</strong>: all <code>af</code> document scanners — present (<code>af list</code>, <code>af search</code>, <code>af status</code>, <code>af validate</code>) and any future scanner — MUST hard-skip it (see COR-1206 for enforcement at <code>core/scanner.py</code> walk layer). Only these files are allowed under <code>rules/logs/</code>:
+- <code>*.jsonl</code> (today's loose file)
+- <code>*.partN.jsonl</code> (rolled-over segments when today exceeds 8 MiB)
+- <code>archive.zip</code> (closed-day archive)
+- <code>archive.zip.tmp.*</code> (per-process unique tmpfile during archival; see §Archival)</p>
+<hr />
+<h2 id="encoding">Encoding</h2>
+<p>UTF-8, LF line terminator, one JSON object per line, no embedded newlines, no trailing comma, <strong>append-only</strong>.</p>
+<hr />
+<h2 id="required-fields-every-record">Required Fields (every record)</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ts</code></td>
+<td>string</td>
+<td>RFC 3339 UTC timestamp, e.g. <code>"2026-05-02T14:23:11Z"</code></td>
+</tr>
+<tr>
+<td><code>agent</code></td>
+<td>string</td>
+<td>One of v1 whitelist: <code>claude-code</code>, <code>copilot</code>, <code>cursor</code>, <code>cline</code>, <code>aider</code>, <code>codex-cli</code>, <code>gemini-cli</code>, <code>other</code>. Whitelist is hardcoded in the validator constant. Adding a new entry requires a new PRP.</td>
+</tr>
+<tr>
+<td><code>agent_version</code></td>
+<td>string</td>
+<td>1–64 ASCII chars, no whitespace, no newlines. Auto-filled by <code>af log</code> from <code>$ALFRED_AGENT_VERSION</code> env var, or the literal sentinel <code>"unknown"</code> if neither flag nor env var is set.</td>
+</tr>
+<tr>
+<td><code>session_id</code></td>
+<td>string</td>
+<td>1–128 chars, no whitespace. Auto-filled by <code>af log</code> from <code>$ALFRED_SESSION_ID</code> env var, or generated UUIDv4 if absent.</td>
+</tr>
+<tr>
+<td><code>event</code></td>
+<td>string</td>
+<td>One of v1 enum (see §Event Enum below)</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>string</td>
+<td>UTF-8, 1–500 characters, no newlines, no NUL bytes</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>string</td>
+<td>Exact literal <code>"alfred.activity/v1"</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="optional-fields">Optional Fields</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>refs</code></td>
+<td>array of string</td>
+<td><code>PREFIX-ACID</code> strings, deduplicated, ≤ 16 entries</td>
+</tr>
+<tr>
+<td><code>files</code></td>
+<td>array of string</td>
+<td>Repo-relative POSIX paths, deduplicated, ≤ 32 entries</td>
+</tr>
+<tr>
+<td><code>duration_ms</code></td>
+<td>integer</td>
+<td>Non-negative, ≤ 86_400_000 (one day)</td>
+</tr>
+<tr>
+<td><code>parent_event</code></td>
+<td>string</td>
+<td>Same format as <code>session_id</code>; correlation id</td>
+</tr>
+<tr>
+<td><code>agent_name</code></td>
+<td>string</td>
+<td><strong>Required when <code>agent: "other"</code></strong>, MUST be omitted otherwise. 1–64 chars; identifies the unrecognized harness (e.g. <code>"qodo"</code>, <code>"continue"</code>).</td>
+</tr>
+<tr>
+<td><code>summary_truncated</code></td>
+<td>boolean</td>
+<td><code>true</code> only when <code>af log</code> truncated <code>summary</code> or trimmed <code>files</code>/<code>refs</code> to fit the 4 KiB line cap. MUST be omitted otherwise. <code>false</code> is <strong>not allowed</strong> in v1 (absence implies no truncation).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="v1-event-enum">v1 Event Enum</h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>session.start</code></td>
+<td>Agent session begins</td>
+</tr>
+<tr>
+<td><code>session.end</code></td>
+<td>Agent session ends</td>
+</tr>
+<tr>
+<td><code>task.start</code></td>
+<td>Long-running task begins (optional, for traceability)</td>
+</tr>
+<tr>
+<td><code>task.done</code></td>
+<td>User-facing turn completed with non-trivial action (mandatory per turn — see COR-1206)</td>
+</tr>
+<tr>
+<td><code>task.aborted</code></td>
+<td>Task abandoned mid-execution</td>
+</tr>
+<tr>
+<td><code>doc.created</code></td>
+<td>Alfred document created via <code>af create</code> (<code>refs</code> SHOULD be set)</td>
+</tr>
+<tr>
+<td><code>doc.updated</code></td>
+<td>Alfred document updated via <code>af update</code> / <code>af fmt</code> (<code>refs</code> SHOULD be set)</td>
+</tr>
+<tr>
+<td><code>decision</code></td>
+<td>Material decision: D-item resolution, PRP convergence, scope cut</td>
+</tr>
+<tr>
+<td><code>note</code></td>
+<td>Free-form fallback when no other event applies</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="per-record-line-size-cap-4-kib">Per-Record Line Size Cap (4 KiB)</h2>
+<p>Each JSONL line (including the trailing <code>\n</code>) MUST be ≤ <strong>4096 bytes</strong>.</p>
+<p>This bound enables the multi-process atomicity guarantee: on Linux/macOS/BSD, <code>O_APPEND</code> provides per-write atomicity for regular files at the kernel level (inode lock); <code>PIPE_BUF</code> (≥ 4096) is the related guarantee for pipes/FIFOs that motivates the conservative line-size cap. The 4 KiB cap is well within atomicity windows on every supported OS.</p>
+<p>When a record would exceed the cap, <code>af log</code> truncates <code>summary</code> and trims <code>files</code> / <code>refs</code> from the end to fit, then sets the optional <code>summary_truncated: true</code> field on that record so downstream readers can detect partial data.</p>
+<hr />
+<h2 id="rotation-8-mib-pre-condition">Rotation (8 MiB Pre-condition)</h2>
+<ul>
+<li>New file per UTC calendar day.</li>
+<li>The 8 MiB per-file cap is enforced as a <strong>pre-condition</strong> check on every append: before writing, <code>af log</code> checks <code>current_file_size + len(new_record_line) &gt; 8 MiB</code>. If so, it rolls over to <code>YYYY-MM-DD.partN.jsonl</code> (N starts at 1, smallest unused) <strong>before</strong> writing.</li>
+<li>As a result, no file ever exceeds 8 MiB by even one byte.</li>
+<li>A purely post-condition check (the early-draft bug) would let a file grow past the cap whenever the last record straddles the boundary — that is forbidden.</li>
+</ul>
+<hr />
+<h2 id="archival-5-step-procedure-atomic-replace-eventually-consistent-cleanup">Archival (5-step procedure, atomic-replace + eventually-consistent cleanup)</h2>
+<p>All closed days (any <code>YYYY-MM-DD.jsonl</code> or <code>YYYY-MM-DD.partN.jsonl</code> whose date is &lt; today UTC) are folded into a <strong>single <code>archive.zip</code> per log directory</strong>, so the directory holds at most today's loose files plus <code>archive.zip</code>. The current day's file MUST stay loose because zip does not support append-atomic writes — emitting directly into a zip would force file-locking and defeat the 4 KiB / <code>O_APPEND</code> multi-process atomicity guarantee.</p>
+<p>Archival is performed by <code>af log</code> lazily (on the first invocation that detects ≥ 1 closed-day raw file) or on demand via <code>af log-archive</code>.</p>
+<h3 id="procedure-5-steps">Procedure (5 steps)</h3>
+<p><strong>Step 0 — Acquire archival lock (try-lock).</strong> Acquire a POSIX advisory lock on the log directory. Reference Python form:</p>
+<div class="highlight"><pre><span></span><code><span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">log_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">O_RDONLY</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_DIRECTORY</span><span class="p">)</span>
+<span class="n">fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_EX</span> <span class="o">|</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_NB</span><span class="p">)</span>  <span class="c1"># raises BlockingIOError on contention</span>
+</code></pre></div>
+<p>The builtin <code>open()</code> raises <code>IsADirectoryError</code> on a directory, so <code>os.open()</code> MUST be used. <strong>If the lock is already held by another process</strong> (<code>BlockingIOError</code> / <code>EWOULDBLOCK</code>), <strong>skip this archival cycle entirely</strong> and proceed with today's append (the other archiver completes the work; closed-day files remain on disk and will be archived on the next <code>af log</code> invocation that finds the lock free).</p>
+<p>This serializes archival without blocking <code>af log</code> emit (which never touches <code>archive.zip</code> and acquires no lock). Lock holders MUST release in a <code>finally</code> clause and <code>os.close(fd)</code> after; POSIX advisory locks are released automatically on process exit (or when the last fd referencing the inode is closed), so SIGKILL is safe.</p>
+<p>The lock prevents a race where Process A enumerates closed-day files at T0, Process B enumerates a superset at T1 and archives + unlinks at T2, then A's stale enumeration at T3 would have built a tmpfile missing the entries B added — leading to data loss when A's <code>os.replace</code> overwrites B's archive.</p>
+<p><strong>Step 1 — Build tmpfile.</strong> Build <code>archive.zip.tmp.&lt;pid&gt;.&lt;rand6&gt;</code> (PID + 6 random hex chars; per-process unique even in the unlikely event a misbehaving non-locked archiver runs concurrently). Contents: union of the existing archive's entries plus the closed-day raw files. Filename collisions inside the zip are deduplicated by entry name — same <code>&lt;date&gt;.jsonl</code> from disk overwrites the existing zip entry; this is harmless because raw files are immutable once their day closes.</p>
+<p><strong>Step 2 — Atomic replace (linearization point).</strong> <code>os.replace(archive.zip.tmp.&lt;pid&gt;.&lt;rand6&gt;, archive.zip)</code>. POSIX rename is atomic; this is the linearization point. Because step 0 serializes archivers via the directory lock, no concurrent racer can have produced a newer archive between step 1 enumeration and step 2 replace; the new <code>archive.zip</code> is the strict superset of the prior version.</p>
+<p><strong>Step 3 — Unlink raw files.</strong> <code>unlink</code> the closed-day raw files. <strong>Partial-failure semantics:</strong> if any unlink fails (permission denied, file already removed by a concurrent run, etc.), the affected raw files remain on disk. They are <em>not</em> lost — they exist in <code>archive.zip</code> already, and the next archival run will re-include them by entry name (overwriting the existing zip entry harmlessly) and re-attempt unlink. Readers that union loose + zip MUST deduplicate by <code>(filename, lineno)</code> — entries with the same key from both sources are the same record. The "atomic" label thus applies to step 2 (the visible archive state); steps 1 and 3 are best-effort with self-healing on retry.</p>
+<p><strong>Step 4 — Tmpfile cleanup.</strong> Before starting step 1 (in the next archival cycle), the archiver removes any <code>archive.zip.tmp.&lt;pid&gt;.&lt;rand6&gt;</code> whose <code>&lt;pid&gt;</code> no longer corresponds to a live process (interrupted prior run; the owning archiver is gone). Tmp files whose PID is still live are left alone (another archiver actively writing). PID liveness via <code>os.kill(pid, 0)</code> with explicit POSIX-correct exception handling:</p>
+<table>
+<thead>
+<tr>
+<th>Exception</th>
+<th>Interpretation</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ProcessLookupError</code> (<code>ESRCH</code>)</td>
+<td>Process is dead</td>
+<td>Remove the tmpfile</td>
+</tr>
+<tr>
+<td><code>PermissionError</code> (<code>EPERM</code>)</td>
+<td>Process exists but is owned by another user (shared host, container, sudo'd archiver)</td>
+<td>Leave the tmpfile alone</td>
+</tr>
+<tr>
+<td>Any other exception, or success</td>
+<td>Process exists</td>
+<td>Leave the tmpfile alone</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>EPERM</code> branch is critical — treating it as "dead" would let one user's archiver delete another user's live tmpfile and corrupt their in-flight archive. Wall-clock-based age checks were rejected because backward NTP / VM-resume skew can mistakenly delete live tmpfiles.</p>
+<p>Compression typically reduces 30 days of logs by 7–10× (raw 30–50 MiB → zip 4–7 MiB).</p>
+<hr />
+<h2 id="file-permissions">File Permissions</h2>
+<p>Log files are created with mode <code>0644</code>; the <code>rules/logs/</code> directory (and any parent created on demand) is created with mode <code>0755</code>. Agents MUST NOT relax these permissions. Activity logs are not secrets per the privacy constraints below; they are designed to be auditable by the user.</p>
+<hr />
+<h2 id="default-git-policy">Default Git Policy</h2>
+<p>Activity logs are per-machine artifacts and SHOULD be gitignored by default. The exact <code>.gitignore</code> snippet (a single line: <code>rules/logs/</code>) is shipped in CHG-2231 Phase 0. Projects MAY commit logs deliberately; that is a project-level choice and not the protocol default.</p>
+<hr />
+<h2 id="privacy-safety-constraints">Privacy &amp; Safety Constraints</h2>
+<p><strong>Forbidden content in any field:</strong>
+- API keys, OAuth tokens
+- Full prompt text
+- Full tool call arguments
+- Raw file contents (file <em>paths</em> are fine)
+- User PII
+- Environment variable values</p>
+<p>Agents are responsible for their own redaction; the validator does not detect secrets. The 500-character <code>summary</code> cap enforces concision.</p>
+<hr />
+<h2 id="retention-policy">Retention Policy</h2>
+<ul>
+<li><strong>Default retention</strong>: keep activity log files (loose <code>*.jsonl</code> and entries inside <code>archive.zip</code>) for <strong>30 days</strong>; older entries MAY be deleted by the agent runtime or by user cron.</li>
+<li><strong>Aggregate disk-space soft cap</strong>: <strong>256 MiB per <code>rules/logs/</code> directory</strong> (raw + zip combined). Beyond this the runtime SHOULD warn; deletion is user-driven, not automatic.</li>
+<li><strong>Compression policy</strong>: closed days are stored only inside <code>archive.zip</code> (DEFLATE provides 7–10× on JSONL). No additional gzip layer in v1.</li>
+</ul>
+<hr />
+<h2 id="versioning">Versioning</h2>
+<p>Schema version is fixed in the <code>schema</code> field as the literal string <code>"alfred.activity/v1"</code>. Breaking changes ship as <code>alfred.activity/v2</code> and require a new PRP. v1 readers MUST ignore unknown optional fields they encounter (forward compatibility); v1 writers MUST NOT emit fields not listed in v1.</p>
+<hr />
+<h2 id="out-of-scope-substrates-v1">Out-of-Scope Substrates (v1)</h2>
+<p>Two filesystem classes are explicitly unsupported in v1:</p>
+<ul>
+<li><strong>Windows</strong> — <code>O_APPEND</code> and <code>flock(2)</code> semantics differ; v1 is best-effort. Revisit if concrete need surfaces.</li>
+<li><strong>Network filesystems (NFS / SMB / fuse-based remote mounts)</strong> for <strong>either log root</strong> — both PRJ <code>rules/logs/</code> and USR <code>~/.alfred/logs/</code> (which on enterprise / Kerberos / LDAP-managed Linux setups is frequently NFS-mounted via the user's <code>$HOME</code>). <code>O_APPEND</code> and <code>flock(2)</code> semantics are implementation-defined and may silently no-op, breaking both per-line atomicity and archival serialization. Local POSIX filesystems (<code>ext4</code>, <code>xfs</code>, <code>btrfs</code>, <code>apfs</code>, <code>hfs+</code>, <code>ufs</code>, <code>zfs</code>) are the v1 supported substrate.</li>
+</ul>
+<p>The implementing CHG SHOULD detect the filesystem type of the resolved log directory at <code>af log</code> startup using the <strong>OS-appropriate API</strong>:
+- <strong>Linux</strong>: <code>statfs(2)</code> <code>f_type</code> magic numbers — <code>NFS_SUPER_MAGIC = 0x6969</code>, <code>SMB_SUPER_MAGIC</code>, <code>CIFS_MAGIC_NUMBER</code>, <code>FUSE_SUPER_MAGIC</code> — accessed via <code>ctypes</code> to libc, OR parse <code>/proc/self/mountinfo</code>
+- <strong>macOS / BSD</strong>: <code>statfs(2)</code> <code>f_fstypename</code> via <code>ctypes</code> to libc, or shell out to <code>stat -f "%T"</code>
+- <strong>Avoid <code>os.statvfs</code></strong> — it returns block/inode counts but does NOT expose filesystem type</p>
+<p>On detection, emit a one-time stderr warning. Hard refusal is deferred to v2 to avoid breaking existing setups during rollout.</p>
+<hr />
+<h2 id="change-history">Change History</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Change</th>
+<th>By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-05-02</td>
+<td>Initial version. Implements PRP-2230 (Agent Activity Log Protocol v1) §"Storage location" + §"Required/Optional fields" + §"v1 event enum" + §"Per-record line size cap" + §"Rotation" + §"Archival" + §"File permissions" + §"Default git policy" + §"Privacy &amp; safety" + §"Versioning". Adds retention policy (30-day default + 256 MiB soft cap) and explicit OS-appropriate filesystem-type detection guidance per PRP-2230 R5+R7 advisories.</td>
+<td>Frank + Claude</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["search.suggest", "search.highlight", "navigation.sections", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

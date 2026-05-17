@@ -1,0 +1,4054 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://frankyxhl.github.io/fx-alfred/COR-1612-SOP-Respond-To-PR-Review-Comments/">
+      
+      
+        <link rel="prev" href="../COR-1611-SOP-Reviewer-Calibration-Guide/">
+      
+      
+        <link rel="next" href="../COR-1613-SOP-Council-Review/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>COR-1612: Respond To PR Review Comments - Alfred — Agent Runbook</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sop-1612-respond-to-pr-review-comments" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Alfred — Agent Runbook" class="md-header__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alfred — Agent Runbook
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              COR-1612: Respond To PR Review Comments
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Alfred — Agent Runbook" class="md-nav__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Alfred — Agent Runbook
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PRP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    PRP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1507-PRP-Two-Worker-TDD-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1507: Two-Worker TDD Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REF
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    REF
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0000-REF-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0000: Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0001-REF-Glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0001: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0002-REF-Document-Format-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0002: Document Format Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1204-REF-CTX-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1204: CTX Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1205-REF-Agent-Activity-Log-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1205: Agent Activity Log Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1504-REF-Diagnose-Phase-Gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1504: Diagnose Phase Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1622-REF-Multi-Agent-Loop-Project-Configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1622: Multi-Agent Loop Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1705-REF-Code-Review-Classification-System/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1705: Code Review Classification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1800-REF-Evolution-Philosophy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1800: Evolution Philosophy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SOP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1000-SOP-Create-SOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1000: Create SOP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1001-SOP-Create-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1001: Create Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1002-SOP-Read-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1002: Read Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1004-SOP-Create-Routing-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1004: Create Routing Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1100-SOP-Create-Decision-Record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1100: Create Decision Record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1101-SOP-Submit-Change-Request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1101: Submit Change Request
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1102-SOP-Create-Proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1102: Create Proposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1103-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1103: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1104-SOP-CHG-Sizing-Decision-Tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1104: CHG Sizing Decision Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1200-SOP-Session-Retrospective/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1200: Session Retrospective
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1201-SOP-Discussion-Tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1201: Discussion Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1202-SOP-Compose-Session-Plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1202: Compose Session Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1203-SOP-Pre-Task-Alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1203: Pre-Task Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1206-SOP-Emit-Agent-Activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1206: Emit Agent Activity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1207-SOP-Zoom-Out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1207: Zoom Out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1208-SOP-Session-Startup-Sanity-Check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1208: Session Startup Sanity Check
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1300-SOP-Update-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1300: Update Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1301-SOP-Deprecate-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1301: Deprecate Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1302-SOP-Maintain-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1302: Maintain Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1400-SOP-Atomic-SOP-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1400: Atomic SOP Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1401-SOP-Documentation-Language-Policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1401: Documentation Language Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1402-SOP-Declare-Active-Process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1402: Declare Active Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1403-SOP-Interactive-Question-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1403: Interactive Question Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1404-SOP-Interactive-Question-Claude-Code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1404: Interactive Question — Claude Code Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1405-SOP-Interactive-Question-GitHub-Copilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1405: Interactive Question — GitHub Copilot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1500-SOP-TDD-Development-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1500: TDD Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1501-SOP-Create-GitHub-Issue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1501: Create GitHub Issue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1502-SOP-Git-Branch-Naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1502: Git Branch Naming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1503-SOP-Diagnose-Feedback-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1503: Diagnose Feedback Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1505-SOP-Branch-and-Identity-Hygiene/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1505: Branch and Identity Hygiene
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1506-SOP-Review-GitHub-Issue-Quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1506: Review GitHub Issue Quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1600-SOP-Workflow-Direct-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1600: Workflow — Direct Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1601: Workflow — Leader Mediated Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1602-SOP-Workflow-Multi-Model-Parallel-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1602: Workflow — Multi Model Parallel Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1603-SOP-Workflow-Parallel-Module-Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1603: Workflow — Parallel Module Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1604-SOP-Workflow-Competitive-Parallel-Exploration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1604: Workflow — Competitive Parallel Exploration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1605-SOP-Workflow-Sequential-Pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1605: Workflow — Sequential Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1606-SOP-Workflow-Selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1606: Workflow — Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1607-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1607: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1608-SOP-PRP-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1608: PRP Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1609-SOP-CHG-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1609: CHG Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1610-SOP-Code-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1610: Code Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1611-SOP-Reviewer-Calibration-Guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1611: Reviewer Calibration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1612: Respond To PR Review Comments
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1612: Respond To PR Review Comments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Is It?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reviewer-detector-classes-orthogonal-not-interchangeable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reviewer Detector Classes (orthogonal, not interchangeable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-merge-sweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Merge Sweep
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-fetch-all-pr-review-feedback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Fetch all PR review feedback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-categorize-each-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Categorize each comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-process-each-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Process each comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-push-all-fixes-in-one-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Push all fixes in one commit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-reply-to-each-fixed-comment-with-verified-behavior-claims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Reply to each fixed comment — with VERIFIED behavior claims
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-wait-for-ci-and-the-next-bot-review-pass-agent-self-driven-loop-no-user-prompting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Wait for CI and the next bot review pass — agent self-driven loop, no user prompting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Wait for CI and the next bot review pass — agent self-driven loop, no user prompting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#decision-tree-canonical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision tree (canonical)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-push-re-anchoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Force-push re-anchoring
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-wait-3-5-min-do-not-exit-is-mandatory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why "wait 3-5 min, do not exit" is mandatory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-wait-harness-specific" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to wait (harness-specific)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stopping-conditions-all-four-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stopping conditions (all four required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detecting-reviewer-side-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detecting reviewer-side resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-do-not-self-resolve-threads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Do NOT self-resolve threads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-doc-shell-example-mandatory-pre-publish-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Doc-shell example mandatory pre-publish test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reply-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reply Format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scoping-bot-reviews-via-pr-body-optional-github-app-review-bots-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoping bot reviews via PR body (optional, GitHub App review bots only)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scoping bot reviews via PR body (optional, GitHub App review bots only)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-pr-body-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended PR-body template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-most-useful" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When most useful
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-not-useful-skip-the-technique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT useful (skip the technique)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-not-a-way-to-suppress-real-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important: not a way to suppress real findings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empirical-evidence-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empirical evidence base
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-bot-reviewers-catch-what-humanspanels-miss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why bot reviewers catch what humans/panels miss
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1613-SOP-Council-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1613: Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1614-SOP-Multi-Phase-Execution-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1614: Multi Phase Execution Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1615: GitHub App PR Review Bot Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1616-SOP-Contract-First-Delivery-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1616: Contract-First Delivery Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1617-SOP-Multi-Agent-Workflow-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1617: Multi-Agent Workflow Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1618-SOP-Out-of-Band-Consent-Auto-Pick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1618: Out-of-Band Consent Auto-Pick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1619-SOP-Orchestrator-vs-Worker-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1619: Orchestrator vs Worker Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1620-SOP-Self-Pacing-Loop-Primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1620: Self-Pacing Loop Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1621-SOP-Multi-Reviewer-Triage-and-Severity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1621: Multi-Reviewer Triage and Severity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1623-SOP-PR-Review-Thread-Verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1623: PR Review Thread Verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1700-SOP-Initialize-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1700: Initialize Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1701-SOP-Archive-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1701: Archive Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1702-SOP-Sync-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1702: Sync Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1703-SOP-Fork-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1703: Fork Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1706-SOP-Code-Review-Structural-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1706: Code Review — Structural Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1707-SOP-Code-Review-Cross-Cutting-Concerns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1707: Code Review — Cross-Cutting Concerns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1708-SOP-Code-Review-Domain-Specific-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1708: Code Review — Domain-Specific Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1709: Code Review — AI-Assisted Code + Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1801-SOP-Pattern-Promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1801: Pattern Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1802-SOP-Build-Weighted-Decision-Matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1802: Build Weighted Decision Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Is It?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reviewer-detector-classes-orthogonal-not-interchangeable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reviewer Detector Classes (orthogonal, not interchangeable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-merge-sweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Merge Sweep
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-fetch-all-pr-review-feedback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Fetch all PR review feedback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-categorize-each-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Categorize each comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-process-each-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Process each comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-push-all-fixes-in-one-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Push all fixes in one commit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-reply-to-each-fixed-comment-with-verified-behavior-claims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Reply to each fixed comment — with VERIFIED behavior claims
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-wait-for-ci-and-the-next-bot-review-pass-agent-self-driven-loop-no-user-prompting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Wait for CI and the next bot review pass — agent self-driven loop, no user prompting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Wait for CI and the next bot review pass — agent self-driven loop, no user prompting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#decision-tree-canonical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision tree (canonical)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-push-re-anchoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Force-push re-anchoring
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-wait-3-5-min-do-not-exit-is-mandatory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why "wait 3-5 min, do not exit" is mandatory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-wait-harness-specific" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to wait (harness-specific)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stopping-conditions-all-four-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stopping conditions (all four required)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detecting-reviewer-side-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detecting reviewer-side resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-do-not-self-resolve-threads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Do NOT self-resolve threads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-doc-shell-example-mandatory-pre-publish-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Doc-shell example mandatory pre-publish test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reply-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reply Format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scoping-bot-reviews-via-pr-body-optional-github-app-review-bots-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoping bot reviews via PR body (optional, GitHub App review bots only)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scoping bot reviews via PR body (optional, GitHub App review bots only)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-pr-body-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended PR-body template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-most-useful" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When most useful
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-not-useful-skip-the-technique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT useful (skip the technique)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-not-a-way-to-suppress-real-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important: not a way to suppress real findings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#empirical-evidence-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empirical evidence base
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-bot-reviewers-catch-what-humanspanels-miss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why bot reviewers catch what humans/panels miss
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sop-1612-respond-to-pr-review-comments">SOP-1612: Respond To PR Review Comments</h1>
+<p><strong>Applies to:</strong> All projects using the COR document system
+<strong>Last updated:</strong> 2026-05-15
+<strong>Last reviewed:</strong> 2026-05-15
+<strong>Status:</strong> Draft
+<strong>Related:</strong> COR-1602 (Multi Model Parallel Review), COR-1615 (GitHub App PR Review Bot Loop)</p>
+<hr />
+<h2 id="what-is-it">What Is It?</h2>
+<p>The standard process for responding to review comments on a Pull Request. Covers comments from any source — human reviewers, GitHub App automated review bots, multi-model panel review tooling (when available), or any other source. This SOP is a universal overlay that works with any workflow (COR-1600–1605).</p>
+<h3 id="reviewer-detector-classes-orthogonal-not-interchangeable">Reviewer Detector Classes (orthogonal, not interchangeable)</h3>
+<p>Different reviewer types catch different failure modes. Always treat them as a <strong>set of orthogonal detectors</strong>, not substitutes. Which classes are available depends on the project's tooling — pick whatever subset applies:</p>
+<table>
+<thead>
+<tr>
+<th>Detector</th>
+<th>Strengths (catches reliably)</th>
+<th>Blind spots</th>
+<th>Availability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GitHub App review bot</strong> — e.g. <code>copilot-pull-request-reviewer[bot]</code> (GitHub/Copilot official reviewer), <code>chatgpt-codex-connector[bot]</code> (Codex Connector), CodeRabbit, Greptile, Sourcery. Auto-runs or responds to a PR comment depending on the installed GitHub App.</td>
+<td>Cross-reference inconsistencies, stale references, "shipped" / placeholder elision, shell-example execution failures (<code>set -e</code> brittleness, unmatched globs, invalid jq, syntax errors), cross-file contract drift</td>
+<td>Architectural judgment, design tradeoffs, calibration scoring, out-of-scope debates</td>
+<td>Always check repo settings — exact bot identity varies. The SOP applies identically to any bot of this class.</td>
+</tr>
+<tr>
+<td><strong>Multi-model panel review</strong> — N independent LLM reviewers scoring against a rubric (e.g. COR-1608). Project-specific tooling: <code>/trinity</code> skill, CodeRabbit Pro, Greptile-team-review, custom orchestration, or none.</td>
+<td>Architecture, risk awareness, scope precision, calibration scoring (COR-1608), competing-tradeoff judgments</td>
+<td>Cross-reference drift after R+1 (panel internalizes a model and stops re-checking), shell-execution last-mile bugs, "review pack framed-out" issues</td>
+<td><strong>Project-specific.</strong> Many projects have no multi-model panel — that is normal. When unavailable, the bot inline + author self-review is the entire reviewer pool.</td>
+</tr>
+<tr>
+<td><strong>CI-side static analyzer</strong> — type checker (<code>mypy</code>, <code>pyright</code>, <code>tsc</code>), linter (<code>ruff</code>, <code>eslint</code>, <code>clippy</code>), security scanner (<code>bandit</code>, <code>semgrep</code>, <code>gitleaks</code>), shellcheck. Runs on every PR via the project's CI workflow.</td>
+<td>Type errors, lint violations, dead code, security anti-patterns, shell-script bugs (when <code>shellcheck</code> is wired). Deterministic, no LLM.</td>
+<td>Architectural judgment, semantic correctness beyond type/lint rules, intent verification. Misses cross-reference drift in prose.</td>
+<td>Project-dependent — check <code>.github/workflows/</code>. Treat as a hard gate when present (CI fail = blocker).</td>
+</tr>
+<tr>
+<td><strong>Human reviewer</strong></td>
+<td>Domain intent, "is this what the user actually wants", historical context, cross-PR strategic decisions</td>
+<td>Patience for diff-mode rescanning, real-shell mental simulation</td>
+<td>Project-dependent (solo vs team).</td>
+</tr>
+<tr>
+<td><strong>Author self-review</strong></td>
+<td>Knows intent + recent context</td>
+<td>Author-self bias ("I just wrote this, it's fine"), inability to diff-mode read own work</td>
+<td>Always available.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule of thumb (calibrate to what your project actually has):</strong>
+- <strong>Doc-only PR (≤ 5 file changes, no architectural decision)</strong> → GitHub App review bot inline alone is <strong>likely sufficient</strong> if iterated through every fix round per the §Step 6 loop. Multi-model panel optional.
+- <strong>PRP / architectural / cross-vendor protocol PR</strong> → Multi-model panel <strong>strongly recommended when available</strong>; bot still runs in parallel and catches what panel misses. <strong>If your project has no multi-model panel tooling</strong>, lean harder on §Step 8 (<code>set -euo pipefail</code> pre-publish testing) and human review.
+- <strong>Implementation PR with code</strong> → bot inline + (panel if available). Bot's execution simulator extends to test code.</p>
+<p><strong>Important — multi-model panel is NOT universally available.</strong> This SOP describes how to respond to <em>whatever</em> reviewers your project actually has. Don't block a PR waiting for a panel review that the project's tooling doesn't support; don't write fix commits expecting a panel pass that won't happen.</p>
+<hr />
+<h2 id="why">Why</h2>
+<p>Without a standard process, review comments get fixed without replies, missed entirely, or self-resolved without reviewer confirmation. This leads to unverified fixes and broken review trust.</p>
+<hr />
+<h2 id="when-to-use">When to Use</h2>
+<ul>
+<li>A PR has received review comments (inline, review summary, or bot suggestions)</li>
+<li>After pushing code to a PR that has pending review threads</li>
+<li>Any workflow that involves a PR merge step</li>
+<li>Before declaring a PR merge-ready, after COR-1615's pre-merge sweep has fetched GitHub-side review threads</li>
+</ul>
+<hr />
+<h2 id="when-not-to-use">When NOT to Use</h2>
+<ul>
+<li>Triggering, polling, or matching a GitHub App review bot pass to the current PR head before comments are ready to process. Use COR-1615 first, then return here for fetched findings.</li>
+<li>Review scoring during COR-1602 parallel review (that's a separate scoring flow)</li>
+<li>Draft PRs where comments are self-notes</li>
+<li>Comments on closed/merged PRs (address in a follow-up PR if needed)</li>
+</ul>
+<hr />
+<h2 id="pre-merge-sweep">Pre-Merge Sweep</h2>
+<p>Before declaring any PR merge-ready, run the COR-1615 pre-merge sweep. This is required even when COR-1602 or another in-conversation panel has already passed: panel PASS is necessary for that review lane, but GitHub-side review threads are an independent detector surface.</p>
+<p>Route every non-bookkeeping GitHub-side review thread found by COR-1615 into this SOP:</p>
+<ul>
+<li><strong>Resolved or outdated on GitHub:</strong> record the sweep result; no further reply is required.</li>
+<li><strong>Unresolved with an existing author reply that addresses the finding:</strong> record the reply as the resolution evidence. For bots that cannot resolve threads, this counts as addressed and the user can manually resolve the thread if desired.</li>
+<li><strong>Unresolved with no addressing reply:</strong> classify it under Step 2 below, then fix/reply/escalate through Steps 3-6 before merge-ready can be declared.</li>
+</ul>
+<p>Bookkeeping bot markers, such as <code>iterwheel-clearance[bot]</code> thread-conclusion comments, are excluded by COR-1615 before findings enter this SOP. If the repo has no GitHub App review bot installed, the bot-specific portion of the sweep is empty, but human and code-review-app GitHub threads still enter this SOP. The pre-merge gate is satisfied only when the sweep returns zero non-bookkeeping GitHub-side review threads, or every such thread is resolved, outdated, or author-addressed.</p>
+<hr />
+<h2 id="steps">Steps</h2>
+<h3 id="1-fetch-all-pr-review-feedback">1. Fetch all PR review feedback</h3>
+<p>Fetch inline review comments, review summary comments, and top-level PR conversation comments:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">OWNER</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">OWNER</span><span class="p">:?set OWNER=&lt;github-org-or-user&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">REPO</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">REPO</span><span class="p">:?set REPO=&lt;repo-name&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">PR_NUM</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PR_NUM</span><span class="p">:?set PR_NUM=&lt;pr-number&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Inline review comments on changed lines.</span>
+<span class="c1"># IMPORTANT: keep `in_reply_to_id`, `created_at`, and `user.login` in the</span>
+<span class="c1"># projection — §Step 6 stopping condition #1 needs them to (a) distinguish</span>
+<span class="c1"># top-level vs reply comments, (b) detect &quot;since last fix push&quot; boundary,</span>
+<span class="c1"># (c) attribute the comment to a reviewer (bot vs human).</span>
+gh<span class="w"> </span>api<span class="w"> </span>repos/<span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span>/<span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span>/pulls/<span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span>/comments<span class="w"> </span>--paginate<span class="w"> </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | {type: &quot;inline&quot;, id, in_reply_to_id, path, line, user: .user.login, created_at, body}&#39;</span>
+
+<span class="c1"># Review summary comments (review bodies). Keep CHANGES_REQUESTED reviews even</span>
+<span class="c1"># if body is empty. Includes `user.login` for bot-vs-human attribution.</span>
+<span class="c1"># IMPORTANT: GitHub&#39;s reviews endpoint exposes `submitted_at` (not `created_at`);</span>
+<span class="c1"># alias it to `created_at` here so §Step 6 stopping condition #1 can apply a</span>
+<span class="c1"># UNIFIED `created_at` timestamp filter across all three surfaces. Without the</span>
+<span class="c1"># alias, a `created_at`-keyed &quot;since last fix push&quot; check silently drops new</span>
+<span class="c1"># review summaries (including new CHANGES_REQUESTED reviews).</span>
+<span class="c1"># Reviews don&#39;t have `in_reply_to_id` (no thread structure).</span>
+gh<span class="w"> </span>api<span class="w"> </span>repos/<span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span>/<span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span>/pulls/<span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span>/reviews<span class="w"> </span>--paginate<span class="w"> </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | select(.state == &quot;CHANGES_REQUESTED&quot; or (.body != null and .body != &quot;&quot;)) | {type: &quot;review_summary&quot;, id, state, user: .user.login, created_at: .submitted_at, body}&#39;</span>
+
+<span class="c1"># Top-level PR conversation comments. Same field rationale.</span>
+gh<span class="w"> </span>api<span class="w"> </span>repos/<span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span>/<span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span>/issues/<span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span>/comments<span class="w"> </span>--paginate<span class="w"> </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | {type: &quot;issue_comment&quot;, id, user: .user.login, created_at, body}&#39;</span>
+</code></pre></div>
+<h3 id="2-categorize-each-comment">2. Categorize each comment</h3>
+<p>Read each comment and classify:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Definition</th>
+<th>Action required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Blocking</strong></td>
+<td>Code bug, logic error, missing test, security issue</td>
+<td>Must fix before merge</td>
+</tr>
+<tr>
+<td><strong>Advisory</strong></td>
+<td>Style suggestion, naming preference, minor improvement</td>
+<td>Fix or explain why not</td>
+</tr>
+<tr>
+<td><strong>Question</strong></td>
+<td>Reviewer asks for clarification</td>
+<td>Reply with explanation</td>
+</tr>
+<tr>
+<td><strong>Incorrect</strong></td>
+<td>Reviewer suggestion is wrong or inapplicable</td>
+<td>Reply with reasoning, escalate to user</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-process-each-comment">3. Process each comment</h3>
+<p><strong>Blocking:</strong>
+1. Fix the code</p>
+<p><strong>Advisory:</strong>
+1. If adopting: fix the code
+2. If declining: reply with reasoning why the change is not needed</p>
+<p><strong>Question:</strong>
+1. Reply with explanation on GitHub</p>
+<p><strong>Incorrect:</strong>
+1. Reply on GitHub: explain why the suggestion is incorrect or inapplicable
+2. Escalate to user for confirmation before proceeding</p>
+<h3 id="4-push-all-fixes-in-one-commit">4. Push all fixes in one commit</h3>
+<p>If any blocking or adopted advisory comments required code changes, group those fixes into a single commit referencing the PR:</p>
+<p>Recipe form (pseudocode). Substitute <code>&lt;changed-files&gt;</code> with the actual paths and <code>&lt;PR&gt;</code> with the PR number before running.
+<div class="highlight"><pre><span></span><code>git add &lt;changed-files&gt;
+git commit -m &quot;fix: address PR review comments (#&lt;PR&gt;)&quot;
+git push
+</code></pre></div></p>
+<p>If there were no code changes (for example, only Question, Incorrect, or declined Advisory comments), skip this step and continue to Step 5.</p>
+<h3 id="5-reply-to-each-fixed-comment-with-verified-behavior-claims">5. Reply to each fixed comment — with VERIFIED behavior claims</h3>
+<p>If Step 4 produced a fix commit, reply on GitHub for each blocking or adopted advisory comment with:</p>
+<p>GitHub only auto-marks line-anchored comments as outdated when the referenced diff line changes. Diff position comments with <code>line: null</code> (common for Codex/Copilot bot comments) and issue-level/top-level comments are not auto-outdated, so reply to those manually after the fix lands.</p>
+<ol>
+<li>The commit hash</li>
+<li>What changed</li>
+<li><strong>Behaviour verification (mandatory when the reply asserts behaviour).</strong> If the reply makes a claim about how the fixed code behaves under any condition (e.g., "real errors still surface", "set -e safe", "race resolves to content-identical"), that claim <strong>MUST</strong> be backed by an executed verification: either cite the test fixture that exercises it, or include the local sanity-test command + observed exit code + observed output. Reasoning-only assertions about behaviour are forbidden — they have produced reviewer-self-correction loops where a subsequent bot review caught the assertion was false (PR #84 R6 precedent).</li>
+</ol>
+<p>If there was no fix commit, reply only where applicable for Question, Incorrect, or declined Advisory comments.</p>
+<h3 id="6-wait-for-ci-and-the-next-bot-review-pass-agent-self-driven-loop-no-user-prompting">6. Wait for CI <strong>and the next bot review pass</strong> — agent self-driven loop, no user prompting</h3>
+<p>After every fix push, the agent <strong>MUST</strong> wait 3–5 minutes and self-poll for new comments before handing control back to the user. Asking the user "anything new?" or "should I check again?" is <strong>forbidden</strong> — see §Pitfalls. The agent's job is to drive the loop until a stopping condition is hit.</p>
+<h4 id="decision-tree-canonical">Decision tree (canonical)</h4>
+<pre class="mermaid"><code>flowchart TD
+  A([Push fix commit]) --&gt; B[Wait 3-5 min&lt;br/&gt;do NOT exit / hand back to user]
+  B --&gt; P{PR state still&lt;br/&gt;open + ready for review?}
+  P --&gt;|Closed / merged| Z1([STOP — out of band&lt;br/&gt;maintainer closed/merged&lt;br/&gt;handoff to user])
+  P --&gt;|Converted to draft| Z2([STOP — handoff to user&lt;br/&gt;SOP only applies to&lt;br/&gt;ready-for-review PRs])
+  P --&gt;|Force-pushed since&lt;br/&gt;last fetch| FP[Re-anchor: fetch comments&lt;br/&gt;by ID, ignore line numbers&lt;br/&gt;some bot anchors invalidated]
+  FP --&gt; C
+  P --&gt;|Yes| C[Fetch all comments&lt;br/&gt;per Step 1&lt;br/&gt;3 surfaces: inline, review, issue]
+  C --&gt; D{New comments since&lt;br/&gt;last fix push&lt;br/&gt;across all 3 surfaces?}
+  D --&gt;|Yes| E[Apply Steps 2-5&lt;br/&gt;to new comments]
+  E --&gt; M{Iteration count&lt;br/&gt;&lt; max-cap 10?}
+  M --&gt;|Yes| A
+  M --&gt;|No| Z3([STOP — escalate to user&lt;br/&gt;nitpick-spiral fail-safe&lt;br/&gt;see Step 6 stopping cond #4])
+  D --&gt;|No| F{Existing threads:&lt;br/&gt;all replied or&lt;br/&gt;marked outdated/resolved?}
+  F --&gt;|No| RD{Reviewer pushback&lt;br/&gt;on prior reply?&lt;br/&gt;e.g. disagreement&lt;br/&gt;or rebuttal}
+  RD --&gt;|Yes - real disagreement| Z4([STOP — escalate to user&lt;br/&gt;reviewer/author disagreement&lt;br/&gt;needs human judgement])
+  RD --&gt;|No - just unaddressed| G[Reply to remaining&lt;br/&gt;per Step 5]
+  G --&gt; H[Wait 3-5 min&lt;br/&gt;do NOT exit]
+  H --&gt; C
+  F --&gt;|Yes| I{CI green?}
+  I --&gt;|No| J[Investigate CI failure&lt;br/&gt;treat as new comment]
+  J --&gt; E
+  I --&gt;|Yes| K([STOP — PR ready&lt;br/&gt;for merge&lt;br/&gt;handoff to user])</code></pre>
+<h4 id="force-push-re-anchoring">Force-push re-anchoring</h4>
+<p>The <code>FP → C</code> branch (re-anchor: fetch by ID, ignore line numbers, since some bot anchors invalidate when force-push rewrites history) does NOT count as a fix round. Force-push iteration counter increments ONLY when a new fix commit was pushed (Mermaid edge <code>E → M</code>); re-anchor is housekeeping. This prevents history-rewrite churn from consuming the cap-10 fail-safe budget.</p>
+<h4 id="why-wait-3-5-min-do-not-exit-is-mandatory">Why "wait 3-5 min, do not exit" is mandatory</h4>
+<p>Some GitHub App review bots auto-trigger a fresh review pass on every new commit, typically within 30–90 seconds; comment-triggered apps may instead require one explicit request per new head. Either way, a reply or review that arrives later is invisible to an agent that returned control to the user immediately after pushing. PR #84 in the COR-1612 evidence base ran <strong>7 fix rounds</strong>, each round catching new shell / cross-reference bugs introduced by the prior round's fix; if the agent had handed back control after round 1, rounds 2–7 would have required the user to manually prompt "Round N — check again". That is exactly the anti-pattern this Step 6 prevents.</p>
+<h4 id="how-to-wait-harness-specific">How to wait (harness-specific)</h4>
+<table>
+<thead>
+<tr>
+<th>Harness</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>Use the <code>ScheduleWakeup</code> tool (or <code>/loop</code> skill) to schedule a wake-up at +5 min. Do NOT use a long synchronous <code>sleep</code> that burns prompt-cache cycles. If neither is available, sleep 180 seconds via <code>Bash</code> (cache loss accepted).</td>
+</tr>
+<tr>
+<td><strong>GitHub Actions / CI</strong></td>
+<td><code>sleep 300 &amp;&amp; &lt;re-fetch script&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Manual / shell</strong></td>
+<td><code>sleep 300 &amp;&amp; &lt;re-fetch&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="stopping-conditions-all-four-required">Stopping conditions (all four required)</h4>
+<ol>
+<li><strong>No new comments since last fix push, across all three surfaces</strong> that §Step 1 fetches. Set <code>LAST_PUSH_TS</code> to the <strong>UTC <code>Z</code>-form</strong> ISO timestamp of when the head commit was actually pushed to GitHub (server-side ack), so it lex-compares cleanly against GitHub <code>created_at</code> (also <code>Z</code>-form). The push moment, not the commit moment, is the boundary that matters: a commit can sit locally for hours before push, or be pushed earlier with a future-skewed clock — using commit time misclassifies feedback (pulls in pre-push comments as "new", or drops real post-push comments). Query GitHub's record of when the head SHA actually arrived; fall back to commit time only if no server-side push record exists yet:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1"># Required vars: same as §Step 7 / §Step 1 examples. Guard explicitly so</span>
+<span class="c1"># this block is copy-paste runnable under `set -euo pipefail` rather than</span>
+<span class="c1"># tripping nounset on the first $OWNER reference.</span>
+<span class="nv">OWNER</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">OWNER</span><span class="p">:?set OWNER=&lt;github-org-or-user&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">REPO</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">REPO</span><span class="p">:?set REPO=&lt;repo-name&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="nv">HEAD_SHA</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>HEAD<span class="k">)</span>
+<span class="nv">LAST_PUSH_TS</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+
+<span class="c1"># Primary: GitHub Actions run created_at = server-side ack of the SHA arriving.</span>
+<span class="c1"># Fetch all runs for the SHA and exclude events that can re-fire independently</span>
+<span class="c1"># of the push (`workflow_dispatch`, `repository_dispatch`, `schedule`,</span>
+<span class="c1"># `deployment*`); of the remaining push-coupled events (push, pull_request,</span>
+<span class="c1"># check_run, etc.), take the EARLIEST created_at — that&#39;s the closest</span>
+<span class="c1"># server-side observation of the push moment. Narrowing to `event=push`</span>
+<span class="c1"># alone would silently fall through to commit-time in the very common case</span>
+<span class="c1"># of PR-only CI workflows (repos where `on:` lists only `pull_request`).</span>
+<span class="c1"># Catch gh api failures explicitly (Actions disabled, missing actions:read,</span>
+<span class="c1"># 5xx, etc.): under `set -e` a bare `LAST_PUSH_TS=$(gh api ...)` aborts the</span>
+<span class="c1"># script before the fallback below can run. Wrapping in `if` suspends `set</span>
+<span class="c1"># -e` for the assignment and lets the fallback handle the empty case.</span>
+<span class="c1"># Use --paginate: a single SHA may have &gt; 100 runs across many workflows /</span>
+<span class="c1"># reruns, and the API&#39;s true earliest push-coupled run can sit on a later</span>
+<span class="c1"># page. Without pagination, LAST_PUSH_TS is computed too LATE (using a</span>
+<span class="c1"># later page-1 result) and legitimate post-push comments get dropped.</span>
+<span class="c1"># Note: per-page `--jq &#39;[...] | sort | .[0]&#39;` would return each page&#39;s</span>
+<span class="c1"># local minimum, not the global minimum, so the sort is moved to the</span>
+<span class="c1"># shell and runs across the full concatenated stream.</span>
+<span class="c1"># GitHub&#39;s `actions/runs?head_sha=...` query is also capped server-side at</span>
+<span class="c1"># 1,000 results regardless of `--paginate`. For a SHA accumulating &gt; 1k</span>
+<span class="c1"># workflow runs (extremely long-lived PR with many workflows × reruns), the</span>
+<span class="c1"># earliest run can be truncated; the commit-time fallback handles this</span>
+<span class="c1"># conservatively (over-approximates safely as above).</span>
+<span class="c1"># Pre-check: GitHub server-caps `actions/runs?head_sha=...` at 1,000</span>
+<span class="c1"># results. If TOTAL_RUNS &gt;= 1,000, the paginate below cannot guarantee</span>
+<span class="c1"># the true earliest run is in the result set (truncation hazard); skip</span>
+<span class="c1"># it and use commit-time fallback. If TOTAL_RUNS == 0, no CI runs exist</span>
+<span class="c1"># — also skip directly to fallback.</span>
+<span class="c1">#</span>
+<span class="c1"># IMPORTANT: capture stderr to a tempfile rather than redirecting to</span>
+<span class="c1"># /dev/null. Blindly suppressing stderr conflates four distinct failure</span>
+<span class="c1"># modes (API 5xx, rate-limit, missing actions:read scope, Actions</span>
+<span class="c1"># disabled) with the legitimate &quot;0 runs&quot; case, hiding real permissions</span>
+<span class="c1"># bugs. The captured stderr is emitted as a single &gt;&amp;2 WARN so the</span>
+<span class="c1"># operator can disambiguate.</span>
+<span class="nv">PRE_ERR</span><span class="o">=</span><span class="k">$(</span>mktemp<span class="w"> </span>-t<span class="w"> </span>cor1612.preerr.XXXXXX<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="o">||</span><span class="w"> </span><span class="nv">PRE_ERR</span><span class="o">=</span>/tmp/cor1612.preerr.<span class="nv">$$</span>
+<span class="nv">TOTAL_RUNS</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>api<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">&quot;repos/</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">/actions/runs?head_sha=</span><span class="nv">$HEAD_SHA</span><span class="s2">&amp;per_page=1&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--jq<span class="w"> </span><span class="s1">&#39;.total_count // 0&#39;</span><span class="w"> </span><span class="m">2</span>&gt;<span class="s2">&quot;</span><span class="nv">$PRE_ERR</span><span class="s2">&quot;</span><span class="k">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nv">TOTAL_RUNS</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+
+<span class="c1"># POSIX-portable numeric guard (bash 3.2-safe). Empty / non-digit input</span>
+<span class="c1"># trips this branch — emit captured stderr if any, treat as 0, fall</span>
+<span class="c1"># through to the commit-time fallback below.</span>
+<span class="k">case</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TOTAL_RUNS</span><span class="s2">&quot;</span><span class="w"> </span><span class="k">in</span>
+<span class="w">  </span><span class="s1">&#39;&#39;</span><span class="p">|</span>*<span class="o">[</span>!0-9<span class="o">]</span>*<span class="o">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-s<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PRE_ERR</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">      </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;WARN: actions/runs total_count pre-check failed:&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">      </span>sed<span class="w"> </span><span class="s1">&#39;s/^/  /&#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PRE_ERR</span><span class="s2">&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="w">    </span><span class="nv">TOTAL_RUNS</span><span class="o">=</span><span class="m">0</span>
+<span class="w">    </span><span class="p">;;</span>
+<span class="k">esac</span>
+rm<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PRE_ERR</span><span class="s2">&quot;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+
+<span class="c1"># Threshold `&lt; 1000` (gate fires at &gt;= 1000): exact-1000 is ambiguous</span>
+<span class="c1"># (10 full pages might be complete OR might be exactly capped); over-</span>
+<span class="c1"># fallback is harmless, under-fallback drops post-push comments.</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TOTAL_RUNS</span><span class="s2">&quot;</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TOTAL_RUNS</span><span class="s2">&quot;</span><span class="w"> </span>-lt<span class="w"> </span><span class="m">1000</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nv">RUN_TS_RAW</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>api<span class="w"> </span>--paginate<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span><span class="s2">&quot;repos/</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">/actions/runs?head_sha=</span><span class="nv">$HEAD_SHA</span><span class="s2">&amp;per_page=100&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--jq<span class="w"> </span><span class="s1">&#39;.workflow_runs[]</span>
+<span class="s1">                          | select(.event != &quot;workflow_dispatch&quot;</span>
+<span class="s1">                                   and .event != &quot;repository_dispatch&quot;</span>
+<span class="s1">                                   and .event != &quot;schedule&quot;</span>
+<span class="s1">                                   and .event != &quot;deployment&quot;</span>
+<span class="s1">                                   and .event != &quot;deployment_status&quot;)</span>
+<span class="s1">                          | .created_at&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="c1"># Z-form ISO timestamps lex-sort = chronological-sort. The awk filter</span>
+<span class="w">    </span><span class="c1"># picks the first non-empty line and exits with status 0 in BOTH cases</span>
+<span class="w">    </span><span class="c1"># (line found / no lines) — critical under `set -euo pipefail`, where</span>
+<span class="w">    </span><span class="c1"># `grep -v &#39;^$&#39; | head -n1` would exit 1 (grep&#39;s &quot;no match&quot;) on an</span>
+<span class="w">    </span><span class="c1"># empty stream and abort the script before the commit-time fallback</span>
+<span class="w">    </span><span class="c1"># block can run. `NF` is true only for lines with at least one field;</span>
+<span class="w">    </span><span class="c1"># an empty (whitespace-only) line has NF==0 and is skipped.</span>
+<span class="w">    </span><span class="nv">LAST_PUSH_TS</span><span class="o">=</span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s\n&#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RUN_TS_RAW</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nv">LC_ALL</span><span class="o">=</span>C<span class="w"> </span>sort<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;NF{print; exit}&#39;</span><span class="k">)</span>
+<span class="w">  </span><span class="k">fi</span>
+<span class="k">fi</span>
+
+<span class="c1"># Fallback: no push workflow ran for this SHA, OR Actions API was unavailable.</span>
+<span class="c1"># Approximate with commit time and warn. Acceptable in the common case</span>
+<span class="c1"># (commit-then-push within seconds); the explicit stderr warning makes the</span>
+<span class="c1"># approximation visible to the operator, who can re-run the loop later when</span>
+<span class="c1"># the API recovers if precision matters.</span>
+<span class="c1"># When the fallback fires, LAST_PUSH_TS becomes the local committer date,</span>
+<span class="c1"># which is USUALLY earlier than actual push (over-approximates safely:</span>
+<span class="c1"># extra iteration on some pre-push comments, no post-push loss).</span>
+<span class="c1"># CAVEAT: committer date is client-controlled — a future-skewed system</span>
+<span class="c1"># clock, `git commit --date &lt;future&gt;`, or an amended commit with a future</span>
+<span class="c1"># explicit date can place committer time AFTER the real push, in which</span>
+<span class="c1"># case `.created_at &gt; $push` silently drops post-push comments arriving</span>
+<span class="c1"># between actual-push and committer-date. The fallback path is therefore</span>
+<span class="c1"># non-authoritative when both (a) the Actions API was unavailable AND</span>
+<span class="c1"># (b) the committer date is suspect; verify by re-running the loop after</span>
+<span class="c1"># the API recovers, or set LAST_PUSH_TS manually.</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-z<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LAST_PUSH_TS</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">  </span><span class="nv">EPOCH</span><span class="o">=</span><span class="k">$(</span>git<span class="w"> </span>log<span class="w"> </span>-1<span class="w"> </span>--format<span class="o">=</span>%ct<span class="w"> </span>HEAD<span class="k">)</span>
+<span class="w">  </span><span class="nv">LAST_PUSH_TS</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>-u<span class="w"> </span>-r<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$EPOCH</span><span class="s2">&quot;</span><span class="w"> </span>+%Y-%m-%dT%H:%M:%SZ<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span><span class="o">||</span><span class="w"> </span>date<span class="w"> </span>-u<span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;@</span><span class="nv">$EPOCH</span><span class="s2">&quot;</span><span class="w"> </span>+%Y-%m-%dT%H:%M:%SZ<span class="k">)</span><span class="w">   </span><span class="c1"># BSD || GNU</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;WARN: no usable push workflow_run for </span><span class="nv">$HEAD_SHA</span><span class="s2"> (one of:&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">       </span><span class="s2">&quot;no CI runs configured for this SHA;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">       </span><span class="s2">&quot;actions/runs search truncated by GitHub 1,000-result cap;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">       </span><span class="s2">&quot;Actions disabled / actions:read scope missing / API failure;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">       </span><span class="s2">&quot;or no push trigger configured);&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">       </span><span class="s2">&quot;falling back to commit time — boundary precision degraded&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="k">fi</span>
+<span class="c1"># Now LAST_PUSH_TS looks like &quot;2026-05-02T07:35:27Z&quot;, same offset as GitHub.</span>
+</code></pre></div>
+<p>Both ends in <code>Z</code>-form means lexicographic compare is time-order-safe (within a single offset, ISO 8601 lex order = chronological order). Earlier drafts hit four sequential hazards, all now avoided above:
+   - <code>git log %cI</code>: local-offset string, lex-miscompares across offsets.
+   - <code>git log %ct</code>: commit time, not push time — misclassifies feedback when commit-vs-push gap is non-trivial (amend → late push, future-skewed clock).
+   - Bare <code>LAST_PUSH_TS=$(gh api ...)</code>: <code>set -e</code> aborts the loop before the fallback runs when Actions is unavailable.
+   - <code>head_sha</code> alone: matches <code>workflow_dispatch</code> / <code>repository_dispatch</code> runs that may post-date the push, drifting the boundary forward.</p>
+<p>The unified <code>created_at</code> filter (made possible by the <code>submitted_at → created_at</code> alias in §Step 1's review-summary projection) lets one jq predicate apply to all three surfaces:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">PR_OWNER</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PR_OWNER</span><span class="p">:?set PR_OWNER=&lt;github-login-of-pr-author&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">PR_NUM</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PR_NUM</span><span class="p">:?set PR_NUM=&lt;pr-number&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="c1"># REPLY_ACTORS: comma-separated GitHub logins of every account that may post</span>
+<span class="c1"># replies on behalf of the author (PR owner, plus any bot/service account the</span>
+<span class="c1"># agent uses to reply). All of these must be excluded from &quot;new feedback&quot; or</span>
+<span class="c1"># the agent&#39;s own replies re-trigger stop-condition #1 -&gt; infinite loop.</span>
+<span class="c1"># Default: just the PR owner. Set explicitly when running from a service</span>
+<span class="c1"># account, e.g. REPLY_ACTORS=&quot;alice-the-author,my-bot[bot]&quot;.</span>
+<span class="nv">REPLY_ACTORS</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">REPLY_ACTORS</span><span class="k">:-</span><span class="nv">$PR_OWNER</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Stream all 3 surfaces through a single new-since-push filter</span>
+<span class="o">{</span>
+<span class="w">  </span>gh<span class="w"> </span>api<span class="w"> </span>repos/<span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span>/<span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span>/pulls/<span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span>/comments<span class="w"> </span>--paginate<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | {type:&quot;inline&quot;, id, in_reply_to_id, user:.user.login, created_at, body}&#39;</span>
+<span class="w">  </span>gh<span class="w"> </span>api<span class="w"> </span>repos/<span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span>/<span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span>/pulls/<span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span>/reviews<span class="w"> </span>--paginate<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | select(.state == &quot;CHANGES_REQUESTED&quot; or (.body != null and .body != &quot;&quot;)) | {type:&quot;review_summary&quot;, id, state, user:.user.login, created_at:.submitted_at, body}&#39;</span>
+<span class="w">  </span>gh<span class="w"> </span>api<span class="w"> </span>repos/<span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span>/<span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span>/issues/<span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span>/comments<span class="w"> </span>--paginate<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | {type:&quot;issue_comment&quot;, id, user:.user.login, created_at, body}&#39;</span>
+<span class="o">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-s<span class="w"> </span>--arg<span class="w"> </span>push<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LAST_PUSH_TS</span><span class="s2">&quot;</span><span class="w"> </span>--arg<span class="w"> </span>actors<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$REPLY_ACTORS</span><span class="s2">&quot;</span><span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">  map(select(</span>
+<span class="s1">    # Both timestamps are Z-form (LAST_PUSH_TS normalised above; GitHub</span>
+<span class="s1">    # created_at is Z by default), so lex compare = chronological compare.</span>
+<span class="s1">    # The in_reply_to_id == null clause was removed: it silently dropped</span>
+<span class="s1">    # reviewer pushback comments posted as replies to a prior author</span>
+<span class="s1">    # reply, which could cause merge of contested PRs. The .user check</span>
+<span class="s1">    # against $actors already excludes all reply actors own comments —</span>
+<span class="s1">    # that was the only legitimate reason to filter on in_reply_to_id.</span>
+<span class="s1">    # The .user comparison checks against $REPLY_ACTORS (comma-list)</span>
+<span class="s1">    # rather than just the PR owner: when the agent posts replies from a</span>
+<span class="s1">    # service account that is NOT the PR owner, those self-replies would</span>
+<span class="s1">    # otherwise pass the filter and re-trigger condition #1 forever.</span>
+<span class="s1">    # NOTE: do NOT introduce apostrophes (U+0027) inside this comment</span>
+<span class="s1">    # block — the entire jq program is a single-quoted shell string, so</span>
+<span class="s1">    # an apostrophe here terminates the string and breaks bash -n.</span>
+<span class="s1">    .created_at &gt; $push</span>
+<span class="s1">    and ((.user as $u | $actors / &quot;,&quot; | index($u)) | not)   # not authored by any reply actor</span>
+<span class="s1">  ))</span>
+<span class="s1">&#39;</span>
+</code></pre></div>
+<p>Stop-condition #1 holds when this jq pipeline returns <code>[]</code> (empty array). The earlier draft only counted inline comments and didn't show the actual filter expression, which created a Step 1↔Step 6 contract drift — fetched three surfaces but stopped on one with no executable filter for the other two. All three surfaces are now covered by one composable filter that an implementer can copy-paste. The Z-form normalisation above eliminates the lex-vs-chronological hazard; <code>jq fromdateiso8601</code> was considered but rejected because BSD/macOS <code>strptime</code> doesn't accept the <code>+HH:MM</code> offsets it would need to handle.</p>
+<ol>
+<li>
+<p><strong>All existing threads</strong> either have a reply from the author OR have been marked <strong>outdated</strong> by GitHub (line-anchored auto-outdate when the diff line moves) OR explicitly <strong>resolved</strong> by the original reviewer. <strong>For non-resolving bots</strong> (bots that never call the resolve mutation — common for <code>chatgpt-codex-connector[bot]</code>, <code>copilot-pull-request-reviewer[bot]</code>): an author reply citing the fix commit hash counts as "addressed"; the agent informs the user at handoff so the user can manually resolve if desired (per §Step 7). If a thread ID present in iteration N is absent in iteration N+1 (bot retracted the comment, or the diff line was rewritten such that GitHub auto-removed the inline anchor), <strong>treat the disappearance as resolution</strong>. The thread ID set is monotonically non-increasing across iterations once the agent stops adding new fix commits.</p>
+</li>
+<li>
+<p><strong>CI green</strong> for the most recent commit, OR no CI is configured for the repo. "No CI configured" means ALL THREE of the following return zero on <code>$HEAD_SHA</code>:</p>
+</li>
+<li><code>gh api repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs --jq '.total_count'</code> (check-runs API; covers GitHub Actions + GitHub Apps that publish check-runs)</li>
+<li><code>gh api repos/$OWNER/$REPO/actions/runs?head_sha=$HEAD_SHA --jq '.total_count'</code> (Actions API; covers any workflow_run on the SHA)</li>
+<li><code>gh api repos/$OWNER/$REPO/commits/$HEAD_SHA/status --jq '.statuses | length'</code> (legacy commit-statuses API; covers external CI providers like CircleCI, Jenkins, Travis, and custom integrations that post <code>continuous-integration/*</code> contexts).</li>
+</ol>
+<p>In that case treat condition #3 as vacuously satisfied. Without checking all three signal sources, the loop terminates early in repos that publish CI exclusively via legacy commit statuses, handing off PRs as ready while external CI is still pending or failing.</p>
+<ol>
+<li>
+<p><strong>Iteration count below max-iteration fail-safe.</strong> Default cap: <strong>10 fix rounds per PR</strong> (counting each fix commit as one round). On hitting the cap, <strong>escalate to the user</strong> rather than continuing — write a summary of unresolved findings + reviewer-vs-author disagreements + recommend either (a) merge-as-is with explicit accepted-risks list, (b) close the PR and reopen with narrower scope, or (c) bump the cap with explicit justification. Pathological nitpick-spirals (each fix introduces a new bot finding indefinitely) are real failure modes — without a fail-safe the agent loops forever.</p>
+</li>
+<li>
+<p>If conditions <strong>1, 2, or 3</strong> are unmet, loop back to "Wait 3-5 min" — do not exit.</p>
+</li>
+<li>If condition <strong>4</strong> (iteration cap) is the unmet one, <strong>STOP and escalate to the user</strong> per the cap-hit instructions in #4 above. Do NOT loop back — that's an infinite loop.</li>
+<li>If a reviewer pushback on a prior author reply is detected (Mermaid <code>RD → Z4</code>), <strong>STOP and escalate to the user</strong> for human judgement. Reviewer-vs-author disagreement is not loop-resolvable.</li>
+</ol>
+<h4 id="detecting-reviewer-side-resolution">Detecting reviewer-side resolution</h4>
+<p>Verify whether the reviewer marked the thread outdated/resolved (a positive signal that your fix landed). The <code>gh api</code> command below is a real shell example and follows the §Step 8 rule — it uses bash variables (not angle-bracket placeholders) so it is copy-paste runnable under <code>set -euo pipefail</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">OWNER</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">OWNER</span><span class="p">:?set OWNER=&lt;github-org-or-user&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">REPO</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">REPO</span><span class="p">:?set REPO=&lt;repo-name&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">PR_NUM</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PR_NUM</span><span class="p">:?set PR_NUM=&lt;pr-number&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Per-thread resolution state (GitHub GraphQL — REST doesn&#39;t expose isResolved).</span>
+<span class="c1"># Pagination: GraphQL caps reviewThreads at 100 per page. For PRs with &gt; 100</span>
+<span class="c1"># threads, page via the cursor below. The pageInfo block + while-loop is the</span>
+<span class="c1"># canonical pattern.</span>
+<span class="c1">#</span>
+<span class="c1"># Cursor handling: the GraphQL `$after` arg must be GraphQL `null` on the FIRST</span>
+<span class="c1"># request (no prior page). `gh api -f after=&quot;...&quot;` sends a JSON STRING value,</span>
+<span class="c1"># so `-f after=&quot;null&quot;` would send the literal string &quot;null&quot; — GraphQL would</span>
+<span class="c1"># fail. The first request omits `-F after=...` entirely (then $after defaults</span>
+<span class="c1"># to GraphQL null per the query signature `$after:String`); subsequent</span>
+<span class="c1"># requests send the real cursor as a string via `-f`.</span>
+<span class="nv">CURSOR</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="w">   </span><span class="c1"># empty = &quot;no cursor yet, send null&quot;</span>
+<span class="k">while</span><span class="w"> </span>:<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-z<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$CURSOR</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nv">AFTER_ARG</span><span class="o">=()</span><span class="w">                       </span><span class="c1"># first page: omit $after, defaults to GraphQL null</span>
+<span class="w">  </span><span class="k">else</span>
+<span class="w">    </span><span class="nv">AFTER_ARG</span><span class="o">=(</span>-f<span class="w"> </span><span class="s2">&quot;after=</span><span class="nv">$CURSOR</span><span class="s2">&quot;</span><span class="o">)</span><span class="w">     </span><span class="c1"># subsequent pages: pass cursor as string</span>
+<span class="w">  </span><span class="k">fi</span>
+<span class="w">  </span><span class="c1"># Defensive expansion: bash 3.2 (still default on macOS) raises &quot;unbound</span>
+<span class="w">  </span><span class="c1"># variable&quot; under `set -u` when expanding an empty array via &quot;${arr[@]}&quot;.</span>
+<span class="w">  </span><span class="c1"># The `${arr[@]+&quot;${arr[@]}&quot;}` idiom expands to nothing when the array is</span>
+<span class="w">  </span><span class="c1"># empty, and to the quoted elements otherwise — safe under `set -euo</span>
+<span class="w">  </span><span class="c1"># pipefail` on both bash 3.2 and bash 4+/5+.</span>
+<span class="w">  </span><span class="nv">RESPONSE</span><span class="o">=</span><span class="k">$(</span>gh<span class="w"> </span>api<span class="w"> </span>graphql<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-f<span class="w"> </span><span class="nv">query</span><span class="o">=</span><span class="s1">&#39;</span>
+<span class="s1">      query($owner:String!, $repo:String!, $pr:Int!, $after:String) {</span>
+<span class="s1">        repository(owner:$owner, name:$repo) {</span>
+<span class="s1">          pullRequest(number:$pr) {</span>
+<span class="s1">            reviewThreads(first:100, after:$after) {</span>
+<span class="s1">              pageInfo { hasNextPage endCursor }</span>
+<span class="s1">              nodes { id isResolved isOutdated comments(first:1){nodes{databaseId path line body}} }</span>
+<span class="s1">            }</span>
+<span class="s1">          }</span>
+<span class="s1">        }</span>
+<span class="s1">      }&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-f<span class="w"> </span><span class="nv">owner</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">repo</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span><span class="w"> </span>-F<span class="w"> </span><span class="nv">pr</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="si">${</span><span class="nv">AFTER_ARG</span><span class="p">[@]+</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">AFTER_ARG</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="si">}</span><span class="k">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="c1"># Distinguish real failure (auth / rate-limit / network / 5xx) from normal</span>
+<span class="w">    </span><span class="c1"># end-of-pagination. A non-zero exit from `gh api graphql` here is ALWAYS</span>
+<span class="w">    </span><span class="c1"># a real failure — pagination ends via HAS_NEXT==false at the bottom of</span>
+<span class="w">    </span><span class="c1"># the loop, never via a non-zero exit. Suppressing this with `2&gt;/dev/null</span>
+<span class="w">    </span><span class="c1"># || break` would silently let downstream logic treat partial / zero</span>
+<span class="w">    </span><span class="c1"># thread data as &quot;all resolved&quot;, undermining stop-condition #2.</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;ERROR: gh api graphql failed during reviewThreads pagination&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="s2">&quot;(auth / rate-limit / network / API 5xx). Stop-condition #2 cannot&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="s2">&quot;be evaluated reliably. Aborting the resolution check.&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<span class="w">  </span><span class="o">}</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESPONSE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.data.repository.pullRequest.reviewThreads.nodes[]&#39;</span>
+<span class="w">  </span><span class="nv">HAS_NEXT</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESPONSE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage&#39;</span><span class="k">)</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$HAS_NEXT</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;true&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">break</span>
+<span class="w">  </span><span class="nv">CURSOR</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESPONSE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.data.repository.pullRequest.reviewThreads.pageInfo.endCursor&#39;</span><span class="k">)</span>
+<span class="k">done</span>
+</code></pre></div>
+<p>A thread with <code>isResolved: true</code> OR <code>isOutdated: true</code> counts as "resolved" for §Step 6 stopping condition #2. Do not self-resolve (per §Step 7).</p>
+<h3 id="7-do-not-self-resolve-threads">7. Do NOT self-resolve threads</h3>
+<p>The reviewer (human or bot) must confirm the fix and resolve the thread. Never resolve your own fix.</p>
+<p>If the reviewer is an automated tool that cannot resolve, inform the user and let them resolve.</p>
+<h3 id="8-doc-shell-example-mandatory-pre-publish-test">8. Doc-shell example mandatory pre-publish test</h3>
+<p>When a PR adds or modifies any <strong>shell example</strong> intended for users to copy-paste (recipes inside fenced <code>``bash blocks in SOPs, READMEs, or other docs), the example MUST be executed at least once locally **under</code>set -euo pipefail`<strong> before push, in </strong>all of the following representative states**:</p>
+<ul>
+<li>Empty / fresh state (no input files, no archive, no rollover) — should exit 0 with no output, not halt.</li>
+<li>Populated state with the expected happy-path content — should produce the documented output.</li>
+<li>Edge cases relevant to the example (e.g., for log-reading recipes: rollover present, archive corrupt, no matching entry, multi-session same-day).</li>
+</ul>
+<p>Capture the verification in the commit message or in the Step 5 reply (per the behaviour-verification rule). Doc-shell examples that haven't been run under <code>set -euo pipefail</code> consistently produce bot findings in subsequent rounds — pre-testing eliminates the most common source of iteration loops.</p>
+<hr />
+<h2 id="reply-format">Reply Format</h2>
+<p>When replying to a comment on GitHub, include:</p>
+<ul>
+<li><strong>Commit reference:</strong> which commit contains the fix</li>
+<li><strong>What changed:</strong> brief description of the fix</li>
+<li><strong>If declining:</strong> reasoning for not making the change</li>
+</ul>
+<p>Example:
+<div class="highlight"><pre><span></span><code>Fixed in abc1234. Narrowed exception catch to `(ValueError, OSError, MalformedDocumentError)`.
+</code></pre></div></p>
+<p>Example (declining):
+<div class="highlight"><pre><span></span><code>This suggestion is incorrect — the INC template places Date before Severity (see the project&#39;s incident-report template — typically `templates/incident.md` or equivalent). No change needed.
+</code></pre></div></p>
+<hr />
+<h2 id="pitfalls">Pitfalls</h2>
+<ul>
+<li><strong>Self-resolving:</strong> Resolving your own thread is meaningless — the reviewer must verify</li>
+<li><strong>Silent fixes:</strong> Fixing code without replying on GitHub leaves the thread unresolved and untracked</li>
+<li><strong>Blanket dismiss:</strong> Dismissing bot suggestions without reading them — automated reviewers can catch real bugs</li>
+<li><strong>Batch replies:</strong> Replying "fixed all" without per-comment responses makes it hard to verify each fix</li>
+<li><strong>Confident-but-unverified behaviour claims in replies:</strong> Asserting behavioural correctness ("real errors still surface", "race resolves identically") without executing the fixed code under the failure mode is the single highest-frequency way that subsequent bot reviews catch the <em>replier</em> rather than the original code (PR #84 R6 precedent). Always verify behaviour before asserting it.</li>
+<li><strong>Closing the loop after one fix round:</strong> Bot reviewers auto-re-review every new commit. If you push a fix and walk away, you'll miss the next bot pass — which catches bugs your fix introduced (PR #84 ran 7 rounds; rounds 4-7 each caught new shell brittleness introduced by the prior round's fix).</li>
+<li><strong>Treating bot findings as "just lint":</strong> Bot's static-diff cross-reference detector class catches genuine spec / shell / contract bugs that human and panel reviewers miss systematically (see "Reviewer Detector Classes" above). They are not stylistic suggestions — they are a different failure-mode population.</li>
+<li><strong>Asking the user to remind you to re-check</strong> (e.g. "Round N — check again", "let me know if there are new comments", "should I look at #84?"). The agent, not the user, owns the §Step 6 wait-and-poll loop. If you find yourself about to ask the user "any new reviews?", that means you exited Step 6 too early — go back, wait 3-5 min, and re-fetch yourself. The user prompts only when overriding the loop (e.g. "stop, merge as-is").</li>
+<li><strong>Replying with a commit hash before push completes:</strong> the agent runs <code>git commit</code> then composes the §Step 5 reply citing <code>abc1234</code> — but <code>git push</code> silently failed (network blip, hook reject, missing branch tracking) and the hash is local-only. Reviewer clicks the hash → 404. Always confirm <code>git push</code> exited 0 AND the hash resolves in <code>gh api repos/$OWNER/$REPO/commits/&lt;sha&gt;</code> before composing the reply.</li>
+<li><strong>Treating thread-ID disappearance as a bug rather than resolution:</strong> if a thread ID present in fetch round N is absent in round N+1, the bot retracted the finding (it self-corrected) or GitHub auto-removed an invalid line anchor. Treat the disappearance as resolution. (See §Step 6 stop-cond #2.)</li>
+<li><strong>Assuming a multi-model panel is available</strong> when this SOP was written. The original draft hardcoded a specific tool (<code>/trinity</code> skill) — that was wrong. The "Reviewer Detector Classes" table now describes panel review as project-specific; check what tooling your project has before relying on a panel pass.</li>
+</ul>
+<h2 id="scoping-bot-reviews-via-pr-body-optional-github-app-review-bots-only">Scoping bot reviews via PR body (optional, GitHub App review bots only)</h2>
+<p>When a pull request is large enough to attract many rounds of GitHub App review bot iteration, an optional <code>## Scope hints for automated reviewers</code> section in the PR body can declare which finding classes the author wants the bot to flag versus defer to a follow-up batch. Bots that read PR body context as a directive (e.g. <code>chatgpt-codex-connector[bot]</code>) appear to honor these hints empirically — see "Empirical evidence" below for the alfred PR observations.</p>
+<p><strong>Applies only to GitHub App review bots</strong> (the §Reviewer Detector Classes "GitHub App review bot" row). The technique is <strong>GitHub-platform-specific</strong>, <strong>bot-vendor-dependent</strong>, and <strong>optional</strong>. Non-GitHub reviewer-detector classes — CI-side static analyzers, multi-model panel review tooling — do <strong>not</strong> apply: static analyzers don't read PR body text; multi-model panels read the artifact directly, not the PR body framing. Adopters in other projects must verify their installed bot honors PR-body directives empirically; behavior on bots other than <code>chatgpt-codex-connector[bot]</code> is currently untested.</p>
+<h3 id="recommended-pr-body-template">Recommended PR-body template</h3>
+<div class="highlight"><pre><span></span><code><span class="gu">## Scope hints for automated reviewers</span>
+
+<span class="gs">**In-scope (please flag):**</span>
+<span class="k">-</span><span class="w"> </span>P0/P1 — security, fail-OPEN gates, correctness regressions, cross-doc contract violations.
+<span class="k">-</span><span class="w"> </span>P2 — cross-doc / cross-recipe drift between sibling SOPs.
+<span class="k">-</span><span class="w"> </span>Anything that would break a real adopter following the recipe verbatim.
+
+<span class="gs">**Out-of-scope (please skip or batch into a follow-up):**</span>
+<span class="k">-</span><span class="w"> </span>P3 cosmetic — naming preferences, footnote/header polish.
+<span class="k">-</span><span class="w"> </span>Future-refactor suggestions.
+<span class="k">-</span><span class="w"> </span>Minor wording inconsistencies that don&#39;t change the contract.
+<span class="k">-</span><span class="w"> </span>&quot;Could be more thorough&quot; suggestions when the existing recipe meets its declared invariant.
+</code></pre></div>
+<p>Severity tags (P0/P1/P2/P3) match COR-1621 verbatim. The "in-scope / out-of-scope" framing maps to the actionable-vs-polish distinction already implicit in §Reviewer Detector Classes — no new vocabulary is introduced.</p>
+<h3 id="when-most-useful">When most useful</h3>
+<ul>
+<li>A PR has been through 5+ rounds of GitHub App bot iteration and remaining items are tightening edge cases rather than catching defects.</li>
+<li>A long-running CHG / SOP edit PR where the author wants the bot to keep diff-mode-scanning for cross-reference / contract-drift bugs but stop spending rounds on cosmetic polish that can land in a follow-up.</li>
+</ul>
+<h3 id="when-not-useful-skip-the-technique">When NOT useful (skip the technique)</h3>
+<ul>
+<li>The installed bot already produces zero off-scope findings <strong>AND</strong> per-round finding volume is already acceptably low. Both conditions matter — "zero off-scope alone" would wrongly exclude repos like alfred where the bot was already P1/P2-focused but per-round volume still benefited from hints (1.5 → 1.0 findings/round across PR #117 R11–R12 + PR #119 R1–R5).</li>
+<li>The PR is small / uncertain scope and there is no prior signal that the installed bot over-flags. (Caveat: this rule does NOT apply when the PR is known up-front to be long-running — e.g. a large CHG / SOP edit, a multi-file refactor, or an artifact in a class where the project's bot has historically iterated 5+ rounds. In those cases, adding hints from R1 is the documented usage pattern — alfred PR #119 and #120 both used hints from R1 to good effect. The "skip if uncertain" guidance is for genuinely small PRs where hints would be premature optimization.)</li>
+<li>The reviewer is anything other than a GitHub App review bot. Static analyzers and multi-model panels do not read the PR body as a directive.</li>
+</ul>
+<h3 id="important-not-a-way-to-suppress-real-findings">Important: not a way to suppress real findings</h3>
+<p>The technique is a <strong>directive about which findings to defer to a follow-up batch</strong>, not a way to suppress real defects. The intended effect is for the bot to spend rounds on in-scope items and batch out-of-scope polish into a follow-up; the per-class flag rate is not directly measured by alfred's evidence base (the alfred bot was already at zero off-scope pre-hints, so the observed 1.5 → 1.0 volume drop is necessarily in items the bot was already classifying as actionable — meaning hints can affect what the bot flags as actionable, not just what it defers). Adopters should treat the technique as needing <strong>per-project verification that real-defect catches are preserved</strong>: if a PR uses scope hints and the bot stops flagging known-broken behavior, the technique is being mis-applied, or the bot isn't honoring hints, or the bot is interpreting "in-scope" too narrowly — diagnose before continuing to iterate with hints.</p>
+<h3 id="empirical-evidence-base">Empirical evidence base</h3>
+<p>Across alfred PR #117 (12 codex bot rounds, hints added at R11), PR #119 (hints from R1), and PR #120 (hints from R1, qualitative observation only):</p>
+<table>
+<thead>
+<tr>
+<th>PR</th>
+<th>Rounds</th>
+<th>Avg findings/round</th>
+<th>Off-scope class findings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>#117 R1–R10 (pre-hints)</td>
+<td>10</td>
+<td>1.5</td>
+<td>0 (bot already P1/P2-focused)</td>
+</tr>
+<tr>
+<td>#117 R11–R12 (post-hints)</td>
+<td>2</td>
+<td>1.0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>#119 R1–R5 (with hints from start)</td>
+<td>5</td>
+<td>1.0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Across 7 post-hint rounds (PR #117 + PR #119 quantitative; PR #120 qualitative), per-round finding volume dropped 1.5 → 1.0 and the off-scope class count stayed at 0 in both pre- and post-hint conditions. The shift is in volume, not in distribution. N=7 is suggestive, not conclusive — the more reliable claim is the <strong>consistent-zero off-scope count across all hint-applied rounds</strong>, suggesting the technique at minimum does not provoke off-scope findings.</p>
+<hr />
+<h2 id="why-bot-reviewers-catch-what-humanspanels-miss">Why bot reviewers catch what humans/panels miss</h2>
+<p>Five structural mechanisms (PR #78 / #80 / #82 / #84 evidence base, 12+ caught bugs):</p>
+<ol>
+<li><strong>Diff-mode vs prose-mode reading.</strong> Bot reads each commit's patch in ~30s; humans/panels read the post-fix document holistically. Cross-reference inconsistencies are systematically caught by diff-mode and missed by prose-mode (which fills "this section is internally consistent" gaps with charity).</li>
+<li><strong>No author-self / no internal-model bias.</strong> Bot is stateless — every commit is a fresh look. Author and panel after R+1 have an internal model of the spec; new commits get squeezed into that model rather than re-checked from zero.</li>
+<li><strong>Execution-model-aware vs concept-aware.</strong> Bot maintains an effective bash + jq + unzip + posix execution simulator. Humans/panels read shell as "logically reasonable" without mentally executing under <code>set -euo pipefail</code>.</li>
+<li><strong>Coverage &gt; framing.</strong> Multi-model review packs (verification questions, paranoid scrutiny areas) inadvertently define what reviewers DON'T look at. Bot has no pack: it scans whole-diff. Bugs outside the framed area only surface from unframed scanning.</li>
+<li><strong>"Will it run?" vs "Is it correct?"</strong> Bot focuses on last-mile execution; humans/panels work at the concept level. For implementer-facing docs (recipes, examples), the last mile matters most.</li>
+</ol>
+<p>These are orthogonal mechanisms — none is "bot is smarter." The defensive practices are: (a) force diff-mode re-reads of own commits; (b) treat just-written code as foreign; (c) mentally execute every shell example; (d) include "free scrutiny" sections in review packs; (e) default-test under <code>set -euo pipefail</code>.</p>
+<hr />
+<h2 id="change-history">Change History</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Change</th>
+<th>By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-04-04</td>
+<td>Initial version per Issue #28</td>
+<td>Claude Code</td>
+</tr>
+<tr>
+<td>2026-04-04</td>
+<td>PR review fix: fetch 3 endpoints (inline + review summary + issue comments), add --paginate, fix declining example to cite template not COR-0002</td>
+<td>Claude Code</td>
+</tr>
+<tr>
+<td>2026-04-05</td>
+<td>PR review fix: include empty-body CHANGES_REQUESTED reviews, move replies after commit/push, add explicit git push step</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-04-05</td>
+<td>Add note that diff-position and top-level comments do not auto-mark outdated</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-04-05</td>
+<td>Make Step 4 conditional when review responses do not require code changes</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>Major amendment driven by PR #78 / #80 / #82 / #84 evidence (12+ GitHub App bot real-bug catches missed by panel + author): (a) Add Reviewer Detector Classes table to §What Is It (bot vs panel vs human vs author — orthogonal, not interchangeable). (b) §Step 5 mandates behaviour-verification for any reply that asserts behaviour — reasoning-only assertions are forbidden (PR #84 R6 caught my own reply where I claimed errors surface when they didn't). (c) §Step 6 reframes "wait for CI" as "wait for CI AND the next bot review pass" — bot auto-re-reviews each commit within 30–90s; iteration is normal (PR #84 ran 6 rounds). (d) New §Step 8 mandates <code>set -euo pipefail</code> pre-publish testing of every doc-shell example in 3 representative states (fresh / happy-path / edge cases). (e) §Pitfalls expanded with 3 new entries (unverified behaviour claims, single-round closing, treating bot as lint). (f) New §Why bot reviewers catch what humans/panels miss section explains the 5 structural mechanisms (diff-mode, no-author-bias, exec-simulator, no-pack-framing, execution focus) and the 5 derived defensive practices.</td>
+<td>Frank + Claude (PR #84 retrospective)</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>Iteration on the same amendment per session feedback: (1) Depersonalised "Trinity 4-reviewer panel" → generic "Multi-model panel review" with project-specific tooling examples (<code>/trinity</code>, CodeRabbit Pro, Greptile, custom, or none). Multi-model panel is NOT universally available; SOP applies regardless. (2) Generalised "Codex bot" → "GitHub App review bot" with examples (Codex, Copilot, CodeRabbit, Greptile, Sourcery) — exact bot identity varies by repo settings. (3) Added explicit Mermaid decision tree to §Step 6 making the agent self-driven loop visual. (4) Added strict "wait 3-5 min, do NOT exit / hand back to user" invariant + harness-specific wait mechanisms (Claude Code ScheduleWakeup, CI sleep, manual). (5) Added §Step 6 sub-section on detecting reviewer-side resolution via GraphQL <code>isResolved</code>/<code>isOutdated</code>. (6) New §Pitfalls entries: "Asking the user to remind you to re-check" (anti-pattern explicitly forbidden) + "Assuming a multi-model panel is available".</td>
+<td>Frank + Claude (post-amendment iteration)</td>
+</tr>
+<tr>
+<td>2026-05-05</td>
+<td>Add related pointer and boundary note for COR-1615, which covers triggering and polling GitHub App PR review bot passes before fetched findings are processed here.</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-09</td>
+<td>Add §Scoping bot reviews via PR body (optional, GitHub App review bots only) section — codifies the PR-body scope-hint technique observed empirically on alfred PR #117 R11–R12 + PR #119 R1–R5 (N=7 post-hint rounds, per-round finding volume 1.5 → 1.0, off-scope class count 0 in both pre- and post-hint conditions). Technique is GitHub-App-bot-vendor-dependent; only <code>chatgpt-codex-connector[bot]</code> empirically tested. CHG-2279.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-09</td>
+<td>R2: codex bot R1 P2 (PR #122) — §Important: not a way to suppress real findings claimed bots "still flag in-scope items at the same rate", but the alfred evidence base shows off-scope was 0 pre-hints, so the 1.5→1.0 drop is necessarily in items the bot was classifying as actionable. The "same rate" claim was unsupported. Rewrote to acknowledge hints can affect what the bot flags as actionable (not just what it defers); added explicit "per-project verification that real-defect catches are preserved" guidance. CHG-2279 R2.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-09</td>
+<td>R3: codex bot R2 P2 (PR #122) — §When NOT useful skip rule "PR has fewer than 3 review rounds" contradicted the §Empirical evidence base (PR #119 + #120 both used hints from R1) and the CHG-2279 §Implementation Plan step 4 (eat-our-own-dogfood asks PRs to add hints before observing the bot). Adopters following the rule literally would never use hints from R1, losing the from-start usage pattern the SOP itself records. Narrowed to "small / uncertain scope PRs with no prior signal that the installed bot over-flags"; added explicit caveat that PRs known up-front to be long-running (large CHG/SOP, multi-file refactor) should add hints from R1. CHG-2279 R3.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-15</td>
+<td>FXA-2285: add pre-merge sweep routing from COR-1615; GitHub-side review threads must be resolved, outdated, or author-addressed before merge-ready.</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-15</td>
+<td>FXA-2285 R2: clarify no-bot repos still route human and code-review-app GitHub threads through the pre-merge gate.</td>
+<td>Codex</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["search.suggest", "search.highlight", "navigation.sections", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3555 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://frankyxhl.github.io/fx-alfred/COR-1801-SOP-Pattern-Promotion/">
+      
+      
+        <link rel="prev" href="../COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference/">
+      
+      
+        <link rel="next" href="../COR-1802-SOP-Build-Weighted-Decision-Matrix/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>COR-1801: Pattern Promotion - Alfred — Agent Runbook</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sop-1801-pattern-promotion" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Alfred — Agent Runbook" class="md-header__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alfred — Agent Runbook
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              COR-1801: Pattern Promotion
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Alfred — Agent Runbook" class="md-nav__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Alfred — Agent Runbook
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PRP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    PRP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1507-PRP-Two-Worker-TDD-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1507: Two-Worker TDD Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REF
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    REF
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0000-REF-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0000: Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0001-REF-Glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0001: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0002-REF-Document-Format-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0002: Document Format Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1204-REF-CTX-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1204: CTX Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1205-REF-Agent-Activity-Log-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1205: Agent Activity Log Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1504-REF-Diagnose-Phase-Gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1504: Diagnose Phase Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1622-REF-Multi-Agent-Loop-Project-Configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1622: Multi-Agent Loop Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1705-REF-Code-Review-Classification-System/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1705: Code Review Classification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1800-REF-Evolution-Philosophy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1800: Evolution Philosophy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SOP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1000-SOP-Create-SOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1000: Create SOP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1001-SOP-Create-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1001: Create Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1002-SOP-Read-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1002: Read Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1004-SOP-Create-Routing-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1004: Create Routing Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1100-SOP-Create-Decision-Record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1100: Create Decision Record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1101-SOP-Submit-Change-Request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1101: Submit Change Request
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1102-SOP-Create-Proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1102: Create Proposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1103-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1103: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1104-SOP-CHG-Sizing-Decision-Tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1104: CHG Sizing Decision Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1200-SOP-Session-Retrospective/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1200: Session Retrospective
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1201-SOP-Discussion-Tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1201: Discussion Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1202-SOP-Compose-Session-Plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1202: Compose Session Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1203-SOP-Pre-Task-Alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1203: Pre-Task Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1206-SOP-Emit-Agent-Activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1206: Emit Agent Activity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1207-SOP-Zoom-Out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1207: Zoom Out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1208-SOP-Session-Startup-Sanity-Check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1208: Session Startup Sanity Check
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1300-SOP-Update-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1300: Update Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1301-SOP-Deprecate-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1301: Deprecate Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1302-SOP-Maintain-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1302: Maintain Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1400-SOP-Atomic-SOP-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1400: Atomic SOP Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1401-SOP-Documentation-Language-Policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1401: Documentation Language Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1402-SOP-Declare-Active-Process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1402: Declare Active Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1403-SOP-Interactive-Question-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1403: Interactive Question Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1404-SOP-Interactive-Question-Claude-Code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1404: Interactive Question — Claude Code Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1405-SOP-Interactive-Question-GitHub-Copilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1405: Interactive Question — GitHub Copilot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1500-SOP-TDD-Development-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1500: TDD Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1501-SOP-Create-GitHub-Issue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1501: Create GitHub Issue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1502-SOP-Git-Branch-Naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1502: Git Branch Naming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1503-SOP-Diagnose-Feedback-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1503: Diagnose Feedback Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1505-SOP-Branch-and-Identity-Hygiene/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1505: Branch and Identity Hygiene
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1506-SOP-Review-GitHub-Issue-Quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1506: Review GitHub Issue Quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1600-SOP-Workflow-Direct-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1600: Workflow — Direct Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1601: Workflow — Leader Mediated Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1602-SOP-Workflow-Multi-Model-Parallel-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1602: Workflow — Multi Model Parallel Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1603-SOP-Workflow-Parallel-Module-Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1603: Workflow — Parallel Module Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1604-SOP-Workflow-Competitive-Parallel-Exploration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1604: Workflow — Competitive Parallel Exploration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1605-SOP-Workflow-Sequential-Pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1605: Workflow — Sequential Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1606-SOP-Workflow-Selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1606: Workflow — Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1607-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1607: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1608-SOP-PRP-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1608: PRP Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1609-SOP-CHG-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1609: CHG Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1610-SOP-Code-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1610: Code Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1611-SOP-Reviewer-Calibration-Guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1611: Reviewer Calibration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1612-SOP-Respond-To-PR-Review-Comments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1612: Respond To PR Review Comments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1613-SOP-Council-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1613: Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1614-SOP-Multi-Phase-Execution-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1614: Multi Phase Execution Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1615: GitHub App PR Review Bot Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1616-SOP-Contract-First-Delivery-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1616: Contract-First Delivery Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1617-SOP-Multi-Agent-Workflow-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1617: Multi-Agent Workflow Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1618-SOP-Out-of-Band-Consent-Auto-Pick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1618: Out-of-Band Consent Auto-Pick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1619-SOP-Orchestrator-vs-Worker-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1619: Orchestrator vs Worker Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1620-SOP-Self-Pacing-Loop-Primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1620: Self-Pacing Loop Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1621-SOP-Multi-Reviewer-Triage-and-Severity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1621: Multi-Reviewer Triage and Severity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1623-SOP-PR-Review-Thread-Verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1623: PR Review Thread Verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1700-SOP-Initialize-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1700: Initialize Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1701-SOP-Archive-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1701: Archive Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1702-SOP-Sync-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1702: Sync Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1703-SOP-Fork-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1703: Fork Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1706-SOP-Code-Review-Structural-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1706: Code Review — Structural Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1707-SOP-Code-Review-Cross-Cutting-Concerns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1707: Code Review — Cross-Cutting Concerns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1708-SOP-Code-Review-Domain-Specific-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1708: Code Review — Domain-Specific Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1709: Code Review — AI-Assisted Code + Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1801: Pattern Promotion
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1801: Pattern Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#candidate-pattern-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Candidate Pattern Contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promotion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Promotion Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promotion-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Promotion Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#governance-interactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance Interactions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pkg-authoring-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PKG Authoring Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prj-retention-after-promotion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PRJ Retention After Promotion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#de-promotion-reversal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        De-promotion / Reversal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guard Rails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-nominate-the-candidate-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Nominate the candidate pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-validate-the-candidate-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Validate the candidate contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-gather-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gather evidence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-classify-the-pkg-relationship" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Classify the PKG relationship
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-run-promotion-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Run promotion review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-choose-the-decision-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Choose the decision state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-implement-the-pkg-change-when-promoting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Implement the PKG change when promoting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-retain-the-origin-and-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Retain the origin and verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-1-promoting-a-pr-review-bot-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 1: Promoting a PR review bot loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-2-deferring-the-kiw-0710-r3-outcome-triple-fork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 2: Deferring the KIW-0710 R3-outcome triple fork
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1802-SOP-Build-Weighted-Decision-Matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1802: Build Weighted Decision Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#candidate-pattern-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Candidate Pattern Contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promotion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Promotion Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promotion-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Promotion Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#governance-interactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance Interactions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pkg-authoring-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PKG Authoring Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prj-retention-after-promotion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PRJ Retention After Promotion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#de-promotion-reversal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        De-promotion / Reversal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#guard-rails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guard Rails
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-nominate-the-candidate-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Nominate the candidate pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-validate-the-candidate-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Validate the candidate contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-gather-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Gather evidence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-classify-the-pkg-relationship" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Classify the PKG relationship
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-run-promotion-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Run promotion review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-choose-the-decision-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Choose the decision state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-implement-the-pkg-change-when-promoting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Implement the PKG change when promoting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-retain-the-origin-and-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Retain the origin and verify
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-1-promoting-a-pr-review-bot-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 1: Promoting a PR review bot loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-2-deferring-the-kiw-0710-r3-outcome-triple-fork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 2: Deferring the KIW-0710 R3-outcome triple fork
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sop-1801-pattern-promotion">SOP-1801: Pattern Promotion</h1>
+<p><strong>Applies to:</strong> All projects using the COR document system
+<strong>Last updated:</strong> 2026-05-05
+<strong>Last reviewed:</strong> 2026-05-05
+<strong>Status:</strong> Active
+<strong>Related:</strong> COR-1800, COR-1000, COR-1101, COR-1102, COR-1300, COR-1301, COR-1500, COR-1602, COR-1608, COR-1609, COR-1610, COR-1613
+<strong>Task tags:</strong> [pattern-promotion, prj-to-pkg, promotion, evolution, governance]</p>
+<hr />
+<h2 id="what-is-it">What Is It?</h2>
+<p>A workflow for evaluating a proven PRJ-layer trial pattern and promoting it into the PKG/COR layer when it is reusable across projects.</p>
+<p>Pattern promotion converts local practice into shared package governance without losing the originating evidence trail.</p>
+<hr />
+<h2 id="why">Why</h2>
+<p>Projects often discover useful operating patterns before the package does. Without a promotion workflow, those patterns either stay trapped in one project or get copied into PKG too early while still carrying project-specific assumptions.</p>
+<p>This SOP creates a reviewed path for deciding when a PRJ pattern should become a COR document, when an existing COR document should be amended instead, and when the pattern should stay local.</p>
+<hr />
+<h2 id="when-to-use">When to Use</h2>
+<ul>
+<li>A PRJ SOP, REF, checklist, prompt, or review loop has worked repeatedly and may benefit other projects.</li>
+<li>A project maintainer asks whether a local pattern should be generalized into PKG.</li>
+<li>A GitHub issue or CHG proposes moving a project-specific practice into a COR document.</li>
+<li>A pattern overlaps existing COR governance and needs a decision: create a new COR document, amend an existing one, defer, revise, or reject.</li>
+<li>A promoted PKG document may need reversal because later evidence shows it should not remain active.</li>
+</ul>
+<hr />
+<h2 id="when-not-to-use">When NOT to Use</h2>
+<ul>
+<li>The pattern is still an untested idea. Use a PRJ trial document first.</li>
+<li>The pattern only applies to one repository, host, account, vendor setup, or local environment.</li>
+<li>The request is just a normal edit to an existing COR document with no PRJ-to-PKG promotion question; use COR-1300.</li>
+<li>The request creates a new product capability, schema, CLI behavior, or architecture before the governance question is clear; use COR-1102 first.</li>
+<li>The promoted document is already active and only needs retirement; use COR-1301 directly unless a promotion-specific reversal decision is needed.</li>
+</ul>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>An originating PRJ artifact exists or is summarized well enough to audit.</li>
+<li>The candidate pattern has trial evidence, not only author preference.</li>
+<li>The operator can identify the pattern rule, its scope, and at least one case where it should not be used.</li>
+<li>The promotion work has a GitHub issue or CHG so the decision is reviewable.</li>
+<li>If the promotion changes code, schema, CLI behavior, or tests, COR-1500 applies as an overlay.</li>
+</ul>
+<hr />
+<h2 id="candidate-pattern-contract">Candidate Pattern Contract</h2>
+<p>A candidate is ready for promotion review only when it defines these fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Required content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Origin</td>
+<td>PRJ document ID, issue, PR, CHG, discussion note, or summarized source</td>
+</tr>
+<tr>
+<td>Trial status</td>
+<td>Active trial, completed trial, superseded local pattern, or failed trial</td>
+</tr>
+<tr>
+<td>Pattern rule</td>
+<td>The reusable decision rule or operating loop in one paragraph</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Who should use it and which artifact or workflow it governs</td>
+</tr>
+<tr>
+<td>When to use</td>
+<td>Concrete triggers that start the pattern</td>
+</tr>
+<tr>
+<td>When not to use</td>
+<td>Cases where the pattern would be noise, unsafe, or too local</td>
+</tr>
+<tr>
+<td>Evidence</td>
+<td>Linked or summarized uses, failures, reviews, and maintainer endorsements</td>
+</tr>
+<tr>
+<td>Promotion criteria</td>
+<td>Explicit threshold for promote, defer, revise, or reject</td>
+</tr>
+<tr>
+<td>Retention plan</td>
+<td>How the originating PRJ artifact will remain traceable after promotion</td>
+</tr>
+</tbody>
+</table>
+<p>If any field is missing, choose <code>revise</code> unless the pattern is clearly unsuitable.</p>
+<hr />
+<h2 id="promotion-criteria">Promotion Criteria</h2>
+<p>Use these templates as the default evidence bar. A CHG may raise the bar, but it should not lower it without recording maintainer approval.</p>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Normal pattern baseline</th>
+<th>High-risk pattern baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use count</td>
+<td>At least 3 successful uses, or 2 substantial uses plus explicit maintainer endorsement</td>
+<td>At least 5 successful uses across 2 projects, or explicit maintainer endorsement with risk rationale</td>
+</tr>
+<tr>
+<td>Cross-project evidence</td>
+<td>At least 1 independent project adoption, or maintainer endorsement that the pattern is intentionally PKG-level</td>
+<td>At least 2 independent project adoptions, or council/maintainer endorsement recorded in the CHG</td>
+</tr>
+<tr>
+<td>Failure-mode demo</td>
+<td>At least 1 known failure mode, "when not to use" case, or defer/reject example</td>
+<td>Failure modes plus mitigations for the most likely misuse cases</td>
+</tr>
+<tr>
+<td>Time in trial</td>
+<td>At least 14 days or 1 complete review/release/change cycle</td>
+<td>At least 30 days or 2 complete review/release/change cycles</td>
+</tr>
+<tr>
+<td>Counter-evidence review</td>
+<td>Search issues, PR reviews, retrospectives, or discussion notes for objections and failures</td>
+<td>Same as normal, plus explicit residual-risk notes in the CHG</td>
+</tr>
+</tbody>
+</table>
+<p>A high-risk pattern changes governance families, review thresholds, release gates, schema, CLI behavior, security-sensitive operations, or multi-project workflow contracts.</p>
+<p>Maintainer endorsement can substitute for cross-project adoption when the pattern is foundational package governance and the CHG explains why waiting for another project would block useful standardization.</p>
+<hr />
+<h2 id="promotion-decisions">Promotion Decisions</h2>
+<p>Choose exactly one first-time promotion state:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+<th>Required next action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>promote</code></td>
+<td>The pattern is reusable, evidence meets the bar, and PKG is the right layer</td>
+<td>Implement the PKG change through CHG/PR and assign a new COR ACID</td>
+</tr>
+<tr>
+<td><code>defer</code></td>
+<td>The pattern may be useful, but evidence is not strong enough yet</td>
+<td>Keep the PRJ trial; record the re-nomination trigger</td>
+</tr>
+<tr>
+<td><code>reject</code></td>
+<td>The pattern is too local, unsafe, obsolete, or conflicts with COR principles</td>
+<td>Record the reason; do not promote unless new evidence changes the decision</td>
+</tr>
+<tr>
+<td><code>revise</code></td>
+<td>The idea is promising but the candidate is incomplete or too project-specific</td>
+<td>Revise the candidate contract or PRJ source, then rerun promotion review</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>defer</code> when the main gap is evidence. Use <code>revise</code> when the main gap is document quality, abstraction, or missing contract fields.</p>
+<hr />
+<h2 id="governance-interactions">Governance Interactions</h2>
+<ul>
+<li>Use a GitHub issue plus CHG as the default promotion vehicle.</li>
+<li>Use COR-1102 first when the promotion creates a new governance family, changes schema or CLI behavior, has unresolved design trade-offs, or substantially changes multiple COR workflows.</li>
+<li>Use COR-1101 for the implementation CHG.</li>
+<li>Use COR-1000 when promotion creates a new PKG SOP.</li>
+<li>Use COR-1300 when promotion amends an existing PKG document instead of creating a new one.</li>
+<li>Use COR-1301 when a promoted document must be deprecated or superseded.</li>
+<li>Use COR-1500 when the promotion includes code, tests, CLI behavior, or package assets beyond documents.</li>
+<li>Use COR-1608 for PRP scoring, COR-1609 for CHG scoring, COR-1610 for code review scoring, and COR-1613 for the multi-reviewer decision rule.</li>
+<li>Use COR-1602 or another COR-1600 through COR-1605 workflow according to the review or implementation shape.</li>
+</ul>
+<hr />
+<h2 id="pkg-authoring-conventions">PKG Authoring Conventions</h2>
+<ul>
+<li>Assign a new COR ACID. Never reuse the originating PRJ ACID in the PKG layer.</li>
+<li>Prefer amending an existing COR document when the pattern is an extension of that document's current responsibility.</li>
+<li>Create a new COR document only when the pattern is atomic, reusable, and not already owned by an existing SOP or REF.</li>
+<li>Remove project names, local paths, local accounts, private hostnames, and repository-specific commands from normative steps.</li>
+<li>Keep project-specific facts only in examples or an origin-evidence section.</li>
+<li>Preserve origin traceability with <code>Related</code> metadata, an <code>Authored from</code> field when appropriate, or a short example that names the originating PRJ artifact.</li>
+<li>Turn local commands into variables or generic command templates.</li>
+<li>Define both positive triggers and "when not to use" cases.</li>
+<li>Keep the originating PRJ document after promotion. Do not delete the evidence trail.</li>
+</ul>
+<hr />
+<h2 id="prj-retention-after-promotion">PRJ Retention After Promotion</h2>
+<p>After a PRJ pattern is promoted:</p>
+<ol>
+<li>Leave the originating PRJ artifact in place unless there is a separate deprecation CHG.</li>
+<li>Add a note to the PRJ artifact pointing to the promoted COR document.</li>
+<li>If the PRJ document should no longer be executed locally, deprecate it per the PRJ equivalent of COR-1301.</li>
+<li>Preserve links to trial evidence, review notes, and failures.</li>
+<li>Do not rewrite the PRJ history to make the promotion appear inevitable.</li>
+</ol>
+<p>The PRJ artifact remains historical evidence. The COR document becomes the reusable source of truth.</p>
+<hr />
+<h2 id="de-promotion-reversal">De-promotion / Reversal</h2>
+<p>Use this path only after a pattern has already been promoted.</p>
+<ol>
+<li>Open or reuse a GitHub issue describing why the PKG document may no longer be valid.</li>
+<li>File a CHG that cites the promoted COR document, the originating PRJ evidence, and the new counter-evidence.</li>
+<li>Decide whether to amend, supersede, deprecate, or keep the COR document.</li>
+<li>If the document should retire, deprecate it per COR-1301 instead of deleting it.</li>
+<li>Update indexes and references so users are routed to the replacement or warned that no replacement exists.</li>
+<li>Keep both the original promotion record and reversal record auditable.</li>
+</ol>
+<hr />
+<h2 id="guard-rails">Guard Rails</h2>
+<ul>
+<li>Do not promote a pattern only because it worked once.</li>
+<li>Do not promote host-specific, account-specific, or repository-specific details into normative PKG text.</li>
+<li>Do not let the promotion workflow modify its own evidence standards without a separate CHG or PRP.</li>
+<li>Do not treat a <code>defer</code> decision as rejection; it is a request for more evidence.</li>
+<li>Do not delete source PRJ artifacts during promotion.</li>
+<li>Do not use COR-1801 to bypass COR-1102 when the proposed change needs design approval first.</li>
+</ul>
+<hr />
+<h2 id="steps">Steps</h2>
+<h3 id="1-nominate-the-candidate-pattern">1. Nominate the candidate pattern</h3>
+<p>Create or identify a GitHub issue and CHG that states the originating PRJ artifact, the pattern rule, why it may be PKG-level, and the requested outcome.</p>
+<h3 id="2-validate-the-candidate-contract">2. Validate the candidate contract</h3>
+<p>Check the Candidate Pattern Contract table. If origin, scope, when-to-use, when-not-to-use, evidence, or retention plan is missing, choose <code>revise</code> or update the CHG before implementation.</p>
+<h3 id="3-gather-evidence">3. Gather evidence</h3>
+<p>Collect use count, cross-project evidence, failure modes, time-in-trial, and counter-evidence. Summaries are acceptable when the originating project is not available on the current machine, but the summary must be specific enough for reviewers to evaluate.</p>
+<h3 id="4-classify-the-pkg-relationship">4. Classify the PKG relationship</h3>
+<p>Decide whether the pattern should amend an existing COR document, create a new COR document, remain PRJ-local, or be rejected. Prefer amendment when an existing SOP already owns the responsibility.</p>
+<h3 id="5-run-promotion-review">5. Run promotion review</h3>
+<p>Review the CHG using the selected COR-1600 through COR-1605 workflow and declare the COR-1613 decision rule if multiple reviewers are used. For CHGs, apply COR-1609 scoring. For PRPs, apply COR-1608 scoring.</p>
+<h3 id="6-choose-the-decision-state">6. Choose the decision state</h3>
+<p>Record exactly one of <code>promote</code>, <code>defer</code>, <code>reject</code>, or <code>revise</code> in the CHG or issue. For <code>defer</code>, include the re-nomination trigger. For <code>revise</code>, list the missing candidate-contract fields or abstraction fixes.</p>
+<h3 id="7-implement-the-pkg-change-when-promoting">7. Implement the PKG change when promoting</h3>
+<p>If creating a new SOP, follow COR-1000 and assign a new COR ACID. If amending an existing document, follow COR-1300. If code is involved, follow COR-1500. Update package indexes, routing references, and related documents.</p>
+<h3 id="8-retain-the-origin-and-verify">8. Retain the origin and verify</h3>
+<p>Update the originating PRJ artifact with a pointer to the promoted COR document or recorded decision. Run package validation and any relevant CLI read/plan/list checks. Record review artifacts and verification results in the CHG or PR.</p>
+<hr />
+<h2 id="completion-criteria">Completion Criteria</h2>
+<ul>
+<li>Candidate contract is complete or the decision explicitly explains why it is not.</li>
+<li>Promotion criteria are evaluated against evidence, not preference.</li>
+<li>Decision state is recorded as <code>promote</code>, <code>defer</code>, <code>reject</code>, or <code>revise</code>.</li>
+<li>If promoted, the PKG document uses a new COR ACID and does not reuse the PRJ ACID.</li>
+<li>If promoted, project-specific details are abstracted out of normative text.</li>
+<li>Existing COR documents are amended instead of duplicated when they already own the behavior.</li>
+<li>Originating PRJ evidence is retained and linked or summarized.</li>
+<li>Related indexes, routing documents, and references are updated.</li>
+<li>Review and validation results are recorded.</li>
+</ul>
+<hr />
+<h2 id="examples">Examples</h2>
+<h3 id="example-1-promoting-a-pr-review-bot-loop">Example 1: Promoting a PR review bot loop</h3>
+<p>An originating PRJ SOP, <code>BAB-1504-SOP-GitHub-Codex-PR-Review-Loop</code>, proved a repeatable loop for requesting and interpreting a Codex GitHub App review. Promotion review found the core pattern was not BAB-specific: request once, poll without spam, match the review to the current PR head, and hand actionable findings to the PR-comment response SOP.</p>
+<p>The PKG version became COR-1615. It removed project-specific assumptions, generalized the wording to GitHub App PR review bots including Codex and Copilot, retained origin traceability, and added package-level guard rails for visible-write identity and current-head matching.</p>
+<p>Decision: <code>promote</code>.</p>
+<h3 id="example-2-deferring-the-kiw-0710-r3-outcome-triple-fork">Example 2: Deferring the KIW-0710 R3-outcome triple fork</h3>
+<p>An originating PRJ trial SOP from the Kiwari project, known as KIW-0710, describes an R3 review outcome pattern. The inline pattern is: after a multi-reviewer round, classify the outcome as exactly one of <code>unanimous pass</code>, <code>leader accept with logged residual</code>, or <code>escalate</code>, instead of treating review completion as binary pass/fail.</p>
+<p>Summarized evidence cites use in Kiwari review tracking, including CHG-1300 Track A2 and CHG-1400. The rule is clear and potentially useful, but this summarized evidence alone does not show independent project adoption or explicit maintainer endorsement for PKG-level promotion.</p>
+<p>Decision: <code>defer</code>.</p>
+<p>Re-nomination trigger: provide at least one independent project adoption, or record maintainer endorsement that this is intentionally PKG-level despite limited cross-project evidence.</p>
+<hr />
+<h2 id="change-history">Change History</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Change</th>
+<th>By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-05-05</td>
+<td>Initial SOP for PRJ-to-PKG pattern promotion per FXA-2239.</td>
+<td>Codex</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["search.suggest", "search.highlight", "navigation.sections", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
