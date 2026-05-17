@@ -355,7 +355,7 @@ def resolve_sops_from_task(
     for doc in candidate_docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
         try:
-            content_raw = doc.resolve_resource().read_text()
+            content_raw = doc.resolve_resource().read_text(encoding="utf-8")
             parsed = parse_metadata(content_raw)
             sig = parse_workflow_signature(parsed)
             if sig is not None:

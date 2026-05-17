@@ -172,7 +172,7 @@ def update_cmd(
     # Resolve file path
     resource = doc.resolve_resource()
     file_path = Path(str(resource))
-    content = file_path.read_text()
+    content = file_path.read_text(encoding="utf-8")
 
     # Parse the document
     try:
@@ -206,7 +206,7 @@ def update_cmd(
     spec_section_updates: dict[str, Any] = {}
     if has_spec:
         try:
-            with open(spec_path, "r") as f:
+            with open(spec_path, "r", encoding="utf-8") as f:
                 spec = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise click.ClickException(f"Invalid YAML in spec file: {e}")

@@ -22,7 +22,7 @@ def read_cmd(ctx: click.Context, identifier: str, json_output: bool):
     doc = find_or_fail(docs, identifier)
 
     try:
-        content = doc.resolve_resource().read_text()
+        content = doc.resolve_resource().read_text(encoding="utf-8")
     except Exception as e:
         raise click.ClickException(f"Failed to read {doc.filename}: {e}") from e
 

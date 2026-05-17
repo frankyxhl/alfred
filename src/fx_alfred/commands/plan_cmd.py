@@ -56,7 +56,7 @@ def _gather_all_sops(
             continue
 
         try:
-            content = doc.resolve_resource().read_text()
+            content = doc.resolve_resource().read_text(encoding="utf-8")
             parsed = parse_metadata(content)
         except (OSError, MalformedDocumentError):
             continue
@@ -622,7 +622,7 @@ def plan_cmd(
 
         # Parse document content
         try:
-            content = doc.resolve_resource().read_text()
+            content = doc.resolve_resource().read_text(encoding="utf-8")
             parsed = parse_metadata(content)
             sig = parse_workflow_signature(parsed)
             loops = parse_workflow_loops(parsed)

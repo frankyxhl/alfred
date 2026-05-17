@@ -382,7 +382,7 @@ def fmt_cmd(
 
         # Read and parse
         try:
-            content = file_path.read_text()
+            content = file_path.read_text(encoding="utf-8")
             parsed = parse_metadata(content)
         except MalformedDocumentError as e:
             click.echo(f"Error parsing {doc.prefix}-{doc.acid}: {e}", err=True)

@@ -35,7 +35,7 @@ def search_cmd(ctx: click.Context, pattern: str, output_json: bool):
 
     for doc in docs:
         try:
-            content = doc.resolve_resource().read_text()
+            content = doc.resolve_resource().read_text(encoding="utf-8")
         except Exception:
             # Skip unreadable documents silently
             continue

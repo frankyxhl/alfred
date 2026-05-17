@@ -276,7 +276,7 @@ def create_cmd(
     # ── Mode 1: Spec file mode ───────────────────────────────────────────────
     if spec_path:
         try:
-            with open(spec_path, "r") as f:
+            with open(spec_path, "r", encoding="utf-8") as f:
                 spec = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise click.ClickException(f"Invalid YAML in spec file: {e}")
@@ -412,7 +412,7 @@ def create_cmd(
             return
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(content)
+        output_path.write_text(content, encoding="utf-8")
         click.echo(f"Created {output_path}")
 
         if layer != "user":
@@ -470,7 +470,7 @@ def create_cmd(
     template_file = resources.files("fx_alfred.templates").joinpath(
         f"{doc_type_lower}.md"
     )
-    template = template_file.read_text()
+    template = template_file.read_text(encoding="utf-8")
 
     content = (
         template.replace("{{ACID}}", acid)
@@ -485,7 +485,7 @@ def create_cmd(
         return
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(content)
+    output_path.write_text(content, encoding="utf-8")
     click.echo(f"Created {output_path}")
 
     if layer != "user":

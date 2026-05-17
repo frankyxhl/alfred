@@ -138,7 +138,7 @@ def validate_cmd(ctx: click.Context, output_json: bool):
             issues.append(f"COR document found in non-PKG layer ({doc.source})")
 
         try:
-            content = doc.resolve_resource().read_text()
+            content = doc.resolve_resource().read_text(encoding="utf-8")
         except Exception:
             issues_by_doc[doc_id] = ["Could not read document"]
             continue
@@ -317,7 +317,9 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                         continue
                     # D3 — step index in range against target SOP's Steps section
                     try:
-                        target_content = target_doc.resolve_resource().read_text()
+                        target_content = target_doc.resolve_resource().read_text(
+                            encoding="utf-8"
+                        )
                         target_parsed = parse_metadata(target_content)
                     except Exception:
                         issues.append(

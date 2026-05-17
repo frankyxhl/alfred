@@ -27,7 +27,7 @@ def is_skill_doc(doc: Document) -> bool:
 
 
 def _read_content(doc: Document) -> str:
-    return doc.resolve_resource().read_text()
+    return doc.resolve_resource().read_text(encoding="utf-8")
 
 
 def _field_value(doc: Document, field: str) -> str | None:

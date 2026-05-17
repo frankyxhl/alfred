@@ -29,7 +29,7 @@ def guide_cmd(ctx: click.Context, output_json: bool):
         active_docs: list[tuple] = []
         for doc in layer_docs:
             try:
-                content = doc.resolve_resource().read_text()
+                content = doc.resolve_resource().read_text(encoding="utf-8")
                 parsed = parse_metadata(content)
 
                 # Check routing: metadata role first, filename pattern fallback
