@@ -1,8 +1,8 @@
 # SOP-1506: Review GitHub Issue Quality
 
 **Applies to:** All projects using the COR document system and iterwheel intake bots
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1501 (Create GitHub Issue — creation companion), COR-1617 (§Phase 1 auto-pick gate), COR-1618 (consent auto-pick bypass), COR-1802 (scoring framework)
 
@@ -31,7 +31,7 @@ An issue that passes the bot can still be unimplementable. This happened with is
 ## When to Use
 
 - Before assigning an issue to an implementer (human or agent)
-- During COR-1617 Phase 1 auto-pick eligibility check (rows 2–3 — autonomous triggers)
+- During COR-1617 Phase 1 auto-pick eligibility check (rows 2–4 — autonomous triggers: loop-start (user-initiated), continuation, loop-driven)
 - When an issue author requests a quality review before submitting for auto-pick
 
 ## When NOT to Use
@@ -186,7 +186,7 @@ gh issue comment <number> --repo <owner>/<repo> --body-file /tmp/cor1506-score.m
 
 ## Integration with COR-1617
 
-COR-1506 applies **only to autonomous auto-pick** (COR-1617 Phase 1, rows 2–3 — continuation trigger and loop-driven new-issue pick). It does **not** apply to user-directed picks, which bypass per COR-1618 §Normative Bypass Clause.
+COR-1506 applies **only to autonomous auto-pick** (COR-1617 Phase 1, rows 2–4 — loop-start (user-initiated), continuation, and loop-driven triggers). It does **not** apply to user-directed picks (row 1), which bypass per COR-1618 §Normative Bypass Clause.
 
 **Orchestrator behavior at Phase 1 auto-pick:**
 
@@ -218,3 +218,4 @@ COR-1506 applies **only to autonomous auto-pick** (COR-1617 Phase 1, rows 2–3 
 |------|--------|----|
 | 2026-05-10 | Initial version — 5-dimension scoring rubric, 4 calibration examples (all 3 bands), COR-1617 Phase 1 integration gate, feedback format, re-scoring mechanism. Issue #136. | Claude Sonnet 4.6 |
 | 2026-05-11 | PR #154 codex-bot threads: (1) Approve action removes `needs-revision` label if present — §Action Thresholds + §Integration step 3; (2) COR-1617 Phase 1 wired to apply COR-1506 quality gate after consent pass; (3) Re-scoring paragraph rewritten — `needs-revision` removal is now an outcome of ≥8.0 re-score (step 3), not a precondition for re-review eligibility. | Claude Sonnet 4.6 |
+| 2026-05-17 | issue #166 R4 (PR #180 codex bot P2): COR-1617 §Phase 1 gained a new "Loop-start (user-initiated)" trigger row (row 2 of 4 autonomous rows). COR-1506's §When to Use and §Integration with COR-1617 still scoped to "rows 2–3 (continuation + loop-driven)" — mechanical follower would skip the ≥8.0 issue-quality gate for the first loop-start pick. Fix: row references updated to "rows 2–4" + trigger list extended to include loop-start. | Claude Opus 4.7 |
