@@ -1,8 +1,8 @@
 # SOP-1501: Create GitHub Issue
 
 **Applies to:** Repos using the Iterwheel intake bots (`iterwheel-blueprint[bot]` for body intake, `iterwheel-stack[bot]` for `stack-*` label pairs). The procedure (template, CLI, verify) generalizes; the label tables below reflect alfred's labels and must be substituted for repos with a different label set.
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Last executed:** 2026-05-10 (issue #126)
 
@@ -205,6 +205,26 @@ Once `blueprint-ready` is confirmed, validate content quality per **COR-1506** b
 
 ---
 
+## Quality Criteria
+
+Write-time targets the author should hit BEFORE submitting for `blueprint-ready` intake. Independent of COR-1506 scoring (reviewer-side gate); these are author-side aim-points so the issue passes COR-1506 without revision.
+
+1. **Anchor verbatim** — For any diff-style edit, paste the EXACT before-string from the file in a fenced code block. Do not describe ("find the last bullet under Guard Rails"); quote ("- Never auto-switch-and-pull on wake when the branch guard mismatches. Operator decides resume."). Reviewer must be able to `grep -F` the anchor against current HEAD and get exactly one hit.
+
+2. **Cell-by-cell diff for table edits** — When editing a markdown table row, show a separate "before / after" mini-table mapping each cell. Do not paste only the new row; the reviewer cannot otherwise know which cells changed.
+
+3. **LoC budget ≤ 100 net delta** (soft target) — If the issue's expected `git diff --stat` shows net additions > 100 lines, split into 2+ issues OR re-scope. One-session issues stay small; larger work belongs in a PRP per COR-1102.
+
+4. **Spec fully pre-committed** — Do not write "TBD after PR review" / "TBD after option selection" / "implementer chooses" / "exact spec to be drafted after reviewer pick". If a decision exists, commit to one option in the issue body (document the rejected alternative in a `## Rejected Alternatives` subsection). Decision-gated issues belong as PRPs, not inline CHGs.
+
+5. **Greppable references** — Every `file:line` and anchor in the issue body must be greppable verbatim against current HEAD. Run `grep -nF "<anchor string>" <file>` on each anchor before submitting; if grep returns ≠ 1 hit, the anchor is wrong (drifted, paraphrased, or stale).
+
+**Anti-example (alfred #165 R1):** Edit 1 anchor read `find this exact section heading + closing — the LAST line of the Primitive 4 block, immediately before `## Cadence rules``. Vague — reviewer cannot `grep -F` it. Fixed in R2 by pasting the verbatim 5-line block.
+
+**Positive example (alfred #163):** Each of 3 edits had a verbatim anchor (code block with exact before-string) + cell-by-cell diff for the table edit. Reviewed cleanly with no anchor-related findings.
+
+---
+
 ## Naming Conventions
 
 | Field | Convention |
@@ -233,3 +253,4 @@ Once `blueprint-ready` is confirmed, validate content quality per **COR-1506** b
 | 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |
 | 2026-05-10 | issue #127: align with current alfred repo conventions — stack-type-* + stack-area-* label pair (replaces old `sop`/`automation`/etc. taxonomy), Iterwheel Blueprint template (replaces Summary/Context template), `[Task]:` title chip, `--repo` flag in CLI example, `gh issue view` verify with intake-bot label check | Claude Opus 4.7 |
 | 2026-05-10 | issue #136: added COR-1506 quality-gate pointer after blueprint-ready verify step | Claude Sonnet 4.6 |
+| 2026-05-17 | issue #167: add §Quality Criteria — 5 author-side write-time targets (anchor verbatim, cell-by-cell diff, ≤100 LoC budget, pre-committed spec, greppable references) with anti-example + positive example from PR #164 trinity-review loop. | Claude Opus 4.7 |
