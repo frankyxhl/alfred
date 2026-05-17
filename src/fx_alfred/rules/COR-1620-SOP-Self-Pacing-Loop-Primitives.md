@@ -1,8 +1,8 @@
 # SOP-1620: Self-Pacing Loop Primitives
 
 **Applies to:** Claude-Code-runtime orchestrators adopting COR-1617; alternative runtimes substitute their own primitive
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella; uses these primitives in §1 idle-with-retry, §8 iterate, §10 merge-watch, §12 loop restart; §11 retrospective is synchronous — no primitive needed), COR-1622 (parameter schema — `<wakeup-tool>`, `<idle-cap>`, `<merge-watch-cap>`)
 
@@ -120,6 +120,24 @@ Wakes are self-contained turns; there is no external state between them. The cou
 
 ---
 
+## Primitive 5: Status communication
+
+Every wake-arming MUST be paired with a status surface — either an in-chat message to the operator, a PR comment, or both. Silent wake-and-yield is forbidden.
+
+**Required elements** per wake-arming:
+
+1. **What just happened** — the R-round / fix / observation that triggered this wake.
+2. **What the wake will check** — concrete predicate (e.g. "CI status + codex review on commit `<sha>`").
+3. **Counter state** — R-count and any wake-counter (idle wake N of `<idle-cap>`, merge-watch N of `<merge-watch-cap>`).
+
+**Forbidden anti-pattern — "silent wake-and-yield"**: arming a `<wakeup-tool>` callback and ending the orchestrator turn with no chat message and no PR comment. The operator then cannot distinguish "still iterating" from "stalled" from "crashed" until the wake fires (up to 270 s later — past the prompt-cache TTL).
+
+**Why this is a primitive, not a soft convention**: in cache-warm windows (≤ 270 s wakes) the next bot/CI signal often arrives *before* the wake fires, so silent yield trades operator visibility for a few saved tokens — a bad ratio. In longer wakes (idle 1800 s, merge-watch 1800 s) the silence is even more confusing.
+
+This primitive binds every consumer of COR-1620 wake mechanics — §Phase 1 idle-with-retry (COR-1617), §Phase 8 per-R-push, §Phase 10 merge-watch, §Phase 12 loop-restart.
+
+---
+
 ## Cadence rules
 
 | Situation | Cadence |
@@ -181,6 +199,7 @@ ScheduleWakeup(
 - Never arm a wake without the FIRST stop-marker guard and SECOND branch guard in the prompt.
 - Never run a counter externally. Counters live in the wake prompt; otherwise wake-state is lost across the runtime boundary.
 - Never auto-switch-and-pull on wake when the branch guard mismatches. Operator decides resume.
+- Never end a turn with a wake armed and no status surfaced. Silent wake-and-yield is a Primitive 5 violation.
 
 ---
 
@@ -205,3 +224,4 @@ Set `<wakeup-tool>` in the project's COR-1622 instantiation accordingly.
 |------|--------|----|
 | 2026-05-09 | Initial version — extracted from TRN-1008 §1 idle-with-retry / §8 / §10 / §11 + §Failure Modes (a)–(f) for COR-1617 cluster promotion (alfred#115) | Claude Opus 4.7 |
 | 2026-05-10 | FXA-2283: §When to Use — §11 loop restart → §12 loop restart; Related metadata — add §11 retrospective (synchronous); §Primitives table — add Retrospective row (synchronous, no counter) | Claude Code |
+| 2026-05-17 | issue #165: add §Primitive 5 (Status communication contract) — forbid silent wake-and-yield. Every wake-arming MUST pair with a status surface (chat update or PR comment) covering (a) what just happened, (b) what the wake will check, (c) counter state. Binds every consumer of COR-1620 wake mechanics. New §Guard Rails bullet enforces. | Claude Opus 4.7 |
