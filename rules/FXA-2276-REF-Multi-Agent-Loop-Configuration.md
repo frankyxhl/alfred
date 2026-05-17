@@ -1,8 +1,8 @@
 # REF-2276: Multi-Agent Loop Configuration
 
 **Applies to:** FXA project (alfred — `frankyxhl/alfred`)
-**Last updated:** 2026-05-10
-**Last reviewed:** 2026-05-10
+**Last updated:** 2026-05-17
+**Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella SOP being instantiated), COR-1622 (parameter schema), FXA-2277 (CHG that landed alongside this doc)
 
@@ -47,7 +47,7 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 
 | Key | Alfred value | Notes |
 |-----|--------------|-------|
-| `<panel-providers>` | `[glm, deepseek, codex, gemini]` | full quartet via `Skill(trinity)` dispatch; minimum 3 viable per COR-1602 viability rule |
+| `<panel-providers>` | `[glm, deepseek, codex, gemini, minimax]` | full quintet via `Skill(trinity)` dispatch; minimum 3 viable per COR-1602 viability rule. **Loop-iteration default subset** (the **alfred triad**) is `[glm, deepseek, minimax]` — used by default for plan-review and code-review on FXA loop iterations under `follow FXA-2276`. Codex + gemini are added to form the quintet only when escalating high-risk work (PRP / architecture / explicit "deep review" operator request); codex remains deprioritized on the default subset per the token-budget rationale in `feedback_alfred_panel_default_fast_review.md`. Distinct from the trinity-global `fast-review` preset (`[glm, deepseek]`), which is the alfred-agnostic default in `~/.claude/trinity.json` and not used inside this repo. |
 | `<weights-doc>` | `{CHG: COR-1609, ADR: COR-1609, RFC: COR-1608, inline-PR-body: COR-1609}` | **map form** (per FXA-2277), keyed only by valid `<spec-format>` enum values per COR-1622. CHGs and ADRs both use COR-1609 (CHG/decision rubric, same scoring surface per COR-1617 §Phase 4). RFC uses COR-1608 (proposal/PRP-shaped). inline-PR-body defaults to COR-1609 since alfred's inline specs are CHG-shaped. **Code-review (phase 8) uses COR-1610 implicitly** per COR-1617 §Phase 4 — selected by review-phase, not by `<spec-format>`, so it does NOT appear as a map key. See "Known limitation" below for the deeper artifact-type vs spec-format gap. |
 | `<spec-format>` | `CHG` | alfred's primary spec form; PRP used for larger proposals; ADR / RFC / inline-PR-body all valid per COR-1622 enum |
 | `<panel-pass-threshold>` | `9.0` | per COR-1602 default |
@@ -112,7 +112,7 @@ Alfred today adopts a subset of COR-1617's 12 phases. The values above are fille
 | 1 — Auto-pick | ⚠ conditional | **Default sessions** (no `follow FXA-2276` invocation): user-initiated; explicit target-issue picks (`do FXA-NNNN`) are bypassed per COR-1618 §Normative Bypass Clause. **Looping mode** (under `follow FXA-2276` or `follow FXA-2276 once` — see §Invocation): every pick applies full COR-1618 `verify_consent_eligibility` + COR-1506 issue-quality check (score ≥ 8.0) before the scope-rank tree, including the first — `follow FXA-2276` directs the orchestrator to start the loop but does not name a target issue, so the agent's pick is not user-directed under COR-1618's strict definition. **User-directed-pick mode** (`follow FXA-2276 for #N`): the named target issue is bypass-eligible per §Normative Bypass Clause and runs phases 2–11 regardless of its rocket-gate state or COR-1506 score. |
 | 2 — Branch & identity | ✓ adopted | COR-1505 followed for every PR (PR #117 R1: branch base + `gh auth status`). |
 | 3 — Plan | ✓ adopted | COR-1104 sizing applied; CHGs drafted for substantive changes (FXA-2275, FXA-2277). |
-| 4 — Plan-review | ✓ adopted | trinity panel via `Skill(trinity)`; PR #117 R1 panel scored glm 9.40 / deepseek 9.00 against doc-only weights. |
+| 4 — Plan-review | ✓ adopted | trinity panel via `Skill(trinity)` using the **alfred triad** `[glm, deepseek, minimax]` by default for loop iterations under `follow FXA-2276`; escalate to the full quintet `[glm, deepseek, codex, gemini, minimax]` for high-risk work (PRP / architecture / explicit "deep review"). PR #117 R1 panel scored glm 9.40 / deepseek 9.00 against doc-only weights (pre-triad; recorded for historical baseline). PR #173 (COR-1507 PRP) used the quintet across 6 R-rounds reaching all-PASS at R6 (GLM 9.9, DeepSeek 9.0, MiniMax 9.55, Codex 9.6, Gemini 9.9). |
 | 5 — Dispatch | ⚠ partial | manual `/trinity` dispatch when the worker lane fits; COR-1619 decision tree applied informally rather than via automated routing. |
 | 6 — Verify implementation | ✓ adopted | `af validate`, `pytest`, `ruff` per CLAUDE.md "Essential Commands". |
 | 7 — PR open | ✓ adopted | `git push origin <branch>` (NOT to fork — per `<pr-push-remote>: origin`); `gh pr create` as `<gh-write-identity>`. |
@@ -182,3 +182,4 @@ These project-specific deviations are intentional and not gaps in the SOP:
 | 2026-05-10 | FXA-2283 R6: Phase 11 row — add Alfred deviation note for Trinity-miss/codex-catch: alfred dispatches the panel via Skill(trinity) in-session; findings not GitHub-re-fetchable; output `n/a — panel findings not GitHub-accessible`. | Claude Code |
 | 2026-05-10 | Issue #144: add §R-count cap section instantiating `<max-r-count>` = 10, `<max-r-count-extension>` = 3, `<convergence-severity>` = advisory (all defaults). | Claude Sonnet 4.6 |
 | 2026-05-16 | issue #163 (bundled into PR #164 with #162): tighten §Invocation bypass scoping — `follow FXA-2276` and `follow FXA-2276 once` no longer claim live-chat-bypass for the initial pick (only `follow FXA-2276 for #N` qualifies under COR-1618 §Normative Bypass Clause strict definition); §Invocation intro, two table rows, and §Adoption Status Phase 1 row updated accordingly. | Claude Opus 4.7 |
+| 2026-05-17 | issue #170: add `minimax` to `<panel-providers>` (quartet → quintet); document the **alfred triad** `[glm, deepseek, minimax]` as the loop-iteration default subset for `follow FXA-2276` plan-review and code-review; quintet reserved for high-risk escalation (PRP / architecture / explicit "deep review"). §Adoption Status Phase 4 row rewritten to match. Codex deprioritized on the default subset per token-budget rationale (carried from `feedback_alfred_panel_default_fast_review.md`). | Claude Opus 4.7 |
