@@ -52,6 +52,7 @@ pip install fx-alfred
 cd my-project
 af guide          # see workflow routing (PKG → USR → PRJ)
 af list           # list all documents
+af validate --root .  # validate all documents
 af read COR-1000  # read a specific document
 ```
 
