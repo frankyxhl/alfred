@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-06-10
 **Last reviewed:** 2026-06-10
-**Status:** In Progress
+**Status:** Approved
 **Date:** 2026-06-10
 **Requested by:** Frank Xu (session review finding, 2026-06-10)
 **Priority:** High
@@ -63,6 +63,8 @@ Blast radius: `steps.py::extract_steps_section` (→ `af plan` checklists), `wor
 
 ## Change History
 
-| Date       | Change                                                                   | By               |
-|------------|--------------------------------------------------------------------------|------------------|
-| 2026-06-10 | Initial version — fence-aware extract_section per session review finding | Claude (Fable 5) |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                                                         | By               |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
+| 2026-06-10 | Initial version — fence-aware extract_section per session review finding                                                                                                                                                                                                                                                                                                       | Claude (Fable 5) |
+| 2026-06-10 | RED (7 failing tests) + GREEN (shared fence helper; steps.py dedupe) landed; all gates green; af plan COR-1612 renders 8/8 steps; 0 truncated docs across layers                                                                                                                                                                                                               | Claude (Fable 5) |
+| 2026-06-10 | R1 code-review panel [glm, deepseek, minimax] per COR-1602/COR-1610: glm 9.8 PASS, deepseek 9.8 PASS, minimax 10.0 PASS — gate met, blocking empty. Convergent advisory (glm+deepseek): direct unit tests for iter_lines_with_fence_state — addressed (+9 tests, 953 total); deepseek advisory: CommonMark closer deviations documented in helper docstring. Status → Approved | Claude (Fable 5) |

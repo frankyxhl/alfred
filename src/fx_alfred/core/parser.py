@@ -316,6 +316,13 @@ def iter_lines_with_fence_state(text: str) -> Iterator[tuple[str, bool]]:
     - Opener is a run of 3 or more backtick or tilde characters.
     - Closer must use the **same character** AND be a run of **at least
       as many** characters as the opener.
+
+    Known deviations from strict CommonMark, carried unchanged from the
+    steps.py implementation: a closer line with a trailing info string
+    (e.g. ```` ```sh ````) is accepted, and indentation beyond 3 spaces
+    does not disqualify an opener/closer (lines are ``lstrip``-ped).
+    Alfred documents use clean column-0 fences, so neither deviation has
+    a practical surface today.
     """
     fence_char: str | None = None  # '`' or '~' or None
     fence_len = 0

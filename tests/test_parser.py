@@ -3,7 +3,12 @@
 import pytest
 
 
-from fx_alfred.core.parser import H1_PATTERN, extract_section, parse_metadata
+from fx_alfred.core.parser import (
+    H1_PATTERN,
+    extract_section,
+    iter_lines_with_fence_state,
+    parse_metadata,
+)
 
 
 pytestmark = pytest.mark.unit
@@ -150,3 +155,77 @@ def test_extract_section_heading_inside_fence_is_not_section_start():
     )
     section = extract_section(body, "Steps")
     assert section == "real content"
+
+
+# --- iter_lines_with_fence_state direct unit tests (FXA-2294 R1 advisory:
+# glm + deepseek convergent — isolate the shared helper from its consumers) ---
+
+
+def _states(text):
+    return [(line, fenced) for line, fenced in iter_lines_with_fence_state(text)]
+
+
+def test_fence_state_empty_and_fenceless_input():
+    assert _states("") == [("", False)]
+    assert _states("plain\ntext") == [("plain", False), ("text", False)]
+
+
+def test_fence_state_opener_interior_closer_all_fenced():
+    states = _states("a\n```\ncode\n```\nb")
+    assert states == [
+        ("a", False),
+        ("```", True),
+        ("code", True),
+        ("```", True),
+        ("b", False),
+    ]
+
+
+def test_fence_state_unclosed_fence_runs_to_end():
+    states = _states("a\n```\nrest\nstays fenced")
+    assert [f for _, f in states] == [False, True, True, True]
+
+
+def test_fence_state_mixed_chars_do_not_cross_close():
+    # A tilde line cannot close a backtick fence, and vice versa.
+    backtick = _states("```\n~~~\nstill\n```\nout")
+    assert [f for _, f in backtick] == [True, True, True, True, False]
+    tilde = _states("~~~\n```\nstill\n~~~\nout")
+    assert [f for _, f in tilde] == [True, True, True, True, False]
+
+
+def test_fence_state_closer_run_length_rule():
+    # 3-backtick line cannot close a 4-backtick opener; 5 can close 4.
+    states = _states("````\n```\nin\n`````\nout")
+    assert [f for _, f in states] == [True, True, True, True, False]
+
+
+def test_fence_state_consecutive_fences_reset():
+    states = _states("```\none\n```\nmid\n~~~\ntwo\n~~~\nend")
+    assert [f for _, f in states] == [
+        True,
+        True,
+        True,
+        False,
+        True,
+        True,
+        True,
+        False,
+    ]
+
+
+def test_fence_state_blank_lines_inside_and_outside():
+    states = _states("\n```\n\n```\n\nx")
+    assert [f for _, f in states] == [False, True, True, True, False, False]
+
+
+def test_fence_state_indented_opener_counts():
+    # Openers are detected after lstrip(), matching steps.py discipline.
+    states = _states("  ```\nin\n  ```\nout")
+    assert [f for _, f in states] == [True, True, True, False]
+
+
+def test_fence_state_short_run_is_not_a_fence():
+    # Runs of 1-2 backticks (inline code) do not open a fence.
+    states = _states("``\nx\n`code`\ny")
+    assert [f for _, f in states] == [False, False, False, False]
