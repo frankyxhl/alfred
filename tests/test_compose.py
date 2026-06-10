@@ -980,3 +980,45 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
         msg = str(exc_info.value).lower()
         assert "1500" in msg
         assert "ambiguous" in msg or "multiple" in msg
+
+
+class TestCompositionErrorContract:
+    """CHG-2295: core/compose raises domain CompositionError, not ClickException."""
+
+    def test_cycle_raises_composition_error(self):
+        from fx_alfred.core.compose import CompositionError, compose_order
+
+        doc_a = Document.from_filename(
+            "TST-9001-SOP-Cycle-A.md", directory="rules", source="prj"
+        )
+        doc_b = Document.from_filename(
+            "TST-9002-SOP-Cycle-B.md", directory="rules", source="prj"
+        )
+        edges = {
+            "TST-9001": ("from-b", "to-b"),
+            "TST-9002": ("to-b", "from-b"),
+        }
+        with pytest.raises(CompositionError, match="Workflow cycle detected among:"):
+            compose_order([doc_a, doc_b], edges)
+
+    def test_zero_match_raises_composition_error_exit_code_2(self):
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
+
+        with pytest.raises(CompositionError, match="matched 0 tagged SOPs") as exc_info:
+            resolve_sops_from_task("totally unrelated task", [], [])
+        assert exc_info.value.exit_code == 2
+
+    def test_not_found_raises_composition_error_default_exit_code(self):
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
+
+        with pytest.raises(CompositionError, match="SOP 'TST-9999' not found") as ei:
+            resolve_sops_from_task("task", [], ["TST-9999"])
+        assert ei.value.exit_code == 1
+
+    def test_composition_error_is_not_click_exception(self):
+        """The domain exception must not subclass Click types (core stays Click-free)."""
+        import click
+
+        from fx_alfred.core.compose import CompositionError
+
+        assert not issubclass(CompositionError, click.ClickException)
