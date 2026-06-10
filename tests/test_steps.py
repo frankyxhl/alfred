@@ -107,3 +107,80 @@ echo hello
     section = extract_steps_section(body)
     assert section is not None
     assert parse_top_level_step_indices(section) == frozenset({1, 2, 3})
+
+
+_NESTED_AND_FENCED_SECTION = """\
+### 1. First step
+
+Options inside the step body:
+
+  1. nested option one
+  2. nested option two
+
+```bash
+# fenced pseudo-step
+3. not a real step
+```
+
+### 2. Second step
+### 3. Third step
+"""
+
+
+def test_parse_steps_for_json_excludes_nested_and_fenced_lines() -> None:
+    """Renderer counts only flush-left, unfenced step lines (CHG-2294 R2).
+
+    Same notion of "step" as parse_top_level_step_indices: indented
+    nested numbered items and numbered lines inside fences are body
+    content, not steps.
+    """
+    steps = _parse_steps_for_json(_NESTED_AND_FENCED_SECTION)
+    assert [s["index"] for s in steps] == [1, 2, 3]
+    assert [s["text"] for s in steps] == ["First step", "Second step", "Third step"]
+
+
+def test_parse_steps_for_json_keeps_flush_left_substeps() -> None:
+    """Flush-left Path B sub-steps still render; indented ones do not."""
+    section = "1. Plain\n3a. Branch A\n  3b. indented impostor\n"
+    steps = _parse_steps_for_json(section)
+    assert [(s["index"], s.get("sub_branch")) for s in steps] == [
+        (1, None),
+        (3, "a"),
+    ]
+
+
+def test_heading_form_steps_suppress_bare_body_lists() -> None:
+    """When a section authors ### N. heading-form steps, flush-left bare
+    numbered lines are body content (COR-1612 shape, CHG-2294 R2)."""
+    section = (
+        "### 1. First step\n"
+        "\n"
+        "**Blocking:**\n"
+        "1. Fix the code\n"
+        "\n"
+        "**Advisory:**\n"
+        "1. If adopting: fix\n"
+        "2. If declining: reply\n"
+        "\n"
+        "### 2. Second step\n"
+        "### 3. Third step\n"
+    )
+    steps = _parse_steps_for_json(section)
+    assert [s["index"] for s in steps] == [1, 2, 3]
+    assert [s["text"] for s in steps] == ["First step", "Second step", "Third step"]
+
+
+def test_all_bare_sections_keep_legacy_step_form() -> None:
+    """Sections with no heading-form lines render bare flush-left steps."""
+    section = (
+        "1. Leader identifies artifact\n2. Leader dispatches\n3. Reviewers analyze\n"
+    )
+    steps = _parse_steps_for_json(section)
+    assert [s["index"] for s in steps] == [1, 2, 3]
+
+
+def test_heading_form_substeps_count_as_heading_form() -> None:
+    """### 3a. sub-step lines participate in heading-form preference."""
+    section = "### 1. Plain\n### 3a. Branch A\n1. bare body item\n"
+    steps = _parse_steps_for_json(section)
+    assert [(s["index"], s.get("sub_branch")) for s in steps] == [(1, None), (3, "a")]
