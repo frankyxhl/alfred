@@ -15,6 +15,7 @@ import pytest
 
 from fx_alfred.core.steps import (
     _parse_steps_for_json,
+    extract_steps_section,
     parse_top_level_step_indices,
 )
 
@@ -85,3 +86,24 @@ def test_parse_top_level_step_indices_legacy_unchanged() -> None:
     section = "1. A\n2. B\n3. C\n"
     indices = parse_top_level_step_indices(section)
     assert indices == frozenset({1, 2, 3})
+
+
+def test_step_indices_survive_fenced_bash_comment_in_section_extraction() -> None:
+    """End-to-end: extract_steps_section + index parsing keep steps that
+    follow a fenced code block containing a column-0 comment (CHG-2294)."""
+    body = """\
+## Steps
+
+1. First step
+
+```bash
+# a comment that must not truncate the section
+echo hello
+```
+
+2. Second step
+3. Third step
+"""
+    section = extract_steps_section(body)
+    assert section is not None
+    assert parse_top_level_step_indices(section) == frozenset({1, 2, 3})

@@ -2412,3 +2412,35 @@ Test.
         _build_mermaid_phases(phase_info)
 
     assert "TST-9902" in str(exc_info.value.format_message())
+
+
+def test_plan_keeps_steps_after_fenced_bash_comment(sample_project, monkeypatch):
+    """Steps after a fenced block with a column-0 comment must render (CHG-2294)."""
+    rules_dir = sample_project / "rules"
+    content = """# TST-5009: Fenced Steps
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+SOP whose first step embeds a bash block with a column-0 comment.
+## Steps
+1. First step
+
+```bash
+# a comment that must not terminate the section
+echo hello
+```
+
+2. Second step
+3. Third step
+"""
+    (rules_dir / "TST-5009-SOP-Fenced-Steps.md").write_text(content)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5009"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "First step" in result.output
+    assert "Second step" in result.output
+    assert "Third step" in result.output
