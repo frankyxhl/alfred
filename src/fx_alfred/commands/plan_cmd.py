@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 
 import click
 
@@ -124,18 +123,17 @@ def _extract_steps_section(body: str) -> str | None:
 def _parse_numbered_items(section_text: str) -> list[str]:
     """Extract numbered items from section text.
 
-    Matches both ``1. text`` and ``### 1. text`` formats.
+    Matches both ``1. text`` and ``### 1. text`` formats, plus ``3a. text``
+    (FXA-2226 Path B sub-steps). Only flush-left, unfenced lines count
+    (CHG-2294 R2): indented nested numbered items and numbered lines inside
+    fenced code blocks are step-body content, not steps.
     """
-    items: list[str] = []
-    for line in section_text.split("\n"):
-        stripped = line.strip()
-        # Match "### 1. text", "1. text", "3a. text" (FXA-2226 Path B sub-step)
-        m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+(.+)", stripped)
-        if m:
-            number = m.group(1)
-            sub_branch = m.group(2) or ""
-            items.append(f"{number}{sub_branch}. {m.group(3)}")
-    return items
+    from fx_alfred.core.steps import iter_step_lines
+
+    return [
+        f"{index}{sub_branch or ''}. {text}"
+        for index, sub_branch, text in iter_step_lines(section_text)
+    ]
 
 
 # _parse_steps_for_json relocated to fx_alfred.core.steps (FXA-2218 Commit 1);

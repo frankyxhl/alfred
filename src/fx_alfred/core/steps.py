@@ -7,8 +7,9 @@ when validate_cmd.py needs the same parser (FXA-2218 CHG Commit 1).
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 
-from fx_alfred.core.parser import extract_section
+from fx_alfred.core.parser import extract_section, iter_lines_with_fence_state
 from fx_alfred.core.phases import StepDict
 
 # Heading search order for the steps section. SOPs historically used one
@@ -33,6 +34,60 @@ def extract_steps_section(body: str) -> str | None:
     return None
 
 
+# Flush-left step-line matcher WITH text capture — the rendering-side
+# sibling of `_TOP_LEVEL_STEP_RE` below. Matched against the RAW line
+# (no strip), so indented nested numbered items in step bodies are body
+# content, not steps (CHG-2294 R2; same notion of "step" as
+# `parse_top_level_step_indices` and the PR #68 R4 gate discipline).
+_STEP_LINE_RE = re.compile(r"^(?:###\s+)?(\d+)([a-z])?\.\s+(.+)")
+
+
+def iter_step_lines(section_text: str) -> Iterator[tuple[int, str | None, str]]:
+    """Yield ``(index, sub_branch, text)`` for each rendered step line.
+
+    A candidate step line is flush-left (column 0), outside any fenced
+    code block, and matches ``^(?:###\\s+)?(\\d+)([a-z])?\\.\\s+(.+)``.
+    ``sub_branch`` is ``None`` for plain steps, or the suffix letter for
+    FXA-2226 Path B sub-steps (``"a"``, ``"b"``, ...). ``text`` is
+    right-stripped.
+
+    Heading-form preference (CHG-2294 R2): if the section contains any
+    ``### N.`` heading-form step line, ONLY heading-form lines are steps —
+    bare flush-left numbered lines are then step-body content (e.g.
+    COR-1612 authors category action lists flush-left under its ### steps).
+    Sections with no heading-form lines keep the legacy convention: bare
+    flush-left numbered lines ARE the steps. Corpus check at change time:
+    of the 62 step-bearing SOPs across all three layers (PKG/USR/PRJ),
+    exactly 2 mix forms (COR-1612, COR-1200); in both, every bare line is
+    body content.
+
+    Rendering-side only: `parse_top_level_step_indices` (loop/branch
+    validation) intentionally stays permissive — it counts both forms, so
+    every index that renders here also validates there.
+
+    Shared by the JSON renderer (`_parse_steps_for_json`) and the text
+    renderer (`plan_cmd._parse_numbered_items`) so both agree on one
+    notion of a rendered step.
+    """
+    candidates: list[tuple[bool, int, str | None, str]] = []
+    has_heading_form = False
+    for line, fenced in iter_lines_with_fence_state(section_text):
+        if fenced:
+            continue
+        m = _STEP_LINE_RE.match(line)
+        if not m:
+            continue
+        heading_form = line.startswith("#")
+        has_heading_form = has_heading_form or heading_form
+        candidates.append(
+            (heading_form, int(m.group(1)), m.group(2), m.group(3).rstrip())
+        )
+    for heading_form, index, sub_branch, text in candidates:
+        if has_heading_form and not heading_form:
+            continue
+        yield index, sub_branch, text
+
+
 def _parse_steps_for_json(section_text: str) -> list[StepDict]:
     """Extract steps as structured data for JSON output.
 
@@ -43,20 +98,17 @@ def _parse_steps_for_json(section_text: str) -> list[StepDict]:
 
     Path B convention: plain steps OMIT the ``sub_branch`` key entirely;
     it is never set to ``None`` or any sentinel.
+
+    Only flush-left, unfenced step lines count (CHG-2294 R2; see
+    :func:`iter_step_lines`).
     """
     steps: list[StepDict] = []
-    for line in section_text.split("\n"):
-        stripped = line.strip()
-        m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+(.+)", stripped)
-        if m:
-            index = int(m.group(1))
-            sub_branch = m.group(2)  # None for plain; "a"/"b"/... for sub-steps
-            text = m.group(3)
-            gate = text.endswith("✓") or "[GATE]" in text
-            step: StepDict = {"index": index, "text": text, "gate": gate}
-            if sub_branch is not None:
-                step["sub_branch"] = sub_branch
-            steps.append(step)
+    for index, sub_branch, text in iter_step_lines(section_text):
+        gate = text.endswith("✓") or "[GATE]" in text
+        step: StepDict = {"index": index, "text": text, "gate": gate}
+        if sub_branch is not None:
+            step["sub_branch"] = sub_branch
+        steps.append(step)
     return steps
 
 
@@ -65,6 +117,9 @@ def _parse_steps_for_json(section_text: str) -> list[StepDict]:
 # lines inside indented code fences are **not** counted, keeping this
 # consistent with `workflow._parse_step_indices`. Shared via this module so
 # validate_cmd can use the same definition of "top-level step" (PR #59 P1).
+# Validation-side sibling of `_STEP_LINE_RE` above (CHG-2294 R2): same shape
+# minus the text-capture group, and intentionally NO heading-form preference
+# — validation counts both forms so rendered steps are always a subset.
 # FXA-2226 Path B: regex extended to also match sub-step lines like ``3a.`` so
 # ``parse_top_level_step_indices`` injects the parent integer (3) from each
 # sibling. The optional ``[a-z]?`` is OUTSIDE the int-capturing group, so the
@@ -72,56 +127,24 @@ def _parse_steps_for_json(section_text: str) -> list[StepDict]:
 _TOP_LEVEL_STEP_RE = re.compile(r"^(?:###\s+)?(\d+)[a-z]?\.\s+")
 
 
-def _fence_run_length(stripped: str, ch: str) -> int:
-    """Return the length of the leading run of ``ch`` in ``stripped`` (0 if none)."""
-    run = 0
-    while run < len(stripped) and stripped[run] == ch:
-        run += 1
-    return run
-
-
 def parse_top_level_step_indices(section_text: str) -> frozenset[int]:
     """Return the set of top-level step indices declared in a Steps section.
 
     Only lines flush-left (no leading whitespace) that match
     ``^(?:###\\s+)?\\d+\\.\\s+`` contribute. Sub-items (indented) are
-    ignored via the flush-left regex; **fenced code blocks** are tracked
-    explicitly so numbered lines inside ``` / ~~~ fences don't count as
-    steps (PR #59 Codex review P2 #4).
-
-    Fence matching follows CommonMark rules:
-
-    - Opener is a run of 3 or more backtick or tilde characters.
-    - Closer must use the **same character** AND be a run of **at least
-      as many** characters as the opener.
-    - So a 4-backtick fence is not closed by a 3-backtick line inside;
-      and a backtick fence is not closed by a tilde line (PR #59 Codex
-      reviews P2 #7 + P2 #8).
+    ignored via the flush-left regex; **fenced code blocks** are skipped
+    via ``parser.iter_lines_with_fence_state`` so numbered lines inside
+    ``` / ~~~ fences don't count as steps (PR #59 Codex review P2 #4;
+    CommonMark opener/closer rules per P2 #7 + P2 #8 live in the shared
+    helper since CHG-2294).
 
     Used by ``validate_loops`` (intra-SOP) and by ``af validate`` D3
     (cross-SOP) so both enforce the same notion of "existing step".
     """
     indices: set[int] = set()
-    fence_char: str | None = None  # '`' or '~' or None
-    fence_len = 0
-    for line in section_text.split("\n"):
-        stripped = line.lstrip()
-        if fence_char is not None:
-            # Inside a fence — closer must be the same char with len >= opener.
-            if stripped and stripped[0] == fence_char:
-                run = _fence_run_length(stripped, fence_char)
-                if run >= fence_len:
-                    fence_char = None
-                    fence_len = 0
+    for line, fenced in iter_lines_with_fence_state(section_text):
+        if fenced:
             continue
-        # Outside any fence — check for an opener (≥3 run of ` or ~).
-        if stripped and stripped[0] in ("`", "~"):
-            ch = stripped[0]
-            run = _fence_run_length(stripped, ch)
-            if run >= 3:
-                fence_char = ch
-                fence_len = run
-                continue
         m = _TOP_LEVEL_STEP_RE.match(line)
         if m:
             indices.add(int(m.group(1)))
@@ -146,24 +169,7 @@ def has_top_level_substep_lines(section_text: str) -> bool:
     cannot be falsely tripped by indented or fenced ``3a.`` lines (Codex
     PR #68 R4 inline review).
     """
-    fence_char: str | None = None
-    fence_len = 0
-    for line in section_text.split("\n"):
-        stripped = line.lstrip()
-        if fence_char is not None:
-            if stripped and stripped[0] == fence_char:
-                run = _fence_run_length(stripped, fence_char)
-                if run >= fence_len:
-                    fence_char = None
-                    fence_len = 0
-            continue
-        if stripped and stripped[0] in ("`", "~"):
-            ch = stripped[0]
-            run = _fence_run_length(stripped, ch)
-            if run >= 3:
-                fence_char = ch
-                fence_len = run
-                continue
-        if _TOP_LEVEL_SUBSTEP_RE.match(line):
-            return True
-    return False
+    return any(
+        not fenced and _TOP_LEVEL_SUBSTEP_RE.match(line)
+        for line, fenced in iter_lines_with_fence_state(section_text)
+    )

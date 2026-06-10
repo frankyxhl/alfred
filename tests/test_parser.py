@@ -3,7 +3,12 @@
 import pytest
 
 
-from fx_alfred.core.parser import H1_PATTERN, parse_metadata
+from fx_alfred.core.parser import (
+    H1_PATTERN,
+    extract_section,
+    iter_lines_with_fence_state,
+    parse_metadata,
+)
 
 
 pytestmark = pytest.mark.unit
@@ -53,3 +58,174 @@ def test_parse_metadata_change_history_heading_without_table():
     assert parsed.history_header == ""
     assert parsed.history_rows == []
     assert "Change History" in parsed.body
+
+
+# --- extract_section fence-awareness (CHG-2294) ---
+
+
+_FENCED_BASH_COMMENT_BODY = """\
+intro text
+
+## Steps
+
+Step one:
+
+```bash
+# a column-0 bash comment must not terminate the section
+echo hello
+```
+
+More steps here.
+
+## Next Section
+
+other content
+"""
+
+
+def test_extract_section_basic_boundaries():
+    """Baseline: section runs from after its heading to the next heading."""
+    body = "## Steps\n\nalpha\n\n## Next\n\nbeta\n"
+    assert extract_section(body, "Steps") == "alpha"
+    assert extract_section(body, "Next") == "beta"
+    assert extract_section(body, "Absent") is None
+
+
+def test_extract_section_h3_fallback():
+    """Baseline: falls back to ### when no ## heading matches."""
+    body = "## Outer\n\n### Steps\n\ngamma\n\n### After\n\ndelta\n"
+    assert extract_section(body, "Steps") == "gamma"
+
+
+def test_extract_section_ignores_bash_comment_inside_backtick_fence():
+    """A `# comment` at column 0 inside ``` fences is not a section boundary."""
+    section = extract_section(_FENCED_BASH_COMMENT_BODY, "Steps")
+    assert section is not None
+    assert "More steps here." in section
+    assert "other content" not in section  # still stops at the real heading
+
+
+def test_extract_section_ignores_heading_lookalike_inside_fence():
+    """A `## Fake` line inside a fence is not a section boundary."""
+    body = (
+        "## Steps\n\nbefore\n\n"
+        "```\n## Fake Heading\n```\n\n"
+        "after\n\n## Real Next\n\nnope\n"
+    )
+    section = extract_section(body, "Steps")
+    assert section is not None
+    assert "before" in section
+    assert "after" in section
+    assert "nope" not in section
+
+
+def test_extract_section_tilde_fence():
+    """Tilde fences (~~~) shield their content like backtick fences."""
+    body = "## Steps\n\none\n\n~~~sh\n# fenced comment\n~~~\n\ntwo\n\n## End\n\nx\n"
+    section = extract_section(body, "Steps")
+    assert section is not None
+    assert "two" in section
+    assert "x" not in section
+
+
+def test_extract_section_fence_closer_must_match_opener_length():
+    """A shorter fence run does not close a longer opener (CommonMark)."""
+    body = (
+        "## Steps\n\nstart\n\n"
+        "````md\n"
+        "```\n"
+        "# still inside the 4-backtick fence\n"
+        "```\n"
+        "# also still inside\n"
+        "````\n\n"
+        "end\n\n## Tail\n\ny\n"
+    )
+    section = extract_section(body, "Steps")
+    assert section is not None
+    assert "end" in section
+    assert "y" not in section
+
+
+def test_extract_section_heading_inside_fence_is_not_section_start():
+    """A heading-shaped line inside a fence cannot anchor a section."""
+    body = (
+        "intro\n\n"
+        "```\n## Steps\nfenced sample, not a real section\n```\n\n"
+        "## Steps\n\nreal content\n\n## After\n\nz\n"
+    )
+    section = extract_section(body, "Steps")
+    assert section == "real content"
+
+
+# --- iter_lines_with_fence_state direct unit tests (FXA-2294 R1 advisory:
+# glm + deepseek convergent — isolate the shared helper from its consumers) ---
+
+
+def _states(text):
+    return [(line, fenced) for line, fenced in iter_lines_with_fence_state(text)]
+
+
+def test_fence_state_empty_and_fenceless_input():
+    assert _states("") == [("", False)]
+    assert _states("plain\ntext") == [("plain", False), ("text", False)]
+
+
+def test_fence_state_opener_interior_closer_all_fenced():
+    states = _states("a\n```\ncode\n```\nb")
+    assert states == [
+        ("a", False),
+        ("```", True),
+        ("code", True),
+        ("```", True),
+        ("b", False),
+    ]
+
+
+def test_fence_state_unclosed_fence_runs_to_end():
+    states = _states("a\n```\nrest\nstays fenced")
+    assert [f for _, f in states] == [False, True, True, True]
+
+
+def test_fence_state_mixed_chars_do_not_cross_close():
+    # A tilde line cannot close a backtick fence, and vice versa.
+    backtick = _states("```\n~~~\nstill\n```\nout")
+    assert [f for _, f in backtick] == [True, True, True, True, False]
+    tilde = _states("~~~\n```\nstill\n~~~\nout")
+    assert [f for _, f in tilde] == [True, True, True, True, False]
+
+
+def test_fence_state_closer_run_length_rule():
+    # 3-backtick line cannot close a 4-backtick opener; 5 can close 4.
+    states = _states("````\n```\nin\n`````\nout")
+    assert [f for _, f in states] == [True, True, True, True, False]
+
+
+def test_fence_state_consecutive_fences_reset():
+    states = _states("```\none\n```\nmid\n~~~\ntwo\n~~~\nend")
+    assert [f for _, f in states] == [
+        True,
+        True,
+        True,
+        False,
+        True,
+        True,
+        True,
+        False,
+    ]
+
+
+def test_fence_state_blank_lines_inside_and_outside():
+    states = _states("\n```\n\n```\n\nx")
+    assert [f for _, f in states] == [False, True, True, True, False, False]
+
+
+def test_fence_state_indented_opener_counts():
+    # Openers are detected after lstrip(), matching steps.py discipline.
+    states = _states("  ```\nin\n  ```\nout")
+    assert [f for _, f in states] == [True, True, True, False]
+
+
+def test_fence_state_short_run_is_not_a_fence():
+    # Runs of 1-2 backticks (inline code) do not open a fence.
+    states = _states("``\nx\n`code`\ny")
+    assert [f for _, f in states] == [False, False, False, False]

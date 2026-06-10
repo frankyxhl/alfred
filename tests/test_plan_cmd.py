@@ -12,6 +12,7 @@ from fx_alfred.cli import cli
 from fx_alfred.commands.plan_cmd import (
     _build_mermaid_phases,
     _format_phase,
+    _parse_numbered_items,
     _parse_steps_for_json,
 )
 from fx_alfred.core.document import Document
@@ -2412,3 +2413,138 @@ Test.
         _build_mermaid_phases(phase_info)
 
     assert "TST-9902" in str(exc_info.value.format_message())
+
+
+def test_plan_keeps_steps_after_fenced_bash_comment(sample_project, monkeypatch):
+    """Steps after a fenced block with a column-0 comment must render (CHG-2294)."""
+    rules_dir = sample_project / "rules"
+    content = """# TST-5009: Fenced Steps
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+SOP whose first step embeds a bash block with a column-0 comment.
+## Steps
+1. First step
+
+```bash
+# a comment that must not terminate the section
+echo hello
+```
+
+2. Second step
+3. Third step
+"""
+    (rules_dir / "TST-5009-SOP-Fenced-Steps.md").write_text(content)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5009"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "First step" in result.output
+    assert "Second step" in result.output
+    assert "Third step" in result.output
+
+
+def test_parse_numbered_items_excludes_nested_and_fenced_lines():
+    """Text renderer matches the flush-left + fence-aware step notion (CHG-2294 R2)."""
+    section = (
+        "### 1. First step\n"
+        "\n"
+        "  1. nested option one\n"
+        "  2. nested option two\n"
+        "\n"
+        "```bash\n"
+        "# fenced comment\n"
+        "3. fenced pseudo-step\n"
+        "```\n"
+        "\n"
+        "### 2. Second step\n"
+    )
+    assert _parse_numbered_items(section) == ["1. First step", "2. Second step"]
+
+
+def test_plan_renders_exactly_authored_top_level_steps(sample_project, monkeypatch):
+    """COR-1612-shaped SOP: nested lists + fenced numbered lines must not
+    inflate the checklist; exactly the authored steps render (CHG-2294 R2)."""
+    rules_dir = sample_project / "rules"
+    content = """# TST-5010: Nested Body Steps
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+SOP with nested numbered lists and fenced numbered lines in step bodies.
+## Steps
+### 1. First step
+
+Choose one:
+
+  1. nested option one
+  2. nested option two
+
+```bash
+# comment
+2. fenced pseudo-step
+```
+
+### 2. Second step
+### 3. Third step
+"""
+    (rules_dir / "TST-5010-SOP-Nested-Body-Steps.md").write_text(content)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5010"], catch_exceptions=False)
+    assert result.exit_code == 0
+    checklist = [
+        line for line in result.output.splitlines() if line.startswith("- [ ]")
+    ]
+    assert checklist == [
+        "- [ ] 1. First step",
+        "- [ ] 2. Second step",
+        "- [ ] 3. Third step",
+    ]
+
+
+def test_plan_heading_form_steps_suppress_flush_left_body_lists(
+    sample_project, monkeypatch
+):
+    """COR-1612's real shape: flush-left bare numbered lists under ### N.
+    steps are body content; exactly the authored steps render (CHG-2294 R2)."""
+    rules_dir = sample_project / "rules"
+    content = """# TST-5011: Mixed Form Steps
+
+**Applies to:** Test
+**Status:** Active
+---
+## What Is It?
+SOP with heading-form steps and flush-left bare numbered body lists.
+## Steps
+### 1. First step
+
+**Blocking:**
+1. Fix the code
+
+**Advisory:**
+1. If adopting: fix the code
+2. If declining: reply with reasoning
+
+### 2. Second step
+### 3. Third step
+"""
+    (rules_dir / "TST-5011-SOP-Mixed-Form-Steps.md").write_text(content)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5011"], catch_exceptions=False)
+    assert result.exit_code == 0
+    checklist = [
+        line for line in result.output.splitlines() if line.startswith("- [ ]")
+    ]
+    assert checklist == [
+        "- [ ] 1. First step",
+        "- [ ] 2. Second step",
+        "- [ ] 3. Third step",
+    ]

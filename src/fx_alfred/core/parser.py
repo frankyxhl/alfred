@@ -7,6 +7,7 @@ body, Change History) and reconstructs them preserving original formatting.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 
@@ -294,28 +295,96 @@ def parse_tags(value: str) -> list[str]:
     return [t.strip().lower() for t in value.split(",") if t.strip()]
 
 
+def _fence_run_length(stripped: str, ch: str) -> int:
+    """Return the length of the leading run of ``ch`` in ``stripped`` (0 if none)."""
+    run = 0
+    while run < len(stripped) and stripped[run] == ch:
+        run += 1
+    return run
+
+
+def iter_lines_with_fence_state(text: str) -> Iterator[tuple[str, bool]]:
+    """Yield ``(line, fenced)`` for each line of ``text``.
+
+    ``fenced`` is True for fence opener lines, fence closer lines, and every
+    line in between — i.e. lines that markdown structure matching (headings,
+    step numbers) must ignore.
+
+    Fence matching follows CommonMark rules (same discipline as the step
+    parsers in ``core/steps.py``, PR #59 reviews P2 #4/#7/#8):
+
+    - Opener is a run of 3 or more backtick or tilde characters.
+    - Closer must use the **same character** AND be a run of **at least
+      as many** characters as the opener.
+
+    Known deviations from strict CommonMark, carried unchanged from the
+    steps.py implementation: a closer line with a trailing info string
+    (e.g. ```` ```sh ````) is accepted, and indentation beyond 3 spaces
+    does not disqualify an opener/closer (lines are ``lstrip``-ped).
+    Alfred documents use clean column-0 fences, so neither deviation has
+    a practical surface today.
+    """
+    fence_char: str | None = None  # '`' or '~' or None
+    fence_len = 0
+    for line in text.split("\n"):
+        stripped = line.lstrip()
+        if fence_char is not None:
+            # Inside a fence — closer must be the same char with len >= opener.
+            if stripped and stripped[0] == fence_char:
+                run = _fence_run_length(stripped, fence_char)
+                if run >= fence_len:
+                    fence_char = None
+                    fence_len = 0
+            yield line, True
+            continue
+        # Outside any fence — check for an opener (≥3 run of ` or ~).
+        if stripped and stripped[0] in ("`", "~"):
+            ch = stripped[0]
+            run = _fence_run_length(stripped, ch)
+            if run >= 3:
+                fence_char = ch
+                fence_len = run
+                yield line, True
+                continue
+        yield line, False
+
+
 def extract_section(body: str, heading: str) -> str | None:
     """Extract a section from document body by heading name.
 
     Searches for ``## {heading}`` or ``### {heading}`` (line-start anchored).
     Returns text from after the heading until the next heading of same or higher
     level, or end of body.  Returns ``None`` if no matching heading is found.
+
+    Lines inside fenced code blocks are ignored for both the heading match
+    and the boundary search, so column-0 ``#`` lines in code samples (e.g.
+    bash comments) neither start nor terminate a section (CHG-2294).
     """
+    annotated = list(iter_lines_with_fence_state(body))
     # Try ## first, then ###
     for prefix in ("##", "###"):
-        pattern = rf"^{re.escape(prefix)}\s+{re.escape(heading)}\s*$"
-        match = re.search(pattern, body, re.MULTILINE)
-        if match:
-            # Determine heading level (number of '#')
-            level = len(prefix)
-            start = match.end()
-            # Find next heading of same or higher level
-            next_heading = re.search(
-                rf"^#{{{1},{level}}}\s+", body[start:], re.MULTILINE
-            )
-            if next_heading:
-                section = body[start : start + next_heading.start()]
-            else:
-                section = body[start:]
-            return section.strip()
+        heading_re = re.compile(rf"^{re.escape(prefix)}\s+{re.escape(heading)}\s*$")
+        start_idx = next(
+            (
+                i
+                for i, (line, fenced) in enumerate(annotated)
+                if not fenced and heading_re.match(line)
+            ),
+            None,
+        )
+        if start_idx is None:
+            continue
+        # Find next heading of same or higher level (number of '#')
+        level = len(prefix)
+        boundary_re = re.compile(rf"^#{{1,{level}}}\s+")
+        end_idx = next(
+            (
+                j
+                for j in range(start_idx + 1, len(annotated))
+                if not annotated[j][1] and boundary_re.match(annotated[j][0])
+            ),
+            len(annotated),
+        )
+        section = "\n".join(line for line, _ in annotated[start_idx + 1 : end_idx])
+        return section.strip()
     return None

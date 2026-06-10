@@ -15,6 +15,8 @@ import pytest
 
 from fx_alfred.core.steps import (
     _parse_steps_for_json,
+    extract_steps_section,
+    iter_step_lines,
     parse_top_level_step_indices,
 )
 
@@ -85,3 +87,147 @@ def test_parse_top_level_step_indices_legacy_unchanged() -> None:
     section = "1. A\n2. B\n3. C\n"
     indices = parse_top_level_step_indices(section)
     assert indices == frozenset({1, 2, 3})
+
+
+def test_step_indices_survive_fenced_bash_comment_in_section_extraction() -> None:
+    """End-to-end: extract_steps_section + index parsing keep steps that
+    follow a fenced code block containing a column-0 comment (CHG-2294)."""
+    body = """\
+## Steps
+
+1. First step
+
+```bash
+# a comment that must not truncate the section
+echo hello
+```
+
+2. Second step
+3. Third step
+"""
+    section = extract_steps_section(body)
+    assert section is not None
+    assert parse_top_level_step_indices(section) == frozenset({1, 2, 3})
+
+
+_NESTED_AND_FENCED_SECTION = """\
+### 1. First step
+
+Options inside the step body:
+
+  1. nested option one
+  2. nested option two
+
+```bash
+# fenced pseudo-step
+3. not a real step
+```
+
+### 2. Second step
+### 3. Third step
+"""
+
+
+def test_parse_steps_for_json_excludes_nested_and_fenced_lines() -> None:
+    """Renderer counts only flush-left, unfenced step lines (CHG-2294 R2).
+
+    Same notion of "step" as parse_top_level_step_indices: indented
+    nested numbered items and numbered lines inside fences are body
+    content, not steps.
+    """
+    steps = _parse_steps_for_json(_NESTED_AND_FENCED_SECTION)
+    assert [s["index"] for s in steps] == [1, 2, 3]
+    assert [s["text"] for s in steps] == ["First step", "Second step", "Third step"]
+
+
+def test_parse_steps_for_json_keeps_flush_left_substeps() -> None:
+    """Flush-left Path B sub-steps still render; indented ones do not."""
+    section = "1. Plain\n3a. Branch A\n  3b. indented impostor\n"
+    steps = _parse_steps_for_json(section)
+    assert [(s["index"], s.get("sub_branch")) for s in steps] == [
+        (1, None),
+        (3, "a"),
+    ]
+
+
+def test_heading_form_steps_suppress_bare_body_lists() -> None:
+    """When a section authors ### N. heading-form steps, flush-left bare
+    numbered lines are body content (COR-1612 shape, CHG-2294 R2)."""
+    section = (
+        "### 1. First step\n"
+        "\n"
+        "**Blocking:**\n"
+        "1. Fix the code\n"
+        "\n"
+        "**Advisory:**\n"
+        "1. If adopting: fix\n"
+        "2. If declining: reply\n"
+        "\n"
+        "### 2. Second step\n"
+        "### 3. Third step\n"
+    )
+    steps = _parse_steps_for_json(section)
+    assert [s["index"] for s in steps] == [1, 2, 3]
+    assert [s["text"] for s in steps] == ["First step", "Second step", "Third step"]
+
+
+def test_all_bare_sections_keep_legacy_step_form() -> None:
+    """Sections with no heading-form lines render bare flush-left steps."""
+    section = (
+        "1. Leader identifies artifact\n2. Leader dispatches\n3. Reviewers analyze\n"
+    )
+    steps = _parse_steps_for_json(section)
+    assert [s["index"] for s in steps] == [1, 2, 3]
+
+
+def test_heading_form_substeps_count_as_heading_form() -> None:
+    """### 3a. sub-step lines participate in heading-form preference."""
+    section = "### 1. Plain\n### 3a. Branch A\n1. bare body item\n"
+    steps = _parse_steps_for_json(section)
+    assert [(s["index"], s.get("sub_branch")) for s in steps] == [(1, None), (3, "a")]
+
+
+# --- iter_step_lines direct unit tests (FXA-2294 R2 panel advisory:
+# deepseek "no direct unit test" + glm "bare-form + fenced intersection
+# untested" — convergent; isolate the helper from both renderers) ---
+
+
+def test_iter_step_lines_bare_section_with_fenced_numbered_lines() -> None:
+    """Legacy bare-form section: fenced numbered lines are excluded while
+    bare flush-left steps render (the glm R2 test-matrix gap)."""
+    section = (
+        "1. Real step one\n"
+        "\n"
+        "```bash\n"
+        "2. fenced pseudo-step\n"
+        "# fenced comment\n"
+        "```\n"
+        "\n"
+        "2. Real step two\n"
+    )
+    assert list(iter_step_lines(section)) == [
+        (1, None, "Real step one"),
+        (2, None, "Real step two"),
+    ]
+
+
+def test_iter_step_lines_mixed_form_directly() -> None:
+    """Heading-form preference observed at the helper level, not just
+    through the renderers."""
+    section = "### 1. Heading step\n1. bare body item\n### 2. Another\n"
+    assert list(iter_step_lines(section)) == [
+        (1, None, "Heading step"),
+        (2, None, "Another"),
+    ]
+
+
+def test_iter_step_lines_indented_heading_is_not_heading_form() -> None:
+    """An indented '### 1.' line neither matches as a step (not flush-left)
+    nor flips the section into heading-form preference."""
+    section = "  ### 1. indented impostor\n1. real bare step\n"
+    assert list(iter_step_lines(section)) == [(1, None, "real bare step")]
+
+
+def test_iter_step_lines_rstrips_text_and_keeps_sub_branch() -> None:
+    section = "### 3a. Branch step   \n"
+    assert list(iter_step_lines(section)) == [(3, "a", "Branch step")]
