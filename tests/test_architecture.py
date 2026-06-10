@@ -22,7 +22,9 @@ _CLICK_IMPORT_RE = re.compile(r"^\s*(?:import|from)\s+click\b")
 def test_core_modules_do_not_import_click() -> None:
     """No module under core/ may import Click (CHG-2295 A1)."""
     offenders: list[str] = []
-    for py in sorted(_CORE_DIR.glob("*.py")):
+    # rglob so future core/ subpackages cannot evade the guard
+    # (FXA-2295 R1 convergent advisory: glm + minimax).
+    for py in sorted(_CORE_DIR.rglob("*.py")):
         for lineno, line in enumerate(
             py.read_text(encoding="utf-8").splitlines(), start=1
         ):
