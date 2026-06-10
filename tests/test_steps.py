@@ -16,6 +16,7 @@ import pytest
 from fx_alfred.core.steps import (
     _parse_steps_for_json,
     extract_steps_section,
+    iter_step_lines,
     parse_top_level_step_indices,
 )
 
@@ -184,3 +185,49 @@ def test_heading_form_substeps_count_as_heading_form() -> None:
     section = "### 1. Plain\n### 3a. Branch A\n1. bare body item\n"
     steps = _parse_steps_for_json(section)
     assert [(s["index"], s.get("sub_branch")) for s in steps] == [(1, None), (3, "a")]
+
+
+# --- iter_step_lines direct unit tests (FXA-2294 R2 panel advisory:
+# deepseek "no direct unit test" + glm "bare-form + fenced intersection
+# untested" — convergent; isolate the helper from both renderers) ---
+
+
+def test_iter_step_lines_bare_section_with_fenced_numbered_lines() -> None:
+    """Legacy bare-form section: fenced numbered lines are excluded while
+    bare flush-left steps render (the glm R2 test-matrix gap)."""
+    section = (
+        "1. Real step one\n"
+        "\n"
+        "```bash\n"
+        "2. fenced pseudo-step\n"
+        "# fenced comment\n"
+        "```\n"
+        "\n"
+        "2. Real step two\n"
+    )
+    assert list(iter_step_lines(section)) == [
+        (1, None, "Real step one"),
+        (2, None, "Real step two"),
+    ]
+
+
+def test_iter_step_lines_mixed_form_directly() -> None:
+    """Heading-form preference observed at the helper level, not just
+    through the renderers."""
+    section = "### 1. Heading step\n1. bare body item\n### 2. Another\n"
+    assert list(iter_step_lines(section)) == [
+        (1, None, "Heading step"),
+        (2, None, "Another"),
+    ]
+
+
+def test_iter_step_lines_indented_heading_is_not_heading_form() -> None:
+    """An indented '### 1.' line neither matches as a step (not flush-left)
+    nor flips the section into heading-form preference."""
+    section = "  ### 1. indented impostor\n1. real bare step\n"
+    assert list(iter_step_lines(section)) == [(1, None, "real bare step")]
+
+
+def test_iter_step_lines_rstrips_text_and_keeps_sub_branch() -> None:
+    section = "### 3a. Branch step   \n"
+    assert list(iter_step_lines(section)) == [(3, "a", "Branch step")]

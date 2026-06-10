@@ -57,8 +57,9 @@ def iter_step_lines(section_text: str) -> Iterator[tuple[int, str | None, str]]:
     COR-1612 authors category action lists flush-left under its ### steps).
     Sections with no heading-form lines keep the legacy convention: bare
     flush-left numbered lines ARE the steps. Corpus check at change time:
-    exactly 2 of 62 SOPs mix forms (COR-1612, COR-1200); in both, every
-    bare line is body content.
+    of the 62 step-bearing SOPs across all three layers (PKG/USR/PRJ),
+    exactly 2 mix forms (COR-1612, COR-1200); in both, every bare line is
+    body content.
 
     Rendering-side only: `parse_top_level_step_indices` (loop/branch
     validation) intentionally stays permissive — it counts both forms, so
@@ -116,6 +117,9 @@ def _parse_steps_for_json(section_text: str) -> list[StepDict]:
 # lines inside indented code fences are **not** counted, keeping this
 # consistent with `workflow._parse_step_indices`. Shared via this module so
 # validate_cmd can use the same definition of "top-level step" (PR #59 P1).
+# Validation-side sibling of `_STEP_LINE_RE` above (CHG-2294 R2): same shape
+# minus the text-capture group, and intentionally NO heading-form preference
+# — validation counts both forms so rendered steps are always a subset.
 # FXA-2226 Path B: regex extended to also match sub-step lines like ``3a.`` so
 # ``parse_top_level_step_indices`` injects the parent integer (3) from each
 # sibling. The optional ``[a-z]?`` is OUTSIDE the int-capturing group, so the
