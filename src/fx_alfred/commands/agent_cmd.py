@@ -16,10 +16,6 @@ from fx_alfred.core.agent_helpers import (
 )
 
 
-def _emit_json(envelope: dict) -> None:
-    emit_json(envelope)
-
-
 @click.group("agent")
 @root_option
 def agent_cmd() -> None:
@@ -46,7 +42,7 @@ def agent_call_cmd(
     if not agent_tools_enabled():
         envelope = gate_error_envelope("helper", helper_name)
         if json_output:
-            _emit_json(envelope)
+            emit_json(envelope)
             ctx.exit(1)
         else:
             raise click.ClickException(envelope["error"]["message"])
@@ -58,7 +54,7 @@ def agent_call_cmd(
 
     envelope = call_helper(get_root(ctx), helper_name, kwargs)
     if json_output:
-        _emit_json(envelope)
+        emit_json(envelope)
         ctx.exit(0 if envelope["status"] == "ok" else 1)
     elif envelope["status"] == "ok":
         click.echo(str(envelope["result"]))
@@ -80,14 +76,14 @@ def agent_run_cmd(
     if not agent_tools_enabled():
         envelope = gate_error_envelope("script", script_path)
         if json_output:
-            _emit_json(envelope)
+            emit_json(envelope)
             ctx.exit(1)
         else:
             raise click.ClickException(envelope["error"]["message"])
 
     envelope = run_script(get_root(ctx), script_path)
     if json_output:
-        _emit_json(envelope)
+        emit_json(envelope)
         ctx.exit(0 if envelope["status"] == "ok" else 1)
     else:
         click.echo(envelope["stdout"], nl=False)

@@ -274,3 +274,17 @@ def test_invoke_index_update_failure_emits_warning():
     assert "Warning" in args[0]
     assert "Failed to update index" in args[0]
     assert kwargs.get("err") is True
+
+
+def test_emit_json_formatting_contract(capsys):
+    """emit_json renders indent=2 + raw UTF-8 — the CHG-2301 headline fix
+    (bare json.dumps escaped CJK to \\uXXXX). Pins the helper itself so the
+    architecture guard (no raw dumps) plus this test cover both halves
+    (FXA-2301 R1 glm advisory)."""
+    from fx_alfred.commands._helpers import emit_json
+
+    emit_json({"title": "跨模型评审", "n": 1})
+    out = capsys.readouterr().out
+    assert '"title": "跨模型评审"' in out  # raw CJK, not \uXXXX
+    assert "\\u" not in out
+    assert out.startswith("{\n  ")  # indent=2
