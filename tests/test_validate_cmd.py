@@ -2116,3 +2116,45 @@ def test_no_warnings_keeps_summary_line_unchanged(tmp_path):
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "warning" not in result.output.lower()
+
+
+def test_doc_with_both_issues_and_warnings_single_heading(tmp_path):
+    """A doc with an unknown TYPE and a structural issue prints ONE doc_id
+    heading with '-' issue lines and '~' warning lines beneath it; exit 1
+    driven by the issue; summary reports both counts (R1 panel convergent
+    advisory: glm + deepseek + minimax)."""
+    import json as json_mod
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    # Unknown type AND missing Change History (structural issue).
+    (rules_dir / "TST-9006-XYZ-Broken-Doc.md").write_text(
+        """# XYZ-9006: Broken Doc
+
+**Applies to:** All projects
+**Last updated:** 2026-06-11
+**Last reviewed:** 2026-06-11
+**Status:** Active
+
+---
+
+## What Is It?
+
+Doc with unknown type and no Change History.
+"""
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert result.output.count("TST-9006:") == 1
+    assert "  - Missing Change History table" in result.output
+    assert "  ~ Unknown document type 'XYZ'" in result.output
+    assert "1 issues found, 1 warning." in result.output
+
+    json_result = runner.invoke(cli, ["validate", "--root", str(tmp_path), "--json"])
+    payload = json_mod.loads(json_result.output)
+    entry = next(r for r in payload["results"] if r["doc_id"] == "TST-9006")
+    assert entry["valid"] is False
+    assert any("Change History" in e for e in entry["errors"])
+    assert any("Unknown document type 'XYZ'" in w for w in entry["warnings"])

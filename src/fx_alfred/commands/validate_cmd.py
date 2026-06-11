@@ -406,23 +406,31 @@ def validate_cmd(ctx: click.Context, output_json: bool):
         }
         click.echo(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        # Report issues (text output)
-        for doc_id, doc_issues in issues_by_doc.items():
+        # Report issues and warnings (text output) — one heading per doc,
+        # `-` issue lines then `~` warning lines beneath it (CHG-2296; R1
+        # panel convergent advisory). Iterate in scan order so issue-only
+        # corpora print identically to the pre-CHG-2296 output.
+        for doc in docs:
+            doc_id = f"{doc.prefix}-{doc.acid}"
+            doc_issues = issues_by_doc.get(doc_id, [])
+            doc_warnings = warnings_by_doc.get(doc_id, [])
+            if not doc_issues and not doc_warnings:
+                continue
             click.echo(f"{doc_id}:")
             for issue in doc_issues:
                 click.echo(f"  - {issue}")
-
-        # Report warnings (CHG-2296) — `~` prefix distinguishes from `-` issues
-        for doc_id, doc_warnings in warnings_by_doc.items():
-            click.echo(f"{doc_id}:")
             for warning in doc_warnings:
                 click.echo(f"  ~ {warning}")
 
-        summary = f"{len(docs)} documents checked, {total_issues} issues found."
-        if total_warnings:
-            plural = "s" if total_warnings != 1 else ""
-            summary = summary[:-1] + f", {total_warnings} warning{plural}."
-        click.echo(summary)
+        warnings_suffix = (
+            f", {total_warnings} warning{'' if total_warnings == 1 else 's'}"
+            if total_warnings
+            else ""
+        )
+        click.echo(
+            f"{len(docs)} documents checked, "
+            f"{total_issues} issues found{warnings_suffix}."
+        )
 
     # Exit with code 1 if issues found
     if total_issues > 0:
