@@ -224,13 +224,18 @@ def _order_documents(selected: list[_ExportDoc]) -> list[_ExportDoc]:
                 for e in selected
                 if e.doc.source == source and e.is_routing and e.status == "Active"
             ),
-            key=lambda e: e.doc.acid,
+            key=lambda e: (e.doc.acid, e.doc.prefix),
         )
         if candidates:
             routing_block.append(candidates[0])
     routing_ids = {e.doc_id for e in routing_block}
     rest = [e for e in selected if e.doc_id not in routing_ids]
-    rest.sort(key=lambda e: (SOURCE_ORDER.index(e.doc.source), e.doc.acid))
+    # prefix as the stable tie-breaker: same-layer same-ACID docs with
+    # different prefixes otherwise fall to filesystem traversal order,
+    # which varies across clones (codex PR #201 P2 #4 — determinism).
+    rest.sort(
+        key=lambda e: (SOURCE_ORDER.index(e.doc.source), e.doc.acid, e.doc.prefix)
+    )
     return routing_block + rest
 
 

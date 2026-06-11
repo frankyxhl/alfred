@@ -456,3 +456,20 @@ def test_filter_relevant_skip_fails_loudly(tmp_path):
     result = runner.invoke(cli, ["export", "--root", str(tmp_path), "--prefix", "ZZX"])
     assert result.exit_code == 1
     assert "all matches were skipped" in result.output
+
+
+def test_same_acid_different_prefix_orders_by_prefix(tmp_path):
+    """Same layer + same ACID + different prefixes must order
+    deterministically by prefix, not filesystem traversal order
+    (codex PR #201 P2 #4)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    # Create in reverse-alphabetical order to defeat traversal luck.
+    _write_doc(rules, "ZZB", "7000", "SOP", "Zeta-Sop")
+    _write_doc(rules, "AAB", "7000", "SOP", "Alpha-Sop")
+    out = (
+        CliRunner()
+        .invoke(cli, ["export", "--root", str(tmp_path)], catch_exceptions=False)
+        .output
+    )
+    assert out.index("═ AAB-7000 ·") < out.index("═ ZZB-7000 ·")
