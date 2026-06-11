@@ -224,10 +224,23 @@ def test_delimiter_full_pattern(project):
     assert "═ TST-6001 · SOP · PRJ · Active ═" in out
 
 
+def _stderr_capable_runner() -> CliRunner:
+    """CliRunner with separately-captured stderr across supported Click.
+
+    Click 8.0/8.1 expose ``mix_stderr`` as a CliRunner.__init__ PARAMETER
+    (not a class attribute — hasattr() is the wrong probe; codex PR #201
+    P2 + deepseek R1 convergent finding): pass mix_stderr=False there.
+    Click 8.2+ removed the parameter and always captures stderr separately.
+    """
+    import inspect
+
+    if "mix_stderr" in inspect.signature(CliRunner.__init__).parameters:
+        return CliRunner(mix_stderr=False)
+    return CliRunner()
+
+
 def test_summary_and_privacy_warning_on_stderr(project):
-    runner = (
-        CliRunner(mix_stderr=False) if hasattr(CliRunner, "mix_stderr") else CliRunner()
-    )
+    runner = _stderr_capable_runner()
     result = runner.invoke(
         cli,
         ["export", "--root", str(project)],
