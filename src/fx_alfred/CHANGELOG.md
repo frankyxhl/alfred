@@ -1,5 +1,83 @@
 # Changelog
 
+## v1.19.0 (2026-06-11)
+
+Quality-and-correctness release: nine reviewed PRs (#190–#198) clearing the
+2026-06-10 full-project review backlog. Every change passed a three-model
+review panel (30 verdicts, all >= 9.0) plus per-PR bot review.
+
+### New Features
+
+- **Project-root auto-discovery** — when `--root` is absent, every command
+  resolves the nearest ancestor directory whose `rules/` contains Alfred
+  documents (non-COR), falling back to the working directory exactly as
+  before. Run `af` from any project subdirectory. Explicit `--root` always
+  wins. (FXA-2300, #196)
+- **`af validate` unknown-TYPE warnings** — a filename TYPE code outside the
+  known set (SOP/PRP/CHG/ADR/REF/PLN/INC) now emits a per-document warning
+  instead of silently skipping Status and type-specific checks. Text mode
+  prints `~`-prefixed lines and the summary appends `, N warning(s)`; `--json`
+  results gain an additive `warnings` array. Warnings never affect the exit
+  code. (FXA-2296, #192)
+
+### Bug Fixes
+
+- **`af plan` silently dropped steps** — `extract_section` terminated
+  sections at `#`-prefixed lines inside fenced code blocks (e.g. bash
+  comments), truncating the Steps sections of 10 bundled/user SOPs
+  (COR-1612 rendered 1 of 8 authored steps). Section boundary detection is
+  now fence-aware. (FXA-2294, #190)
+- **Step renderers counted body lines as steps** — with sections no longer
+  truncated, nested numbered lists and fenced numbered lines could inflate
+  checklists (COR-1612: 21 items for 8 steps, duplicate indices). Renderers
+  now apply flush-left + fence-aware + heading-form-preference discipline;
+  validation stays permissive so loop/branch references keep resolving.
+  (FXA-2294 R2, #190)
+- **CJK content escaped in `--json`** — `af list/read/status` emitted
+  `ensure_ascii` JSON, turning Chinese document content into `\uXXXX`
+  escapes. All command JSON now goes through one emitter: indented,
+  raw UTF-8. (FXA-2301, #197)
+
+### Improvements
+
+- **CI matrix + type/format gates** — tests now run on Python 3.10, 3.12,
+  and 3.14 (the `requires-python >= 3.10` claim was previously untested);
+  `pyright` and `ruff format --check` are CI-enforced. (FXA-2298, #194)
+- **`core/` is now enforceably framework-agnostic** — `compose.py` (the lone
+  violator) raises domain `CompositionError` instead of `ClickException`;
+  an architecture guard test forbids Click imports under `core/` forever.
+  (FXA-2295, #191)
+- **Fence tracking has one implementation** — five inline CommonMark fence
+  loops consolidated onto `parser.iter_lines_with_fence_state`, guarded by
+  a fingerprint test. (FXA-2294/2299, #190/#195)
+- **`plan_cmd` decomposed** — the 376-line main function is now 76 lines of
+  orchestration over 8 named functions; duplicate todo builders merged onto
+  one classification path; an AST ratchet caps command-function length
+  (pre-existing oversized functions pinned shrink-only). Verified
+  byte-identical CLI output across 7 modes. (FXA-2302, #198)
+- **Unified JSON/exit conventions** — one `emit_json` helper, named
+  `SCHEMA_VERSION` constants, `ctx.exit` everywhere; three architecture
+  guards keep the conventions enforced. (FXA-2301, #197)
+- **Agent runbook refreshed with drift guards** — project CLAUDE.md caught
+  up (6 undocumented commands, 19 missing modules, broken smoke paths);
+  `tests/test_docs_drift.py` pins the command list and module inventory to
+  the code. (FXA-2297, #193)
+
+### Stats
+
+- 1000 tests (65 new), all passing on 3.10/3.12/3.14
+- 11 permanent architecture/drift guard tests added
+- 0 breaking changes (CLI surface unchanged; JSON additions are additive;
+  `core.compose` consumers: `CompositionError` replaces `ClickException`)
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.19.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.18.0 (2026-05-17)
 
 Minor release introducing one new CLI subcommand (`af issue lint`) plus a
