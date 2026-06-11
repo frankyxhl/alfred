@@ -111,3 +111,25 @@ def test_commands_use_named_schema_version_constants() -> None:
         lambda line: '"schema_version": "1"' in line, skip_helpers=True
     )
     assert offenders == [], f"use a named SCHEMA_VERSION constant: {offenders}"
+
+
+def test_commands_functions_stay_decomposed() -> None:
+    """No function in commands/ may exceed 150 lines (CHG-2302).
+
+    Operationalizes the plan_cmd decomposition: the pre-change main
+    function had grown to 376 lines of nested mode branching, absorbing
+    every plan feature since FXA-2134. 150 leaves ~1.4x headroom over
+    the largest post-decomposition function (_emit_json_output, 108)."""
+    import ast
+
+    offenders: list[str] = []
+    for py in sorted(_COMMANDS_DIR.rglob("*.py")):
+        tree = ast.parse(py.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                length = (node.end_lineno or node.lineno) - node.lineno + 1
+                if length > 150:
+                    offenders.append(f"{py.name}:{node.name} ({length} lines)")
+    assert offenders == [], (
+        f"decompose oversized command functions (CHG-2302): {offenders}"
+    )
