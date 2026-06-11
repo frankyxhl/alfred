@@ -430,35 +430,20 @@ def validate_branches(
     # Pull the actual ## Steps lines (in document order) for sub-step
     # presence and contiguity checks.
     from fx_alfred.core.parser import extract_section as _extract_section
+    from fx_alfred.core.parser import iter_lines_with_fence_state
 
     section = _extract_section(parsed.body, "Steps") if parsed.body else None
     sub_steps_in_order: list[tuple[int, str]] = []  # [(parent, branch), ...]
     plain_step_positions: dict[int, int] = {}  # int_index -> first occurrence
     if section is not None:
         position = 0  # logical position counting ALL parsed step lines
-        fence_char: str | None = None
-        fence_len = 0
-        for raw in section.split("\n"):
-            stripped = raw.lstrip()
-            # Skip fenced code blocks (mirrors parse_top_level_step_indices).
-            if fence_char is not None:
-                if stripped and stripped[0] == fence_char:
-                    run = 0
-                    while run < len(stripped) and stripped[run] == fence_char:
-                        run += 1
-                    if run >= fence_len:
-                        fence_char = None
-                        fence_len = 0
+        # Fenced lines are skipped via the shared CommonMark tracker
+        # (CHG-2299; same discipline as parse_top_level_step_indices).
+        # Validation-side matching stays permissive — both "3." and
+        # "### 3." forms count; no heading-form preference here.
+        for raw, fenced in iter_lines_with_fence_state(section):
+            if fenced:
                 continue
-            if stripped and stripped[0] in ("`", "~"):
-                ch = stripped[0]
-                run = 0
-                while run < len(stripped) and stripped[run] == ch:
-                    run += 1
-                if run >= 3:
-                    fence_char = ch
-                    fence_len = run
-                    continue
             # Match either "3." (plain) or "3a." (sub-step).
             m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+", raw)
             if not m:
@@ -543,28 +528,11 @@ def validate_branches(
             # last declared sibling.
             unified: list[tuple[str, int, str | None]] = []
             if section is not None:
-                fence_char = None
-                fence_len = 0
-                for raw in section.split("\n"):
-                    stripped = raw.lstrip()
-                    if fence_char is not None:
-                        if stripped and stripped[0] == fence_char:
-                            run = 0
-                            while run < len(stripped) and stripped[run] == fence_char:
-                                run += 1
-                            if run >= fence_len:
-                                fence_char = None
-                                fence_len = 0
+                # Shared fence tracker (CHG-2299); permissive matching as
+                # in the sub-step scan above.
+                for raw, fenced in iter_lines_with_fence_state(section):
+                    if fenced:
                         continue
-                    if stripped and stripped[0] in ("`", "~"):
-                        ch = stripped[0]
-                        run = 0
-                        while run < len(stripped) and stripped[run] == ch:
-                            run += 1
-                        if run >= 3:
-                            fence_char = ch
-                            fence_len = run
-                            continue
                     m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+", raw)
                     if not m:
                         continue

@@ -266,3 +266,45 @@ def test_branches_legacy_loops_unaffected() -> None:
     assert branches == []
     errors = validate_branches(parsed, branches)
     assert errors == []
+
+
+def test_branch_validation_skips_fenced_pseudo_steps() -> None:
+    """Fenced pseudo-step lines neither satisfy sibling presence nor break
+    contiguity — both validate_branches scan sites run through the shared
+    fence tracker (CHG-2299; deepseek R1 advisory: pin the fence-skip
+    pipeline at these exact sites)."""
+    steps = (
+        "1. Setup\n"
+        "2. Decision\n"
+        "3a. A path\n"
+        "```bash\n"
+        "4. fenced pseudo-step must not break sibling contiguity\n"
+        "3c. fenced pseudo-sibling must not satisfy presence\n"
+        "```\n"
+        "3b. B path\n"
+        "4. After\n"
+    )
+    body = _doc(
+        "[{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]",
+        steps,
+    )
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    errors = validate_branches(parsed, branches)
+    assert errors == []
+
+
+def test_branch_validation_fenced_sibling_does_not_count_as_declared() -> None:
+    """A declared sibling that exists ONLY inside a fence is missing —
+    the presence scan must not see fenced lines (CHG-2299)."""
+    steps = (
+        "1. Setup\n2. Decision\n3a. A path\n```\n3b. fenced impostor\n```\n4. After\n"
+    )
+    body = _doc(
+        "[{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]",
+        steps,
+    )
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    errors = validate_branches(parsed, branches)
+    assert any("3b" in e.msg for e in errors)
