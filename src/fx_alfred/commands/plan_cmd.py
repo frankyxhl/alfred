@@ -41,6 +41,12 @@ from fx_alfred.core.workflow import (
 # Re-exported here for existing call sites inside this module.
 from fx_alfred.core.steps import _STEP_HEADINGS  # noqa: E402, F401
 
+# One composed plan phase: (sop_id, doc, parsed, workflow signature, loops).
+# Shared by collection, validation, and all three emitters (CHG-2302).
+_PhaseInfo = tuple[
+    str, Document, ParsedDocument, "WorkflowSignature | None", list[LoopSignature]
+]
+
 
 def _gather_all_sops(
     docs: list[Document],
@@ -373,11 +379,7 @@ def _build_todo_json(
 
 
 def _build_mermaid_phases(
-    phase_info: list[
-        tuple[
-            str, Document, ParsedDocument, WorkflowSignature | None, list[LoopSignature]
-        ]
-    ],
+    phase_info: list[_PhaseInfo],
     provenance_map: dict[str, str] | None = None,
 ) -> list[PhaseDict]:
     """Build the phases list consumed by ``render_mermaid()`` / ``render_ascii()``.
@@ -441,7 +443,7 @@ def _render_layout(
 
 
 def _emit_graph(
-    phase_info: list,
+    phase_info: list[_PhaseInfo],
     provenance_map: dict[str, str],
     graph_format: str,
     graph_layout: str = "nested",
@@ -479,11 +481,6 @@ def _emit_recommended_skills(recommended_skills: list[dict] | None) -> None:
         click.echo(
             f"- [{source}] {item['id']} {item['type_code']} {item['title']}{suffix}"
         )
-
-
-_PhaseInfo = tuple[
-    str, Document, ParsedDocument, "WorkflowSignature | None", list[LoopSignature]
-]
 
 
 def _validate_option_coupling(

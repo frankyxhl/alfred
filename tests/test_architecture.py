@@ -116,7 +116,9 @@ def test_commands_use_named_schema_version_constants() -> None:
 # Pre-CHG-2302 oversized functions, pinned at their current sizes — a
 # RATCHET: they may shrink but not grow, and new functions get the 150
 # cap. Decomposing them is recorded follow-up work (CHG-2302 §Out of
-# Scope); remove entries as they get decomposed.
+# Scope). Maintainers: when one of these shrinks, LOWER its cap to the
+# new size (or delete the entry once it fits under 150) so the ratchet
+# never goes slack.
 _GRANDFATHERED_FUNCTION_LINES = {
     "create_cmd.py:create_cmd": 230,
     "update_cmd.py:update_cmd": 283,
