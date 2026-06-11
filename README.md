@@ -21,7 +21,8 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
-- **NEW in v1.18.0** — `af issue lint <body-file>` Phase 1 MVP — pre-creation lint for GitHub issue bodies; detects TBD-after-PR-review anti-patterns (5 canonical phrases, case-insensitive substring match) with `--json` output and `-` stdin support. Plus PKG SOP additions: [Two-Worker TDD Dispatch (PRP-1507)](src/fx_alfred/rules/COR-1507-PRP-Two-Worker-TDD-Dispatch.md) opt-in cross-validation pattern (new `<test-writer-worker-agent>` parameter in COR-1622, dispatch contract in COR-1619, Worker-assignment rule in COR-1500); [COR-1620 Primitive 5](src/fx_alfred/rules/COR-1620-SOP-Self-Pacing-Loop-Primitives.md) Status-Communication Contract forbidding silent wake-and-yield; [COR-1501 §Quality Criteria](src/fx_alfred/rules/COR-1501-SOP-Create-GitHub-Issue.md) author-side write-time targets; COR-1617/COR-1618 reconciled on loop-start triggers.
+- **NEW in v1.19.0** — Project-root auto-discovery: every command now resolves the nearest ancestor directory whose `rules/` contains Alfred documents, so `af` works from any project subdirectory without `--root` (explicit `--root` still wins). `af plan` no longer silently drops steps: section extraction and step rendering are now fence-aware (bash comments and numbered lines inside code blocks are body content, not boundaries or steps) — 10 bundled/user SOPs were affected. `af validate` warns on unknown document TYPE codes instead of silently skipping type-specific checks (`--json` gains an additive `warnings` field). All `--json` output is now uniformly indented UTF-8 (CJK content renders as written instead of `\uXXXX` escapes). CI now tests Python 3.10/3.12/3.14 with pyright and format gates.
+- **v1.18.0** — `af issue lint <body-file>` Phase 1 MVP — pre-creation lint for GitHub issue bodies; detects TBD-after-PR-review anti-patterns (5 canonical phrases, case-insensitive substring match) with `--json` output and `-` stdin support. Plus PKG SOP additions: [Two-Worker TDD Dispatch (PRP-1507)](src/fx_alfred/rules/COR-1507-PRP-Two-Worker-TDD-Dispatch.md) opt-in cross-validation pattern (new `<test-writer-worker-agent>` parameter in COR-1622, dispatch contract in COR-1619, Worker-assignment rule in COR-1500); [COR-1620 Primitive 5](src/fx_alfred/rules/COR-1620-SOP-Self-Pacing-Loop-Primitives.md) Status-Communication Contract forbidding silent wake-and-yield; [COR-1501 §Quality Criteria](src/fx_alfred/rules/COR-1501-SOP-Create-GitHub-Issue.md) author-side write-time targets; COR-1617/COR-1618 reconciled on loop-start triggers.
 - **v1.17.1** — PRJ-layer documentation: FXA-1623 review thread watchdog, FXA-2285 pre-merge bot sweep gate, review-loop refinements (COR-1602/1612/1615).
 - **v1.17.0** — [PR Review Thread Verification (COR-1623)](src/fx_alfred/rules/COR-1623-SOP-PR-Review-Thread-Verification.md) audits unresolved GitHub PR review threads against exact source content at the PR head SHA; [Review GitHub Issue Quality (COR-1506)](src/fx_alfred/rules/COR-1506-SOP-Review-GitHub-Issue-Quality.md) scores `blueprint-ready` issues with a weighted implementation-readiness rubric.
 - **v1.16.0** — [Build Weighted Decision Matrix (COR-1802)](src/fx_alfred/rules/COR-1802-SOP-Build-Weighted-Decision-Matrix.md) codifies rubric design and calibration; COR-1200 gained retrospective scoring; COR-1617 added Phase 11 Retrospective; COR-1622 added resilience parameters.
@@ -34,7 +35,7 @@ Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and str
 - **Workflow Routing** — `af guide` tells AI agents which SOP to follow for any task
 - **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs. With `--task "<description>"` auto-composes the SOP set from tags; `--todo` flattens into a unified checklist; `--graph` renders ASCII + Mermaid flowcharts with intra-SOP loops and gates; `--with-skills` recommends matching skill docs
 - **Agent Helpers & Skills** — `af agent` runs explicitly gated local Python helpers/scripts, while `af skill` discovers and reads reusable REF/SOP skill documents without executing code
-- **Document Validation** — `af validate` enforces metadata format, status values, and section structure
+- **Document Validation** — `af validate` enforces metadata format, status values, and section structure; warns on unknown TYPE codes
 - **Document Formatting** — `af fmt` normalizes metadata order, whitespace, and table alignment to canonical style
 - **File Path Lookup** — `af where` prints the absolute filesystem path of any document by identifier
 - **Document Lifecycle** — Create, read, update, search, and index documents with consistent naming
@@ -167,10 +168,12 @@ Unknown markers fail because pytest runs with `--strict-markers`.
 
 ### Document Validation (`af validate`)
 
-Enforces document health across all layers:
+Enforces document health across all layers (H1 format, required metadata,
+status values, Change History, SOP sections, layer rules). Unknown TYPE
+codes emit a warning — type-specific checks are skipped but never silently:
 
 ```bash
-af validate --root /path/to/project
+af validate --root /path/to/project   # --root optional: nearest project root is auto-discovered
 ```
 
 Checks:
