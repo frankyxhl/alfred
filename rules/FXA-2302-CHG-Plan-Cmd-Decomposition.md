@@ -36,6 +36,7 @@ Zero behavior change. **The existing suite is the characterization contract**: 9
 - Moving anything to `core/` (e.g. the D4 loop validation) — core API changes deserve their own focused CHG (FXA-2295 precedent).
 - Behavior changes of any kind, including output ordering, exit codes, warning text.
 - Splitting plan_cmd.py into a package.
+- Decomposing the three other oversized command functions (create_cmd 230 / update_cmd 283 / validate_cmd 325 lines) — grandfathered in the structure guard as a RATCHET (may shrink, may not grow; new functions get the 150 cap); recorded follow-up work.
 - The renderer-readiness gate's logic (CHG-2227 owns its lifecycle; it only moves into a named function verbatim).
 
 
@@ -61,6 +62,7 @@ Zero behavior change. **The existing suite is the characterization contract**: 9
 
 ## Change History
 
-| Date       | Change                                                                                                   | By               |
-|------------|----------------------------------------------------------------------------------------------------------|------------------|
-| 2026-06-11 | Initial version — decompose plan_cmd main function; merge duplicate todo builders; function-length guard | Claude (Fable 5) |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | By               |
+|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
+| 2026-06-11 | Initial version — decompose plan_cmd main function; merge duplicate todo builders; function-length guard                                                                                                                                                                                                                                                                                                                                                                                                                                           | Claude (Fable 5) |
+| 2026-06-11 | Todo-builder merge landed (commit 1): _TodoEntry + _classify_todo_entries; 999 unmodified-green; 7 golden outputs byte-identical. Decomposition landed (commit 2): plan_cmd 376 → 76 lines, 8 named sections, largest function 108; golden outputs byte-identical again. Structure guard initially swept all commands/ and tripped on three pre-existing oversized functions (create 230 / update 283 / validate 325) — converted to a ratchet with grandfathered caps (shrink-only) rather than scope-creeping their decomposition into this CHG. | Claude (Fable 5) |
