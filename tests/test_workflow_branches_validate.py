@@ -298,13 +298,7 @@ def test_branch_validation_fenced_sibling_does_not_count_as_declared() -> None:
     """A declared sibling that exists ONLY inside a fence is missing —
     the presence scan must not see fenced lines (CHG-2299)."""
     steps = (
-        "1. Setup\n"
-        "2. Decision\n"
-        "3a. A path\n"
-        "```\n"
-        "3b. fenced impostor\n"
-        "```\n"
-        "4. After\n"
+        "1. Setup\n2. Decision\n3a. A path\n```\n3b. fenced impostor\n```\n4. After\n"
     )
     body = _doc(
         "[{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]",
