@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 
 import click
 
@@ -254,6 +255,63 @@ def _apply_text_markers(
     return text
 
 
+@dataclass(frozen=True)
+class _TodoEntry:
+    """One classified TODO step — the single source both todo renderers
+    (text lines and JSON dicts) derive from (CHG-2302)."""
+
+    dotted: str  # "2.3" / "2.3a" (FXA-2226 Path B sub-step suffix) / "2.1" fallback
+    text: str  # step text without markers; fallback message for fallback entries
+    gate: bool
+    loop_to_sig: LoopSignature | None
+    loop_from_sig: LoopSignature | None
+
+
+def _classify_todo_entries(
+    phase_num: int,
+    body: str,
+    loops: list[LoopSignature],
+) -> list[_TodoEntry]:
+    """Extract and classify a phase's TODO entries.
+
+    Shared by `_build_todo_items` (text) and `_build_todo_json` (JSON) —
+    section extraction, fallback handling, loop-map building, and per-step
+    classification previously lived verbatim in both (CHG-2302).
+
+    Fallback entries (no Steps section / no parsed steps) take the uniform
+    path: gate=False and no loop signatures, so marker application is a
+    no-op on them.
+    """
+    steps_section = _extract_steps_section(body)
+    if steps_section is None:
+        return [_TodoEntry(f"{phase_num}.1", "(no Steps section found)", False, None, None)]
+
+    steps = _parse_steps_for_json(steps_section)
+    if not steps:
+        # Raw section text fallback
+        return [_TodoEntry(f"{phase_num}.1", steps_section.strip(), False, None, None)]
+
+    loop_to_steps = {
+        loop.to_step: loop for loop in loops if isinstance(loop.to_step, int)
+    }
+    loop_from_steps = {loop.from_step: loop for loop in loops}
+
+    entries: list[_TodoEntry] = []
+    for step in steps:
+        step_idx = step["index"]
+        # FXA-2226 Path B: append optional sub_branch suffix for sibling
+        # sub-steps so dotted index goes from "1.3" → "1.3a".
+        dotted = f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"
+        # Classify step (gate and loop markers are independent)
+        is_gate, loop_to_sig, loop_from_sig = _classify_step(
+            step_idx, step["gate"], loop_to_steps, loop_from_steps
+        )
+        entries.append(
+            _TodoEntry(dotted, step["text"], is_gate, loop_to_sig, loop_from_sig)
+        )
+    return entries
+
+
 def _build_todo_items(
     phase_num: int,
     sop_id: str,
@@ -267,40 +325,11 @@ def _build_todo_items(
     SOP provenance tags, gate markers, and loop markers.
     """
     items: list[str] = []
-    steps_section = _extract_steps_section(body)
-
-    if steps_section is None:
-        return [f"{checkbox_prefix}{phase_num}.1 [{sop_id}] (no Steps section found)"]
-
-    steps = _parse_steps_for_json(steps_section)
-    if not steps:
-        # Raw section text fallback
-        return [f"{checkbox_prefix}{phase_num}.1 [{sop_id}] {steps_section.strip()}"]
-
-    # Build loop marker maps
-    loop_to_steps = {
-        loop.to_step: loop for loop in loops if isinstance(loop.to_step, int)
-    }
-    loop_from_steps = {loop.from_step: loop for loop in loops}
-
-    for step in steps:
-        step_idx = step["index"]
-        text = step["text"]
-        gate = step["gate"]
-        # FXA-2226 Path B: append optional sub_branch suffix for sibling
-        # sub-steps so dotted index goes from "1.3" → "1.3a".
-        dotted = f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"
-
-        # Classify step (gate and loop markers are independent)
-        is_gate, loop_to_sig, loop_from_sig = _classify_step(
-            step_idx, gate, loop_to_steps, loop_from_steps
+    for entry in _classify_todo_entries(phase_num, body, loops):
+        text = _apply_text_markers(
+            entry.text, entry.gate, entry.loop_to_sig, entry.loop_from_sig, phase_num
         )
-
-        # Apply markers to text
-        text = _apply_text_markers(text, is_gate, loop_to_sig, loop_from_sig, phase_num)
-
-        items.append(f"{checkbox_prefix}{dotted} [{sop_id}] {text}")
-
+        items.append(f"{checkbox_prefix}{entry.dotted} [{sop_id}] {text}")
     return items
 
 
@@ -320,67 +349,23 @@ def _build_todo_json(
     - loop-to AND loop-from same step → loop_marker="loop-back" (tiebreak).
     """
     items: list[dict] = []
-    steps_section = _extract_steps_section(body)
-
-    if steps_section is None:
-        return [
-            {
-                "index": f"{phase_num}.1",
-                "sop": sop_id,
-                "text": "(no Steps section found)",
-                "gate": False,
-                "loop_marker": None,
-            }
-        ]
-
-    steps = _parse_steps_for_json(steps_section)
-    if not steps:
-        return [
-            {
-                "index": f"{phase_num}.1",
-                "sop": sop_id,
-                "text": steps_section.strip(),
-                "gate": False,
-                "loop_marker": None,
-            }
-        ]
-
-    # Build loop marker maps
-    loop_to_steps = {
-        loop.to_step: loop for loop in loops if isinstance(loop.to_step, int)
-    }
-    loop_from_steps = {loop.from_step: loop for loop in loops}
-
-    for step in steps:
-        step_idx = step["index"]
-        text = step["text"]
-        gate = step["gate"]
-        # FXA-2226 Path B: append optional sub_branch suffix.
-        dotted = f"{phase_num}.{step_idx}{step.get('sub_branch', '')}"
-
-        # Classify step (gate and loop markers are independent)
-        is_gate, loop_to_sig, loop_from_sig = _classify_step(
-            step_idx, gate, loop_to_steps, loop_from_steps
-        )
-
+    for entry in _classify_todo_entries(phase_num, body, loops):
         # Determine loop_marker for JSON (never "gate")
         # Tiebreak: loop_from takes precedence over loop_to
         loop_marker = None
-        if loop_from_sig:
+        if entry.loop_from_sig:
             loop_marker = "loop-back"
-        elif loop_to_sig:
+        elif entry.loop_to_sig:
             loop_marker = "loop-start"
-
         items.append(
             {
-                "index": dotted,
+                "index": entry.dotted,
                 "sop": sop_id,
-                "text": text,
-                "gate": is_gate,
+                "text": entry.text,
+                "gate": entry.gate,
                 "loop_marker": loop_marker,
             }
         )
-
     return items
 
 
