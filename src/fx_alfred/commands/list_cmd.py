@@ -1,8 +1,6 @@
-import json
-
 import click
 
-from fx_alfred.commands._helpers import scan_or_fail
+from fx_alfred.commands._helpers import emit_json, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.source import SOURCE_LABELS
 
@@ -80,7 +78,7 @@ def list_cmd(
             }
             for doc in docs
         ]
-        click.echo(json.dumps(output))
+        emit_json(output)
     else:
         for doc in docs:
             label = SOURCE_LABELS.get(doc.source, "???")

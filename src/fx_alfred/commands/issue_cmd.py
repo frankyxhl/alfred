@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
 import click
+
+from fx_alfred.commands._helpers import emit_json
 
 # Phase 1: TBD-phrase rule (same list as COR-1506 §Hard Cap Trigger B).
 # Order is significant — when two phrases appear on the same line, the one
@@ -58,7 +59,8 @@ def issue_cmd() -> None:
     type=click.Path(dir_okay=False, allow_dash=True),
 )
 @click.option("--json", "as_json", is_flag=True, help="Output violations as JSON.")
-def lint_cmd(body_file: str, as_json: bool) -> None:
+@click.pass_context
+def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
     """Lint a GitHub issue body for known anti-patterns.
 
     Phase 1: detects TBD-after-PR-review phrases (see #168 §Hard Cap Trigger B).
@@ -76,15 +78,12 @@ def lint_cmd(body_file: str, as_json: bool) -> None:
     violations = _check_tbd_phrases(text)
 
     if as_json:
-        click.echo(
-            json.dumps(
-                {
-                    "result": "PASS" if not violations else "FAIL",
-                    "violation_count": len(violations),
-                    "violations": violations,
-                },
-                indent=2,
-            )
+        emit_json(
+            {
+                "result": "PASS" if not violations else "FAIL",
+                "violation_count": len(violations),
+                "violations": violations,
+            }
         )
     else:
         for v in violations:
@@ -95,4 +94,4 @@ def lint_cmd(body_file: str, as_json: bool) -> None:
         else:
             click.echo("Lint result: PASS (0 violations)")
 
-    sys.exit(1 if violations else 0)
+    ctx.exit(1 if violations else 0)

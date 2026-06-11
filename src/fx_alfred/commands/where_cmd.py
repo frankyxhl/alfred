@@ -1,11 +1,15 @@
 """af where command — print the file path of a document."""
 
-import json
 from pathlib import Path
 
 import click
 
-from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import (
+    SCHEMA_VERSION,
+    emit_json,
+    find_or_fail,
+    scan_or_fail,
+)
 from fx_alfred.context import root_option
 
 
@@ -33,12 +37,12 @@ def where_cmd(ctx, identifier: str, output_json: bool) -> None:
 
     if output_json:
         result = {
-            "schema_version": "1",
+            "schema_version": SCHEMA_VERSION,
             "doc_id": f"{doc.prefix}-{doc.acid}",
             "path": str(file_path),
             "source": doc.source,
             "filename": file_path.name,
         }
-        click.echo(json.dumps(result, ensure_ascii=False))
+        emit_json(result)
     else:
         click.echo(str(file_path))

@@ -1,9 +1,8 @@
-import json
 from collections import Counter
 
 import click
 
-from fx_alfred.commands._helpers import scan_or_fail
+from fx_alfred.commands._helpers import emit_json, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.source import SOURCE_LABELS, SOURCE_ORDER
 
@@ -20,11 +19,7 @@ def status_cmd(ctx: click.Context, json_output: bool):
 
     if not docs:
         if json_output:
-            click.echo(
-                json.dumps(
-                    {"total": 0, "by_source": {}, "by_type": {}, "by_prefix": {}}
-                )
-            )
+            emit_json({"total": 0, "by_source": {}, "by_type": {}, "by_prefix": {}})
         else:
             click.echo("No documents found.")
         return
@@ -40,7 +35,7 @@ def status_cmd(ctx: click.Context, json_output: bool):
             "by_type": dict(by_type),
             "by_prefix": dict(by_prefix),
         }
-        click.echo(json.dumps(output))
+        emit_json(output)
     else:
         click.echo(f"Total: {len(docs)} documents\n")
         click.echo("By source:")

@@ -1,12 +1,12 @@
 """Validate command for af CLI -- validates all documents."""
 
-import json
 import re
-import sys
 from importlib import resources
 from pathlib import Path
 
 import click
+
+from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json
 
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.schema import (
@@ -401,10 +401,10 @@ def validate_cmd(ctx: click.Context, output_json: bool):
             )
 
         result = {
-            "schema_version": "1",
+            "schema_version": SCHEMA_VERSION,
             "results": results,
         }
-        click.echo(json.dumps(result, ensure_ascii=False, indent=2))
+        emit_json(result)
     else:
         # Report issues and warnings (text output) — one heading per doc,
         # `-` issue lines then `~` warning lines beneath it (CHG-2296; R1
@@ -434,4 +434,4 @@ def validate_cmd(ctx: click.Context, output_json: bool):
 
     # Exit with code 1 if issues found
     if total_issues > 0:
-        sys.exit(1)
+        ctx.exit(1)

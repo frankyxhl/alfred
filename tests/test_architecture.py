@@ -67,3 +67,47 @@ def test_fence_tracking_implementation_lives_only_in_parser() -> None:
         "fence tracking must go through parser.iter_lines_with_fence_state "
         f"(one implementation, one set of rules). Inline copies at: {offenders}"
     )
+
+
+_COMMANDS_DIR = _SRC_ROOT / "commands"
+
+
+def _commands_violations(predicate, skip_helpers: bool = False) -> list[str]:
+    offenders: list[str] = []
+    for py in sorted(_COMMANDS_DIR.rglob("*.py")):
+        if skip_helpers and py.name == "_helpers.py":
+            continue
+        for lineno, line in enumerate(
+            py.read_text(encoding="utf-8").splitlines(), start=1
+        ):
+            if predicate(line):
+                offenders.append(f"{py.name}:{lineno}")
+    return offenders
+
+
+def test_commands_emit_json_through_helper() -> None:
+    """All --json output goes through _helpers.emit_json so formatting
+    (indent=2, ensure_ascii=False) cannot fork into dialects again —
+    bare json.dumps escaped CJK document titles (CHG-2301 A1)."""
+    offenders = _commands_violations(
+        lambda line: "json.dumps(" in line, skip_helpers=True
+    )
+    assert offenders == [], (
+        f"use _helpers.emit_json instead of raw json.dumps: {offenders}"
+    )
+
+
+def test_commands_use_ctx_exit_not_sys_exit() -> None:
+    """Commands exit through Click's ctx.exit, not sys.exit (CHG-2301)."""
+    offenders = _commands_violations(lambda line: "sys.exit(" in line)
+    assert offenders == [], f"use ctx.exit in commands/: {offenders}"
+
+
+def test_commands_use_named_schema_version_constants() -> None:
+    """No magic '"schema_version": "1"' literals — envelopes reference a
+    named constant (_helpers.SCHEMA_VERSION, or their schema family's own
+    core constant) so version bumps cannot miss call sites (CHG-2301)."""
+    offenders = _commands_violations(
+        lambda line: '"schema_version": "1"' in line, skip_helpers=True
+    )
+    assert offenders == [], f"use a named SCHEMA_VERSION constant: {offenders}"
