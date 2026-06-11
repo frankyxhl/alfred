@@ -8,11 +8,26 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      # Report every version's result even when one fails (CHG-2298).
+      fail-fast: false
+      matrix:
+        # Declared minimum (pyproject requires-python >=3.10), previous
+        # CI pin, and the maintainer's local development version.
+        python-version: ['3.10', '3.12', '3.14']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
-          python-version: '3.12'
+          python-version: ${{ matrix.python-version }}
       - run: pip install -e '.[dev]'
       - run: ruff check .
+      - run: ruff format --check .
+      # pyrightconfig.json pins pythonVersion 3.10, so types are checked
+      # against the minimum supported version on every matrix host.
+      # --pythonpath overrides the config's local-.venv package resolution
+      # (no .venv exists on CI); the setup-python output is the guaranteed
+      # interpreter path, independent of the runner image's PATH symlinks.
+      - run: pyright --pythonpath "${{ steps.setup-python.outputs.python-path }}" src/
       - run: pytest --tb=short --cov=src/fx_alfred --cov-report=term-missing --cov-fail-under=95
