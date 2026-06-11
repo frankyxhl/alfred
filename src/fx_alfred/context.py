@@ -18,21 +18,30 @@ def discover_root(start: Path) -> Path:
     preserves the pre-CHG-2300 behavior (cwd) for invocations outside any
     Alfred project.
     """
+    usr_alfred = Path.home() / ".alfred"
     for candidate in (start, *start.parents):
+        if candidate == usr_alfred:
+            # The USR layer home can never be a PRJ root: discovering it
+            # would alias the same files into both the USR (recursive)
+            # and PRJ (rules/) scans → duplicate-ID LayerValidationError
+            # (FXA-2300 R1 glm finding).
+            continue
         rules_dir = candidate / "rules"
         if not rules_dir.is_dir():
             continue
+        # iterdir() is lazy — entry-level OSErrors (stale NFS handles,
+        # per-entry permission failures) surface during iteration, so the
+        # whole scan sits inside the try (FXA-2300 R1 convergent finding).
         try:
-            entries = rules_dir.iterdir()
+            if any(
+                e.is_file()
+                and FILENAME_PATTERN.match(e.name)
+                and not e.name.startswith("COR-")
+                for e in rules_dir.iterdir()
+            ):
+                return candidate
         except OSError:
             continue
-        if any(
-            e.is_file()
-            and FILENAME_PATTERN.match(e.name)
-            and not e.name.startswith("COR-")
-            for e in entries
-        ):
-            return candidate
     return start
 
 
