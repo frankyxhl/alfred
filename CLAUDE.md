@@ -28,6 +28,7 @@ af validate [--root DIR] [--json]           # structural checks; warns on unknow
 af status [--json]                          # document counts by source/type/prefix
 af index                                    # regenerate PRJ layer index
 af changelog                                # show version changelog
+af export [IDS...] [--type/--prefix/--source/--tag/--status] [--all] [--list] [-o FILE]  # single-file runbook (zero-install hand-off)
 af star ID / af starred / af unstar ID      # bookmark documents
 af skill list [--json]                      # list explicit skill documents
 af skill read ID [--json]                   # read a skill document
@@ -48,6 +49,7 @@ src/fx_alfred/
 │   ├── agent_cmd.py    # af agent call/run (env-gated helper + script execution)
 │   ├── changelog_cmd.py
 │   ├── create_cmd.py   # create from template or spec
+│   ├── export_cmd.py   # af export — single-file runbook for zero-install consumption
 │   ├── fmt_cmd.py      # format to canonical style (metadata order, whitespace, table align)
 │   ├── guide_cmd.py    # workflow routing (layered PKG→USR→PRJ)
 │   ├── index_cmd.py    # regenerate document index (COR-0002 compliant)
@@ -80,6 +82,7 @@ src/fx_alfred/
 │   ├── parser.py          # parse_metadata(), render_document(), extract_section(), fence-state iterator
 │   ├── phases.py          # PhaseDict/StepDict typed shapes
 │   ├── preferences.py     # ~/.alfred preferences store (star bookmarks)
+│   ├── routing.py         # routing-document detection (shared by guide + export)
 │   ├── scanner.py         # scan_documents(), find_document(), layer validation
 │   ├── schema.py          # DocType/DocRole enums, ALLOWED_STATUSES, REQUIRED_METADATA/SECTIONS
 │   ├── skills.py          # skill document discovery

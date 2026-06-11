@@ -36,6 +36,7 @@ Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and str
 - **Workflow Checklists** — `af plan` generates step-by-step checklists from SOPs. With `--task "<description>"` auto-composes the SOP set from tags; `--todo` flattens into a unified checklist; `--graph` renders ASCII + Mermaid flowcharts with intra-SOP loops and gates; `--with-skills` recommends matching skill docs
 - **Agent Helpers & Skills** — `af agent` runs explicitly gated local Python helpers/scripts, while `af skill` discovers and reads reusable REF/SOP skill documents without executing code
 - **Document Validation** — `af validate` enforces metadata format, status values, and section structure; warns on unknown TYPE codes
+- **Single-File Export** — `af export` flattens the layer-merged corpus into one self-contained Markdown runbook for zero-install readers (AI agents included); `--list` audits the set before sharing
 - **Document Formatting** — `af fmt` normalizes metadata order, whitespace, and table alignment to canonical style
 - **File Path Lookup** — `af where` prints the absolute filesystem path of any document by identifier
 - **Document Lifecycle** — Create, read, update, search, and index documents with consistent naming
@@ -54,6 +55,7 @@ cd my-project
 af guide          # see workflow routing (PKG → USR → PRJ)
 af list           # list all documents
 af validate --root .  # validate all documents
+af export -o runbook.md  # single-file runbook for zero-install readers
 af read COR-1000  # read a specific document
 ```
 

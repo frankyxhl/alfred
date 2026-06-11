@@ -59,9 +59,7 @@ def project(tmp_path):
     _write_doc(rules, "TST", "6002", "SOP", "Beta-Sop", status="Draft")
     _write_doc(rules, "TST", "6003", "REF", "Gamma-Ref")
     _write_doc(rules, "TST", "6004", "PRP", "Delta-Prp")
-    _write_doc(
-        rules, "TST", "6000", "SOP", "Workflow-Routing", role="routing"
-    )
+    _write_doc(rules, "TST", "6000", "SOP", "Workflow-Routing", role="routing")
     return tmp_path
 
 
@@ -175,11 +173,12 @@ def test_malformed_doc_skipped_with_warning(project):
 
 def test_output_file_written_and_overwritten(project, tmp_path):
     target = tmp_path / "runbook.md"
-    target.write_text("old", encoding="utf-8")
+    target.write_text("PREVIOUS-CONTENT-SENTINEL", encoding="utf-8")
     result = _run(project, "-o", str(target))
     assert result.exit_code == 0
     text = target.read_text(encoding="utf-8")
-    assert "ALFRED RUNBOOK" in text and "old" not in text
+    assert "ALFRED RUNBOOK" in text
+    assert "PREVIOUS-CONTENT-SENTINEL" not in text
 
 
 def test_output_dash_means_stdout(project):
@@ -207,10 +206,16 @@ def test_empty_selection_usage_error_exit_2(project):
 
 def test_header_counts_show_all_layers(project):
     out = _run(project).output
-    assert "PKG 0" not in out.split("═")[0] or True  # PKG docs exist via bundle? no — isolate
+    assert (
+        "PKG 0" not in out.split("═")[0] or True
+    )  # PKG docs exist via bundle? no — isolate
     # In this isolated project PKG layer is the real bundle; counts present:
     first_line_block = out.split("HOW TO USE")[0]
-    assert "PKG" in first_line_block and "USR" in first_line_block and "PRJ" in first_line_block
+    assert (
+        "PKG" in first_line_block
+        and "USR" in first_line_block
+        and "PRJ" in first_line_block
+    )
     assert "UTF-8" in first_line_block
 
 
@@ -220,7 +225,9 @@ def test_delimiter_full_pattern(project):
 
 
 def test_summary_and_privacy_warning_on_stderr(project):
-    runner = CliRunner(mix_stderr=False) if hasattr(CliRunner, "mix_stderr") else CliRunner()
+    runner = (
+        CliRunner(mix_stderr=False) if hasattr(CliRunner, "mix_stderr") else CliRunner()
+    )
     result = runner.invoke(
         cli,
         ["export", "--root", str(project)],

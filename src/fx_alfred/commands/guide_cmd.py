@@ -3,10 +3,10 @@ import click
 from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.parser import MalformedDocumentError, parse_metadata
+from fx_alfred.core.routing import ROUTING_FILENAME_PATTERN as ROUTING_PATTERN
+from fx_alfred.core.routing import document_status, is_routing_document
 from fx_alfred.core.schema import ROUTING_ROLE_METADATA_KEY, ROUTING_ROLE_VALUE
 from fx_alfred.core.source import SOURCE_ORDER
-
-ROUTING_PATTERN = "SOP-Workflow-Routing"
 
 
 @click.command("guide")
@@ -30,7 +30,12 @@ def guide_cmd(ctx: click.Context, output_json: bool):
                 content = doc.resolve_resource().read_text(encoding="utf-8")
                 parsed = parse_metadata(content)
 
-                # Check routing: metadata role first, filename pattern fallback
+                # Routing detection: role metadata first, filename pattern
+                # fallback — shared with af export (core.routing, FXA-2303).
+                if not is_routing_document(doc, parsed):
+                    continue
+
+                # Role kept locally for the JSON payload's "role" field.
                 role = next(
                     (
                         mf.value
@@ -39,16 +44,8 @@ def guide_cmd(ctx: click.Context, output_json: bool):
                     ),
                     None,
                 )
-                is_routing = (role == ROUTING_ROLE_VALUE) or (
-                    ROUTING_PATTERN in doc.filename
-                )
-                if not is_routing:
-                    continue
 
-                status = next(
-                    (mf.value for mf in parsed.metadata_fields if mf.key == "Status"),
-                    None,
-                )
+                status = document_status(parsed)
                 if status == "Deprecated":
                     continue
                 if status == "Active":
