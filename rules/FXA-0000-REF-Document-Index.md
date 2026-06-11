@@ -211,6 +211,7 @@
 | 2298 | CHG | CI Python Matrix And Pyright Gate |
 | 2299 | CHG | Workflow Fence Loop Dedup |
 | 2300 | CHG | Root Auto Discovery |
+| 2301 | CHG | JSON Output And Exit Code Unification |
 
 ---
 
