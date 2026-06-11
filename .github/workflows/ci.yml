@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e '.[dev]'
@@ -26,6 +27,7 @@ jobs:
       # pyrightconfig.json pins pythonVersion 3.10, so types are checked
       # against the minimum supported version on every matrix host.
       # --pythonpath overrides the config's local-.venv package resolution
-      # (no .venv exists on CI; verified locally against a 3.10 env).
-      - run: pyright --pythonpath "$(which python)" src/
+      # (no .venv exists on CI); the setup-python output is the guaranteed
+      # interpreter path, independent of the runner image's PATH symlinks.
+      - run: pyright --pythonpath "${{ steps.setup-python.outputs.python-path }}" src/
       - run: pytest --tb=short --cov=src/fx_alfred --cov-report=term-missing --cov-fail-under=95
