@@ -62,11 +62,13 @@ class _ExportDoc:
 
 def _load_corpus(
     docs: list[Document],
-) -> tuple[dict[str, _ExportDoc], list[str]]:
+) -> tuple[dict[str, _ExportDoc], list[tuple[Document, str]]]:
     """Read + parse every document exactly once (PRP behavior: single-read
-    cache). Unreadable/malformed documents are skipped with a reason."""
+    cache). Unreadable/malformed documents are skipped with a reason; the
+    Document is kept alongside so relevance to the user's request can be
+    judged later (codex PR #201 P2 #3)."""
     loaded: dict[str, _ExportDoc] = {}
-    skipped: list[str] = []
+    skipped: list[tuple[Document, str]] = []
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
         try:
@@ -76,7 +78,7 @@ def _load_corpus(
         # (PRP behavior 5) — OSError, MalformedDocumentError, UnicodeDecodeError
         # and Traversable failures all become skip-with-warning entries.
         except Exception as exc:
-            skipped.append(f"{doc_id}: {type(exc).__name__}: {exc}")
+            skipped.append((doc, f"{doc_id}: {type(exc).__name__}: {exc}"))
             continue
         loaded[doc_id] = _ExportDoc(
             doc=doc,
@@ -93,6 +95,46 @@ def _doc_tags(entry: _ExportDoc) -> list[str]:
     without a second file read)."""
     field = next((mf for mf in entry.parsed.metadata_fields if mf.key == "Tags"), None)
     return parse_tags(field.value) if field else []
+
+
+def _derive_type_gate(
+    type_filters: tuple[str, ...], include_all: bool
+) -> frozenset[str] | None:
+    """Repeatable --type: OR within the dimension (CHG-2304); explicit
+    values REPLACE the default gate, --all lifts it (None = no gate)."""
+    if type_filters:
+        return frozenset(t.upper() for t in type_filters)
+    if include_all:
+        return None
+    return _DEFAULT_TYPES
+
+
+def _skip_is_relevant(
+    doc: Document,
+    requested_ids: set[str],
+    type_filters: tuple[str, ...],
+    prefix_filter: str | None,
+    source_filters: tuple[str, ...],
+    include_all: bool,
+) -> bool:
+    """Could this skipped (unparseable) document have matched the request?
+
+    Judged on filename-derivable dimensions only (type/prefix/source —
+    status and tags need the parse that failed, so they cannot exclude).
+    Used to distinguish 'all matches were skipped' (exit 1) from a true
+    no-match (UsageError exit 2) — codex PR #201 P2 #3.
+    """
+    doc_id = f"{doc.prefix}-{doc.acid}"
+    if doc_id in requested_ids:
+        return True
+    type_gate = _derive_type_gate(type_filters, include_all)
+    if type_gate is not None and doc.type_code not in type_gate:
+        return False
+    if prefix_filter is not None and doc.prefix != prefix_filter.upper():
+        return False
+    if source_filters and doc.source not in {s.lower() for s in source_filters}:
+        return False
+    return True
 
 
 def _select_documents(
@@ -128,15 +170,7 @@ def _select_documents(
     # Filtered pool. Explicit --type/--status override that dimension's
     # default gate; --all lifts both defaults; prefix/source/tag AND in.
     any_selection_args = bool(ids)
-    # Repeatable --type: OR within the dimension (CHG-2304); explicit
-    # values still REPLACE the default gate, --all still lifts it.
-    type_gate: frozenset[str] | None
-    if type_filters:
-        type_gate = frozenset(t.upper() for t in type_filters)
-    elif include_all:
-        type_gate = None
-    else:
-        type_gate = _DEFAULT_TYPES
+    type_gate = _derive_type_gate(type_filters, include_all)
     status_gate: str | None
     if status_filter is not None:
         status_gate = status_filter.lower()
@@ -366,9 +400,9 @@ def export_cmd(
     from fx_alfred.context import get_root
 
     docs = scan_or_fail(ctx)
-    loaded, skipped = _load_corpus(docs)
+    loaded, doc_skips = _load_corpus(docs)
     files, file_skips = _load_includes(get_root(ctx), include_paths)
-    skipped = skipped + file_skips
+    skipped = [reason for _doc, reason in doc_skips] + file_skips
 
     selected = _select_documents(
         loaded,
@@ -388,9 +422,24 @@ def export_cmd(
         click.echo(f"⚠ skipped {reason}", err=True)
 
     if not selected:
-        if skipped:
-            # Matches existed but every one was skipped: that is a failed
-            # export (exit 1, warnings above explain why), not a usage error.
+        # Only skips that COULD have matched this request justify the
+        # exit-1 failure path; an unrelated corrupt document must not
+        # turn a true no-match into an export failure (codex P2 #3).
+        requested_ids = {
+            f"{d.prefix}-{d.acid}" for d in (find_or_fail(docs, i) for i in ids)
+        }
+        relevant_skips = any(
+            _skip_is_relevant(
+                doc,
+                requested_ids,
+                type_filters,
+                prefix_filter,
+                source_filters,
+                include_all,
+            )
+            for doc, _reason in doc_skips
+        )
+        if relevant_skips:
             raise click.ClickException(
                 "no exportable documents — all matches were skipped "
                 "(see warnings above)"

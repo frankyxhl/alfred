@@ -431,3 +431,28 @@ def test_include_in_list_dry_run(project):
     out = _run(project, "--list", "--include", "README.md").output
     assert "README.md  FILE  -  -  README.md" in out
     assert "# R" not in out  # dry run: no content
+
+
+def test_unrelated_corrupt_doc_keeps_no_match_exit_2(tmp_path):
+    """A corrupt document that the filters never reached must not turn a
+    true no-match into an export failure: --prefix ZZZ stays UsageError
+    exit 2 (codex PR #201 P2 #3)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    _write_doc(rules, "TST", "6001", "SOP", "Alpha-Sop")
+    (rules / "TST-6012-SOP-Corrupt.md").write_text("garbage", encoding="utf-8")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["export", "--root", str(tmp_path), "--prefix", "ZZZ"])
+    assert result.exit_code == 2  # UsageError — the skip was irrelevant
+
+
+def test_filter_relevant_skip_fails_loudly(tmp_path):
+    """When the only filter-matching documents were skipped, exit 1 with
+    the all-matches-skipped error (filename-derivable relevance)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "ZZX-6013-SOP-Corrupt.md").write_text("garbage", encoding="utf-8")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["export", "--root", str(tmp_path), "--prefix", "ZZX"])
+    assert result.exit_code == 1
+    assert "all matches were skipped" in result.output
