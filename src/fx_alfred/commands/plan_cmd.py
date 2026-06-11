@@ -17,7 +17,7 @@ from fx_alfred.core.parser import (
 )
 from fx_alfred.core.ascii_graph import render_ascii
 from fx_alfred.core.dag_graph import render_dag
-from fx_alfred.core.compose import resolve_sops_from_task
+from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
 from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.phases import PhaseDict
 from fx_alfred.core.schema import TASK_TAGS
@@ -588,9 +588,12 @@ def plan_cmd(
             resolved_ids, composed_from_provenance = resolve_sops_from_task(
                 task_description, all_sops, positional_list
             )
-        except click.ClickException:
-            # Re-raise with proper exit code
-            raise
+        except CompositionError as e:
+            # CLI boundary (CHG-2295): core raises the domain exception;
+            # convert here, preserving message and exit code (2 = zero-match).
+            exc = click.ClickException(str(e))
+            exc.exit_code = e.exit_code
+            raise exc from e
         # Convert resolved IDs back to tuple for processing
         sop_ids = tuple(resolved_ids)
 

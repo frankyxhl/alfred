@@ -2548,3 +2548,15 @@ SOP with heading-form steps and flush-left bare numbered body lists.
         "- [ ] 2. Second step",
         "- [ ] 3. Third step",
     ]
+
+
+def test_task_unknown_positional_exits_1_through_boundary(sample_project, monkeypatch):
+    """--task with an unknown positional ID: CompositionError converts to
+    ClickException at the plan_cmd boundary with exit code 1 and the
+    original message (CHG-2295; deepseek R1 advisory — the exit-2 path
+    was already covered at CLI level, this locks the exit-1 path)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--task", "implement", "NOPE-9999"])
+    assert result.exit_code == 1
+    assert "SOP 'NOPE-9999' not found" in result.output

@@ -281,11 +281,9 @@ class TestComposeOrder:
         result_no_edges = compose_order([doc_a, doc_b])
         assert [d.acid for d in result_no_edges] == ["7002", "7009"]
 
-    def test_compose_order_real_cycle_raises_click_exception(self):
-        """True cycle A→B→A in Workflow input/output edges raises ClickException."""
-        import click
-
-        from fx_alfred.core.compose import compose_order
+    def test_compose_order_real_cycle_raises_composition_error(self):
+        """True cycle A→B→A in Workflow input/output edges raises CompositionError."""
+        from fx_alfred.core.compose import CompositionError, compose_order
         from fx_alfred.core.document import Document
 
         doc_a = Document(
@@ -311,7 +309,7 @@ class TestComposeOrder:
             "TST-8002": ("x", "y"),
         }
 
-        with pytest.raises(click.ClickException) as exc_info:
+        with pytest.raises(CompositionError) as exc_info:
             compose_order([doc_a, doc_b], edges)
 
         msg = str(exc_info.value)
@@ -398,10 +396,9 @@ class TestResolveSopsFromTask:
         assert "change-feature" in bg
 
     def test_resolve_empty_task_no_positional_raises_exit_2(self):
-        """Empty tag match + no positional → ClickException exit 2 with diagnostic."""
-        from fx_alfred.core.compose import resolve_sops_from_task
+        """Empty tag match + no positional → CompositionError exit 2 with diagnostic."""
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
         from fx_alfred.core.document import Document
-        import click
 
         # Create only always-included SOP with no matching tags
         always_doc = Document(
@@ -416,7 +413,7 @@ class TestResolveSopsFromTask:
         all_sops = [(always_doc, frozenset(), True)]
 
         # "xyzzy rare unmatched" should match nothing
-        with pytest.raises(click.ClickException) as exc_info:
+        with pytest.raises(CompositionError) as exc_info:
             resolve_sops_from_task("xyzzy rare unmatched", all_sops, [])
 
         assert exc_info.value.exit_code == 2
@@ -646,11 +643,10 @@ class TestComposeOrderWithEdges:
         assert result[1].acid == "6002"
         assert result[2].acid == "6003"
 
-    def test_compose_order_cycle_raises_click_exception(self):
-        """True cycle A→B→A raises ClickException."""
-        from fx_alfred.core.compose import compose_order
+    def test_compose_order_cycle_raises_composition_error(self):
+        """True cycle A→B→A raises CompositionError."""
+        from fx_alfred.core.compose import CompositionError, compose_order
         from fx_alfred.core.document import Document
-        import click
 
         doc_a = Document(
             prefix="TST",
@@ -675,7 +671,7 @@ class TestComposeOrderWithEdges:
             "TST-6002": ("reviewed", "done"),
         }
 
-        with pytest.raises(click.ClickException, match="Workflow cycle detected"):
+        with pytest.raises(CompositionError, match="Workflow cycle detected"):
             compose_order([doc_a, doc_b], workflow_edges)
 
     def test_compose_order_partial_edges(self):
@@ -751,11 +747,9 @@ class TestCoverageFills:
         result = tokenize_ordered("code change code change feature")
         assert result == ["code", "change", "feature"]
 
-    def test_resolve_explicit_id_not_found_raises_clickexception(self):
-        """Unknown positional SOP ID in --task mode → ClickException 'SOP X not found'."""
-        import click
-
-        from fx_alfred.core.compose import resolve_sops_from_task
+    def test_resolve_explicit_id_not_found_raises_composition_error(self):
+        """Unknown positional SOP ID in --task mode → CompositionError 'SOP X not found'."""
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
         from fx_alfred.core.document import Document
 
         doc = Document(
@@ -768,7 +762,7 @@ class TestCoverageFills:
         )
         all_sops = [(doc, frozenset(), True)]
 
-        with pytest.raises(click.ClickException) as exc_info:
+        with pytest.raises(CompositionError) as exc_info:
             resolve_sops_from_task("implement", all_sops, ["BAD-9999"])
 
         assert "BAD-9999" in str(exc_info.value)
@@ -815,10 +809,8 @@ class TestResolveSopsFromTaskBotP2Regression:
         assert "TST-9100" in provenance["always"]
 
     def test_empty_match_still_raises_when_no_tags_and_no_positional(self):
-        """Empty tag match + no positional → ClickException exit 2 (fail-closed preserved)."""
-        import click
-
-        from fx_alfred.core.compose import resolve_sops_from_task
+        """Empty tag match + no positional → CompositionError exit 2 (fail-closed preserved)."""
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
         from fx_alfred.core.document import Document
 
         # SOP with no tags, not always-included.
@@ -836,7 +828,7 @@ class TestResolveSopsFromTaskBotP2Regression:
         ]
 
         # "xyzzy unmatched" matches no tags; no positional → must fail-closed.
-        with pytest.raises(click.ClickException) as exc_info:
+        with pytest.raises(CompositionError) as exc_info:
             resolve_sops_from_task("xyzzy unmatched", all_sops, [])
 
         assert exc_info.value.exit_code == 2
@@ -900,9 +892,7 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
 
     def test_bad_acid_only_still_raises(self):
         """Non-existent ACID-only positional raises 'SOP 'X' not found'."""
-        import click
-
-        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
         from fx_alfred.core.document import Document
 
         doc = Document(
@@ -915,7 +905,7 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
         )
         all_sops = [(doc, frozenset(["implement"]), False)]
 
-        with pytest.raises(click.ClickException) as exc_info:
+        with pytest.raises(CompositionError) as exc_info:
             resolve_sops_from_task("implement", all_sops, ["99999"])
 
         assert "99999" in str(exc_info.value)
@@ -923,9 +913,7 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
 
     def test_bad_full_id_still_raises(self):
         """Non-existent full PREFIX-ACID raises 'SOP 'X' not found'."""
-        import click
-
-        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
         from fx_alfred.core.document import Document
 
         doc = Document(
@@ -938,7 +926,7 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
         )
         all_sops = [(doc, frozenset(["implement"]), False)]
 
-        with pytest.raises(click.ClickException) as exc_info:
+        with pytest.raises(CompositionError) as exc_info:
             resolve_sops_from_task("implement", all_sops, ["BAD-9999"])
 
         assert "BAD-9999" in str(exc_info.value)
@@ -946,9 +934,7 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
 
     def test_ambiguous_acid_raises(self):
         """Same ACID across two prefixes, ACID-only positional → ambiguity error."""
-        import click
-
-        from fx_alfred.core.compose import resolve_sops_from_task
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
         from fx_alfred.core.document import Document
 
         doc_a = Document(
@@ -972,7 +958,7 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
             (doc_b, frozenset(), False),
         ]
 
-        with pytest.raises(click.ClickException) as exc_info:
+        with pytest.raises(CompositionError) as exc_info:
             resolve_sops_from_task("implement", all_sops, ["1500"])
 
         # The message comes from AmbiguousDocumentError.__str__
@@ -980,3 +966,46 @@ class TestResolveSopsFromTaskAcidOnlyPositional:
         msg = str(exc_info.value).lower()
         assert "1500" in msg
         assert "ambiguous" in msg or "multiple" in msg
+
+
+class TestCompositionErrorContract:
+    """CHG-2295: core/compose raises domain CompositionError, not ClickException."""
+
+    def test_cycle_raises_composition_error(self):
+        from fx_alfred.core.compose import CompositionError, compose_order
+        from fx_alfred.core.document import Document
+
+        doc_a = Document.from_filename(
+            "TST-9001-SOP-Cycle-A.md", directory="rules", source="prj"
+        )
+        doc_b = Document.from_filename(
+            "TST-9002-SOP-Cycle-B.md", directory="rules", source="prj"
+        )
+        edges = {
+            "TST-9001": ("from-b", "to-b"),
+            "TST-9002": ("to-b", "from-b"),
+        }
+        with pytest.raises(CompositionError, match="Workflow cycle detected among:"):
+            compose_order([doc_a, doc_b], edges)
+
+    def test_zero_match_raises_composition_error_exit_code_2(self):
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
+
+        with pytest.raises(CompositionError, match="matched 0 tagged SOPs") as exc_info:
+            resolve_sops_from_task("totally unrelated task", [], [])
+        assert exc_info.value.exit_code == 2
+
+    def test_not_found_raises_composition_error_default_exit_code(self):
+        from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
+
+        with pytest.raises(CompositionError, match="SOP 'TST-9999' not found") as ei:
+            resolve_sops_from_task("task", [], ["TST-9999"])
+        assert ei.value.exit_code == 1
+
+    def test_composition_error_is_not_click_exception(self):
+        """The domain exception must not subclass Click types (core stays Click-free)."""
+        import click
+
+        from fx_alfred.core.compose import CompositionError
+
+        assert not issubclass(CompositionError, click.ClickException)

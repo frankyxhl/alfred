@@ -1,8 +1,14 @@
 """Auto-composition helpers for `af plan --task`.
 
-Pure stdlib. No filesystem access. Operates on already-parsed
-Document objects and workflow metadata to resolve SOP ordering
-via tag matching and topological sort.
+Operates on already-parsed Document objects and workflow metadata to
+resolve SOP ordering via tag matching and topological sort. Reads
+document content through ``Document.resolve_resource()`` when building
+workflow edges.
+
+Framework-agnostic (core layer contract, CHG-2295): no Click imports.
+Failures raise :class:`CompositionError`; the commands layer converts it
+to ``click.ClickException`` at the CLI boundary, preserving the carried
+``exit_code``.
 
 FXA-2205 PR4.
 """
@@ -13,8 +19,6 @@ import string
 from collections import deque
 from dataclasses import dataclass
 
-import click
-
 from fx_alfred.core.document import Document
 from fx_alfred.core.scanner import (
     AmbiguousDocumentError,
@@ -23,6 +27,20 @@ from fx_alfred.core.scanner import (
 )
 from fx_alfred.core.parser import parse_metadata
 from fx_alfred.core.workflow import parse_workflow_signature
+
+
+class CompositionError(Exception):
+    """Raised when SOP composition fails (cycle, unknown ID, zero match).
+
+    ``exit_code`` is the CLI exit code the command boundary should use;
+    it defaults to 1, mirroring ``click.ClickException``. The zero-match
+    case in :func:`resolve_sops_from_task` sets 2 (FXA-2205 §C1 contract).
+    """
+
+    def __init__(self, message: str, exit_code: int = 1):
+        super().__init__(message)
+        self.exit_code = exit_code
+
 
 # Verbatim from FXA-2205 §C1
 STOPWORDS: frozenset[str] = frozenset(
@@ -176,7 +194,7 @@ def compose_order(
 
     Deterministic tiebreak: layer priority (PKG → USR → PRJ), then ASCII doc_id.
 
-    Fail-closed on TRUE cycle (raises ClickException with cycle nodes).
+    Fail-closed on TRUE cycle (raises CompositionError with cycle nodes).
 
     Returns ordered list of Document objects.
     """
@@ -252,7 +270,7 @@ def compose_order(
         # Find cycle nodes
         remaining = [d for d in doc_ids if doc_map[d] not in result]
         cycle_nodes = ", ".join(sorted(remaining))
-        raise click.ClickException(f"Workflow cycle detected among: {cycle_nodes}")
+        raise CompositionError(f"Workflow cycle detected among: {cycle_nodes}")
 
     return result
 
@@ -287,9 +305,10 @@ def resolve_sops_from_task(
 
     Raises
     ------
-    click.ClickException:
-        If tag matching produces nothing and no positional IDs given
-        (tag_cands is empty and positional_set is empty), exit code 2.
+    CompositionError:
+        If a positional ID is unknown or ambiguous (exit_code 1), or if
+        tag matching produces nothing and no positional IDs are given
+        (tag_cands empty and positional_set empty — exit_code 2).
     """
     # 1. Tokenize (as set for probing)
     tokens = tokenize(task_description)
@@ -322,9 +341,9 @@ def resolve_sops_from_task(
         try:
             doc = find_document(all_docs, sop_id)
         except DocumentNotFoundError:
-            raise click.ClickException(f"SOP '{sop_id}' not found") from None
+            raise CompositionError(f"SOP '{sop_id}' not found") from None
         except AmbiguousDocumentError as e:
-            raise click.ClickException(str(e)) from None
+            raise CompositionError(str(e)) from None
         normalized_positional.append(f"{doc.prefix}-{doc.acid}")
 
     positional_set = set(normalized_positional)
@@ -337,13 +356,12 @@ def resolve_sops_from_task(
     # wrongly fired when an always-included SOP also had a matching Task tag
     # (because tag_cands ⊆ always_set keeps set equality True).
     if not tag_cands and not positional_set:
-        exc = click.ClickException(
+        raise CompositionError(
             f'--task "{task_description}" matched 0 tagged SOPs. '
             "No routing fallback in v1.\n"
-            "Try: af plan <SOP_ID> ... explicitly, or tag a relevant SOP with `Task tags:`."
+            "Try: af plan <SOP_ID> ... explicitly, or tag a relevant SOP with `Task tags:`.",
+            exit_code=2,
         )
-        exc.exit_code = 2
-        raise exc
 
     # 8. Order via compose_order with workflow edges
     # Build doc map for ordering
