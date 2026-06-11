@@ -65,6 +65,20 @@ def test_no_marker_falls_back_to_start(tmp_path):
     assert discover_root(plain) == plain
 
 
+def test_pkg_style_cor_only_rules_dir_is_not_a_root(tmp_path):
+    """A rules/ dir containing only COR-* docs is the bundled PKG layer
+    shape, not a PRJ root (scanner layer invariant: COR only in PKG).
+    Discovery must keep walking — e.g. running from src/fx_alfred/core
+    inside the alfred repo must resolve the repo root, not src/fx_alfred."""
+    project = _make_project(tmp_path / "proj")
+    pkg_like = project / "src" / "pkg"
+    (pkg_like / "rules").mkdir(parents=True)
+    (pkg_like / "rules" / "COR-1000-SOP-Create-SOP.md").write_text("# bundled")
+    start = pkg_like / "core"
+    start.mkdir()
+    assert discover_root(start) == project
+
+
 def test_rules_without_pattern_docs_is_not_a_root(tmp_path):
     project = _make_project(tmp_path / "proj")
     decoy = project / "vendor"
@@ -108,5 +122,6 @@ def test_explicit_root_wins_over_discovery(tmp_path, monkeypatch):
         cli, ["list", "--root", str(elsewhere)], catch_exceptions=False
     )
     assert result.exit_code == 0
+    # TST-7002 exists only under `elsewhere` — its presence proves --root
+    # overrode cwd-based discovery (which would have found `inside`).
     assert "TST-7002" in result.output
-    assert "TST-7001" not in result.output

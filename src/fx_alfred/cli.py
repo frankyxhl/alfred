@@ -16,7 +16,9 @@ Layer System:
 
   PKG: Bundled COR documents (read-only, included with fx-alfred)
   USR: Your personal documents in ~/.alfred/
-  PRJ: Project documents in ./rules/
+  PRJ: Project documents in rules/ — the project root is auto-discovered
+       from the nearest ancestor directory whose rules/ contains Alfred
+       documents (override with --root)
 
 Quick Start:
 
