@@ -14,7 +14,7 @@ from pathlib import Path
 import click
 
 from fx_alfred.commands._helpers import atomic_write, find_or_fail, scan_or_fail
-from fx_alfred.context import root_option
+from fx_alfred.context import get_root, root_option
 from fx_alfred.core.document import Document
 from fx_alfred.core.parser import ParsedDocument, parse_metadata, parse_tags
 from fx_alfred.core.routing import document_status, is_routing_document
@@ -39,6 +39,10 @@ _EPILOG = """\
 Sharing risk: USR and PRJ layers may contain private material — review
 before sharing (use --list to audit the exact document set first;
 --source pkg exports only the public bundled COR documents).
+
+--include paths resolve relative to the export root; absolute paths are
+allowed (operator-controlled — review attachments like any USR/PRJ
+content before sharing).
 
 Filter semantics: --all lifts the default type (SOP+REF) and status
 (Active) gates; explicit filters AND together and also apply under
@@ -397,8 +401,6 @@ def export_cmd(
     output_path: str | None,
 ) -> None:
     """Export the runbook as one self-contained Markdown file."""
-    from fx_alfred.context import get_root
-
     docs = scan_or_fail(ctx)
     loaded, doc_skips = _load_corpus(docs)
     files, file_skips = _load_includes(get_root(ctx), include_paths)
