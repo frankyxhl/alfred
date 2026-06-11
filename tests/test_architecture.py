@@ -34,3 +34,27 @@ def test_core_modules_do_not_import_click() -> None:
         "core/ must stay Click-free (raise domain exceptions; commands/ "
         f"converts at the CLI boundary). Violations: {offenders}"
     )
+
+
+_SRC_ROOT = Path(__file__).parent.parent / "src" / "fx_alfred"
+
+
+def test_fence_tracking_implementation_lives_only_in_parser() -> None:
+    """Inline CommonMark fence-state loops were consolidated onto
+    parser.iter_lines_with_fence_state (CHG-2294 → CHG-2299). The
+    implementation fingerprint ``fence_char`` may appear only in
+    core/parser.py, so duplicated fence loops cannot silently reappear
+    and diverge from the shared rules (CHG-2299 A1)."""
+    offenders: list[str] = []
+    for py in sorted(_SRC_ROOT.rglob("*.py")):
+        if py.name == "parser.py":
+            continue
+        for lineno, line in enumerate(
+            py.read_text(encoding="utf-8").splitlines(), start=1
+        ):
+            if "fence_char" in line:
+                offenders.append(f"{py.relative_to(_SRC_ROOT)}:{lineno}")
+    assert offenders == [], (
+        "fence tracking must go through parser.iter_lines_with_fence_state "
+        f"(one implementation, one set of rules). Inline copies at: {offenders}"
+    )
