@@ -71,7 +71,7 @@ src/fx_alfred/
 │   ├── agent_helpers.py   # af agent engine: env gate, helper loading, script exec
 │   ├── ascii_graph.py     # flat ASCII workflow graph renderer
 │   ├── branch_geometry.py # pure branch-layout geometry (wcwidth)
-│   ├── branch_layout.py   # branch lane layout for sub-step rendering
+│   ├── branch_layout.py   # branch-group discovery (consumed by renderers for lane layout)
 │   ├── compose.py         # af plan --task auto-composition; raises CompositionError
 │   ├── dag_graph.py       # nested phase-box DAG renderer
 │   ├── document.py        # Document dataclass, FILENAME_PATTERN
@@ -89,8 +89,6 @@ src/fx_alfred/
 ├── rules/              # PKG layer (bundled COR-* documents, read-only)
 └── templates/          # Document templates for af create (5W1H SOP template)
 ```
-
-`core/` is framework-agnostic — no Click imports (enforced by `tests/test_architecture.py`); failures surface as domain exceptions converted at the commands layer.
 
 ## Three-Layer Document Model
 
