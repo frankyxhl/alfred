@@ -99,9 +99,9 @@ def _select_documents(
     loaded: dict[str, _ExportDoc],
     docs: list[Document],
     ids: tuple[str, ...],
-    type_filter: str | None,
+    type_filters: tuple[str, ...],
     prefix_filter: str | None,
-    source_filter: str | None,
+    source_filters: tuple[str, ...],
     tag_filter: str | None,
     status_filter: str | None,
     include_all: bool,
@@ -128,9 +128,11 @@ def _select_documents(
     # Filtered pool. Explicit --type/--status override that dimension's
     # default gate; --all lifts both defaults; prefix/source/tag AND in.
     any_selection_args = bool(ids)
+    # Repeatable --type: OR within the dimension (CHG-2304); explicit
+    # values still REPLACE the default gate, --all still lifts it.
     type_gate: frozenset[str] | None
-    if type_filter is not None:
-        type_gate = frozenset({type_filter.upper()})
+    if type_filters:
+        type_gate = frozenset(t.upper() for t in type_filters)
     elif include_all:
         type_gate = None
     else:
@@ -146,16 +148,9 @@ def _select_documents(
     use_pool = (
         not any_selection_args
         or include_all
-        or any(
-            f is not None
-            for f in (
-                type_filter,
-                prefix_filter,
-                source_filter,
-                tag_filter,
-                status_filter,
-            )
-        )
+        or bool(type_filters)
+        or bool(source_filters)
+        or any(f is not None for f in (prefix_filter, tag_filter, status_filter))
     )
     if use_pool:
         for doc_id, entry in loaded.items():
@@ -170,7 +165,8 @@ def _select_documents(
                 continue
             if prefix_filter is not None and doc.prefix != prefix_filter.upper():
                 continue
-            if source_filter is not None and doc.source != source_filter.lower():
+            # Repeatable --source: OR within the dimension (CHG-2304).
+            if source_filters and doc.source not in {s.lower() for s in source_filters}:
                 continue
             if tag_filter is not None and tag_filter.lower() not in _doc_tags(entry):
                 continue
@@ -200,6 +196,33 @@ def _order_documents(selected: list[_ExportDoc]) -> list[_ExportDoc]:
     return routing_block + rest
 
 
+@dataclass(frozen=True)
+class _IncludedFile:
+    relpath: str
+    content: str
+
+
+def _load_includes(
+    root: Path, include_paths: tuple[str, ...]
+) -> tuple[list[_IncludedFile], list[str]]:
+    """Load --include files verbatim (UTF-8, relative to the export root;
+    absolute paths allowed). Failures follow the document skip policy
+    (CHG-2304)."""
+    files: list[_IncludedFile] = []
+    skipped: list[str] = []
+    for raw in include_paths:
+        path = Path(raw)
+        if not path.is_absolute():
+            path = root / path
+        try:
+            content = path.read_text(encoding="utf-8")
+        except Exception as exc:
+            skipped.append(f"{raw}: {type(exc).__name__}: {exc}")
+            continue
+        files.append(_IncludedFile(relpath=raw, content=content))
+    return files, skipped
+
+
 def _version() -> str:
     from importlib.metadata import PackageNotFoundError, version
 
@@ -216,7 +239,11 @@ def _contents_line(entry: _ExportDoc) -> str:
     )
 
 
-def _render_export(ordered: list[_ExportDoc]) -> str:
+def _file_contents_line(f: _IncludedFile) -> str:
+    return f"{f.relpath}  FILE  -  -  {f.relpath}"
+
+
+def _render_export(ordered: list[_ExportDoc], files: list[_IncludedFile]) -> str:
     counts = {s: 0 for s in SOURCE_ORDER}
     for entry in ordered:
         counts[entry.doc.source] += 1
@@ -233,6 +260,7 @@ def _render_export(ordered: list[_ExportDoc]) -> str:
         "",
         f"{_RULE} CONTENTS {_RULE}",
         *(_contents_line(e) for e in ordered),
+        *(_file_contents_line(f) for f in files),
         "",
     ]
     for entry in ordered:
@@ -242,10 +270,16 @@ def _render_export(ordered: list[_ExportDoc]) -> str:
         )
         lines.append(entry.content.rstrip("\n"))
         lines.append("")
+    for f in files:
+        lines.append(f"{_RULE} FILE: {f.relpath} {_RULE}")
+        lines.append(f.content.rstrip("\n"))
+        lines.append("")
     return "\n".join(lines)
 
 
-def _emit_summary(ordered: list[_ExportDoc], skipped: list[str]) -> None:
+def _emit_summary(
+    ordered: list[_ExportDoc], skipped: list[str], files: list[_IncludedFile]
+) -> None:
     counts = {s: 0 for s in SOURCE_ORDER}
     words = 0
     for entry in ordered:
@@ -254,9 +288,11 @@ def _emit_summary(ordered: list[_ExportDoc], skipped: list[str]) -> None:
     summary = f"exported {len(ordered)} documents (~{words:,} words) — " + " · ".join(
         f"{s.upper()} {counts[s]}" for s in SOURCE_ORDER
     )
+    if files:
+        summary += f" + {len(files)} file{'s' if len(files) != 1 else ''}"
     if skipped:
         summary += f" · skipped {len(skipped)}"
-    if counts["usr"] + counts["prj"] > 0:
+    if counts["usr"] + counts["prj"] > 0 or files:
         summary += (
             " ⚠ includes USR/PRJ content — review for private material before sharing"
         )
@@ -276,10 +312,18 @@ def _write_output(text: str, output_path: str | None) -> None:
 @click.command("export", epilog=_EPILOG)
 @root_option
 @click.argument("ids", nargs=-1)
-@click.option("--type", "type_filter", default=None, help="Filter by document type")
+@click.option(
+    "--type",
+    "type_filters",
+    multiple=True,
+    help="Filter by document type (repeatable: OR within the dimension)",
+)
 @click.option("--prefix", "prefix_filter", default=None, help="Filter by prefix")
 @click.option(
-    "--source", "source_filter", default=None, help="Filter by layer (pkg/usr/prj)"
+    "--source",
+    "source_filters",
+    multiple=True,
+    help="Filter by layer pkg/usr/prj (repeatable: e.g. --source pkg --source prj)",
 )
 @click.option("--tag", "tag_filter", default=None, help="Filter by tag")
 @click.option(
@@ -296,32 +340,43 @@ def _write_output(text: str, output_path: str | None) -> None:
     help="Dry run: print the export set (no document content)",
 )
 @click.option(
+    "--include",
+    "include_paths",
+    multiple=True,
+    help="Attach a project file verbatim (repeatable; e.g. --include README.md)",
+)
+@click.option(
     "-o", "--output", "output_path", default=None, help="Write to FILE (- = stdout)"
 )
 @click.pass_context
 def export_cmd(
     ctx: click.Context,
     ids: tuple[str, ...],
-    type_filter: str | None,
+    type_filters: tuple[str, ...],
     prefix_filter: str | None,
-    source_filter: str | None,
+    source_filters: tuple[str, ...],
     tag_filter: str | None,
     status_filter: str | None,
     include_all: bool,
     list_only: bool,
+    include_paths: tuple[str, ...],
     output_path: str | None,
 ) -> None:
     """Export the runbook as one self-contained Markdown file."""
+    from fx_alfred.context import get_root
+
     docs = scan_or_fail(ctx)
     loaded, skipped = _load_corpus(docs)
+    files, file_skips = _load_includes(get_root(ctx), include_paths)
+    skipped = skipped + file_skips
 
     selected = _select_documents(
         loaded,
         docs,
         ids,
-        type_filter,
+        type_filters,
         prefix_filter,
-        source_filter,
+        source_filters,
         tag_filter,
         status_filter,
         include_all,
@@ -346,7 +401,10 @@ def export_cmd(
     ordered = _order_documents(selected)
 
     if list_only:
-        _write_output("\n".join(_contents_line(e) for e in ordered), output_path)
+        audit = [_contents_line(e) for e in ordered] + [
+            _file_contents_line(f) for f in files
+        ]
+        _write_output("\n".join(audit), output_path)
     else:
-        _write_output(_render_export(ordered), output_path)
-    _emit_summary(ordered, skipped)
+        _write_output(_render_export(ordered, files), output_path)
+    _emit_summary(ordered, skipped, files)

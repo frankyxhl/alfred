@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-06-12
 **Last reviewed:** 2026-06-12
-**Status:** In Progress
+**Status:** Completed
 **Date:** 2026-06-12
 **Requested by:** Frank Xu (first real use of af export, 2026-06-12)
 **Priority:** Medium
@@ -50,6 +50,7 @@ PRP-2303 R1 (minimax, Necessity): "necessity… not externally validated by an o
 
 ## Change History
 
-| Date       | Change                                                             | By               |
-|------------|--------------------------------------------------------------------|------------------|
-| 2026-06-12 | Initial version — first-real-use amendments to PRP-2303 v1 surface | Claude (Fable 5) |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                                                                                          | By               |
+|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
+| 2026-06-12 | Initial version — first-real-use amendments to PRP-2303 v1 surface                                                                                                                                                                                                                                                                                                                                              | Claude (Fable 5) |
+| 2026-06-12 | Implemented on PR #201 (+5 tests, 1032 total): repeatable --source/--type (OR within dimension, REPLACE-default and --all semantics preserved); --include with FILE: delimiters, Contents lines, summary count, sharing-warning trigger, skip-on-failure. Live verification of the requesting use case: `af export --source pkg --source prj --include README.md` → 108 docs (USR 0) + 1 file, single artifact. | Claude (Fable 5) |

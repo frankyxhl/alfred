@@ -362,3 +362,72 @@ def test_only_requested_doc_skipped_fails_loudly_not_no_match(tmp_path):
     assert "skipped TST-6011" in err
     assert "requested TST-6011 was skipped" in err
     assert "all matches were skipped" in err
+
+
+# ── CHG-2304: repeatable --source/--type + --include ────────────────────────
+
+
+def test_repeatable_source_pkg_plus_prj_excludes_usr(project, monkeypatch):
+    from pathlib import Path as _P
+
+    usr = _P.home() / ".alfred"
+    usr.mkdir(exist_ok=True)
+    _write_doc(usr, "WUK", "6500", "SOP", "Usr-Sop")
+    out = _run(project, "--source", "pkg", "--source", "prj").output
+    assert "TST-6001" in out  # PRJ
+    assert "COR-1103" in out  # PKG
+    assert "WUK-6500" not in out  # USR excluded
+
+
+def test_repeatable_type(project):
+    out = _run(
+        project,
+        "--type",
+        "SOP",
+        "--type",
+        "PRP",
+        "--status",
+        "Active",
+        "--source",
+        "prj",
+    ).output
+    assert "TST-6001" in out and "TST-6004" in out
+    assert "TST-6003" not in out  # REF excluded by explicit type set
+
+
+def test_include_file_rendered_and_listed(project):
+    (project / "README.md").write_text(
+        "# Project Readme\n\nHello 项目。", encoding="utf-8"
+    )
+    runner = _stderr_capable_runner()
+    result = runner.invoke(
+        cli,
+        ["export", "--root", str(project), "--include", "README.md"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "═ FILE: README.md ═" in result.output
+    assert "Hello 项目。" in result.output
+    assert "README.md  FILE  -  -  README.md" in result.output  # contents line
+    err = result.stderr if hasattr(result, "stderr") else ""
+    assert "+ 1 file" in err
+    assert "review for private material" in err  # includes trigger the warning
+
+
+def test_include_missing_file_skipped_with_warning(project):
+    runner = _stderr_capable_runner()
+    result = runner.invoke(
+        cli,
+        ["export", "--root", str(project), "--include", "nope.md"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    err = result.stderr if hasattr(result, "stderr") else ""
+    assert "skipped nope.md" in err
+
+
+def test_include_in_list_dry_run(project):
+    (project / "README.md").write_text("# R", encoding="utf-8")
+    out = _run(project, "--list", "--include", "README.md").output
+    assert "README.md  FILE  -  -  README.md" in out
+    assert "# R" not in out  # dry run: no content
