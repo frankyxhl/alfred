@@ -72,6 +72,9 @@ def _load_corpus(
         try:
             content = doc.resolve_resource().read_text(encoding="utf-8")
             parsed = parse_metadata(content)
+        # Deliberately broad: mirrors Document.tags' swallowing semantics
+        # (PRP behavior 5) — OSError, MalformedDocumentError, UnicodeDecodeError
+        # and Traversable failures all become skip-with-warning entries.
         except Exception as exc:
             skipped.append(f"{doc_id}: {type(exc).__name__}: {exc}")
             continue
@@ -107,11 +110,19 @@ def _select_documents(
     de-duplicated; positional IDs bypass every gate."""
     selected: dict[str, _ExportDoc] = {}
 
-    # Positional IDs — resolved like af plan, dedupe keeping first.
+    # Positional IDs — resolved like af plan, dedupe keeping first. An ID
+    # whose document failed to load is called out specifically (it already
+    # has a ⚠ skipped line; this names the request that lost it — glm R1).
     for identifier in ids:
         doc = find_or_fail(docs, identifier)
         doc_id = f"{doc.prefix}-{doc.acid}"
-        if doc_id in loaded and doc_id not in selected:
+        if doc_id not in loaded:
+            click.echo(
+                f"⚠ requested {doc_id} was skipped (unreadable/malformed)",
+                err=True,
+            )
+            continue
+        if doc_id not in selected:
             selected[doc_id] = loaded[doc_id]
 
     # Filtered pool. Explicit --type/--status override that dimension's

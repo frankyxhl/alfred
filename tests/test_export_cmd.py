@@ -206,10 +206,6 @@ def test_empty_selection_usage_error_exit_2(project):
 
 def test_header_counts_show_all_layers(project):
     out = _run(project).output
-    assert (
-        "PKG 0" not in out.split("═")[0] or True
-    )  # PKG docs exist via bundle? no — isolate
-    # In this isolated project PKG layer is the real bundle; counts present:
     first_line_block = out.split("HOW TO USE")[0]
     assert (
         "PKG" in first_line_block
@@ -268,3 +264,83 @@ def test_routing_helper_detection(project):
     plain = by_id["TST-6001"]
     parsed_plain = parse_metadata(plain.resolve_resource().read_text(encoding="utf-8"))
     assert is_routing_document(plain, parsed_plain) is False
+
+
+# ── R1 panel additions: remaining selection-surface coverage (glm) ─────────
+
+
+def test_source_filter(project):
+    out = _run(project, "--source", "prj").output
+    assert "TST-6001" in out
+    assert "COR-1103" not in out  # PKG excluded
+
+
+def test_tag_filter(project):
+    rules = project / "rules"
+    _write_doc(rules, "TST", "6006", "SOP", "Tagged-Sop", body_extra="")
+    path = rules / "TST-6006-SOP-Tagged-Sop.md"
+    text = path.read_text(encoding="utf-8").replace(
+        "**Status:** Active", "**Status:** Active\n**Tags:** export-demo"
+    )
+    path.write_text(text, encoding="utf-8")
+    out = _run(project, "--tag", "export-demo").output
+    assert "TST-6006" in out
+    assert "TST-6001" not in out
+
+
+def test_doc_without_status_excluded_by_default(project):
+    rules = project / "rules"
+    content = """# SOP-6007: No Status Doc
+
+**Applies to:** Test
+
+---
+
+## What Is It?
+
+No Status field.
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-06-12 | Init | T |
+"""
+    (rules / "TST-6007-SOP-No-Status-Doc.md").write_text(content, encoding="utf-8")
+    assert "TST-6007" not in _run(project).output  # default gate excludes
+    assert "TST-6007" in _run(project, "TST-6007").output  # positional includes
+
+
+def test_all_with_status_filter_and_semantics(project):
+    out = _run(project, "--all", "--status", "Active").output
+    assert "TST-6004" in out  # PRP: type gate lifted by --all
+    assert "TST-6002" not in out  # Draft excluded by explicit --status
+
+
+def test_version_fallback_unknown(monkeypatch):
+    import importlib.metadata as md
+
+    from fx_alfred.commands.export_cmd import _version
+
+    def _raise(_name):
+        raise md.PackageNotFoundError
+
+    monkeypatch.setattr(md, "version", _raise)
+    assert _version() == "unknown"
+
+
+def test_positional_id_of_skipped_doc_warned_specifically(project):
+    rules = project / "rules"
+    (rules / "TST-6010-SOP-Corrupt-Doc.md").write_text(
+        "not a valid alfred document", encoding="utf-8"
+    )
+    runner = _stderr_capable_runner()
+    result = runner.invoke(
+        cli,
+        ["export", "--root", str(project), "TST-6010", "TST-6001"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    err = result.stderr if hasattr(result, "stderr") else ""
+    assert "requested TST-6010 was skipped" in err
+    assert "TST-6001" in result.output

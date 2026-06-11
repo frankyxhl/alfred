@@ -52,7 +52,10 @@ def guide_cmd(ctx: click.Context, output_json: bool):
                     active_docs.append((doc, content, role))
             except MalformedDocumentError as e:
                 # Only report malformed errors for filename-pattern-matched docs
-                # (backward-compatible: non-routing docs were never parsed before this refactor)
+                # (backward-compatible: non-routing docs were never parsed
+                # before this refactor). Metadata-role routing docs that are
+                # malformed are silently skipped here — their role field is
+                # unreadable, so they are indistinguishable from non-routing.
                 if ROUTING_PATTERN in doc.filename:
                     if not output_json:
                         click.echo(
