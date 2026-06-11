@@ -2035,3 +2035,126 @@ Test.
     assert result.exit_code == 1
     assert "step index 3" in result.output
     assert "{1, 2}" in result.output
+
+
+# ── Unknown TYPE code warnings (CHG-2296) ──────────────────────────────────
+
+
+def test_unknown_type_emits_warning_exit_0(tmp_path):
+    """A structurally-valid doc with an unknown TYPE warns but passes (A1)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "TST-9001-XYZ-Weird-Doc.md", "TST", "9001", "XYZ", "Weird Doc"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Unknown document type 'XYZ'" in result.output
+    assert "SOP, PRP, CHG, ADR, REF, PLN, INC" in result.output
+    assert "0 issues found" in result.output
+    assert "1 warning" in result.output
+
+
+def test_unknown_type_warns_once_and_still_skips_status_check(tmp_path):
+    """One warning per doc; Status validation stays skipped for unknown
+    types — no false Status issues (A2)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "TST-9002-XYZ-Odd-Status.md",
+        "TST",
+        "9002",
+        "XYZ",
+        "Odd Status",
+        status="Totally Made Up",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert result.output.count("Unknown document type 'XYZ'") == 1
+    assert "Invalid Status" not in result.output
+
+
+def test_unknown_type_warning_in_json_output(tmp_path):
+    """JSON mode: warnings key populated for unknown type, empty for known;
+    valid stays true (A3)."""
+    import json as json_mod
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "TST-9003-XYZ-Weird-Doc.md", "TST", "9003", "XYZ", "Weird Doc"
+    )
+    _write_valid_document(
+        rules_dir / "TST-9004-SOP-Normal-Doc.md", "TST", "9004", "SOP", "Normal Doc"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path), "--json"])
+    assert result.exit_code == 0
+    payload = json_mod.loads(result.output)
+    by_id = {r["doc_id"]: r for r in payload["results"]}
+    weird = by_id["TST-9003"]
+    assert weird["valid"] is True
+    assert len(weird["warnings"]) == 1
+    assert "Unknown document type 'XYZ'" in weird["warnings"][0]
+    assert by_id["TST-9004"]["warnings"] == []
+
+
+def test_no_warnings_keeps_summary_line_unchanged(tmp_path):
+    """Zero-warning corpora print the summary exactly as before (A4)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "TST-9005-SOP-Normal-Doc.md", "TST", "9005", "SOP", "Normal Doc"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "warning" not in result.output.lower()
+
+
+def test_doc_with_both_issues_and_warnings_single_heading(tmp_path):
+    """A doc with an unknown TYPE and a structural issue prints ONE doc_id
+    heading with '-' issue lines and '~' warning lines beneath it; exit 1
+    driven by the issue; summary reports both counts (R1 panel convergent
+    advisory: glm + deepseek + minimax)."""
+    import json as json_mod
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    # Unknown type AND missing Change History (structural issue).
+    (rules_dir / "TST-9006-XYZ-Broken-Doc.md").write_text(
+        """# XYZ-9006: Broken Doc
+
+**Applies to:** All projects
+**Last updated:** 2026-06-11
+**Last reviewed:** 2026-06-11
+**Status:** Active
+
+---
+
+## What Is It?
+
+Doc with unknown type and no Change History.
+"""
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert result.output.count("TST-9006:") == 1
+    assert "  - Missing Change History table" in result.output
+    assert "  ~ Unknown document type 'XYZ'" in result.output
+    assert "1 issues found, 1 warning." in result.output
+
+    json_result = runner.invoke(cli, ["validate", "--root", str(tmp_path), "--json"])
+    payload = json_mod.loads(json_result.output)
+    entry = next(r for r in payload["results"] if r["doc_id"] == "TST-9006")
+    assert entry["valid"] is False
+    assert any("Change History" in e for e in entry["errors"])
+    assert any("Unknown document type 'XYZ'" in w for w in entry["warnings"])

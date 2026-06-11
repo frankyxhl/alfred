@@ -206,6 +206,7 @@
 | 2293 | PRP | 11 Star SOP Experience Review |
 | 2294 | CHG | Fence Aware Extract Section |
 | 2295 | CHG | Compose Domain Exceptions |
+| 2296 | CHG | Validate Unknown Type Warning |
 
 ---
 

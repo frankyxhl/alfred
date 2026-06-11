@@ -100,8 +100,9 @@ Checks:
   - Status value validation against allowed values per type
   - Change History table has Date, Change, By columns
   - COR-* documents only in PKG layer
+  - Unknown TYPE codes emit a warning (type-specific checks skipped)
 
-Exit code 0 if clean, 1 if issues found.
+Exit code 0 if clean, 1 if issues found. Warnings never affect the exit code.
 """
 
 
@@ -120,6 +121,10 @@ def validate_cmd(ctx: click.Context, output_json: bool):
         docs = _scan_all_layers(root)
 
     issues_by_doc: dict[str, list[str]] = {}
+    # CHG-2296: non-fatal findings. Warnings never affect the exit code;
+    # they surface degraded validation (e.g. unknown TYPE codes) that was
+    # previously silent.
+    warnings_by_doc: dict[str, list[str]] = {}
 
     # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
     # Only SOPs are valid cross-SOP targets — filter out PRP/CHG/REF/etc. so a
@@ -132,6 +137,21 @@ def validate_cmd(ctx: click.Context, output_json: bool):
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
         issues: list[str] = []
+        warnings: list[str] = []
+
+        # CHG-2296: single membership check replaces the per-lookup
+        # ValueError fallbacks. Unknown TYPE codes get base-field checks
+        # only; warn so typos (SPO for SOP) no longer pass silently.
+        doc_type: DocType | None
+        try:
+            doc_type = DocType(doc.type_code)
+        except ValueError:
+            doc_type = None
+            warnings.append(
+                f"Unknown document type '{doc.type_code}' — type-specific "
+                "validation skipped (known types: "
+                f"{', '.join(t.value for t in DocType)})"
+            )
 
         # Check 0: COR documents must only exist in PKG layer
         if doc.prefix == "COR" and doc.source != "pkg":
@@ -186,13 +206,11 @@ def validate_cmd(ctx: click.Context, output_json: bool):
             found_fields = {mf.key for mf in parsed.metadata_fields}
 
             # Look up required fields for this document type
-            try:
+            if doc_type is not None:
                 required = set(
-                    REQUIRED_METADATA.get(
-                        DocType(doc.type_code), list(_BASE_REQUIRED_FIELDS)
-                    )
+                    REQUIRED_METADATA.get(doc_type, list(_BASE_REQUIRED_FIELDS))
                 )
-            except ValueError:
+            else:
                 required = _BASE_REQUIRED_FIELDS
             missing = required - found_fields
             for field in sorted(missing):
@@ -204,12 +222,11 @@ def validate_cmd(ctx: click.Context, output_json: bool):
             )
             if status_field is not None:
                 status_val = status_field.value
-                try:
-                    allowed: set[str] | None = set(
-                        ALLOWED_STATUSES.get(DocType(doc.type_code), [])
-                    )
-                except ValueError:
-                    allowed = None
+                allowed: set[str] | None = (
+                    set(ALLOWED_STATUSES.get(doc_type, []))
+                    if doc_type is not None
+                    else None
+                )
                 if allowed is not None:
                     if "(" in status_val or ")" in status_val:
                         issues.append(
@@ -363,30 +380,25 @@ def validate_cmd(ctx: click.Context, output_json: bool):
 
         if issues:
             issues_by_doc[doc_id] = issues
+        if warnings:
+            warnings_by_doc[doc_id] = warnings
 
     total_issues = sum(len(i) for i in issues_by_doc.values())
+    total_warnings = sum(len(w) for w in warnings_by_doc.values())
 
     # Build results for JSON output
     if output_json:
         results = []
         for doc in docs:
             doc_id = f"{doc.prefix}-{doc.acid}"
-            if doc_id in issues_by_doc:
-                results.append(
-                    {
-                        "doc_id": doc_id,
-                        "valid": False,
-                        "errors": issues_by_doc[doc_id],
-                    }
-                )
-            else:
-                results.append(
-                    {
-                        "doc_id": doc_id,
-                        "valid": True,
-                        "errors": [],
-                    }
-                )
+            results.append(
+                {
+                    "doc_id": doc_id,
+                    "valid": doc_id not in issues_by_doc,
+                    "errors": issues_by_doc.get(doc_id, []),
+                    "warnings": warnings_by_doc.get(doc_id, []),
+                }
+            )
 
         result = {
             "schema_version": "1",
@@ -394,13 +406,31 @@ def validate_cmd(ctx: click.Context, output_json: bool):
         }
         click.echo(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        # Report issues (text output)
-        for doc_id, doc_issues in issues_by_doc.items():
+        # Report issues and warnings (text output) — one heading per doc,
+        # `-` issue lines then `~` warning lines beneath it (CHG-2296; R1
+        # panel convergent advisory). Iterate in scan order so issue-only
+        # corpora print identically to the pre-CHG-2296 output.
+        for doc in docs:
+            doc_id = f"{doc.prefix}-{doc.acid}"
+            doc_issues = issues_by_doc.get(doc_id, [])
+            doc_warnings = warnings_by_doc.get(doc_id, [])
+            if not doc_issues and not doc_warnings:
+                continue
             click.echo(f"{doc_id}:")
             for issue in doc_issues:
                 click.echo(f"  - {issue}")
+            for warning in doc_warnings:
+                click.echo(f"  ~ {warning}")
 
-        click.echo(f"{len(docs)} documents checked, {total_issues} issues found.")
+        warnings_suffix = (
+            f", {total_warnings} warning{'' if total_warnings == 1 else 's'}"
+            if total_warnings
+            else ""
+        )
+        click.echo(
+            f"{len(docs)} documents checked, "
+            f"{total_issues} issues found{warnings_suffix}."
+        )
 
     # Exit with code 1 if issues found
     if total_issues > 0:
