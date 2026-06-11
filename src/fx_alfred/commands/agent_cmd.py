@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import json
 
 import click
+
+from fx_alfred.commands._helpers import emit_json
 
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.agent_helpers import (
@@ -16,7 +17,7 @@ from fx_alfred.core.agent_helpers import (
 
 
 def _emit_json(envelope: dict) -> None:
-    click.echo(json.dumps(envelope, ensure_ascii=False))
+    emit_json(envelope)
 
 
 @click.group("agent")

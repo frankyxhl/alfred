@@ -1,8 +1,6 @@
-import json
-
 import click
 
-from fx_alfred.commands._helpers import scan_or_fail
+from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.parser import MalformedDocumentError, parse_metadata
 from fx_alfred.core.schema import ROUTING_ROLE_METADATA_KEY, ROUTING_ROLE_VALUE
@@ -101,10 +99,10 @@ def guide_cmd(ctx: click.Context, output_json: bool):
 
     if output_json:
         result = {
-            "schema_version": "1",
+            "schema_version": SCHEMA_VERSION,
             "routing_docs": routing_docs,
         }
-        click.echo(json.dumps(result, ensure_ascii=False, indent=2))
+        emit_json(result)
     else:
         click.echo(
             "Run this at session start for routing context."

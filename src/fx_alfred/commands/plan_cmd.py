@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 
 import click
 
-from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import emit_json, find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.document import Document
 from fx_alfred.core.parser import (
@@ -865,7 +864,7 @@ def plan_cmd(
         if with_skills:
             result["recommended_skills"] = recommended_skills or []
 
-        click.echo(json.dumps(result, ensure_ascii=False, indent=2))
+        emit_json(result)
         return
 
     # ── Second pass: render phased output (default behavior) ──

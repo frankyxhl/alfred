@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
 
 import click
 
-from fx_alfred.commands._helpers import scan_or_fail
+from fx_alfred.commands._helpers import emit_json, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.skills import (
     SCHEMA_VERSION,
@@ -42,12 +41,7 @@ def skill_list_cmd(
     results = list_skills(docs, task=task, layer=layer)
 
     if json_output:
-        click.echo(
-            json.dumps(
-                {"schema_version": SCHEMA_VERSION, "results": results},
-                ensure_ascii=False,
-            )
-        )
+        emit_json({"schema_version": SCHEMA_VERSION, "results": results})
         return
 
     if not results:
@@ -85,15 +79,12 @@ def skill_read_cmd(
         raise click.ClickException(str(exc)) from exc
 
     if json_output:
-        click.echo(
-            json.dumps(
-                {
-                    "schema_version": SCHEMA_VERSION,
-                    "document": skill_metadata(doc),
-                    "content": content,
-                },
-                ensure_ascii=False,
-            )
+        emit_json(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "document": skill_metadata(doc),
+                "content": content,
+            }
         )
         return
 

@@ -1,8 +1,6 @@
-import json
-
 import click
 
-from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import emit_json, find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
 
 
@@ -35,6 +33,6 @@ def read_cmd(ctx: click.Context, identifier: str, json_output: bool):
             "source": doc.source,
             "content": content,
         }
-        click.echo(json.dumps(output))
+        emit_json(output)
     else:
         click.echo(content)

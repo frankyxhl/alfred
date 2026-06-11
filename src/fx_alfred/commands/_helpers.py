@@ -1,6 +1,7 @@
 """Shared helpers for CLI commands — wraps core functions with Click error handling."""
 
 import importlib
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -18,6 +19,21 @@ from fx_alfred.core.scanner import (
     scan_documents,
 )
 from fx_alfred.core.schema import ALLOWED_STATUSES, DocType
+
+# Commands-layer JSON envelope version (CHG-2301). Schema families owned
+# by core keep their own constants (core.skills / core.agent_helpers);
+# plan_cmd versions its payload shape independently.
+SCHEMA_VERSION = "1"
+
+
+def emit_json(data: Any) -> None:
+    """Emit ``data`` as the canonical CLI JSON form (CHG-2301).
+
+    indent=2 for human inspection, ensure_ascii=False so CJK content
+    renders as written. All command --json output goes through here
+    (enforced by tests/test_architecture.py).
+    """
+    click.echo(json.dumps(data, indent=2, ensure_ascii=False))
 
 
 def scan_or_fail(ctx: click.Context) -> list[Document]:

@@ -110,6 +110,4 @@ def test_commands_use_named_schema_version_constants() -> None:
     offenders = _commands_violations(
         lambda line: '"schema_version": "1"' in line, skip_helpers=True
     )
-    assert offenders == [], (
-        f"use a named SCHEMA_VERSION constant: {offenders}"
-    )
+    assert offenders == [], f"use a named SCHEMA_VERSION constant: {offenders}"

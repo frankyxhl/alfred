@@ -1,10 +1,8 @@
 """Search command for af CLI -- searches document contents."""
 
-import json
-
 import click
 
-from fx_alfred.commands._helpers import scan_or_fail
+from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json, scan_or_fail
 from fx_alfred.context import root_option
 from fx_alfred.core.source import SOURCE_LABELS
 
@@ -75,10 +73,10 @@ def search_cmd(ctx: click.Context, pattern: str, output_json: bool):
 
     if output_json:
         result = {
-            "schema_version": "1",
+            "schema_version": SCHEMA_VERSION,
             "query": pattern,
             "results": results,
         }
-        click.echo(json.dumps(result, ensure_ascii=False, indent=2))
+        emit_json(result)
     elif not matches_found:
         click.echo("No matches found.")

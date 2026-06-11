@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-import json
 
 import click
 
-from fx_alfred.commands._helpers import find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import (
+    SCHEMA_VERSION,
+    emit_json,
+    find_or_fail,
+    scan_or_fail,
+)
 from fx_alfred.context import root_option
 from fx_alfred.core.preferences import (
     PreferencesError,
@@ -14,9 +18,6 @@ from fx_alfred.core.preferences import (
     get_starred_docs,
     remove_starred_doc,
 )
-
-
-SCHEMA_VERSION = "1"
 
 
 def _canonical_from_doc(doc) -> str:
@@ -141,14 +142,12 @@ def starred_cmd(ctx: click.Context, json_output: bool) -> None:
     missing = sorted(s for s in starred if s not in resolvable)
 
     if json_output:
-        click.echo(
-            json.dumps(
-                {
-                    "schema_version": SCHEMA_VERSION,
-                    "starred_docs": starred,
-                    "missing": missing,
-                }
-            )
+        emit_json(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "starred_docs": starred,
+                "missing": missing,
+            }
         )
         return
 
