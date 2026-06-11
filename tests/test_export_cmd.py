@@ -344,3 +344,21 @@ def test_positional_id_of_skipped_doc_warned_specifically(project):
     err = result.stderr if hasattr(result, "stderr") else ""
     assert "requested TST-6010 was skipped" in err
     assert "TST-6001" in result.output
+
+
+def test_only_requested_doc_skipped_fails_loudly_not_no_match(tmp_path):
+    """A positional ID that MATCHED but was skipped must not masquerade as
+    'no documents matched' exit 2; warnings precede a clear exit-1 error
+    (codex PR #201 P2 #2)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-6011-SOP-Only-Corrupt.md").write_text(
+        "not a valid alfred document", encoding="utf-8"
+    )
+    runner = _stderr_capable_runner()
+    result = runner.invoke(cli, ["export", "--root", str(tmp_path), "TST-6011"])
+    assert result.exit_code == 1  # ClickException, not UsageError(2)
+    err = result.stderr if hasattr(result, "stderr") else result.output
+    assert "skipped TST-6011" in err
+    assert "requested TST-6011 was skipped" in err
+    assert "all matches were skipped" in err

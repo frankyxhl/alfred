@@ -326,14 +326,24 @@ def export_cmd(
         status_filter,
         include_all,
     )
+    # Skip warnings BEFORE the empty check — a matched-but-skipped
+    # positional must not silently become "no documents matched"
+    # (codex PR #201 P2 #2).
+    for reason in skipped:
+        click.echo(f"⚠ skipped {reason}", err=True)
+
     if not selected:
+        if skipped:
+            # Matches existed but every one was skipped: that is a failed
+            # export (exit 1, warnings above explain why), not a usage error.
+            raise click.ClickException(
+                "no exportable documents — all matches were skipped "
+                "(see warnings above)"
+            )
         raise click.UsageError(
             "no documents matched; try --all, different filters, or positional IDs"
         )
     ordered = _order_documents(selected)
-
-    for reason in skipped:
-        click.echo(f"⚠ skipped {reason}", err=True)
 
     if list_only:
         _write_output("\n".join(_contents_line(e) for e in ordered), output_path)
