@@ -1,5 +1,52 @@
 # Changelog
 
+## v1.20.0 (2026-06-12)
+
+Feature release: `af export` — the single-file runbook (PRP FXA-2303 +
+first-real-use amendments CHG-2304), shipped through a two-round PRP
+panel, a code-review panel, a delta panel (11 verdicts, all >= 9.0) and
+a four-finding bot review loop.
+
+### New Features
+
+- **`af export [IDS...] [-o FILE]`** — flatten the layer-resolved corpus
+  (PKG + USR + PRJ) into one self-contained Markdown runbook for
+  zero-install consumption: no-CLI preamble, routing documents first,
+  every selected document verbatim under collision-safe full-pattern
+  delimiters, deterministic output (same corpus → byte-identical).
+  Default scope: Active SOP + REF. (FXA-2303, #201)
+- **Selection surface** — positional IDs (bypass all filters),
+  repeatable `--source`/`--type` (OR within the dimension:
+  `--source pkg --source prj` shares project + bundled docs without the
+  personal USR layer), `--prefix`, `--tag`, case-insensitive `--status`
+  (default Active), `--all`. (FXA-2303/FXA-2304, #201)
+- **`--include PATH`** (repeatable) — attach project files (e.g.
+  `README.md`) verbatim under `FILE:` delimiters, listed in the
+  Contents table. (FXA-2304, #201)
+- **Sharing safety** — `--list` dry-run audits the exact export set;
+  a `⚠ review before sharing` stderr warning fires whenever USR/PRJ
+  content or attachments are included; `--source pkg` documented as the
+  public-only safe path. (FXA-2303, #201)
+
+### Internal
+
+- New `core/routing.py` — routing-document detection shared by
+  `af guide` and `af export`; guide refactored onto it with existing
+  routing tests passing unmodified. (FXA-2303, #201)
+
+### Stats
+
+- 1035 tests (35 new), all passing on Python 3.10/3.12/3.14
+- 0 breaking changes
+
+### Install / Upgrade
+
+```bash
+pip install fx-alfred==1.20.0       # install specific version
+pipx install fx-alfred              # first install
+pipx upgrade fx-alfred              # upgrade existing
+```
+
 ## v1.19.0 (2026-06-11)
 
 Quality-and-correctness release: nine reviewed PRs (#190–#198) clearing the
