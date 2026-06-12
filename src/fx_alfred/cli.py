@@ -36,6 +36,7 @@ Quick Start:
         "agent": "fx_alfred.commands.agent_cmd:agent_cmd",
         "changelog": "fx_alfred.commands.changelog_cmd:changelog_cmd",
         "create": "fx_alfred.commands.create_cmd:create_cmd",
+        "export": "fx_alfred.commands.export_cmd:export_cmd",
         "fmt": "fx_alfred.commands.fmt_cmd:fmt_cmd",
         "guide": "fx_alfred.commands.guide_cmd:guide_cmd",
         "index": "fx_alfred.commands.index_cmd:index_cmd",
