@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella; uses these primitives in §1 idle-with-retry, §8 iterate, §10 merge-watch, §12 loop restart; §11 retrospective is synchronous — no primitive needed), COR-1622 (parameter schema — `<wakeup-tool>`, `<idle-cap>`, `<merge-watch-cap>`)
-**Disposition:** inherit-only
+**Disposition:** optional-overlay
 
 ---
 

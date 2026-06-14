@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-05-09
 **Status:** Active
 **Related:** COR-1602 (Multi Model Parallel Review — composes), COR-1615 (GitHub App PR Review Bot Loop — feeds), COR-1617 (umbrella; phase 9), COR-1622 (parameter schema — `<panel-providers>`, `<panel-pass-threshold>`)
-**Disposition:** inherit-only
+**Disposition:** optional-overlay
 
 ---
 
