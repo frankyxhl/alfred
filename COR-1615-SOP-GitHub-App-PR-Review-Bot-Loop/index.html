@@ -1,0 +1,3889 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://frankyxhl.github.io/fx-alfred/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop/">
+      
+      
+        <link rel="prev" href="../COR-1614-SOP-Multi-Phase-Execution-Contract/">
+      
+      
+        <link rel="next" href="../COR-1616-SOP-Contract-First-Delivery-Workflow/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>COR-1615: GitHub App PR Review Bot Loop - Alfred — Agent Runbook</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sop-1615-github-app-pr-review-bot-loop" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Alfred — Agent Runbook" class="md-header__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alfred — Agent Runbook
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              COR-1615: GitHub App PR Review Bot Loop
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Alfred — Agent Runbook" class="md-nav__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Alfred — Agent Runbook
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PRP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    PRP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1507-PRP-Two-Worker-TDD-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1507: Two-Worker TDD Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REF
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    REF
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0000-REF-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0000: Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0001-REF-Glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0001: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0002-REF-Document-Format-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0002: Document Format Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1204-REF-CTX-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1204: CTX Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1205-REF-Agent-Activity-Log-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1205: Agent Activity Log Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1504-REF-Diagnose-Phase-Gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1504: Diagnose Phase Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1622-REF-Multi-Agent-Loop-Project-Configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1622: Multi-Agent Loop Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1705-REF-Code-Review-Classification-System/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1705: Code Review Classification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1800-REF-Evolution-Philosophy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1800: Evolution Philosophy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SOP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1000-SOP-Create-SOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1000: Create SOP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1001-SOP-Create-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1001: Create Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1002-SOP-Read-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1002: Read Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1004-SOP-Create-Routing-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1004: Create Routing Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1100-SOP-Create-Decision-Record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1100: Create Decision Record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1101-SOP-Submit-Change-Request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1101: Submit Change Request
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1102-SOP-Create-Proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1102: Create Proposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1103-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1103: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1104-SOP-CHG-Sizing-Decision-Tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1104: CHG Sizing Decision Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1200-SOP-Session-Retrospective/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1200: Session Retrospective
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1201-SOP-Discussion-Tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1201: Discussion Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1202-SOP-Compose-Session-Plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1202: Compose Session Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1203-SOP-Pre-Task-Alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1203: Pre-Task Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1206-SOP-Emit-Agent-Activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1206: Emit Agent Activity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1207-SOP-Zoom-Out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1207: Zoom Out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1208-SOP-Session-Startup-Sanity-Check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1208: Session Startup Sanity Check
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1300-SOP-Update-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1300: Update Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1301-SOP-Deprecate-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1301: Deprecate Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1302-SOP-Maintain-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1302: Maintain Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1400-SOP-Atomic-SOP-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1400: Atomic SOP Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1401-SOP-Documentation-Language-Policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1401: Documentation Language Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1402-SOP-Declare-Active-Process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1402: Declare Active Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1403-SOP-Interactive-Question-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1403: Interactive Question Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1404-SOP-Interactive-Question-Claude-Code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1404: Interactive Question — Claude Code Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1405-SOP-Interactive-Question-GitHub-Copilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1405: Interactive Question — GitHub Copilot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1500-SOP-TDD-Development-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1500: TDD Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1501-SOP-Create-GitHub-Issue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1501: Create GitHub Issue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1502-SOP-Git-Branch-Naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1502: Git Branch Naming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1503-SOP-Diagnose-Feedback-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1503: Diagnose Feedback Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1505-SOP-Branch-and-Identity-Hygiene/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1505: Branch and Identity Hygiene
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1506-SOP-Review-GitHub-Issue-Quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1506: Review GitHub Issue Quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1600-SOP-Workflow-Direct-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1600: Workflow — Direct Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1601: Workflow — Leader Mediated Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1602-SOP-Workflow-Multi-Model-Parallel-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1602: Workflow — Multi Model Parallel Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1603-SOP-Workflow-Parallel-Module-Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1603: Workflow — Parallel Module Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1604-SOP-Workflow-Competitive-Parallel-Exploration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1604: Workflow — Competitive Parallel Exploration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1605-SOP-Workflow-Sequential-Pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1605: Workflow — Sequential Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1606-SOP-Workflow-Selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1606: Workflow — Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1607-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1607: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1608-SOP-PRP-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1608: PRP Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1609-SOP-CHG-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1609: CHG Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1610-SOP-Code-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1610: Code Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1611-SOP-Reviewer-Calibration-Guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1611: Reviewer Calibration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1612-SOP-Respond-To-PR-Review-Comments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1612: Respond To PR Review Comments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1613-SOP-Council-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1613: Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1614-SOP-Multi-Phase-Execution-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1614: Multi Phase Execution Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1615: GitHub App PR Review Bot Loop
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1615: GitHub App PR Review Bot Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operator-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operator Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-resolve-the-current-pr-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Resolve the current PR head
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-confirm-write-identity-before-triggering-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Confirm write identity before triggering review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-run-the-pre-trigger-finalization-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Run the pre-trigger finalization gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-decide-whether-a-trigger-is-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Decide whether a trigger is needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-trigger-one-review-request-for-the-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Trigger one review request for the head
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-poll-without-spamming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Poll without spamming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-interpret-reactions-conservatively" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Interpret reactions conservatively
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-match-review-result-to-the-current-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Match review result to the current head
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-fetch-actionable-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Fetch actionable findings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-process-findings-through-cor-1612" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Process findings through COR-1612
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-restart-after-every-push" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Restart after every push
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-stop-only-when-the-current-head-is-clear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Stop only when the current head is clear
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-1-queue-reaction-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 1 - Queue reaction only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-2-fix-push-after-a-blocking-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 2 - Fix push after a blocking comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-3-copilot-reviewer-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 3 - Copilot reviewer request
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-4-old-inline-comment-appears-near-a-new-diff-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 4 - Old inline comment appears near a new diff line
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-5-clean-review-before-a-known-closeout-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 5 - Clean review before a known closeout commit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-6-pre-merge-sweep-catches-a-panel-missed-thread" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 6 - Pre-merge sweep catches a panel-missed thread
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#portable-operator-prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Portable Operator Prompt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1616-SOP-Contract-First-Delivery-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1616: Contract-First Delivery Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1617-SOP-Multi-Agent-Workflow-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1617: Multi-Agent Workflow Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1618-SOP-Out-of-Band-Consent-Auto-Pick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1618: Out-of-Band Consent Auto-Pick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1619-SOP-Orchestrator-vs-Worker-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1619: Orchestrator vs Worker Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1620-SOP-Self-Pacing-Loop-Primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1620: Self-Pacing Loop Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1621-SOP-Multi-Reviewer-Triage-and-Severity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1621: Multi-Reviewer Triage and Severity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1623-SOP-PR-Review-Thread-Verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1623: PR Review Thread Verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1700-SOP-Initialize-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1700: Initialize Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1701-SOP-Archive-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1701: Archive Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1702-SOP-Sync-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1702: Sync Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1703-SOP-Fork-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1703: Fork Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1706-SOP-Code-Review-Structural-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1706: Code Review — Structural Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1707-SOP-Code-Review-Cross-Cutting-Concerns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1707: Code Review — Cross-Cutting Concerns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1708-SOP-Code-Review-Domain-Specific-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1708: Code Review — Domain-Specific Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1709: Code Review — AI-Assisted Code + Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1801-SOP-Pattern-Promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1801: Pattern Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1802-SOP-Build-Weighted-Decision-Matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1802: Build Weighted Decision Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When NOT to Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operator-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operator Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-resolve-the-current-pr-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Resolve the current PR head
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-confirm-write-identity-before-triggering-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Confirm write identity before triggering review
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-run-the-pre-trigger-finalization-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Run the pre-trigger finalization gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-decide-whether-a-trigger-is-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Decide whether a trigger is needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-trigger-one-review-request-for-the-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Trigger one review request for the head
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-poll-without-spamming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Poll without spamming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-interpret-reactions-conservatively" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Interpret reactions conservatively
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-match-review-result-to-the-current-head" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Match review result to the current head
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-fetch-actionable-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Fetch actionable findings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-process-findings-through-cor-1612" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Process findings through COR-1612
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-restart-after-every-push" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Restart after every push
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-stop-only-when-the-current-head-is-clear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Stop only when the current head is clear
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-1-queue-reaction-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 1 - Queue reaction only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-2-fix-push-after-a-blocking-comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 2 - Fix push after a blocking comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-3-copilot-reviewer-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 3 - Copilot reviewer request
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-4-old-inline-comment-appears-near-a-new-diff-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 4 - Old inline comment appears near a new diff line
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-5-clean-review-before-a-known-closeout-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 5 - Clean review before a known closeout commit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-6-pre-merge-sweep-catches-a-panel-missed-thread" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 6 - Pre-merge sweep catches a panel-missed thread
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#portable-operator-prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Portable Operator Prompt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sop-1615-github-app-pr-review-bot-loop">SOP-1615: GitHub App PR Review Bot Loop</h1>
+<p><strong>Applies to:</strong> All projects using the COR document system
+<strong>Last updated:</strong> 2026-05-15
+<strong>Last reviewed:</strong> 2026-05-15
+<strong>Status:</strong> Active
+<strong>Related:</strong> COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
+<strong>Task tags:</strong> [github, github-app, pull-request, pr-review, review, bot-review, codex, copilot]
+<strong>Authored from:</strong> BAB-1504-SOP-GitHub-Codex-PR-Review-Loop
+<strong>Disposition:</strong> inherit-only</p>
+<hr />
+<h2 id="what-is-it">What Is It?</h2>
+<p>A procedure for driving a GitHub App pull-request review bot loop from trigger to completion. It covers when to request a review, how to interpret reactions and review objects, how to avoid duplicate requests, how to match results to the current PR head commit, and when to hand off actionable findings to COR-1612.</p>
+<p>This SOP is bot-agnostic. It covers both first-party GitHub/Copilot review apps and connector-installed reviewers such as <code>chatgpt-codex-connector[bot]</code>, as long as the review is produced by a GitHub App or bot on the PR.</p>
+<hr />
+<h2 id="why">Why</h2>
+<p>GitHub App review bots are useful but easy to misread. A reaction on a request comment can mean "queued" rather than "complete"; a review can cover an older commit; and flat comment APIs can show old inline comments near new diff lines. Without a standard loop, operators can merge without a current-head review, re-fix stale comments, or spam duplicate review requests that make the PR timeline harder to audit.</p>
+<hr />
+<h2 id="when-to-use">When to Use</h2>
+<ul>
+<li>A PR is open and an operator asks for a GitHub App review bot pass.</li>
+<li>A branch has been pushed after addressing PR feedback and needs review on the new head commit.</li>
+<li>A workflow treats a GitHub App review bot as one detector in the PR readiness gate.</li>
+<li>The operator needs to distinguish pending bot work from a completed review result.</li>
+<li>Before declaring a PR merge-ready, even when an in-conversation panel review such as COR-1602 has already passed. GitHub App bots post asynchronously on GitHub, so their threads can exist outside the panel transcript.</li>
+</ul>
+<h2 id="when-not-to-use">When NOT to Use</h2>
+<ul>
+<li>Local review before a PR exists.</li>
+<li>Multi-reviewer decision making that is not GitHub App bot polling; use COR-1613 and the selected COR-1600 through COR-1605 workflow.</li>
+<li>Responding to already-fetched review findings; use COR-1612 for classification, fixes, replies, and post-fix polling.</li>
+<li>CI failure diagnosis with no PR review comments; use the project CI/debug route.</li>
+<li>The current GitHub identity is not allowed to create visible PR comments under the active USR/PRJ routing policy.</li>
+</ul>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Know the repository and PR number, for example <code>OWNER/REPO</code> and <code>PR_NUM</code>.</li>
+<li>Confirm <code>gh</code> is installed and authenticated.</li>
+<li>Confirm the visible-write account is the intended account for this project before creating PR comments.</li>
+<li>Know the local branch state and remote PR head:
+  <code>git status --short --branch</code> and <code>gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid</code>.</li>
+<li>Before manually triggering review, finish and push all known local closeout
+  commits, status flips, index updates, PR-body-driven doc edits, and
+  validation-only fixups. Trigger only when the next expected commit would be a
+  response to review feedback or CI feedback.</li>
+<li>Do not put private hostnames, local filesystem paths, tokens, Tailscale IPs, or other local environment details into public PR text.</li>
+</ul>
+<hr />
+<h2 id="operator-checklist">Operator Checklist</h2>
+<p>Core invariant: a PR is not clear until the latest review result applies to the current <code>headRefOid</code> and no new actionable findings remain for that head.</p>
+<ul>
+<li>Record the current <code>headRefOid</code> before triggering or interpreting a review.</li>
+<li>Before the first manual trigger for a head, complete the local closeout pass:
+  no known status-only, index-only, CHG closeout, PR body, or validation fixup
+  commit should remain unpushed.</li>
+<li>After every push, return to Step 1 and compare any bot-reviewed commit with the new <code>headRefOid</code>.</li>
+<li>Treat <code>eyes</code> or similar acknowledgement reactions as queued or in-progress, not approval.</li>
+<li>Do not post duplicate <code>@codex review</code> comments or duplicate reviewer requests while a request for the same head is still pending.</li>
+<li>Verify the visible-write identity with <code>gh auth status</code> before posting PR comments, reviewer requests, or replies.</li>
+<li>Do not publish private IPs, local filesystem paths, tokens, private hostnames, or host-specific secrets in PR bodies, comments, commits, or review packets.</li>
+<li>For all actionable findings, hand off to COR-1612: classify comments, fix blockers and adopted advisories, rerun relevant validation, commit, push, and reply where needed.</li>
+<li>After pushing fixes from COR-1612, return to this SOP Step 1 for the new <code>headRefOid</code>.</li>
+<li>Before saying "merge-ready", run the pre-merge sweep in §Commands. Trinity/panel PASS is necessary for that lane but not sufficient while non-bookkeeping GitHub-side review threads remain unresolved or unreplied.</li>
+<li>For long iteration loops on the same PR, see COR-1612 §Scoping bot reviews via PR body for an optional, bot-vendor-dependent PR-body scope-hint technique.</li>
+</ul>
+<hr />
+<h2 id="status-vocabulary">Status Vocabulary</h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Request comment such as <code>@codex review</code></td>
+<td>A manual review request was posted</td>
+<td>Wait; do not post another request immediately</td>
+</tr>
+<tr>
+<td>Reviewer assignment such as <code>@copilot</code></td>
+<td>A GitHub reviewer-style bot was requested</td>
+<td>Wait for review; do not also post a comment trigger unless both detectors are intentionally desired</td>
+</tr>
+<tr>
+<td>Reaction such as <code>eyes</code> on the request</td>
+<td>The reviewer has noticed or queued the request</td>
+<td>Keep polling; review is not complete yet</td>
+</tr>
+<tr>
+<td>Positive reaction with no new comments</td>
+<td>The reviewer may have no suggestions</td>
+<td>Confirm the signal applies to the current head before treating it as clear</td>
+</tr>
+<tr>
+<td>Review body names a reviewed commit</td>
+<td>Review completed for that commit</td>
+<td>Compare the commit with current <code>headRefOid</code></td>
+</tr>
+<tr>
+<td>Inline bot comments</td>
+<td>Actionable or advisory findings</td>
+<td>Classify and handle via COR-1612</td>
+</tr>
+<tr>
+<td>Review is for an older commit</td>
+<td>Current head is not covered</td>
+<td>Request or wait for a review of the current head</td>
+</tr>
+<tr>
+<td>Thread is outdated or resolved</td>
+<td>Comment no longer applies to current diff</td>
+<td>Do not treat it as a fresh blocker unless the issue still exists</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="commands">Commands</h2>
+<p>Set variables:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">OWNER</span><span class="o">=</span><span class="s2">&quot;github-owner&quot;</span>
+<span class="nv">REPO</span><span class="o">=</span><span class="s2">&quot;github-repo&quot;</span>
+<span class="nv">PR_NUM</span><span class="o">=</span><span class="s2">&quot;123&quot;</span>
+</code></pre></div>
+<p>Confirm identity before visible writes:</p>
+<div class="highlight"><pre><span></span><code>gh<span class="w"> </span>auth<span class="w"> </span>status
+</code></pre></div>
+<p>Read PR state and recent review objects:</p>
+<div class="highlight"><pre><span></span><code>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--json<span class="w"> </span>number,state,isDraft,mergeable,reviewDecision,headRefName,headRefOid,latestReviews,comments,statusCheckRollup
+</code></pre></div>
+<p>Trigger a manual review when the project uses a comment-requested bot:</p>
+<div class="highlight"><pre><span></span><code>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">&quot;</span><span class="w"> </span>--body<span class="w"> </span><span class="s1">&#39;@codex review&#39;</span>
+</code></pre></div>
+<p>Request a review when the project uses a reviewer-assignment bot:</p>
+<div class="highlight"><pre><span></span><code>gh<span class="w"> </span>pr<span class="w"> </span>edit<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span><span class="w"> </span>--repo<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">&quot;</span><span class="w"> </span>--add-reviewer<span class="w"> </span>@copilot
+</code></pre></div>
+<p>Fetch inline review comments:</p>
+<div class="highlight"><pre><span></span><code>gh<span class="w"> </span>api<span class="w"> </span><span class="s2">&quot;repos/</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">/pulls/</span><span class="nv">$PR_NUM</span><span class="s2">/comments&quot;</span><span class="w"> </span>--paginate<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | {id, user: .user.login, path, line, commit_id, created_at, body, html_url}&#39;</span>
+</code></pre></div>
+<p>Fetch review summaries:</p>
+<div class="highlight"><pre><span></span><code>gh<span class="w"> </span>api<span class="w"> </span><span class="s2">&quot;repos/</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">/pulls/</span><span class="nv">$PR_NUM</span><span class="s2">/reviews&quot;</span><span class="w"> </span>--paginate<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--jq<span class="w"> </span><span class="s1">&#39;.[] | {id, state, user: .user.login, commit_id, submitted_at, body}&#39;</span>
+</code></pre></div>
+<p>When thread state matters, use a GraphQL or project helper that exposes <code>isOutdated</code> and <code>isResolved</code>; REST flat comments do not expose the full thread state.</p>
+<p>Pre-merge sweep, excluding bookkeeping bots:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">OWNER</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">OWNER</span><span class="p">:?set OWNER=&lt;github-org-or-user&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">REPO</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">REPO</span><span class="p">:?set REPO=&lt;repo-name&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">PR_NUM</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PR_NUM</span><span class="p">:?set PR_NUM=&lt;pr-number&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Bots whose comments only mark bookkeeping state, not actionable findings.</span>
+<span class="nv">BOOKKEEPING_BOTS_JSON</span><span class="o">=</span><span class="s1">&#39;[&quot;iterwheel-clearance[bot]&quot;]&#39;</span>
+
+<span class="c1"># Inline review comments on changed lines. Keep in_reply_to_id so author</span>
+<span class="c1"># replies can be distinguished from top-level findings before COR-1612 routing.</span>
+gh<span class="w"> </span>api<span class="w"> </span><span class="s2">&quot;repos/</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">/pulls/</span><span class="nv">$PR_NUM</span><span class="s2">/comments&quot;</span><span class="w"> </span>--paginate<span class="w"> </span><span class="p">|</span>
+<span class="w">  </span>jq<span class="w"> </span>-s<span class="w"> </span>--argjson<span class="w"> </span>bookkeeping<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BOOKKEEPING_BOTS_JSON</span><span class="s2">&quot;</span><span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">    flatten</span>
+<span class="s1">    | map(select(.user.login as $u | ($bookkeeping | index($u) | not)))</span>
+<span class="s1">    | map({</span>
+<span class="s1">        type: &quot;inline&quot;,</span>
+<span class="s1">        id,</span>
+<span class="s1">        in_reply_to_id,</span>
+<span class="s1">        user: .user.login,</span>
+<span class="s1">        path,</span>
+<span class="s1">        line,</span>
+<span class="s1">        commit_id,</span>
+<span class="s1">        created_at,</span>
+<span class="s1">        body,</span>
+<span class="s1">        html_url</span>
+<span class="s1">      })</span>
+<span class="s1">  &#39;</span>
+
+<span class="c1"># Review summaries. Empty-body approvals are ignored; CHANGES_REQUESTED reviews</span>
+<span class="c1"># are retained even if their body is empty.</span>
+gh<span class="w"> </span>api<span class="w"> </span><span class="s2">&quot;repos/</span><span class="nv">$OWNER</span><span class="s2">/</span><span class="nv">$REPO</span><span class="s2">/pulls/</span><span class="nv">$PR_NUM</span><span class="s2">/reviews&quot;</span><span class="w"> </span>--paginate<span class="w"> </span><span class="p">|</span>
+<span class="w">  </span>jq<span class="w"> </span>-s<span class="w"> </span>--argjson<span class="w"> </span>bookkeeping<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BOOKKEEPING_BOTS_JSON</span><span class="s2">&quot;</span><span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">    flatten</span>
+<span class="s1">    | map(select((.user.login as $u | ($bookkeeping | index($u) | not))</span>
+<span class="s1">        and (.state == &quot;CHANGES_REQUESTED&quot; or ((.body // &quot;&quot;) != &quot;&quot;))))</span>
+<span class="s1">    | map({</span>
+<span class="s1">        type: &quot;review_summary&quot;,</span>
+<span class="s1">        id,</span>
+<span class="s1">        state,</span>
+<span class="s1">        user: .user.login,</span>
+<span class="s1">        commit_id,</span>
+<span class="s1">        created_at: .submitted_at,</span>
+<span class="s1">        body</span>
+<span class="s1">      })</span>
+<span class="s1">  &#39;</span>
+</code></pre></div>
+<p>Thread-aware state for unresolved vs resolved/outdated:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">OWNER</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">OWNER</span><span class="p">:?set OWNER=&lt;github-org-or-user&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">REPO</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">REPO</span><span class="p">:?set REPO=&lt;repo-name&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">PR_NUM</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PR_NUM</span><span class="p">:?set PR_NUM=&lt;pr-number&gt;</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nv">BOOKKEEPING_BOTS_JSON</span><span class="o">=</span><span class="s1">&#39;[&quot;iterwheel-clearance[bot]&quot;]&#39;</span>
+
+gh<span class="w"> </span>api<span class="w"> </span>graphql<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span><span class="nv">query</span><span class="o">=</span><span class="s1">&#39;</span>
+<span class="s1">    query($owner:String!, $repo:String!, $pr:Int!) {</span>
+<span class="s1">      repository(owner:$owner, name:$repo) {</span>
+<span class="s1">        pullRequest(number:$pr) {</span>
+<span class="s1">          reviewThreads(first:100) {</span>
+<span class="s1">            pageInfo { hasNextPage endCursor }</span>
+<span class="s1">            nodes {</span>
+<span class="s1">              id</span>
+<span class="s1">              isResolved</span>
+<span class="s1">              isOutdated</span>
+<span class="s1">              comments(first:100) {</span>
+<span class="s1">                pageInfo { hasNextPage endCursor }</span>
+<span class="s1">                nodes { databaseId author { login } body path line url }</span>
+<span class="s1">              }</span>
+<span class="s1">            }</span>
+<span class="s1">          }</span>
+<span class="s1">        }</span>
+<span class="s1">      }</span>
+<span class="s1">    }&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span><span class="nv">owner</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$OWNER</span><span class="s2">&quot;</span><span class="w"> </span>-f<span class="w"> </span><span class="nv">repo</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$REPO</span><span class="s2">&quot;</span><span class="w"> </span>-F<span class="w"> </span><span class="nv">pr</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$PR_NUM</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span>
+<span class="w">  </span>jq<span class="w"> </span>--argjson<span class="w"> </span>bookkeeping<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BOOKKEEPING_BOTS_JSON</span><span class="s2">&quot;</span><span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">    .data.repository.pullRequest.reviewThreads as $threads</span>
+<span class="s1">    | if $threads.pageInfo.hasNextPage then</span>
+<span class="s1">        error(&quot;reviewThreads truncated; use COR-1612 Detecting reviewer-side resolution pagination&quot;)</span>
+<span class="s1">      elif any($threads.nodes[]; .comments.pageInfo.hasNextPage) then</span>
+<span class="s1">        error(&quot;reviewThread comments truncated; use COR-1612 Detecting reviewer-side resolution pagination&quot;)</span>
+<span class="s1">      else</span>
+<span class="s1">        $threads.nodes</span>
+<span class="s1">        | map({</span>
+<span class="s1">            id,</span>
+<span class="s1">            isResolved,</span>
+<span class="s1">            isOutdated,</span>
+<span class="s1">            comments: [</span>
+<span class="s1">              .comments.nodes[]</span>
+<span class="s1">              | select(.author.login as $u | ($bookkeeping | index($u) | not))</span>
+<span class="s1">              | {id: .databaseId, user: .author.login, path, line, body, url}</span>
+<span class="s1">            ]</span>
+<span class="s1">          })</span>
+<span class="s1">        | map(select((.comments | length) &gt; 0))</span>
+<span class="s1">      end</span>
+<span class="s1">  &#39;</span>
+</code></pre></div>
+<p>The pre-merge gate passes when the sweep returns zero non-bookkeeping GitHub-side review threads, or every returned thread is resolved, outdated, or has an author reply that addresses it per COR-1612. If no GitHub App review bot is installed, the bot-specific portion is empty; the gate is still blocked by any unresolved or unreplied human or code-review-app GitHub thread.</p>
+<hr />
+<h2 id="decision-tree">Decision Tree</h2>
+<pre class="mermaid"><code>flowchart TD
+  A([Start with open PR]) --&gt; B[Resolve current headRefOid]
+  B --&gt; C[Confirm visible-write identity]
+  C --&gt; D{Known local follow-up&lt;br/&gt;commit still pending?}
+  D --&gt;|Yes| E[Make commit, validate, push]
+  E --&gt; B
+  D --&gt;|No| F{Current head already&lt;br/&gt;has completed bot result?}
+  F --&gt;|Yes| G[Fetch three feedback surfaces]
+  F --&gt;|No| H{Request already pending&lt;br/&gt;for this head?}
+  H --&gt;|Yes| I[Poll without another trigger]
+  H --&gt;|No| J[Trigger one bot review&lt;br/&gt;for this head]
+  J --&gt; I
+  I --&gt; K{Review/result applies&lt;br/&gt;to current head?}
+  K --&gt;|No| B
+  K --&gt;|Yes| G
+  G --&gt; L{Actionable findings?}
+  L --&gt;|Yes| M[Process through COR-1612]
+  M --&gt; N[Commit fixes, validate, push]
+  N --&gt; B
+  L --&gt;|No| O{CI and required checks pass?}
+  O --&gt;|No| P[Diagnose or fix checks]
+  P --&gt; N
+  O --&gt;|Yes| Q([Current head clear])</code></pre>
+<p>Read this as a control-flow summary only. The detailed rules below still govern
+identity checks, trigger discipline, stale-head matching, feedback handling, and
+completion criteria.</p>
+<hr />
+<h2 id="steps">Steps</h2>
+<h3 id="1-resolve-the-current-pr-head">1. Resolve the current PR head</h3>
+<p>Run <code>gh pr view</code> and record <code>headRefOid</code>. A review only clears the head commit it actually reviewed.</p>
+<h3 id="2-confirm-write-identity-before-triggering-review">2. Confirm write identity before triggering review</h3>
+<p>Run <code>gh auth status</code>. If the authenticated account is not the intended visible-write account for the project, stop and fix authentication before creating PR comments.</p>
+<h3 id="3-run-the-pre-trigger-finalization-gate">3. Run the pre-trigger finalization gate</h3>
+<p>Before posting a manual review trigger, ask: "Do I already know I will make
+another commit if this review passes?" If yes, make that commit first. Common
+known follow-up commits include CHG closeout, status flips, index updates,
+generated-doc refreshes, PR-body-driven corrections, and validation or
+whitespace fixups.</p>
+<p>Run the project validation that supports the PR readiness claim, confirm
+<code>git status --short --branch</code> is clean except intentionally untracked unrelated
+files, push the final known local commit, and re-read <code>headRefOid</code>.</p>
+<p>If the only possible next commits are review-response or CI-response fixes, the
+head is ready for a manual review trigger.</p>
+<h3 id="4-decide-whether-a-trigger-is-needed">4. Decide whether a trigger is needed</h3>
+<p>Trigger review only when the current head lacks a completed review result, the operator explicitly requested a new pass, or a push changed the head after the last review request. Do not trigger another review while an existing request for the same head is still pending.</p>
+<h3 id="5-trigger-one-review-request-for-the-head">5. Trigger one review request for the head</h3>
+<p>Post or request the project-specific review once. Examples:</p>
+<ul>
+<li>Comment-triggered reviewer: <code>gh pr comment "$PR_NUM" --repo "$OWNER/$REPO" --body '@codex review'</code></li>
+<li>Reviewer-assignment bot: <code>gh pr edit "$PR_NUM" --repo "$OWNER/$REPO" --add-reviewer @copilot</code></li>
+<li>Repository-configured automatic review: no manual trigger; record that the head is waiting for the configured GitHub App reviewer</li>
+</ul>
+<p>Record the current <code>headRefOid</code>, request mechanism, and request timestamp in the session notes or PR checklist.</p>
+<h3 id="6-poll-without-spamming">6. Poll without spamming</h3>
+<p>Wait 3-5 minutes between polls. Re-read PR state, latest reviews, top-level comments, and inline comments. Repeated request comments before the previous request has resolved add noise and can obscure the audit trail.</p>
+<h3 id="7-interpret-reactions-conservatively">7. Interpret reactions conservatively</h3>
+<p>Treat queue or acknowledgement reactions as in-progress signals, not approval. A positive no-comment signal can clear the head only when it is tied to the current request or current head and no newer actionable comments exist.</p>
+<h3 id="8-match-review-result-to-the-current-head">8. Match review result to the current head</h3>
+<p>If the review body or API object names a reviewed commit, compare it with current <code>headRefOid</code>. If the reviewed commit is stale, the current head is not clear. If the reviewer does not expose an explicit reviewed commit, use the best available evidence: request timestamp, review <code>commit_id</code>, PR head at review submission time, and absence of newer pushes.</p>
+<h3 id="9-fetch-actionable-findings">9. Fetch actionable findings</h3>
+<p>Use the COR-1612 three-surface fetch pattern: inline review comments, review summaries, and top-level PR conversation comments. If a comment may be stale, fetch thread-aware state before treating it as a fresh blocker.</p>
+<h3 id="10-process-findings-through-cor-1612">10. Process findings through COR-1612</h3>
+<p>Classify each finding as blocking, advisory, question, or incorrect. Fix blocking issues and adopted advisories in focused commits, reply with verified behavior claims, and keep reviewer-thread resolution discipline per COR-1612.</p>
+<h3 id="11-restart-after-every-push">11. Restart after every push</h3>
+<p>Every push creates a new <code>headRefOid</code>. Return to Step 1, then request or wait for a review of that new head. A clean review of the old head does not clear the new one. Do not assume re-review is automatic; some reviewers must be explicitly requested again after a push.</p>
+<h3 id="12-stop-only-when-the-current-head-is-clear">12. Stop only when the current head is clear</h3>
+<p>The loop is complete when the latest bot result applies to current <code>headRefOid</code>, no new actionable comments remain, required checks are settled, no review request for the current head is still pending, and the pre-merge sweep above has no unresolved or unreplied non-bookkeeping GitHub-side review threads.</p>
+<p>If the sweep finds unresolved threads, route them to COR-1612 before declaring merge-ready. If the sweep finds zero non-bookkeeping GitHub-side review threads, record "pre-merge sweep: clear" in the PR checklist or handoff note. In repositories with no installed GitHub App review bot, this clear result still requires checking for human and code-review-app GitHub threads.</p>
+<hr />
+<h2 id="completion-criteria">Completion Criteria</h2>
+<ul>
+<li>Current <code>headRefOid</code> is recorded.</li>
+<li>The pre-trigger finalization gate passed before the first manual trigger for
+  the current head, or any known follow-up commit was pushed before review was
+  requested.</li>
+<li>Latest review result is matched to current <code>headRefOid</code>, or a no-suggestion signal is tied to the current request/head.</li>
+<li>No new actionable PR comments remain unhandled.</li>
+<li>Pre-merge sweep finds no unresolved or unreplied non-bookkeeping GitHub-side review threads. If the sweep finds zero such threads, the gate is clear.</li>
+<li>Relevant validation or CI has passed after the last fix push.</li>
+<li>Any remaining blockers are explicitly external to the GitHub App review loop.</li>
+</ul>
+<hr />
+<h2 id="pitfalls">Pitfalls</h2>
+<ul>
+<li><strong>Mistaking acknowledgement for approval:</strong> queue reactions are not completed reviews.</li>
+<li><strong>Reviewing the wrong commit:</strong> a review of one SHA does not clear a later push.</li>
+<li><strong>Duplicate triggers:</strong> repeated request comments while one is pending make the timeline noisy.</li>
+<li><strong>Triggering before local closeout:</strong> if a known CHG closeout, status flip,
+  index update, or validation fixup is still pending, a clean bot result will
+  immediately become stale after that push. Finish known local commits first.</li>
+<li><strong>Flat-comment staleness:</strong> REST comment lists do not prove a thread still applies to the current diff.</li>
+<li><strong>Wrong visible-write identity:</strong> project/user routing may require a specific GitHub account for public comments.</li>
+<li><strong>Private environment leakage:</strong> never include local-only network or host details in public PR text.</li>
+</ul>
+<hr />
+<h2 id="examples">Examples</h2>
+<h3 id="example-1-queue-reaction-only">Example 1 - Queue reaction only</h3>
+<ol>
+<li>The operator posts one review request.</li>
+<li>The reviewer reacts with an acknowledgement.</li>
+<li><code>gh pr view</code> still shows no review for the current <code>headRefOid</code>.</li>
+<li>Correct action: wait and poll again. Do not treat the reaction as approval and do not post another request.</li>
+</ol>
+<h3 id="example-2-fix-push-after-a-blocking-comment">Example 2 - Fix push after a blocking comment</h3>
+<ol>
+<li>A review of <code>abc123</code> reports a blocking inline comment.</li>
+<li>The operator fixes it locally, validates, commits, and pushes <code>def456</code>.</li>
+<li>The old review is stale because it covered <code>abc123</code>.</li>
+<li>Correct action: restart the loop for <code>def456</code>.</li>
+</ol>
+<h3 id="example-3-copilot-reviewer-request">Example 3 - Copilot reviewer request</h3>
+<ol>
+<li>The PR needs GitHub Copilot code review.</li>
+<li>The operator requests Copilot as reviewer with <code>gh pr edit "$PR_NUM" --repo "$OWNER/$REPO" --add-reviewer @copilot</code>.</li>
+<li>After a fix push, the operator does not assume Copilot will re-review automatically.</li>
+<li>Correct action: restart the loop for the new head and request re-review if the project requires it.</li>
+</ol>
+<h3 id="example-4-old-inline-comment-appears-near-a-new-diff-line">Example 4 - Old inline comment appears near a new diff line</h3>
+<ol>
+<li>The flat comments endpoint returns an old bot comment.</li>
+<li>The diff line has moved since the original review.</li>
+<li>The operator fetches thread-aware state and sees the thread is outdated.</li>
+<li>Correct action: do not re-fix the stale comment unless the underlying issue still exists.</li>
+</ol>
+<h3 id="example-5-clean-review-before-a-known-closeout-commit">Example 5 - Clean review before a known closeout commit</h3>
+<ol>
+<li>A PR receives a clean bot result for <code>abc123</code>.</li>
+<li>The operator then notices a planned CHG closeout/status commit was not yet
+   made.</li>
+<li>Pushing that closeout creates <code>def456</code>; the clean review for <code>abc123</code> is now
+   stale.</li>
+<li>Correct action: avoid this by running Step 3 before the first trigger. If the
+   push already happened, restart the loop for <code>def456</code> and record the
+   sequencing miss in the CHG or retrospective if useful.</li>
+</ol>
+<h3 id="example-6-pre-merge-sweep-catches-a-panel-missed-thread">Example 6 - Pre-merge sweep catches a panel-missed thread</h3>
+<ol>
+<li>A docs PR receives in-conversation panel PASS and the agent is ready to say
+   "merge-ready."</li>
+<li>Before handoff, the agent runs the pre-merge sweep. The inline-comments
+   surface returns one non-bookkeeping GitHub App bot P2 thread on the current
+   head; the thread-aware state shows <code>isResolved: false</code> and <code>isOutdated:
+   false</code>.</li>
+<li>The agent routes the finding through COR-1612 instead of declaring
+   merge-ready. In the real-session evidence behind issue #156, this class of
+   sweep caught multiple GitHub-bot findings that the panel transcript did not
+   contain, including P1/P2 harness and cross-reference defects.</li>
+<li>Correct action: fix or reply to the GitHub-side thread, push if needed,
+   restart this SOP for the new head, and only hand off once the pre-merge
+   sweep is clear.</li>
+</ol>
+<hr />
+<h2 id="portable-operator-prompt">Portable Operator Prompt</h2>
+<div class="highlight"><pre><span></span><code>Use the GitHub App PR review bot loop:
+
+<span class="k">-</span><span class="w"> </span>Follow COR-1615 to trigger, poll, and match review results to the current PR head.
+<span class="k">-</span><span class="w"> </span>Follow COR-1612 to address fetched review comments.
+<span class="k">-</span><span class="w"> </span>Before the first manual trigger, finish all known local closeout/status/index
+  commits, validate, push, and re-read headRefOid.
+<span class="k">-</span><span class="w"> </span>After every push, compare the reviewed commit with the current headRefOid.
+<span class="k">-</span><span class="w"> </span>Treat eyes reactions as queued or in-progress, not approval.
+<span class="k">-</span><span class="w"> </span>Do not post duplicate review triggers while one request is in progress.
+<span class="k">-</span><span class="w"> </span>Fix all actionable findings, validate, commit, push, and restart the current-head review loop.
+<span class="k">-</span><span class="w"> </span>Before declaring merge-ready, run the pre-merge sweep and confirm no non-bookkeeping GitHub-side review thread remains unresolved or unreplied.
+<span class="k">-</span><span class="w"> </span>Verify the visible-write identity with gh auth status.
+<span class="k">-</span><span class="w"> </span>Do not publish private IPs, local paths, tokens, or host-specific details in public PR text or commits.
+</code></pre></div>
+<hr />
+<h2 id="references">References</h2>
+<ul>
+<li>OpenAI Codex GitHub integration: https://developers.openai.com/codex/integrations/github</li>
+<li>GitHub Copilot code review: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review</li>
+</ul>
+<hr />
+<h2 id="change-history">Change History</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Change</th>
+<th>By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-05-06</td>
+<td>Added pre-trigger finalization gate to avoid wasting bot review passes on heads that already have known local follow-up commits pending.</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-09</td>
+<td>Added one-line pointer in §Operator Checklist to COR-1612 §Scoping bot reviews via PR body for the optional PR-body scope-hint technique on long iteration loops. CHG-2279.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-05</td>
+<td>Added compact operator checklist and portable prompt for current-head review-loop non-negotiables.</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-05</td>
+<td>Initial COR-level version promoted from BAB-1504, generalized from Codex-specific Babs wording to GitHub App PR review bots.</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-15</td>
+<td>FXA-2285: add pre-merge sweep trigger, non-bookkeeping thread filters, no-bot/zero-thread vacuous pass behavior, and real-session example for panel-missed GitHub App review threads.</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-15</td>
+<td>FXA-2285 R1: add fail-closed nested comment pagination guard to the GraphQL review-thread sweep example.</td>
+<td>Codex</td>
+</tr>
+<tr>
+<td>2026-05-15</td>
+<td>FXA-2285 R2: clarify no-bot repos do not waive unresolved human or code-review-app GitHub threads.</td>
+<td>Codex</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["search.suggest", "search.highlight", "navigation.sections", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

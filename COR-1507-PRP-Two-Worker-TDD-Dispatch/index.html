@@ -1,0 +1,3341 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://frankyxhl.github.io/fx-alfred/COR-1507-PRP-Two-Worker-TDD-Dispatch/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../COR-0000-REF-Document-Index/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>COR-1507: Two-Worker TDD Dispatch - Alfred — Agent Runbook</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#prp-1507-two-worker-tdd-dispatch" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Alfred — Agent Runbook" class="md-header__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alfred — Agent Runbook
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              COR-1507: Two-Worker TDD Dispatch
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Alfred — Agent Runbook" class="md-nav__button md-logo" aria-label="Alfred — Agent Runbook" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Alfred — Agent Runbook
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/frankyxhl/alfred" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PRP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    PRP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1507: Two-Worker TDD Dispatch
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1507: Two-Worker TDD Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-solution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proposed Solution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Proposed Solution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cor-1500-phase-1-red-new-worker-assignment-sub-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1500 §Phase 1 (RED) — new "Worker assignment" sub-section
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="COR-1500 §Phase 1 (RED) — new &#34;Worker assignment&#34; sub-section">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#worker-assignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker assignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1500-phase-2-green-new-rule-appended-to-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1500 §Phase 2 (GREEN) — new rule appended to "Rules:"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1619-new-two-worker-tdd-dispatch-sub-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1619 — new §Two-Worker TDD Dispatch sub-section
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-worker-tdd-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two-Worker TDD Dispatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1619-decision-tree-insertion-patch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1619 §Decision Tree — insertion patch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1622-new-optional-test-writer-worker-agent-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1622 — new optional &lt;test-writer-worker-agent&gt; key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fxa-2276-alfred-prj-ref-new-row-under-worker-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FXA-2276 (alfred PRJ REF) — new row under §Worker dispatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REF
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    REF
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0000-REF-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0000: Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0001-REF-Glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0001: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-0002-REF-Document-Format-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-0002: Document Format Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1204-REF-CTX-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1204: CTX Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1205-REF-Agent-Activity-Log-Format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1205: Agent Activity Log Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1504-REF-Diagnose-Phase-Gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1504: Diagnose Phase Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1622-REF-Multi-Agent-Loop-Project-Configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1622: Multi-Agent Loop Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1705-REF-Code-Review-Classification-System/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1705: Code Review Classification System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1800-REF-Evolution-Philosophy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1800: Evolution Philosophy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOP
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SOP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1000-SOP-Create-SOP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1000: Create SOP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1001-SOP-Create-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1001: Create Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1002-SOP-Read-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1002: Read Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1004-SOP-Create-Routing-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1004: Create Routing Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1100-SOP-Create-Decision-Record/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1100: Create Decision Record
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1101-SOP-Submit-Change-Request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1101: Submit Change Request
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1102-SOP-Create-Proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1102: Create Proposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1103-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1103: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1104-SOP-CHG-Sizing-Decision-Tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1104: CHG Sizing Decision Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1200-SOP-Session-Retrospective/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1200: Session Retrospective
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1201-SOP-Discussion-Tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1201: Discussion Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1202-SOP-Compose-Session-Plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1202: Compose Session Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1203-SOP-Pre-Task-Alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1203: Pre-Task Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1206-SOP-Emit-Agent-Activity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1206: Emit Agent Activity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1207-SOP-Zoom-Out/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1207: Zoom Out
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1208-SOP-Session-Startup-Sanity-Check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1208: Session Startup Sanity Check
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1300-SOP-Update-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1300: Update Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1301-SOP-Deprecate-Document/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1301: Deprecate Document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1302-SOP-Maintain-Document-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1302: Maintain Document Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1400-SOP-Atomic-SOP-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1400: Atomic SOP Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1401-SOP-Documentation-Language-Policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1401: Documentation Language Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1402-SOP-Declare-Active-Process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1402: Declare Active Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1403-SOP-Interactive-Question-Principle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1403: Interactive Question Principle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1404-SOP-Interactive-Question-Claude-Code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1404: Interactive Question — Claude Code Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1405-SOP-Interactive-Question-GitHub-Copilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1405: Interactive Question — GitHub Copilot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1500-SOP-TDD-Development-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1500: TDD Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1501-SOP-Create-GitHub-Issue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1501: Create GitHub Issue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1502-SOP-Git-Branch-Naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1502: Git Branch Naming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1503-SOP-Diagnose-Feedback-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1503: Diagnose Feedback Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1505-SOP-Branch-and-Identity-Hygiene/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1505: Branch and Identity Hygiene
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1506-SOP-Review-GitHub-Issue-Quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1506: Review GitHub Issue Quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1600-SOP-Workflow-Direct-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1600: Workflow — Direct Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1601: Workflow — Leader Mediated Review Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1602-SOP-Workflow-Multi-Model-Parallel-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1602: Workflow — Multi Model Parallel Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1603-SOP-Workflow-Parallel-Module-Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1603: Workflow — Parallel Module Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1604-SOP-Workflow-Competitive-Parallel-Exploration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1604: Workflow — Competitive Parallel Exploration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1605-SOP-Workflow-Sequential-Pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1605: Workflow — Sequential Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1606-SOP-Workflow-Selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1606: Workflow — Selection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1607-SOP-Workflow-Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1607: Workflow Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1608-SOP-PRP-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1608: PRP Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1609-SOP-CHG-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1609: CHG Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1610-SOP-Code-Review-Scoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1610: Code Review Scoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1611-SOP-Reviewer-Calibration-Guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1611: Reviewer Calibration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1612-SOP-Respond-To-PR-Review-Comments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1612: Respond To PR Review Comments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1613-SOP-Council-Review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1613: Council Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1614-SOP-Multi-Phase-Execution-Contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1614: Multi Phase Execution Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1615: GitHub App PR Review Bot Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1616-SOP-Contract-First-Delivery-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1616: Contract-First Delivery Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1617-SOP-Multi-Agent-Workflow-Loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1617: Multi-Agent Workflow Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1618-SOP-Out-of-Band-Consent-Auto-Pick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1618: Out-of-Band Consent Auto-Pick
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1619-SOP-Orchestrator-vs-Worker-Dispatch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1619: Orchestrator vs Worker Dispatch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1620-SOP-Self-Pacing-Loop-Primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1620: Self-Pacing Loop Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1621-SOP-Multi-Reviewer-Triage-and-Severity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1621: Multi-Reviewer Triage and Severity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1623-SOP-PR-Review-Thread-Verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1623: PR Review Thread Verification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1700-SOP-Initialize-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1700: Initialize Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1701-SOP-Archive-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1701: Archive Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1702-SOP-Sync-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1702: Sync Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1703-SOP-Fork-Project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1703: Fork Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1706-SOP-Code-Review-Structural-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1706: Code Review — Structural Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1707-SOP-Code-Review-Cross-Cutting-Concerns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1707: Code Review — Cross-Cutting Concerns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1708-SOP-Code-Review-Domain-Specific-Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1708: Code Review — Domain-Specific Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1709: Code Review — AI-Assisted Code + Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1801-SOP-Pattern-Promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1801: Pattern Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COR-1802-SOP-Build-Weighted-Decision-Matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    COR-1802: Build Weighted Decision Matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is It?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-solution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proposed Solution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Proposed Solution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cor-1500-phase-1-red-new-worker-assignment-sub-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1500 §Phase 1 (RED) — new "Worker assignment" sub-section
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="COR-1500 §Phase 1 (RED) — new &#34;Worker assignment&#34; sub-section">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#worker-assignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker assignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1500-phase-2-green-new-rule-appended-to-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1500 §Phase 2 (GREEN) — new rule appended to "Rules:"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1619-new-two-worker-tdd-dispatch-sub-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1619 — new §Two-Worker TDD Dispatch sub-section
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-worker-tdd-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two-Worker TDD Dispatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1619-decision-tree-insertion-patch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1619 §Decision Tree — insertion patch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cor-1622-new-optional-test-writer-worker-agent-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COR-1622 — new optional &lt;test-writer-worker-agent&gt; key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fxa-2276-alfred-prj-ref-new-row-under-worker-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FXA-2276 (alfred PRJ REF) — new row under §Worker dispatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="prp-1507-two-worker-tdd-dispatch">PRP-1507: Two-Worker TDD Dispatch</h1>
+<p><strong>Applies to:</strong> All projects adopting COR-1500 (TDD) and COR-1617 (Multi-Agent Loop) with a coding-worker layer
+<strong>Last updated:</strong> 2026-05-17
+<strong>Last reviewed:</strong> 2026-05-17
+<strong>Status:</strong> Approved
+<strong>Related:</strong> COR-1500 (TDD Development Workflow — amended by this proposal), COR-1619 (Orchestrator vs Worker Dispatch — amended), COR-1622 (parameter schema — amended), COR-1617 §Phase 5 (dispatch routing — consumes the split), FXA-2276 (alfred PRJ REF — opts in via parameter)
+<strong>Reviewed by:</strong> glm-5.1 (R6: 9.9), deepseek-v4 (R6: 9.0), minimax-m2.7 (R6: 9.55), codex-gpt-5.5 (R6: 9.6), gemini-3 (R6: 9.9) — quintet panel under COR-1602 + COR-1608 (PRP scoring rubric)
+<strong>Disposition:</strong> inherit-only</p>
+<hr />
+<h2 id="what-is-it">What Is It?</h2>
+<p>An opt-in configuration for substantive code-bearing dispatches under the multi-agent loop: when a project sets <code>&lt;test-writer-worker-agent&gt;</code> distinct from <code>&lt;worker-agent&gt;</code> (a new optional COR-1622 parameter), the worker that writes the failing test (RED) and the worker that writes the implementation (GREEN) MUST be distinct agent instances unless the change falls into one of the enumerated opt-out classes. The proposal amends COR-1500 (TDD), COR-1619 (Dispatch), and COR-1622 (Schema); each amendment lands as its own CHG after this PRP is approved. Projects that leave the new parameter unset see no behaviour change — COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 alone applies as today.</p>
+<hr />
+<h2 id="problem">Problem</h2>
+<p>COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 forbids one agent from writing tests and implementation <strong>simultaneously</strong>, but is satisfied as long as the same agent writes them in two sequential turns. The single agent still holds the implementation design in working memory throughout the RED phase. Three structural risks follow:</p>
+<ol>
+<li><strong>Implement-to-fit bias.</strong> The test author is incentivised to write tests they know their planned implementation will pass — a self-fulfilling spec rather than an independent contract. Symptom: changing the implementation in obvious ways still keeps the test green.</li>
+<li><strong>Weakened RED probing.</strong> An agent already holding the GREEN design cannot author RED tests that probe edge cases the implementation will miss. Off-by-one, boundary, and error-path coverage degrades to whatever the implementer happened to consider.</li>
+<li><strong>No cross-validation.</strong> Without an independent test-writer, the orchestrator's verification (<code>pytest</code>, <code>ruff</code>, <code>af validate</code>) confirms tests pass — not that they constrain the right behaviour.</li>
+</ol>
+<p>COR-1619's worker contract assumes a single <code>&lt;worker-agent&gt;</code>; COR-1617 §Phase 5 routes through that single lane; COR-1622 declares only the singleton <code>&lt;worker-agent&gt;</code> parameter. No PKG-layer surface today distinguishes test-writing capacity from implementation capacity.</p>
+<p>User flagged this on 2026-05-17 during plan-review for CHG-2286 (<code>rules/FXA-2286-CHG-Explicit-UTF-8-For-Alfred-Document-IO.md</code>):</p>
+<blockquote>
+<p>"For the implementation, will there at least 2 sub-agents? one for writing all the tests code, one for implementation? if not, we should also improve this SOP globally....maybe for all development related SOPs to standardize this process."</p>
+</blockquote>
+<p>The two-agent pattern is established practice in pair-programming literature ("ping-pong programming") and in several commercial multi-agent dev tooling stacks, but it is not codified in COR-1500 or COR-1619. The single-worker pattern is the silent default in every alfred PR shipped to date; the implement-to-fit risk has accumulated invisibly because no retrospective tooling can distinguish spec-derived from impl-derived tests after the fact.</p>
+<hr />
+<h2 id="scope">Scope</h2>
+<p><strong>In scope (v1):</strong></p>
+<ul>
+<li>A new "Worker assignment" sub-section in COR-1500 §Phase 1 (RED) declaring <code>test-writer ≠ implementer</code> as the rule for substantive code dispatches when the two-worker split is active (gated by the new <code>&lt;test-writer-worker-agent&gt;</code> parameter; OFF by default for non-adopters), with an enumerated opt-out list.</li>
+<li>A new rule in COR-1500 §Phase 2 (GREEN) constraining what the implementer worker is allowed to read.</li>
+<li>A new §Two-Worker TDD Dispatch sub-section in COR-1619 containing the handoff contract (commits, verification gates, worker-prompt boilerplate).</li>
+<li>A new branch in the COR-1619 §Decision Tree that asks "Two-worker TDD applicable?" before falling through to the existing single-worker tree.</li>
+<li>A new optional <code>&lt;test-writer-worker-agent&gt;</code> key in COR-1622's parameter schema, defaulting to the same value as <code>&lt;worker-agent&gt;</code> so non-adopters see no behaviour change.</li>
+<li>A PRJ-REF update for alfred (FXA-2276) opting into the split by setting <code>&lt;test-writer-worker-agent&gt;</code> to a distinct agent identifier; trinity's TRN-1008 may follow if it adopts.</li>
+</ul>
+<p><strong>Out of scope (v1):</strong></p>
+<ul>
+<li>Mandating the two-worker split for non-code SOPs (docs, governance, metadata — single worker is fine; the bias mode does not apply).</li>
+<li>Choosing the specific worker provider for tests vs implementation. PRJ REFs decide; the PKG SOP only mandates that the two slots be distinct.</li>
+<li>Multi-worker patterns beyond two (e.g. test-writer + implementer + independent code-reviewer trio). The current evidence supports the two-worker split; three-worker would be a separate proposal with its own evidence.</li>
+<li>Backfilling the split onto in-flight PRs. The amendment applies only to new picks after the SOP lands; rolled-up retrospective coverage is not feasible.</li>
+<li>Code-review-panel changes. The panel is post-implementation and orthogonal to who authored the tests vs implementation.</li>
+<li>Automated detection of "test-writer also implemented" violations. The proposed enforcement is procedural / orchestrator-side; tooling-side detection is deferred until evidence shows procedural enforcement is insufficient.</li>
+</ul>
+<hr />
+<h2 id="proposed-solution">Proposed Solution</h2>
+<h3 id="cor-1500-phase-1-red-new-worker-assignment-sub-section">COR-1500 §Phase 1 (RED) — new "Worker assignment" sub-section</h3>
+<p>Inserted between the existing "Rules:" block and "Test structure convention (Arrange-Act-Assert):".</p>
+<blockquote>
+<h4 id="worker-assignment">Worker assignment</h4>
+<p>When the RED phase is dispatched to <code>&lt;worker-agent&gt;</code> (per COR-1619) AND the project's <code>&lt;test-writer-worker-agent&gt;</code> parameter is set to a value distinct from <code>&lt;worker-agent&gt;</code> (per COR-1622), the <strong>test-writer worker</strong> and the <strong>implementer worker</strong> for the GREEN phase MUST be distinct agent instances. "Distinct" means different model identifiers OR the same model with different <code>:instance</code> suffixes (e.g. <code>glm:writer</code> vs <code>glm:impl</code>).</p>
+<p>Scope of the constraint: the same agent identity MUST NOT author both the failing tests and the GREEN-phase implementation for the <strong>same task</strong>, regardless of session boundaries (a fresh session by the same agent for the same task does not satisfy the rule). The rule applies until the CHG/PR is merged; subsequent CHGs are new tasks with their own assignment.</p>
+<p>This rule subsumes COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 ("Agent must not write test and implementation simultaneously"): a distinct-instance requirement is strictly stronger than the simultaneity ban.</p>
+<p>When <code>&lt;test-writer-worker-agent&gt;</code> is unset (or equal to <code>&lt;worker-agent&gt;</code>), the two-worker split is OFF for this project; Rule #3 alone applies. The rest of this sub-section assumes the split is ON.</p>
+<p>Opt out (use a single worker even when the split is ON; document the reason in the CHG <code>## Implementation Order</code> section):</p>
+<table>
+<thead>
+<tr>
+<th>Opt-out class</th>
+<th>Why single-worker is safe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trivial single-function fix ≤ <code>&lt;worker-min-loc&gt;</code> (default 30)</td>
+<td>COR-1619 routes this to the orchestrator already, so no worker is dispatched at all.</td>
+</tr>
+<tr>
+<td>Refactor with pre-existing test coverage covering the changed surface</td>
+<td>The existing tests are the spec; no new test authorship is needed. CHG must name the specific tests covering the change so the reviewer can assert adequacy.</td>
+</tr>
+<tr>
+<td>Config / metadata-only change</td>
+<td>No behaviour change to test; implement-to-fit bias has nothing to bias.</td>
+</tr>
+<tr>
+<td>Characterization tests on legacy code</td>
+<td>Tests capture <em>actual</em> behaviour, not desired behaviour; the bias mode does not apply. Same agent characterizes + refactors per COR-1500 §Characterization Tests (Legacy Code).</td>
+</tr>
+<tr>
+<td>Generated test scaffolding</td>
+<td>Deterministic codegen (e.g. pytest parametrize expansion, hypothesis strategies emitted from a schema); no human / agent judgment in the test body, so no bias to cross-validate.</td>
+</tr>
+<tr>
+<td>Vendored code update with no behaviour change</td>
+<td>Bumping a dependency / re-importing upstream code; the upstream tests are authoritative.</td>
+</tr>
+</tbody>
+</table>
+<p>Any other opt-out is a CHG-level argument and must be reviewed by the plan-review panel. In opt-out cases the two-worker split does not apply for this dispatch; COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 (no simultaneous test+impl by one agent) alone governs.</p>
+</blockquote>
+<h3 id="cor-1500-phase-2-green-new-rule-appended-to-rules">COR-1500 §Phase 2 (GREEN) — new rule appended to "Rules:"</h3>
+<blockquote>
+<ul>
+<li>When the two-worker split is in effect (i.e. RED was dispatched to a distinct test-writer worker per Phase 1's "Worker assignment" sub-section), the implementer worker MUST NOT read the test-writer's structured report, prose commentary, or session transcripts. The implementer reads (a) the failing test files committed by the test-writer, (b) the CHG/PRP body, and (c) the production source tree being modified — i.e., the existing codebase under change. The constraint forbids only the test-writer's <em>commentary channel</em>; the test is the spec, and the source is the substrate. Commentary may leak the test-writer's intended implementation, defeating the cross-validation the split exists to provide.</li>
+</ul>
+</blockquote>
+<h3 id="cor-1619-new-two-worker-tdd-dispatch-sub-section">COR-1619 — new §Two-Worker TDD Dispatch sub-section</h3>
+<p>Inserted between §Worker Dispatch Contract and §Verification.</p>
+<blockquote>
+<h3 id="two-worker-tdd-dispatch">Two-Worker TDD Dispatch</h3>
+<p>When COR-1500 §Phase 1's "Worker assignment" rule applies (substantive code change, <code>&lt;test-writer-worker-agent&gt;</code> set distinct from <code>&lt;worker-agent&gt;</code>, no opt-out class matching), the orchestrator runs the following handoff contract instead of a single worker dispatch:</p>
+<ol>
+<li><strong>Dispatch test-writer worker</strong> (<code>&lt;test-writer-worker-agent&gt;</code>) with the COR-1619 §Worker Dispatch Contract items, plus:</li>
+<li>Spec pointer: the CHG/PRP path.</li>
+<li>Output constraint: failing tests only — NO implementation, NO stubs in production source.</li>
+<li>Verification commands: <code>&lt;test-runner&gt; &lt;test-paths&gt;</code> MUST report failures (RED).</li>
+<li>Push/commit constraint: do NOT push or commit; report files modified.</li>
+<li><em>Enforcement note:</em> the push/commit constraint is orchestrator-trust-based; the dispatch backend may not enforce read-only mounts or commit-blocking flags. Orchestrator detects violations post-dispatch by comparing the worker's reported file list against <code>git status --porcelain</code> after the dispatch returns (since both workers commit through the orchestrator's identity, <code>git log --author=</code> does not differentiate them). <strong>On detection of a violation</strong> (worker modified production source files outside the reported list, or wrote files outside the test paths): orchestrator runs <code>git restore</code> on the off-list paths, surfaces the violation in the dispatch log + CHG <code>## Implementation Order</code>, and re-dispatches the test-writer with the violation as explicit feedback. Repeated violations (≥2 from the same worker on the same task) escalate per step 2's retry cap.</li>
+<li><strong>Orchestrator verifies</strong> the tests fail on current HEAD by re-running <code>&lt;test-runner&gt;</code>. If any new test passes (i.e., the test does not actually fail on the un-implemented code), reject the test-writer's work and re-dispatch with the specific failing assertion as feedback. <strong>Maximum 2 re-dispatches</strong> of the test-writer per task; on the third failed attempt, escalate: the orchestrator either authors the test inline (only if the test fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619) or routes back to plan-review with a spec-ambiguity finding.</li>
+<li><strong>Orchestrator commits</strong> the test files with prefix <code>test:</code> per COR-1500 §Commit Strategy Option A.</li>
+<li><strong>Dispatch implementer worker</strong> (<code>&lt;worker-agent&gt;</code>) with the COR-1619 §Worker Dispatch Contract items, plus:</li>
+<li>Spec pointer: the CHG/PRP path PLUS the failing-test commit SHA (so the implementer can <code>git show</code> the tests).</li>
+<li>Reading constraint: do NOT read the test-writer's structured report or any worker-output channel; the failing tests, CHG/PRP body, and existing production source are the only inputs.</li>
+<li><strong>Test-file edit constraint</strong>: the implementer MUST NOT modify, delete, weaken, or skip any test file the test-writer committed in step 3. The implementer MAY add NEW test files (different paths from the test-writer's commit) that exercise the implementation's internal scaffolding, but these new tests are advisory and do NOT replace the test-writer's tests as the cross-validation surface. If the implementer believes a test-writer test is incorrect, the implementer reports the issue in its structured output and the orchestrator routes to step 2's escalation (re-dispatch test-writer or plan-review spec-ambiguity) — the implementer does not unilaterally fix it.</li>
+<li>Verification commands: <code>&lt;test-runner&gt;</code> MUST report all green (including tests the test-writer added — verify they are present and passing, not removed or skipped).</li>
+<li><em>Enforcement note:</em> orchestrator runs <code>git diff &lt;test-writer-commit&gt; -- &lt;test-writer-paths&gt;</code> (where <code>&lt;test-writer-paths&gt;</code> is the exact file list the test-writer committed in step 3, not a broader glob) after the implementer's dispatch returns; any non-empty diff on those specific paths fires the test-file edit constraint violation handling (<code>git restore &lt;test-writer-paths&gt;</code> to the test-writer commit, surface the violation, re-dispatch implementer with the violation as explicit feedback). Implementer-added test files at OTHER paths are NOT subject to the diff check — they are advisory and stay on the branch.</li>
+<li><strong>Orchestrator verifies</strong> all tests pass by re-running <code>&lt;test-runner&gt;</code> plus the standard verification gates (<code>&lt;linter&gt;</code>, <code>&lt;formatter&gt; --check</code>, <code>af validate --root .</code>). Triage of any failures:</li>
+<li>Test added by test-writer fails on implementer's commit → re-dispatch implementer with the specific failing test name. Same 2-retry cap as step 2; on third failure, escalate to plan-review for spec ambiguity.</li>
+<li>Test in an unrelated module fails (regression in pre-existing code) → orchestrator triages per COR-1621: if scope is single-function and within <code>&lt;worker-min-loc&gt;</code>, orchestrator fixes inline; otherwise re-dispatch implementer with the regressed test paths added to the spec pointer. Do NOT silently skip / xfail the regression.</li>
+<li><strong>Orchestrator commits</strong> the implementation with prefix <code>feat:</code> / <code>fix:</code> per COR-1500 §Commit Strategy Option A.</li>
+<li><strong>Refactor pass</strong> (Phase 3 of COR-1500): the <strong>implementer worker</strong> runs the refactor by default per §Decisions item 2; the orchestrator may substitute only when the post-refactor diff fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619. The test-writer does NOT run the refactor in v1 (this preserves test-writer independence for the next cycle: the test-writer never sees the GREEN implementation, keeping its edge-case-probing posture for future tasks on the same module). During refactor only, the <strong>reading constraint</strong> of step 4 is lifted — the refactorer MAY read any artifact produced in this dispatch (tests, implementation, commentary), since the cross-validation served its purpose at GREEN. The <strong>test-file edit constraint</strong> of step 4 persists with a narrow carve-out: the refactorer MAY reorganise test structure (rename helpers, extract fixtures, reorder imports) but MUST NOT (a) weaken, remove, or skip any assertion from the test-writer's tests, (b) move tests between files (file-path changes alter test node IDs, which break the test-name-set check below and hide weakening behind movement), or (c) rename test functions in ways that change tested semantics.</li>
+</ol>
+<p><strong>Enforcement is two-tier, because semantic weakening cannot be reliably detected by automation:</strong>
+   - <em>Tier 1 (automated, fast)</em>: orchestrator runs <code>&lt;test-runner&gt;</code> with <code>--collect-only</code> (or equivalent) before and after the refactor and compares the test-name-set (qualified <code>file::class::test_name</code> IDs). Any removed test name, any test-name-set difference at all (additions OR removals), and any reduction in pass-count fires the violation handler immediately: revert refactor, re-dispatch implementer with explicit feedback. This catches removed tests, moved tests (file-path changes), and renamed tests — but does NOT catch in-place assertion weakening (same test name, same pass count, weakened assertion still passes).
+   - <em>Tier 2 (human review, surfaced in PR body)</em>: orchestrator emits the per-file diff under <code>&lt;test-writer-paths&gt;</code> in the CHG <code>## Implementation Order</code> AND in the PR body under a <code>### Refactor test-file changes</code> heading. The plan-review panel and code-review bot are explicitly asked to scan this diff for assertion weakening. This is a documented enforcement gap: in-place assertion weakening is detectable only by reading the diff, not by running tests. The PR is gated on Tier 2 reviewer attention; CHGs SHOULD NOT merge with Tier 1 green if Tier 2 review was skipped.</p>
+<p>Subsequent cycles re-apply the test-writer/implementer separation from step 1.
+8. <strong>Phase 8 (Iterate) re-dispatch routing.</strong> When COR-1617 §Phase 8 surfaces a new finding requiring code (bot review comment, CI failure, panel finding), the orchestrator decides between four mutually exclusive cases:
+   - <strong>(a) New test+implementation pair needed</strong> (e.g., reviewer asks "add a test for the empty-input edge case and handle it") → re-enter this contract from step 1 with the new scope. Test-writer authors the new failing test; orchestrator commits it per step 3 with <code>test:</code> prefix. Orchestrator runs <code>&lt;test-runner&gt;</code> locally on the just-committed test; <strong>if the test fails</strong> (expected RED — the implementation does not yet cover the requested behaviour), continue to step 4 to dispatch implementer (which produces a <code>feat:</code>/<code>fix:</code> commit per step 6); <strong>if the test unexpectedly passes</strong> (the existing implementation already covers the requested behaviour, so the new test is additive coverage rather than a new behavioural constraint), skip implementer dispatch entirely — the test-writer's step-3 <code>test:</code> commit is the final commit for this iteration, no implementation commit is produced, and the iteration is done. This local-run gate exists because additive-coverage requests are common in PR review and forcing a redundant implementer round-trip burns latency and risks hallucinated changes.
+   - <strong>(b) Implementation-only fix to satisfy existing tests</strong> (e.g., CI failure on a test the test-writer already authored; reviewer asks to fix a regression flagged by an existing test) → if the fix scope is ≤ <code>&lt;worker-min-loc&gt;</code> lines in a single function per COR-1619's single-function rule, the orchestrator handles inline (no worker dispatch); otherwise dispatch implementer worker only, with the failing test name as feedback. No new test authorship, so no test-writer dispatch. This matches step 5's precedent (small-scope regression fix routes through the orchestrator; larger fixes route through the implementer).
+   - <strong>(c) Test-only edit to existing tests</strong> (e.g., reviewer asks to tighten an assertion) → dispatch <code>&lt;test-writer-worker-agent&gt;</code> to author the edit. Orchestrator commits the edit per step 3 with <code>test:</code> prefix. Orchestrator runs <code>&lt;test-runner&gt;</code> locally on the just-committed test; <strong>if the test fails on the current implementation</strong> (the tightening surfaces a real defect or imposes a new constraint), dispatch implementer per step 4 (which produces a <code>feat:</code>/<code>fix:</code> commit per step 6); <strong>if the test still passes</strong> (the edit is a clarification or additive assertion that current code already satisfies), skip implementer dispatch — the test-writer's step-3 <code>test:</code> commit is the final commit for this iteration, no implementation commit is produced, and the iteration is done.
+   - <strong>(d) Documentation / comment / config-only fix</strong> → orchestrator handles directly per COR-1619's existing tree (no worker dispatch needed).
+   Each iteration round is logged in the CHG <code>## Implementation Order</code> with the case (a/b/c/d) selected, the local-run gate outcome (for a/c), the orchestrator-inline-vs-worker decision (for b), and the rationale. Cases (a) and (c) re-apply the §Worker assignment rule for the test-writer; the implementer is dispatched only when the local-run gate confirms a real failure. Case (b) is a degenerate single-worker dispatch when above the inline threshold, or orchestrator-direct when below. Case (d) bypasses worker dispatch entirely.</p>
+<p><strong>Worker unavailability fallback.</strong> Two symmetric branches per COR-1622 §Resilience retry policy when <code>&lt;cli-retry-on-failure&gt;</code> is <code>mark-non-viable</code>:</p>
+<ul>
+<li><strong>Test-writer outage</strong> (<code>&lt;test-writer-worker-agent&gt;</code> CLI fails before step 3 commits): orchestrator authors the tests inline (effectively <code>test-writer = orchestrator</code> for this dispatch) if the test surface fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619; otherwise the dispatch is paused, the orchestrator surfaces the outage in the CHG <code>## Implementation Order</code>, and the loop arms a 1800 s wake per COR-1620 to retry the worker.</li>
+<li><strong>Implementer outage</strong> (<code>&lt;worker-agent&gt;</code> CLI fails after step 3 commits the test-writer's tests but before step 6): the test-writer's failing-test commit stays on the branch (it is already pushed in the orchestrator-commits-after-step-3 path; or held locally if not yet pushed — orchestrator records which case applies). Orchestrator falls back to authoring the implementation inline only if the implementation surface fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule per COR-1619; otherwise the dispatch is paused, the test-writer's commit remains (do NOT revert it — it is already validated cross-spec by the test-writer), the orchestrator surfaces the outage, and the loop arms a 1800 s wake per COR-1620 to retry the worker. <strong>Refactor-phase outage</strong> (both workers fail at step 7): orchestrator runs the refactor inline if the diff fits the ≤ <code>&lt;worker-min-loc&gt;</code> rule; otherwise the refactor is deferred to a follow-up CHG (the GREEN implementation already shipped a passing test suite).</li>
+</ul>
+<p>All fallbacks MUST be recorded in the CHG <code>## Implementation Order</code> section and surfaced in the PR body. Falling back does NOT alter the §Worker assignment rule for future dispatches.</p>
+<p><strong>Cost note.</strong> Two-worker dispatch roughly doubles per-task worker latency and token cost vs single-worker (one test-writer round-trip + one implementer round-trip in series, vs one combined round-trip). The PRP §Validation plan tracks defect-density and panel-review findings vs the single-worker baseline; if no measurable benefit appears after the first three two-worker dispatches, the default is revisited per a follow-up CHG.</p>
+</blockquote>
+<h3 id="cor-1619-decision-tree-insertion-patch">COR-1619 §Decision Tree — insertion patch</h3>
+<p>Replace the existing <code>A[Implementation task] --&gt; B{Generated file regen only?}</code> head of the tree with two new gating nodes; the rest of the existing tree (<code>B</code>, <code>MIX</code>, <code>H0</code>, <code>H</code>, <code>C</code>, <code>D</code>, <code>E</code>, <code>F</code>, <code>G</code>, plus all leaf nodes) is unchanged.</p>
+<blockquote>
+<pre class="mermaid"><code>flowchart TD
+    A[Implementation task] --&gt; P{"&amp;lt;test-writer-worker-agent&amp;gt;&lt;br/&gt;set distinct from&lt;br/&gt;&amp;lt;worker-agent&amp;gt;?"}
+    P -- No --&gt; B{Generated file regen only?}
+    P -- Yes --&gt; TW{Two-worker TDD applicable?&lt;br/&gt;(substantive code, no opt-out class matches)}
+    TW -- Yes --&gt; TW1[TWO-WORKER TDD&lt;br/&gt;see §Two-Worker TDD Dispatch]
+    TW -- No --&gt; B
+    B -- Yes --&gt; O1[ORCHESTRATOR&lt;br/&gt;run the generator]
+    B -- No --&gt; MIX{Mixed code+doc?}
+    %% existing tree continues unchanged from MIX onward</code></pre>
+</blockquote>
+<p>Node <code>P</code> is the parameter gate (skipped entirely when <code>&lt;test-writer-worker-agent&gt;</code> is unset / equal to <code>&lt;worker-agent&gt;</code>, leaving the original tree behaviour intact). Node <code>TW</code>'s "No" branch is taken when an opt-out class from COR-1500 §Phase 1 matches. The CHG-C2 implementation MUST preserve every existing node from <code>MIX</code> onward verbatim — the <code>%% existing tree continues</code> comment is illustrative; the actual amended mermaid block re-includes the full existing chain (<code>MIX → H0 → H → C → D → E → F → G</code> plus leaves <code>O1/O2/O3/O4/W1/W2/W3/W4</code>).</p>
+<h3 id="cor-1622-new-optional-test-writer-worker-agent-key">COR-1622 — new optional <code>&lt;test-writer-worker-agent&gt;</code> key</h3>
+<p>Added under §Worker dispatch (COR-1619). Column shape matches the existing COR-1622 schema rows verbatim: <code>Key | Type | Required | Default | Description</code>.</p>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;test-writer-worker-agent&gt;</code></td>
+<td>string</td>
+<td>no</td>
+<td>same value as <code>&lt;worker-agent&gt;</code></td>
+<td>Distinct agent instance for the RED-phase test-writer per COR-1500 §Phase 1 Worker assignment. When unset (or equal to <code>&lt;worker-agent&gt;</code>), the two-worker split is OFF for this adopter and COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 alone applies. Adopters opt in by setting this to a different model OR the same model with a different <code>:instance</code> suffix. <strong>Adopters using the same model with different <code>:instance</code> suffix MUST verify with their dispatch backend that the suffix produces a fresh context (no shared KV cache / session state); if not verified, default to different-model differentiation.</strong></td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p>The default-to-<code>&lt;worker-agent&gt;</code> shape preserves backwards compatibility — every existing adopter sees identical behaviour until they explicitly set the key to a distinct value. Non-adopters continue under COR-1500 §AI-Assisted TDD Protocol Mandatory Rule #3 only.</p>
+<p><strong>On naming.</strong> Verbose <code>&lt;test-writer-worker-agent&gt;</code> chosen over shorter alternatives (<code>&lt;test-worker-agent&gt;</code>, <code>&lt;red-worker-agent&gt;</code>) for semantic precision: the slot is specifically a <em>writer</em> of tests (RED-phase author), not a generic test-related worker that might also include test runners or coverage tooling. The verbosity cost is paid once per PRJ REF; reader clarity is paid every time the schema is consulted.</p>
+<h3 id="fxa-2276-alfred-prj-ref-new-row-under-worker-dispatch">FXA-2276 (alfred PRJ REF) — new row under §Worker dispatch</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Alfred value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;test-writer-worker-agent&gt;</code></td>
+<td><code>trinity-deepseek via droid exec</code> (proposed)</td>
+<td>Distinct from <code>&lt;worker-agent&gt;: trinity-glm</code>. Deepseek selected as test-writer because (a) its prior PR reviews show strong edge-case probing on alfred PRs #117 / #154, and (b) it is not the implementer, so cross-validation holds. Re-evaluate after first 3 dispatches per §Validation below.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="decisions">Decisions</h2>
+<p>All design questions resolved in v1; deferred follow-on work is enumerated below each decision with a concrete trigger condition.</p>
+<ol>
+<li><strong>Provider pairing for alfred — Decision: <code>&lt;test-writer-worker-agent&gt; = trinity-deepseek</code>, <code>&lt;worker-agent&gt; = trinity-glm</code>.</strong> Deepseek selected as test-writer because (a) its prior PR reviews on alfred PRs #117 / #154 demonstrate strong edge-case probing, and (b) it is not the implementer, so cross-validation holds. <em>Re-evaluation trigger</em> (for a follow-up CHG, not an open question): any of the first 3 dispatches recorded in §Validation surfaces evidence of weak edge-case probing OR a panel-review finding attributable to test-writer bias.</li>
+<li><strong>Refactor-phase assignment — Decision: implementer worker runs refactor by default; orchestrator override only when the post-refactor diff fits the ≤ <code>&lt;worker-min-loc&gt;</code> single-function rule.</strong> Implementer-as-refactorer-default keeps the test-writer's independence for the next cycle (the test-writer never sees the GREEN implementation, preserving its edge-case-probing posture for future tasks on the same module). <em>Re-evaluation trigger</em>: a retrospective shows refactor-phase choices producing measurable test-writer bias on subsequent dispatches.</li>
+<li><strong>Two-Worker default — Decision: v1 ships with opt-in (<code>&lt;test-writer-worker-agent&gt;</code> defaults to same value as <code>&lt;worker-agent&gt;</code>; split is OFF for non-adopters).</strong> Flipping the default to "set distinct unless explicitly equated" is out of scope for v1. <em>Re-evaluation trigger</em>: a follow-up PRP after 6 months of alfred-and-trinity adoption telemetry shows the split's cost is offset by defect reduction across ≥ 80% of adopting dispatches.</li>
+<li><strong>Parameter naming — Decision: <code>&lt;test-writer-worker-agent&gt;</code>.</strong> Verbose name chosen over <code>&lt;test-worker-agent&gt;</code> / <code>&lt;red-worker-agent&gt;</code> for semantic precision (the slot is specifically a <em>writer</em> of tests, not a generic test-related worker). The verbosity cost is paid once per PRJ REF; reader clarity is paid every time the schema is consulted. <em>Re-evaluation trigger</em>: ≥3 adopters report the name as a usability barrier in their PRJ REFs.</li>
+</ol>
+<p>§Validation logs the data that feeds the re-evaluation triggers.</p>
+<hr />
+<h2 id="open-questions">Open Questions</h2>
+<p>None — all design questions resolved in §Decisions above. The re-evaluation triggers under each decision identify future-CHG scope, not unresolved questions in this PRP. Per COR-1102's Hard Gate ("All Open Questions must be resolved before review begins"), this PRP enters review with an empty open-questions surface.</p>
+<hr />
+<h2 id="validation">Validation</h2>
+<p>After the SOP amendments land, the orchestrator under FXA-2276 SHALL accumulate the first <strong>three</strong> two-worker dispatches in this section. If a candidate CHG matches an opt-out class (per §Phase 1 opt-out table) or triggers a worker-unavailability fallback (per §Two-Worker TDD Dispatch fallback), record its CHG ID + opt-out class / fallback reason in the log below and continue picking until three two-worker dispatches accumulate.</p>
+<p>Per-dispatch record:</p>
+<div class="highlight"><pre><span></span><code>Dispatch N:
+- CHG: &lt;FXA-NNNN-CHG-…&gt;
+- Mode: two-worker | opt-out (&lt;class&gt;) | fallback (&lt;reason&gt;)
+- Test-writer commit SHA: &lt;…&gt;           [two-worker only]
+- Test-writer worker: trinity-deepseek  [two-worker only]
+- Implementer commit SHA: &lt;…&gt;
+- Implementer worker: trinity-glm
+- Test outcomes: &lt;RED tests N; GREEN passed N; refactor pass green&gt;
+- Retrospective notes: &lt;implement-to-fit detected? RED edge-case coverage vs single-worker baseline? hand-off friction? latency delta?&gt;
+</code></pre></div>
+<p>The first three two-worker dispatches feed back into:
+- Decision 1's re-evaluation trigger (provider pairing for alfred — does deepseek as test-writer actually probe edge cases better than alternatives?).
+- Decision 2's re-evaluation trigger (refactor-phase assignment — does implementer-as-refactorer-default produce measurable test-writer bias on subsequent dispatches?).
+- Decision 4's re-evaluation trigger (parameter naming — do operators stumble on <code>&lt;test-writer-worker-agent&gt;</code> in their PRJ REFs?).</p>
+<p>Decision 3's long-term-default-flip trigger (6 months of cross-project adoption telemetry, ≥80% defect-reduction-offsets-cost evidence) is a SEPARATE re-evaluation track from the first-three-dispatches gate — Decision 3 governs the <strong>PKG-layer global default</strong> across all adopters, while this §Validation log governs <strong>alfred's project-level opt-in</strong>. If after three two-worker dispatches the split shows no measurable benefit at the alfred project scope (RED probing strength flat; same defects caught in code-review; no detected impl-to-fit divergence; latency cost not offset by defect reduction), revisit alfred's opt-in (FXA-2276 row removal) in a follow-up alfred CHG; the PKG default remains opt-in for other adopters per Decision 3.</p>
+<hr />
+<h2 id="implementation-plan">Implementation Plan</h2>
+<p>Each amendment lands as its own CHG (single-surface per atomicity discipline per CLD-1802 / COR-1400):</p>
+<ol>
+<li><strong>CHG-A</strong>: amend COR-1500 §Phase 1 (RED) — add "Worker assignment" sub-section + opt-out table.</li>
+<li><strong>CHG-B</strong>: amend COR-1500 §Phase 2 (GREEN) — append the "implementer reads tests + CHG + source only" rule.</li>
+<li><strong>CHG-C1</strong>: amend COR-1619 — add §Two-Worker TDD Dispatch sub-section (handoff contract + fallback + cost note).</li>
+<li><strong>CHG-C2</strong>: amend COR-1619 — insert the new top-level "Two-worker TDD applicable?" branch in §Decision Tree (separate CLD-1802 surface from C1: the decision-tree mermaid block is a distinct heading region from §Worker Dispatch Contract).</li>
+<li><strong>CHG-D</strong>: amend COR-1622 — add <code>&lt;test-writer-worker-agent&gt;</code> schema row.</li>
+<li><strong>CHG-E</strong>: amend FXA-2276 — opt alfred in by setting <code>&lt;test-writer-worker-agent&gt;</code> and document the deviation rationale.</li>
+</ol>
+<p>Dependency order: A and B may land in parallel; C1 and C2 may land in parallel (independent surfaces); D depends on no other; E depends on D being merged first (E references the new schema row), AND should land after issue #166's reconciliation CHG (which removes the FXA-2276 §Adoption Status Phase 1 deviation note); otherwise CHG-E's new schema-row addition may conflict with #166's edit-set at merge time. Bundling CHGs A, B, C1, C2, D into one PR (five CHGs in one PR) is acceptable since each CHG is independently atomic, but the PR description must list each CHG separately and the reviewer should confirm per-CHG atomicity.</p>
+<p>The first end-to-end two-worker dispatch (per §Validation) lands on the <strong>next code-bearing CHG</strong> picked under FXA-2276 after CHGs A–E merge; it is not a separate deliverable of this PRP.</p>
+<hr />
+<h2 id="change-history">Change History</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Change</th>
+<th>By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-05-17</td>
+<td>Initial version — drafted under FXA-2276 looping mode in response to issue #171. PKG-layer PRP at COR-1507 chosen as first available slot in the COR-1500 (TDD) series.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R2: plan-review panel (glm + deepseek + minimax) — all FIX. Address blockers: (a) DeepSeek P0 — COR-1500 "MUST" vs COR-1622 "OFF when unset" contradiction → §Phase 1 now gates on <code>&lt;test-writer-worker-agent&gt;</code> being set distinct, with explicit Rule #3-only fallback when off; (b) DeepSeek P0 — implementer reading constraint forbade production source → §Phase 2 + §C step 4 now explicitly allow source tree; (c) DeepSeek P1 — unbounded test-writer re-dispatch → §C step 2 caps at 2 re-dispatches with escalation; (d) DeepSeek P1 — unrelated test regressions unspecified → §C step 5 adds COR-1621 triage routing; (e) MiniMax P0 — CHG-C bundled two CLD-1802 surfaces → split into CHG-C1 (sub-section) + CHG-C2 (decision tree branch); (f) MiniMax P1 — refactor-phase reading ambiguity → §C step 7 explicitly lifts reading constraint for refactor only; (g) GLM P0 — "within the same session" vs OQ3 task-scoped resolution → §Phase 1 now reads "for the same task, regardless of session boundaries"; OQ3 retired (resolution applied in body). Fold convergent advisories: cost trade-off note (GLM+DeepSeek P2), worker-unavailability fallback (DeepSeek P2), Rule #3 compatibility sentence (DeepSeek P2), additional opt-out classes — generated scaffolding, vendored code (DeepSeek P2), enforcement-mechanism note (GLM P3), §Validation fallback record clause (MiniMax P2), OQ4 instance-suffix verification requirement folded into COR-1622 schema row (MiniMax P2). Discount: GLM hallucinated "~50% of rounds" advisory (not in PRP text; flagged by GLM itself).</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R2.5: R2 panel passed (glm 9.9, deepseek 9.0, minimax 9.05) but advisories folded before R3 quintet escalation per user request. (a) GLM P2 — §Decision Tree mermaid omitted parameter-distinct gate → added explicit <code>P</code> node before <code>TW</code>; (b) GLM P3 — opt-out branch's Rule #3 applicability implicit → appended explicit "In opt-out cases ... Rule #3 alone governs" to §Phase 1 opt-out paragraph; (c) MiniMax P3 — CHG-E vs issue #166 cross-PR ordering → §Implementation Plan dependency-order paragraph now flags the #166 reconciliation CHG as an additional prerequisite for CHG-E. Other R2 P3 advisories (DeepSeek scope-summary skim risk, git-log-enforcement no-op, fallback rationale gap; GLM test-writer-mismatch failure mode, single-model instance-suffix edge case) carried forward as known limitations — non-blocking, addressable in the amendment CHGs.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R3 quintet escalation (per user request — "important change"): added codex (GPT-5.5) + gemini (3) to the panel. R3 first reviews: codex FIX 8.9, gemini FIX 6.6. R3.5 revisions address all 7 blockers across both new reviewers: (a) Codex P1 — COR-1622 schema row column mismatch → row now matches verified COR-1622 column shape <code>Key \| Type \| Required \| Default \| Description</code>; (b) Codex P1 — mermaid <code>B -- No --&gt; ...</code> would have deleted existing <code>MIX{Mixed code+doc?}</code> chain → mermaid now shows <code>B -- No --&gt; MIX</code> with explicit "%% existing tree continues" marker plus prose instruction to preserve every node from <code>MIX</code> onward in CHG-C2; (c) Codex P1 — §C step 1 violation detection had no remediation → added explicit <code>git restore</code> + log + re-dispatch with retry-cap escalation, plus correction that <code>git log --author=</code> doesn't differentiate workers committing through orchestrator identity (use <code>git status --porcelain</code> and worker's reported file list instead); (d) Codex P1 — implementer test-file edit unconstrained → §C step 4 now has explicit Test-file edit constraint (MUST NOT modify/delete/weaken/skip test-writer's tests; MAY add advisory new tests; orchestrator runs <code>git diff &lt;test-writer-commit&gt; -- &lt;test-paths&gt;</code> for enforcement); (e) Gemini P0 — Hard Gate OQ resolution → §Open Questions converted to §Decisions with crisp v1 choices + re-evaluation triggers; §Open Questions section retained with explicit "None — all resolved in §Decisions"; (f) Gemini P0 — Phase 8 iteration routing gap → new §C step 8 with 4-case routing (new test+impl pair re-enters split; impl-only fix to existing tests = implementer-only; test-only edit re-enters from step 1 with test-writer; doc/config = orchestrator); (g) Gemini P0 — asymmetric fallback → §Worker unavailability fallback now has symmetric branches for test-writer outage, implementer outage, and refactor-phase outage; the test-writer's commit is preserved when implementer fails (not reverted). Codex P3 advisory: §Characterization Tests heading reference corrected to "Characterization Tests (Legacy Code)". Gemini naming flag: folded as Decision 4 (keep <code>&lt;test-writer-worker-agent&gt;</code> for semantic precision; re-evaluate after 3 adopter usability reports). Gemini validation-metrics advisory: §Validation per-dispatch record already captures qualitative + quantitative fields; no schema change needed in v1.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R4 quintet: GLM PASS 9.9, DeepSeek PASS 9.0, MiniMax PASS 9.18 (no regression); Codex FIX 9.3, Gemini FIX 8.4 (new R3.5 self-contradictions + step 8(c) deadlock). R4.5 fixes: (a) Codex P1 + GLM P2 convergent — §C step 7 said "EITHER worker" contradicting §Decision 2 ("implementer by default") → step 7 rewritten to enforce implementer-as-refactorer-default with orchestrator override only on ≤ <code>&lt;worker-min-loc&gt;</code> diffs; (b) Codex P1 — §C step 4 "MAY add NEW tests" contradicted enforcement "any non-empty diff fires violation" → enforcement diff check now scopes to <code>&lt;test-writer-paths&gt;</code> (exact file list from test-writer's commit, not a broader glob); new test files at OTHER paths are advisory and skip the diff check; (c) GLM P2 — §C step 7 didn't address whether test-file edit constraint persists through refactor → step 7 now explicitly states the edit constraint persists with narrow carve-out for structural reorganization (rename helpers, extract fixtures, reorder imports, move tests between files) but NOT weakening/removing assertions; relaxed enforcement uses test-pass-count + test-name-set comparison instead of literal diff; (d) Gemini P0 — §C step 8(c) state-machine deadlock (additive-coverage test that already passes would be unconditionally rejected by step 2's RED-must-fail gate) → cases (a) and (c) now have an explicit "local-run gate" after the test-writer's commit: if the test fails on current implementation (RED), proceed to implementer dispatch; if the test unexpectedly passes (additive coverage of behaviour already implemented), skip implementer entirely, commit, and the iteration is done; (e) Gemini P1 — redundant implementer dispatch when test already passes → solved by same local-run gate in (d); (f) Codex P2 — §Decision 3 (long-term default flip after 6 months) wasn't aligned with §Validation's "revisit the default" language (first-three-dispatches scope) → §Validation now distinguishes Decision 3's PKG-global-default track from alfred's project-level opt-in revisit; (g) Convergent advisory across GLM+DeepSeek+MiniMax (3/5) — §Validation still referenced retired "Open Question 1/2/3" labels → renamed to "Decision 1/2/3" with explicit cross-reference to each Decision's re-evaluation trigger. R4 P3 advisories carried forward: §Scope wording polish (DeepSeek), §C step 8(c) implementer re-entry state (DeepSeek), orchestrator-inline fallback loses cross-validation (DeepSeek), §Problem alfred-specific empirical evidence (GLM), Decision 4 / COR-1622 naming rationale redundancy (GLM). All five are non-blocking and addressable in amendment CHGs.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R5 quintet: GLM PASS 9.9, DeepSeek PASS 9.0, MiniMax PASS 9.25, Gemini PASS 9.8 (4/5 PASS); Codex FIX 9.3 with 2 NEW R4.5 P1 blockers. R5.5 fixes: (a) Codex P1 + Gemini/DeepSeek/MiniMax convergent advisory (4/5 reviewers) — §C step 8(a)/(c) "skip implementer dispatch entirely, commit per step 6" routed test-only iterations through step 6's <code>feat:</code>/<code>fix:</code> commit path, wrong prefix → step 8 now explicit: in the local-run-gate-pass path, the test-writer's step-3 <code>test:</code> commit IS the final commit for the iteration, no step-6 commit happens; pre-existing step-3 commit happens BEFORE the local-run gate (not after), so the gate operates on the already-committed test; (b) Codex P1 — §C step 7 refactor enforcement (test-pass-count + test-name-set) cannot detect in-place assertion weakening AND false-positives on allowed file moves → step 7 enforcement reworked into two tiers: Tier 1 (automated) catches removed/moved/renamed tests via <code>&lt;test-runner&gt; --collect-only</code> name-set comparison + pass-count check (and now FORBIDS file moves since they alter test node IDs, removing the false-positive); Tier 2 (human review) explicitly surfaces the per-file test diff in the PR body under <code>### Refactor test-file changes</code> heading for plan-review panel + code-review bot scan; the SOP explicitly acknowledges in-place assertion weakening is detectable only by reading the diff, and gates CHG merge on Tier 2 attention; (c) Gemini P3 — §C step 8(b) unconditionally dispatched implementer → added orchestrator-inline-fix optimization (≤ <code>&lt;worker-min-loc&gt;</code> single-function fix routes through orchestrator, matching step 5's precedent). R5 P3 advisories carried forward: §C step 1 off-list paths clarification (Codex), §C step 8(b) examples expansion to include linter/formatter/type-check failures (Codex), test-runner output-format details for tier 1 enforcement (DeepSeek), orchestrator-inline-author dispatch-log flag (DeepSeek). All four are non-blocking and addressable in amendment CHGs.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+<tr>
+<td>2026-05-17</td>
+<td>R6 quintet: <strong>ALL 5 PASS</strong> (GLM 9.9, DeepSeek 9.0, MiniMax 9.55, Codex 9.6, Gemini 9.9; mean 9.59). All R5 blockers closed; no new blockers; no R5.5 regressions. Carried-forward P3 advisories (alfred-specific §Problem evidence; Decision 4 ↔ COR-1622 naming redundancy; §C step 1 off-list paths clarification; §C step 8(b) examples expansion to include linter/formatter/type-check failures; test-runner output-format spec for Tier 1; orchestrator-inline-author dispatch-log flag; Tier 2 MUST-level PR-body checklist upgrade) are addressable in the amendment CHGs (A through E) rather than blocking PRP approval. Status updated Draft → Approved. PRP enters implementation phase: file CHGs A/B/C1/C2/D bundled to one PR; CHG-E lands separately after D + issue #166 reconciliation merge.</td>
+<td>Claude Opus 4.7</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["search.suggest", "search.highlight", "navigation.sections", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
