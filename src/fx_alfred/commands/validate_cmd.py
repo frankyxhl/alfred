@@ -14,6 +14,8 @@ from fx_alfred.core.schema import (
     ALLOWED_STATUSES,
     COR_REFERENCE_PATTERN,
     DISPOSITION,
+    DISPOSITION_MANDATORY_BIND,
+    DISPOSITION_OPTIONAL_OVERLAY,
     INSTANTIATES,
     OVERLAYS,
     REQUIRED_METADATA,
@@ -93,7 +95,83 @@ def _validate_history_header(header: str) -> list[str]:
     return issues
 
 
-def _validate_governance_fields(parsed) -> list[str]:
+def _metadata_field(parsed, key: str):
+    """Return the first metadata field matching key, if present."""
+    return next((mf for mf in parsed.metadata_fields if mf.key == key), None)
+
+
+def _parse_for_validation(doc: Document, content: str):
+    """Parse document metadata, handling non-standard ACID=0000 index H1s."""
+    if doc.acid == "0000":
+        lines = content.split("\n")
+        if lines and not H1_PATTERN.match(lines[0]):
+            dummy_h1 = f"# {doc.type_code}-{doc.acid}: Index"
+            content = dummy_h1 + content[len(lines[0]) :]
+    return parse_metadata(content)
+
+
+def _build_cor_disposition_index(docs: list[Document]) -> dict[str, str | None]:
+    """Index PKG COR document Disposition values by COR-NNNN id."""
+    index: dict[str, str | None] = {}
+    for doc in docs:
+        if doc.prefix != "COR" or doc.source != "pkg":
+            continue
+        doc_id = f"{doc.prefix}-{doc.acid}"
+        try:
+            content = doc.resolve_resource().read_text(encoding="utf-8")
+            parsed = _parse_for_validation(doc, content)
+        except Exception:
+            index[doc_id] = None
+            continue
+        disp_field = _metadata_field(parsed, DISPOSITION)
+        index[doc_id] = disp_field.value.strip() if disp_field is not None else None
+    return index
+
+
+def _validate_binding_field(
+    doc: Document,
+    field_name: str,
+    raw_value: str,
+    cor_dispositions: dict[str, str | None],
+    expected_disposition: str,
+) -> list[str]:
+    """Validate a PRJ/USR binding field against its PKG COR target."""
+    issues: list[str] = []
+    target_id = raw_value.strip()
+
+    if not re.match(COR_REFERENCE_PATTERN, target_id):
+        issues.append(
+            f"Invalid {field_name} value '{target_id}' — "
+            "must match COR-NNNN format (e.g. COR-1622)"
+        )
+        return issues
+
+    if doc.source not in {"prj", "usr"}:
+        issues.append(f"{field_name} field is only allowed on PRJ/USR documents")
+        return issues
+
+    if target_id not in cor_dispositions:
+        issues.append(
+            f"{field_name} target '{target_id}' does not exist in PKG COR documents"
+        )
+        return issues
+
+    target_disposition = cor_dispositions[target_id]
+    if target_disposition is None:
+        issues.append(f"{field_name} target '{target_id}' has no Disposition value")
+    elif target_disposition != expected_disposition:
+        issues.append(
+            f"{field_name} target '{target_id}' has Disposition "
+            f"'{target_disposition}' (expected '{expected_disposition}')"
+        )
+    return issues
+
+
+def _validate_governance_fields(
+    doc: Document,
+    parsed,
+    cor_dispositions: dict[str, str | None],
+) -> list[str]:
     """Validate COR-204 governance fields: Disposition, Instantiates, Overlays.
 
     These fields are optional (backward-compatible with existing docs).
@@ -102,38 +180,44 @@ def _validate_governance_fields(parsed) -> list[str]:
     issues: list[str] = []
 
     # Validate Disposition field value
-    disp_field = next(
-        (mf for mf in parsed.metadata_fields if mf.key == DISPOSITION), None
-    )
+    disp_field = _metadata_field(parsed, DISPOSITION)
     if disp_field is not None:
         disp_val = disp_field.value.strip()
+        if doc.prefix != "COR" or doc.source != "pkg":
+            issues.append(
+                "Disposition field is only allowed on COR documents in the PKG layer"
+            )
         if disp_val not in ALLOWED_DISPOSITIONS:
             issues.append(
                 f"Invalid Disposition value '{disp_val}' — "
                 f"allowed: {', '.join(sorted(ALLOWED_DISPOSITIONS))}"
             )
 
-    # Validate Instantiates field format
-    inst_field = next(
-        (mf for mf in parsed.metadata_fields if mf.key == INSTANTIATES), None
-    )
+    # Validate Instantiates field format and target disposition
+    inst_field = _metadata_field(parsed, INSTANTIATES)
     if inst_field is not None:
-        inst_val = inst_field.value.strip()
-        if not re.match(COR_REFERENCE_PATTERN, inst_val):
-            issues.append(
-                f"Invalid Instantiates value '{inst_val}' — "
-                "must match COR-NNNN format (e.g. COR-1622)"
+        issues.extend(
+            _validate_binding_field(
+                doc,
+                INSTANTIATES,
+                inst_field.value,
+                cor_dispositions,
+                DISPOSITION_MANDATORY_BIND,
             )
+        )
 
-    # Validate Overlays field format
-    ovr_field = next((mf for mf in parsed.metadata_fields if mf.key == OVERLAYS), None)
+    # Validate Overlays field format and target disposition
+    ovr_field = _metadata_field(parsed, OVERLAYS)
     if ovr_field is not None:
-        ovr_val = ovr_field.value.strip()
-        if not re.match(COR_REFERENCE_PATTERN, ovr_val):
-            issues.append(
-                f"Invalid Overlays value '{ovr_val}' — "
-                "must match COR-NNNN format (e.g. COR-1622)"
+        issues.extend(
+            _validate_binding_field(
+                doc,
+                OVERLAYS,
+                ovr_field.value,
+                cor_dispositions,
+                DISPOSITION_OPTIONAL_OVERLAY,
             )
+        )
 
     return issues
 
@@ -177,12 +261,12 @@ def validate_cmd(ctx: click.Context, output_json: bool):
     warnings_by_doc: dict[str, list[str]] = {}
 
     # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
-    # Only SOPs are valid cross-SOP targets — filter out PRP/CHG/REF/etc. so a
-    # `Workflow loops.to = "FXA-2217.3"` pointing at a PRP doesn't falsely
+    # Filter out PRP/CHG/REF/etc. so `Workflow loops.to = "FXA-2217.3"` cannot
     # resolve (PR #59 Codex review P2).
     docs_by_id: dict[tuple[str, str], Document] = {
         (d.prefix, d.acid): d for d in docs if d.type_code == "SOP"
     }
+    cor_dispositions = _build_cor_disposition_index(docs)
 
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
@@ -302,7 +386,7 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                 lowered = [t.lower() for t in raw_parts if t]
                 if len(lowered) != len(set(lowered)):
                     issues.append("Tags field contains duplicate tags")
-            issues.extend(_validate_governance_fields(parsed))
+            issues.extend(_validate_governance_fields(doc, parsed, cor_dispositions))
 
             # Validate Change History table header
             if parsed.history_header:

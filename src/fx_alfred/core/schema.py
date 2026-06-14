@@ -79,14 +79,14 @@ INSTANTIATES = "Instantiates"
 OVERLAYS = "Overlays"
 
 # Allowed Disposition values.
-DISPOSITION_CORE = "core"
+DISPOSITION_MANDATORY_BIND = "mandatory-bind"
 DISPOSITION_OPTIONAL_OVERLAY = "optional-overlay"
-DISPOSITION_LOCALIZATION_REQUIRED = "localization-required"
+DISPOSITION_INHERIT_ONLY = "inherit-only"
 
 ALLOWED_DISPOSITIONS: set[str] = {
-    DISPOSITION_CORE,
+    DISPOSITION_MANDATORY_BIND,
     DISPOSITION_OPTIONAL_OVERLAY,
-    DISPOSITION_LOCALIZATION_REQUIRED,
+    DISPOSITION_INHERIT_ONLY,
 }
 
 # Required pattern for Instantiates and Overlays values.

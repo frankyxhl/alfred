@@ -102,9 +102,9 @@ Allowed values:
 
 | Value | Meaning | Criteria |
 |-------|---------|----------|
-| `core` | Authoritative COR specification. This document is the system of record. Projects MUST NOT create PRJ-localized overlay SOPs that contradict or duplicate its guidance; PRJ docs MAY reference it via `**Related:**` only. | SOP sections define invariant rules; no project-specific tailoring is needed or permitted. |
-| `optional-overlay` | COR specification that projects MAY localize with a PRJ-overlay SOP. The overlay uses `**Overlays:** COR-NNNN` to bind to the original. Overlay is not required; the COR doc is usable as-is. | SOP is authoritative but explicitly acknowledges that some projects may need to customize sections. The bar for marking a field `optional-overlay` (rather than `core`) is the existence of any section where multiple reasonable project-specific interpretations could each be valid, AND no one interpretation can be designated the single correct one within the COR document. |
-| `localization-required` | COR specification that REQUIRES each implementing project to produce a PRJ-layer overlay SOP using `**Instantiates:** COR-NNNN`. The overlay is mandatory for projects that fall within the document's "Applies to" scope. | SOP explicitly states "Projects MUST create a PRJ-localized SOP" or equivalent mandate. |
+| `mandatory-bind` | COR specification that cannot run standalone because adopting projects must fill project-specific placeholders. A PRJ/USR localization uses `**Instantiates:** COR-NNNN` to bind to the original. | The document contains unbound `<placeholder>` tokens, required project-specific values, or an explicit mandate that adopting projects MUST create a localized SOP before use. |
+| `optional-overlay` | COR specification that runs standalone, but projects MAY localize it with a PRJ/USR overlay using `**Overlays:** COR-NNNN`. Overlay is permitted only when it adds substantive project-specific content. | A valid overlay must add operational details that cannot be correctly specified in COR, such as local roles, tool commands, environment paths, repository names, thresholds, escalation channels, or project-specific handoff steps. Cosmetic rewrites, restating COR text, or renaming examples are not sufficient. |
+| `inherit-only` | Authoritative COR specification used as-is. PRJ/USR localized instances are forbidden; downstream docs may reference it via `**Related:**` only. | The document defines invariant rules or workflow steps that require no project-specific substitution and would become less governable if duplicated locally. |
 
 ### PRJ/USR-Side: Instantiates and Overlays
 
@@ -112,7 +112,7 @@ The `**Instantiates:**` and `**Overlays:**` fields appear on PRJ-layer or USR-la
 
 | Field | Meaning | Format |
 |-------|---------|--------|
-| `**Instantiates:** COR-NNNN` | Required localization of the referenced COR doc. Used when the COR doc has `**Disposition:** localization-required`. | `COR-NNNN` |
+| `**Instantiates:** COR-NNNN` | Required localization of the referenced COR doc. Used when the COR doc has `**Disposition:** mandatory-bind`. | `COR-NNNN` |
 | `**Overlays:** COR-NNNN` | Optional customization of the referenced COR doc. Used when the COR doc has `**Disposition:** optional-overlay`. | `COR-NNNN` |
 
 ### Layer Applicability
@@ -121,7 +121,9 @@ The `**Disposition:**` field applies to COR (PKG-layer) documents only. The `**I
 
 ### Backward Compatibility
 
-All three fields are **optional** for documents created before the adoption of this specification. Documents created after this specification is adopted SHOULD include the relevant fields when the document participates in the localization governance model — i.e., COR docs SHOULD declare `**Disposition:**`, and PRJ/USR docs that localize a COR doc SHOULD declare `**Instantiates:**` or `**Overlays:**`. Existing documents are never required to add these fields retroactively.
+All three fields are **optional** for documents created before the adoption of this specification. Documents created after this specification is adopted MUST include the relevant field when the document participates in the localization governance model — i.e., COR docs declare `**Disposition:**`, and PRJ/USR docs that localize a COR doc declare `**Instantiates:**` or `**Overlays:**`. Existing documents are never required to add these fields retroactively.
+
+Section-level disposition is out of scope for v1; `**Disposition:**` applies to the whole COR document.
 
 
 ---
@@ -135,4 +137,4 @@ All three fields are **optional** for documents created before the adoption of t
 | 2026-04-04 | Added Tags optional field for all types per FXA-2200 | Claude Code |
 | 2026-04-05 | Added Workflow input/output/requires/provides optional fields (SOP only) per FXA-2204 | GLM |
 | 2026-04-26 | Added Section Rule 4 clarifying author-project ID attribution in Change History per FXA-2219 | Claude Code |
-| 2026-06-14 | Added Localization Governance Fields section with Disposition (core/optional-overlay/localization-required), Instantiates/Overlays, USR-layer applicability, and backward-compat rules per COR-204 | Claude Code |
+| 2026-06-14 | Added Localization Governance Fields section with Disposition (mandatory-bind/optional-overlay/inherit-only), Instantiates/Overlays, USR-layer applicability, backward-compat rules, and v1 section-level out-of-scope note per COR-204 | Claude Code |

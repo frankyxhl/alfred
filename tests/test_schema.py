@@ -9,8 +9,8 @@ from fx_alfred.core.schema import (
     ALWAYS_INCLUDED,
     COR_REFERENCE_PATTERN,
     DISPOSITION,
-    DISPOSITION_CORE,
-    DISPOSITION_LOCALIZATION_REQUIRED,
+    DISPOSITION_INHERIT_ONLY,
+    DISPOSITION_MANDATORY_BIND,
     DISPOSITION_OPTIONAL_OVERLAY,
     DocType,
     DocRole,
@@ -144,9 +144,9 @@ def test_overlays_constant():
     assert OVERLAYS == "Overlays"
 
 
-def test_disposition_core_constant():
-    """DISPOSITION_CORE constant has correct literal value."""
-    assert DISPOSITION_CORE == "core"
+def test_disposition_mandatory_bind_constant():
+    """DISPOSITION_MANDATORY_BIND constant has correct literal value."""
+    assert DISPOSITION_MANDATORY_BIND == "mandatory-bind"
 
 
 def test_disposition_optional_overlay_constant():
@@ -154,17 +154,17 @@ def test_disposition_optional_overlay_constant():
     assert DISPOSITION_OPTIONAL_OVERLAY == "optional-overlay"
 
 
-def test_disposition_localization_required_constant():
-    """DISPOSITION_LOCALIZATION_REQUIRED constant has correct literal value."""
-    assert DISPOSITION_LOCALIZATION_REQUIRED == "localization-required"
+def test_disposition_inherit_only_constant():
+    """DISPOSITION_INHERIT_ONLY constant has correct literal value."""
+    assert DISPOSITION_INHERIT_ONLY == "inherit-only"
 
 
 def test_allowed_dispositions_contains_all_three():
     """ALLOWED_DISPOSITIONS contains exactly the three values."""
     assert ALLOWED_DISPOSITIONS == {
-        "core",
+        "mandatory-bind",
         "optional-overlay",
-        "localization-required",
+        "inherit-only",
     }
 
 
