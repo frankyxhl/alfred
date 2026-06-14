@@ -1,7 +1,7 @@
 # SOP-1001: Create Document
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-06-14
+**Last updated:** 2026-06-15
 **Last reviewed:** 2026-03-14
 **Status:** Active
 **Disposition:** inherit-only
@@ -43,7 +43,7 @@ Before creating a PRJ or USR document that parallels an existing COR (PKG) docum
 | COR Disposition | Your Action |
 |----------------|-------------|
 | `mandatory-bind` | Create a PRJ/USR instance with `**Instantiates:** COR-NNNN` |
-| `optional-overlay` | Create a PRJ/USR overlay with `**Overlays:** COR-NNNN`, or use the COR doc as-is |
+| `optional-overlay` | Create a PRJ/USR overlay with `**Overlays:** COR-NNNN` only when adding substantive project-specific content; otherwise use the COR doc as-is |
 | `inherit-only` | **Do not create a localized copy.** Reference the COR doc via `**Related:**` only. |
 
 See COR-0002 §Localization Governance Fields for the full specification.
@@ -136,5 +136,5 @@ All documents must be written in English. Discussions may happen in any language
 |------|--------|----|
 | 2026-03-08 | Initial version, converted from TEMPLATE-SOP.md | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1000 to COR-1001, removed template (moved to COR-1000), updated numbering system | Claude Code |
-| 2026-06-14 | Added Instantiate vs Inherit decision gate with cross-reference to COR-0002 §Localization Governance Fields per Issue #207 | Claude Code |
+| 2026-06-15 | Added Instantiate vs Inherit decision gate with cross-reference to COR-0002 §Localization Governance Fields per Issue #207 | Claude Code |
 | 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |
