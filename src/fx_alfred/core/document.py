@@ -82,6 +82,7 @@ class Document:
             return parse_tags(tag_field.value) if tag_field else []
         except (ValueError, OSError, MalformedDocumentError):
             return []
+
     @property
     def status(self) -> str:
         """Parse Status metadata field. Returns '' if absent or unreadable."""
@@ -102,7 +103,6 @@ class Document:
             return status_field.value if status_field else ""
         except (ValueError, OSError, MalformedDocumentError):
             return ""
-
 
     def resolve_resource(self) -> Resource:
         """Return a resource that supports read_text().

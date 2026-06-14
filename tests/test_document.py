@@ -94,6 +94,7 @@ def test_parse_invalid_filename_returns_none():
     doc = Document.from_filename("README.md", directory=".")
     assert doc is None
 
+
 def test_status_parses_from_file(tmp_path):
     """Status property reads **Status:** metadata from the document file."""
     doc = Document.from_filename(

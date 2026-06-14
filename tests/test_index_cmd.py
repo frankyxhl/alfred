@@ -165,10 +165,13 @@ def test_index_multiple_prefixes_compliant(tmp_path):
     assert alf_content.startswith("# REF-0000: Document Index\n")
     assert nrv_content.startswith("# REF-0000: Document Index\n")
 
+
 # --- Part B: Status marker tests ---
 
 
-def _make_doc_with_status(rules_dir: Path, acid: str, type_code: str, status: str) -> Path:
+def _make_doc_with_status(
+    rules_dir: Path, acid: str, type_code: str, status: str
+) -> Path:
     """Create a document with proper metadata including *Status:* field."""
     path = rules_dir / f"TST-{acid}-{type_code}-Doc-{acid}.md"
     path.write_text(
@@ -198,16 +201,65 @@ def test_index_omits_marker_for_active_status(tmp_path):
     assert "(Active)" not in content
 
 
-def test_index_omits_marker_for_approved_status(tmp_path):
-    """Approved PRP doc has no status marker in its index row."""
+def test_index_shows_approved_marker(tmp_path):
+    """Approved PRP doc shows (Approved) marker in its index row."""
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
     _make_doc_with_status(rules_dir, "2100", "PRP", "Approved")
     runner = CliRunner()
     runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
     content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | PRP | Doc 2100 |" in content
-    assert "(Approved)" not in content
+    assert "| 2100 | PRP | Doc 2100 (Approved) |" in content
+
+
+@pytest.mark.parametrize(
+    ("type_code", "status"),
+    [
+        ("SOP", "Draft"),
+        ("SOP", "Deprecated"),
+        ("PRP", "Draft"),
+        ("PRP", "Approved"),
+        ("PRP", "Rejected"),
+        ("PRP", "Implemented"),
+        ("CHG", "Proposed"),
+        ("CHG", "Approved"),
+        ("CHG", "In Progress"),
+        ("CHG", "Completed"),
+        ("CHG", "Rolled Back"),
+        ("ADR", "Proposed"),
+        ("ADR", "Accepted"),
+        ("ADR", "Superseded"),
+        ("ADR", "Deprecated"),
+        ("REF", "Draft"),
+        ("REF", "Deprecated"),
+        ("PLN", "Draft"),
+        ("PLN", "Completed"),
+        ("PLN", "Cancelled"),
+        ("INC", "Open"),
+        ("INC", "Resolved"),
+        ("INC", "Monitoring"),
+    ],
+)
+def test_index_shows_all_allowed_non_active_status_markers(tmp_path, type_code, status):
+    """Every allowed non-Active status is visible in the generated index."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _make_doc_with_status(rules_dir, "2100", type_code, status)
+    runner = CliRunner()
+    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
+    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
+    assert f"| 2100 | {type_code} | Doc 2100 ({status}) |" in content
+
+
+def test_index_shows_withdrawn_marker_when_authored(tmp_path):
+    """A Withdrawn status marker is derived when a document carries it."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _make_doc_with_status(rules_dir, "2100", "PRP", "Withdrawn")
+    runner = CliRunner()
+    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
+    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
+    assert "| 2100 | PRP | Doc 2100 (Withdrawn) |" in content
 
 
 def test_index_shows_rejected_marker(tmp_path):

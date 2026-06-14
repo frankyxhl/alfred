@@ -8,26 +8,17 @@ from fx_alfred.context import get_root, root_option
 from fx_alfred.core.document import Document
 
 
-# Statuses that indicate a document is in its normal working state.
-# Documents whose **Status:** metadata field is any of these values appear
-# without a marker in the index table. All other statuses produce a
-# parenthesized annotation (e.g. "(Draft)", "(Rejected)").
-_LIVE_STATUSES = frozenset({
-    "Active",
-    "Approved",
-    "Accepted",
-    "Proposed",
-    "In Progress",
-    "Open",
-    "Monitoring",
-})
+# Active documents are the only rows that appear without an index marker.
+# Every other authored status is surfaced so the index cannot make a
+# non-active document look live.
+_UNMARKED_STATUS = "Active"
 
 
 def _status_marker(doc: Document) -> str:
     """Return a status annotation string for *doc*, or ``""`` if the status is
     a default/working state that needs no marker."""
     status = doc.status
-    if not status or status in _LIVE_STATUSES:
+    if not status or status == _UNMARKED_STATUS:
         return ""
     return f" ({status})"
 
