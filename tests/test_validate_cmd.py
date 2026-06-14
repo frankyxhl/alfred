@@ -2158,3 +2158,152 @@ Doc with unknown type and no Change History.
     assert entry["valid"] is False
     assert any("Change History" in e for e in entry["errors"])
     assert any("Unknown document type 'XYZ'" in w for w in entry["warnings"])
+
+
+def _write_sop_doc(path, prefix, acid, extra_metadata=""):
+    """Write a minimal valid SOP document, optionally with extra metadata lines."""
+    content = f"""# SOP-{acid}: Test SOP
+
+**Applies to:** All projects
+**Last updated:** 2026-06-14
+**Last reviewed:** 2026-06-14
+**Status:** Active
+{extra_metadata}---
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Test.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-06-14 | Initial | Test |
+"""
+    path.write_text(content)
+
+
+def test_validate_disposition_valid_values(tmp_path):
+    """Valid Disposition values should not produce issues."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    for val in ["core", "optional-overlay", "localization-required"]:
+        _write_sop_doc(
+            rules_dir / f"SOP-{val}-SOP-Test.md",
+            "SOP",
+            val.replace("-", ""),
+            f"**Disposition:** {val}\n",
+        )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "issues found" in result.output
+
+
+def test_validate_disposition_invalid_value(tmp_path):
+    """Invalid Disposition value should be reported as issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9001-SOP-Test.md",
+        "SOP",
+        "9001",
+        "**Disposition:** mandatory\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-9001" in result.output
+    assert "Invalid Disposition value" in result.output
+
+
+def test_validate_instantiates_valid_format(tmp_path):
+    """Valid Instantiates format should not produce issues."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9002-SOP-Test.md",
+        "SOP",
+        "9002",
+        "**Instantiates:** COR-1622\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "issues found" in result.output
+
+
+def test_validate_instantiates_invalid_format(tmp_path):
+    """Invalid Instantiates format should be reported as issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9003-SOP-Test.md",
+        "SOP",
+        "9003",
+        "**Instantiates:** FXA-1622\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-9003" in result.output
+    assert "Invalid Instantiates value" in result.output
+
+
+def test_validate_overlays_invalid_format(tmp_path):
+    """Invalid Overlays format should be reported as issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9004-SOP-Test.md",
+        "SOP",
+        "9004",
+        "**Overlays:** COR-123\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-9004" in result.output
+    assert "Invalid Overlays value" in result.output
+
+
+def test_validate_doc_without_governance_fields_still_valid(tmp_path):
+    """Existing docs without Disposition/Instantiates/Overlays should pass."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9005-SOP-Test.md", "SOP", "9005"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output

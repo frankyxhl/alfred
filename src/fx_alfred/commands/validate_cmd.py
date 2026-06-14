@@ -10,7 +10,12 @@ from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json
 
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.schema import (
+    ALLOWED_DISPOSITIONS,
     ALLOWED_STATUSES,
+    COR_REFERENCE_PATTERN,
+    DISPOSITION,
+    INSTANTIATES,
+    OVERLAYS,
     REQUIRED_METADATA,
     REQUIRED_SECTIONS,
     DocType,
@@ -84,6 +89,53 @@ def _validate_history_header(header: str) -> list[str]:
     for col in REQUIRED_HISTORY_COLUMNS:
         if col not in cells:
             issues.append(f"Change History table missing required column: '{col}'")
+
+    return issues
+
+
+def _validate_governance_fields(parsed) -> list[str]:
+    """Validate COR-204 governance fields: Disposition, Instantiates, Overlays.
+
+    These fields are optional (backward-compatible with existing docs).
+    Returns a list of issue strings; empty list means no issues.
+    """
+    issues: list[str] = []
+
+    # Validate Disposition field value
+    disp_field = next(
+        (mf for mf in parsed.metadata_fields if mf.key == DISPOSITION), None
+    )
+    if disp_field is not None:
+        disp_val = disp_field.value.strip()
+        if disp_val not in ALLOWED_DISPOSITIONS:
+            issues.append(
+                f"Invalid Disposition value '{disp_val}' — "
+                f"allowed: {', '.join(sorted(ALLOWED_DISPOSITIONS))}"
+            )
+
+    # Validate Instantiates field format
+    inst_field = next(
+        (mf for mf in parsed.metadata_fields if mf.key == INSTANTIATES), None
+    )
+    if inst_field is not None:
+        inst_val = inst_field.value.strip()
+        if not re.match(COR_REFERENCE_PATTERN, inst_val):
+            issues.append(
+                f"Invalid Instantiates value '{inst_val}' — "
+                "must match COR-NNNN format (e.g. COR-1622)"
+            )
+
+    # Validate Overlays field format
+    ovr_field = next(
+        (mf for mf in parsed.metadata_fields if mf.key == OVERLAYS), None
+    )
+    if ovr_field is not None:
+        ovr_val = ovr_field.value.strip()
+        if not re.match(COR_REFERENCE_PATTERN, ovr_val):
+            issues.append(
+                f"Invalid Overlays value '{ovr_val}' — "
+                "must match COR-NNNN format (e.g. COR-1622)"
+            )
 
     return issues
 
@@ -252,6 +304,7 @@ def validate_cmd(ctx: click.Context, output_json: bool):
                 lowered = [t.lower() for t in raw_parts if t]
                 if len(lowered) != len(set(lowered)):
                     issues.append("Tags field contains duplicate tags")
+            issues.extend(_validate_governance_fields(parsed))
 
             # Validate Change History table header
             if parsed.history_header:

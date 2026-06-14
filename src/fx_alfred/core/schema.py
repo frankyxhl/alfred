@@ -70,11 +70,45 @@ _WORKFLOW_FIELDS = [
     WORKFLOW_REQUIRES,
     WORKFLOW_PROVIDES,
 ]
+# COR-204: Localization governance fields.
+# Disposition: COR-side field declaring whether a COR doc may be localized.
+DISPOSITION = "Disposition"
+# Instantiates: PRJ-side field -- required localization of a COR doc.
+INSTANTIATES = "Instantiates"
+# Overlays: PRJ-side field -- optional overlay of a COR doc.
+OVERLAYS = "Overlays"
+
+# Allowed Disposition values.
+DISPOSITION_CORE = "core"
+DISPOSITION_OPTIONAL_OVERLAY = "optional-overlay"
+DISPOSITION_LOCALIZATION_REQUIRED = "localization-required"
+
+ALLOWED_DISPOSITIONS: set[str] = {
+    DISPOSITION_CORE,
+    DISPOSITION_OPTIONAL_OVERLAY,
+    DISPOSITION_LOCALIZATION_REQUIRED,
+}
+
+# Required pattern for Instantiates and Overlays values.
+COR_REFERENCE_PATTERN = r"^COR-\d{4}$"
 
 OPTIONAL_METADATA: dict[DocType, list[str]] = {
     DocType.SOP: _WORKFLOW_FIELDS
-    + [WORKFLOW_LOOPS, WORKFLOW_BRANCHES, ALWAYS_INCLUDED, TASK_TAGS, "Tags"],
-    **{dt: ["Tags"] for dt in DocType if dt != DocType.SOP},
+    + [
+        WORKFLOW_LOOPS,
+        WORKFLOW_BRANCHES,
+        ALWAYS_INCLUDED,
+        TASK_TAGS,
+        "Tags",
+        DISPOSITION,
+        INSTANTIATES,
+        OVERLAYS,
+    ],
+    **{
+        dt: ["Tags", DISPOSITION, INSTANTIATES, OVERLAYS]
+        for dt in DocType
+        if dt != DocType.SOP
+    },
 }
 
 REQUIRED_SECTIONS: dict[DocType, list[str]] = {
