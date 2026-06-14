@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-05-02
 **Status:** Active
 **Related:** COR-1206 (Emit Agent Activity SOP), COR-1200 (Session Retrospective — log consumer), PRP-2230 (originating proposal)
+**Disposition:** inherit-only
 
 ---
 

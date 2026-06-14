@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-14
 **Last reviewed:** 2026-03-20
 **Status:** Active
+**Disposition:** inherit-only
 
 ---
 

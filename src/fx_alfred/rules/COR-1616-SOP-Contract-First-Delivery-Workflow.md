@@ -7,6 +7,7 @@
 **Related:** COR-1500 (TDD), COR-1602 (Multi-Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review), COR-1615 (GitHub App PR Review Bot Loop)
 **Task tags:** [delivery, slice, contract, prp, chg, pln, plan-review, code-review, tdd, bdd, e2e, pr-review]
 **Authored from:** BAB-1503-SOP-Phase-Delivery-Workflow
+**Disposition:** inherit-only
 
 ---
 

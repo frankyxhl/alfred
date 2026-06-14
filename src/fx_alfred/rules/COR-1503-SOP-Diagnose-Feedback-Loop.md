@@ -7,6 +7,7 @@
 **Depends on:** COR-1402 (Declare Active Process), COR-1500 (TDD Development Workflow)
 **Related:** COR-1613 (Council Review), COR-1504-REF-Diagnose-Phase-Gates
 **Authored from:** FXA-2265 PRP (unanimous 3-of-3 PASS, R3)
+**Disposition:** inherit-only
 
 ---
 

@@ -6,6 +6,7 @@
 **Status:** Active
 **Related:** COR-1800, COR-1000, COR-1101, COR-1102, COR-1300, COR-1301, COR-1500, COR-1602, COR-1608, COR-1609, COR-1610, COR-1613
 **Task tags:** [pattern-promotion, prj-to-pkg, promotion, evolution, governance]
+**Disposition:** inherit-only
 
 ---
 

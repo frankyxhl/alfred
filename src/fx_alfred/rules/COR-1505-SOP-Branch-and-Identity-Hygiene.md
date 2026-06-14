@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-05-09
 **Status:** Active
 **Related:** COR-1502 (Git Branch Naming), COR-1617 (Multi-Agent Workflow Loop), COR-1622 (parameter schema — `<gh-write-identity>`, `<pr-push-remote>`)
+**Disposition:** inherit-only
 
 ---
 

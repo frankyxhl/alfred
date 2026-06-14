@@ -8,6 +8,7 @@
 **Last executed:** —
 **Workflow input:** task:routed
 **Workflow output:** code:tested
+**Disposition:** inherit-only
 
 ---
 

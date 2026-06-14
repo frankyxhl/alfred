@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Last executed:** 2026-05-10 (issue #126)
+**Disposition:** inherit-only
 
 ---
 

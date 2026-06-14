@@ -7,6 +7,7 @@
 **Related:** COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review), COR-1615 (GitHub App PR Review Bot Loop)
 **Workflow loops:** [{id: review-retry, from: 7, to: 3, max_iterations: 3, condition: "iteration is on and not all reviewers approve"}]
 **Task tags:** [review, code-review, plan-review, multi-model, prp-review, implement]
+**Disposition:** inherit-only
 
 ---
 

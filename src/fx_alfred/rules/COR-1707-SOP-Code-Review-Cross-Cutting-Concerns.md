@@ -6,6 +6,7 @@
 **Status:** Active
 **Related:** COR-1705 (REF — Classification System), COR-1706, COR-1602, COR-1610
 **Task tags:** [review, code-review, security, privacy, performance, testing, observability]
+**Disposition:** inherit-only
 
 ---
 

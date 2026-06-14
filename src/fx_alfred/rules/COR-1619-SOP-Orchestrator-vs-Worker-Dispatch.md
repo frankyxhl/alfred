@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella), COR-1622 (parameter schema — `<worker-agent>`, `<worker-min-loc>`)
+**Disposition:** inherit-only
 
 ---
 

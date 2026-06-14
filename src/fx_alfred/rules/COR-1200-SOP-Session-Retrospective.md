@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-05-10
 **Status:** Active
 **Last executed:** —
+**Disposition:** optional-overlay
 
 ---
 

@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella SOP), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage)
+**Disposition:** mandatory-bind
 
 ---
 

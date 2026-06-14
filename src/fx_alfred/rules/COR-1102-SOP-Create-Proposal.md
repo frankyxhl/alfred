@@ -6,6 +6,7 @@
 **Status:** Active
 **Workflow input:** proposal:none
 **Workflow output:** proposal:draft
+**Disposition:** inherit-only
 
 ---
 
