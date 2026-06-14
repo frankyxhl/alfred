@@ -1,7 +1,7 @@
 # REF-0002: Document Format Contract
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-04
+**Last updated:** 2026-06-14
 **Last reviewed:** 2026-03-20
 **Status:** Active
 
@@ -75,6 +75,9 @@ Optional fields are allowed but not required. Templates pre-populate type-defaul
 | Workflow requires | SOP only | FXA-2204 CHG |
 | Workflow provides | SOP only | FXA-2204 CHG |
 | Tags | All types | FXA-2200 PRP |
+| Disposition | COR docs only | COR-204 |
+| Instantiates | PRJ/USR docs | COR-204 |
+| Overlays | PRJ/USR docs | COR-204 |
 
 ## Section Rules
 
@@ -87,6 +90,42 @@ Optional fields are allowed but not required. Templates pre-populate type-defaul
 
 All documents must be written in English. See COR-1401 (Documentation Language Policy).
 
+## Localization Governance Fields
+
+These fields close the loop between COR (PKG) documents and their PRJ/USR localizations. They make the localization relationship machine-readable and auditable.
+
+### COR-Side: Disposition
+
+The `**Disposition:**` field appears on COR (PKG-layer) documents to declare what kind of localization the document permits or requires.
+
+Allowed values:
+
+| Value | Meaning | Criteria |
+|-------|---------|----------|
+| `mandatory-bind` | COR specification that cannot run standalone because adopting projects must fill project-specific placeholders. A PRJ/USR localization uses `**Instantiates:** COR-NNNN` to bind to the original. | The document contains unbound `<placeholder>` tokens, required project-specific values, or an explicit mandate that adopting projects MUST create a localized SOP before use. |
+| `optional-overlay` | COR specification that runs standalone, but projects MAY localize it with a PRJ/USR overlay using `**Overlays:** COR-NNNN`. Overlay is permitted only when it adds substantive project-specific content. | A valid overlay must add operational details that cannot be correctly specified in COR, such as local roles, tool commands, environment paths, repository names, thresholds, escalation channels, or project-specific handoff steps. Cosmetic rewrites, restating COR text, or renaming examples are not sufficient. |
+| `inherit-only` | Authoritative COR specification used as-is. PRJ/USR localized instances are forbidden; downstream docs may reference it via `**Related:**` only. | The document defines invariant rules or workflow steps that require no project-specific substitution and would become less governable if duplicated locally. |
+
+### PRJ/USR-Side: Instantiates and Overlays
+
+The `**Instantiates:**` and `**Overlays:**` fields appear on PRJ-layer or USR-layer documents to declare the binding to a COR (PKG-layer) original.
+
+| Field | Meaning | Format |
+|-------|---------|--------|
+| `**Instantiates:** COR-NNNN` | Required localization of the referenced COR doc. Used when the COR doc has `**Disposition:** mandatory-bind`. | `COR-NNNN` |
+| `**Overlays:** COR-NNNN` | Optional customization of the referenced COR doc. Used when the COR doc has `**Disposition:** optional-overlay`. | `COR-NNNN` |
+
+### Layer Applicability
+
+The `**Disposition:**` field applies to COR (PKG-layer) documents only. The `**Instantiates:**` and `**Overlays:**` fields apply to PRJ-layer AND USR-layer documents. USR-layer documents MAY use these fields to localize COR docs at the personal configuration layer.
+
+### Backward Compatibility
+
+All three fields are **optional** for documents created before the adoption of this specification. Documents created after this specification is adopted MUST include the relevant field when the document participates in the localization governance model — i.e., COR docs declare `**Disposition:**`, and PRJ/USR docs that localize a COR doc declare `**Instantiates:**` or `**Overlays:**`. Existing documents are never required to add these fields retroactively.
+
+Section-level disposition is out of scope for v1; `**Disposition:**` applies to the whole COR document.
+
+
 ---
 
 ## Change History
@@ -98,3 +137,4 @@ All documents must be written in English. See COR-1401 (Documentation Language P
 | 2026-04-04 | Added Tags optional field for all types per FXA-2200 | Claude Code |
 | 2026-04-05 | Added Workflow input/output/requires/provides optional fields (SOP only) per FXA-2204 | GLM |
 | 2026-04-26 | Added Section Rule 4 clarifying author-project ID attribution in Change History per FXA-2219 | Claude Code |
+| 2026-06-14 | Added Localization Governance Fields section with Disposition (mandatory-bind/optional-overlay/inherit-only), Instantiates/Overlays, USR-layer applicability, backward-compat rules, and v1 section-level out-of-scope note per COR-204 | Claude Code |

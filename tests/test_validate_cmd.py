@@ -2,10 +2,12 @@
 
 import pytest
 
-
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+from fx_alfred.commands.validate_cmd import _validate_governance_fields
+from fx_alfred.core.document import Document
+from fx_alfred.core.parser import parse_metadata
 
 
 pytestmark = [pytest.mark.cli, pytest.mark.docs, pytest.mark.integration]
@@ -2158,3 +2160,263 @@ Doc with unknown type and no Change History.
     assert entry["valid"] is False
     assert any("Change History" in e for e in entry["errors"])
     assert any("Unknown document type 'XYZ'" in w for w in entry["warnings"])
+
+
+def _write_sop_doc(path, prefix, acid, extra_metadata=""):
+    """Write a minimal valid SOP document, optionally with extra metadata lines."""
+    content = f"""# SOP-{acid}: Test SOP
+
+**Applies to:** All projects
+**Last updated:** 2026-06-14
+**Last reviewed:** 2026-06-14
+**Status:** Active
+{extra_metadata}---
+## What Is It?
+
+Test.
+
+## Why
+
+Test.
+
+## When to Use
+
+Test.
+
+## When NOT to Use
+
+Test.
+
+## Steps
+
+1. Test.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-06-14 | Initial | Test |
+"""
+    path.write_text(content)
+
+
+def _parsed_sop_doc(extra_metadata=""):
+    """Build parsed metadata for governance-field helper tests."""
+    content = f"""# SOP-9000: Test SOP
+
+**Applies to:** All projects
+**Last updated:** 2026-06-14
+**Last reviewed:** 2026-06-14
+**Status:** Active
+{extra_metadata}---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-06-14 | Initial | Test |
+"""
+    return parse_metadata(content)
+
+
+def _governance_doc(prefix="FXA", acid="9000", source="prj"):
+    """Build a minimal document object for governance-field helper tests."""
+    return Document(
+        prefix=prefix,
+        acid=acid,
+        type_code="SOP",
+        title="Test",
+        directory="",
+        source=source,
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["mandatory-bind", "optional-overlay", "inherit-only"],
+)
+def test_validate_disposition_valid_values(value):
+    """Valid Disposition values should not produce issues on PKG COR docs."""
+    parsed = _parsed_sop_doc(f"**Disposition:** {value}\n")
+    doc = _governance_doc(prefix="COR", acid="2040", source="pkg")
+
+    assert _validate_governance_fields(doc, parsed, {}) == []
+
+
+def test_validate_disposition_invalid_value(tmp_path):
+    """Invalid Disposition value should be reported as issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9001-SOP-Test.md",
+        "SOP",
+        "9001",
+        "**Disposition:** mandatory\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-9001" in result.output
+    assert "Invalid Disposition value" in result.output
+
+
+def test_validate_disposition_rejects_prj_layer(tmp_path):
+    """Disposition belongs only on PKG COR documents."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9002-SOP-Test.md",
+        "SOP",
+        "9002",
+        "**Disposition:** mandatory-bind\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-9002" in result.output
+    assert "Disposition field is only allowed on COR documents in the PKG layer" in (
+        result.output
+    )
+
+
+def test_validate_instantiates_valid_target_disposition():
+    """Instantiates accepts an existing mandatory-bind COR target."""
+    parsed = _parsed_sop_doc("**Instantiates:** COR-1622\n")
+    doc = _governance_doc()
+
+    assert (
+        _validate_governance_fields(
+            doc,
+            parsed,
+            {"COR-1622": "mandatory-bind"},
+        )
+        == []
+    )
+
+
+def test_validate_instantiates_invalid_format(tmp_path):
+    """Invalid Instantiates format should be reported as issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9003-SOP-Test.md",
+        "SOP",
+        "9003",
+        "**Instantiates:** FXA-1622\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-9003" in result.output
+    assert "Invalid Instantiates value" in result.output
+
+
+def test_validate_instantiates_rejects_missing_target():
+    """Instantiates must point at an existing PKG COR document."""
+    parsed = _parsed_sop_doc("**Instantiates:** COR-9999\n")
+    doc = _governance_doc()
+
+    issues = _validate_governance_fields(doc, parsed, {})
+
+    assert issues == [
+        "Instantiates target 'COR-9999' does not exist in PKG COR documents"
+    ]
+
+
+def test_validate_instantiates_rejects_target_without_disposition():
+    """Instantiates target must declare Disposition."""
+    parsed = _parsed_sop_doc("**Instantiates:** COR-1622\n")
+    doc = _governance_doc()
+
+    issues = _validate_governance_fields(doc, parsed, {"COR-1622": None})
+
+    assert issues == ["Instantiates target 'COR-1622' has no Disposition value"]
+
+
+def test_validate_instantiates_requires_mandatory_bind_target():
+    """Instantiates only binds to mandatory-bind COR documents."""
+    parsed = _parsed_sop_doc("**Instantiates:** COR-1622\n")
+    doc = _governance_doc()
+
+    issues = _validate_governance_fields(
+        doc,
+        parsed,
+        {"COR-1622": "optional-overlay"},
+    )
+
+    assert issues == [
+        "Instantiates target 'COR-1622' has Disposition "
+        "'optional-overlay' (expected 'mandatory-bind')"
+    ]
+
+
+def test_validate_overlays_valid_target_disposition():
+    """Overlays accepts an existing optional-overlay COR target."""
+    parsed = _parsed_sop_doc("**Overlays:** COR-1622\n")
+    doc = _governance_doc()
+
+    assert (
+        _validate_governance_fields(
+            doc,
+            parsed,
+            {"COR-1622": "optional-overlay"},
+        )
+        == []
+    )
+
+
+def test_validate_overlays_requires_optional_overlay_target():
+    """Overlays only binds to optional-overlay COR documents."""
+    parsed = _parsed_sop_doc("**Overlays:** COR-1622\n")
+    doc = _governance_doc()
+
+    issues = _validate_governance_fields(
+        doc,
+        parsed,
+        {"COR-1622": "mandatory-bind"},
+    )
+
+    assert issues == [
+        "Overlays target 'COR-1622' has Disposition "
+        "'mandatory-bind' (expected 'optional-overlay')"
+    ]
+
+
+def test_validate_overlays_invalid_format(tmp_path):
+    """Invalid Overlays format should be reported as issue."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(
+        rules_dir / "SOP-9004-SOP-Test.md",
+        "SOP",
+        "9004",
+        "**Overlays:** COR-123\n",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SOP-9004" in result.output
+    assert "Invalid Overlays value" in result.output
+
+
+def test_validate_doc_without_governance_fields_still_valid(tmp_path):
+    """Existing docs without Disposition/Instantiates/Overlays should pass."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_sop_doc(rules_dir / "SOP-9005-SOP-Test.md", "SOP", "9005")
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "0 issues found" in result.output

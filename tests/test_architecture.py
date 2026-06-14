@@ -122,7 +122,7 @@ def test_commands_use_named_schema_version_constants() -> None:
 _GRANDFATHERED_FUNCTION_LINES = {
     "create_cmd.py:create_cmd": 230,
     "update_cmd.py:update_cmd": 283,
-    "validate_cmd.py:validate_cmd": 325,
+    "validate_cmd.py:validate_cmd": 326,
 }
 
 
