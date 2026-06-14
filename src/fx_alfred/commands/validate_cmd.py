@@ -126,9 +126,7 @@ def _validate_governance_fields(parsed) -> list[str]:
             )
 
     # Validate Overlays field format
-    ovr_field = next(
-        (mf for mf in parsed.metadata_fields if mf.key == OVERLAYS), None
-    )
+    ovr_field = next((mf for mf in parsed.metadata_fields if mf.key == OVERLAYS), None)
     if ovr_field is not None:
         ovr_val = ovr_field.value.strip()
         if not re.match(COR_REFERENCE_PATTERN, ovr_val):

@@ -2299,9 +2299,7 @@ def test_validate_doc_without_governance_fields_still_valid(tmp_path):
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
 
-    _write_sop_doc(
-        rules_dir / "SOP-9005-SOP-Test.md", "SOP", "9005"
-    )
+    _write_sop_doc(rules_dir / "SOP-9005-SOP-Test.md", "SOP", "9005")
 
     runner = CliRunner()
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
