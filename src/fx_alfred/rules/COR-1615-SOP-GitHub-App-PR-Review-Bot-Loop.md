@@ -7,6 +7,7 @@
 **Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
 **Task tags:** [github, github-app, pull-request, pr-review, review, bot-review, codex, copilot]
 **Authored from:** BAB-1504-SOP-GitHub-Codex-PR-Review-Loop
+**Disposition:** inherit-only
 
 ---
 

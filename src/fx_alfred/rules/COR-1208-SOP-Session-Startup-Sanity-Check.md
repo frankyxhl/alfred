@@ -6,6 +6,7 @@
 **Status:** Active
 **Related:** COR-1201 (Discussion Tracking — auto-incremented at startup), COR-1103 (Workflow Routing — runs after this SOP), COR-1402 (Declare Active Process — declares this SOP as the first action), COR-1200 (Session Retrospective — the paired session-end SOP)
 **Inspired by:** Anthropic Engineering — *"Effective harnesses for long-running agents"* (2025-11-26), Principle #6 ("Ritualized Session Startup") + Principle #1 ("Specialized Initialization Phase"). Round 5 of the skills-absorption initiative.
+**Disposition:** inherit-only
 
 ---
 

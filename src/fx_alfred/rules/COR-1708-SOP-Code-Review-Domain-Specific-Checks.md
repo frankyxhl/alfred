@@ -6,6 +6,7 @@
 **Status:** Active
 **Related:** COR-1705 (REF — Classification System), COR-1706, COR-1707, COR-1602
 **Task tags:** [review, code-review, frontend, backend, config, iac, pr-checklist]
+**Disposition:** inherit-only
 
 ---
 

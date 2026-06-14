@@ -7,6 +7,7 @@
 **Depends on:** COR-0002 (Document Format Contract)
 **Related:** COR-1203 (Pre-Task Alignment — references CTX documents for glossary challenge)
 **Authored from:** FXA-2269 PRP (companion REF to COR-1203, defines the glossary template)
+**Disposition:** inherit-only
 
 ---
 

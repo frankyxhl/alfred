@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-03-20
 **Status:** Active
 **Task tags:** [review, code-review, scoring, implement]
+**Disposition:** inherit-only
 
 ---
 

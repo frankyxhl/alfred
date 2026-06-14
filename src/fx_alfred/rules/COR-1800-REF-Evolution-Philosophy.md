@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-05
 **Last reviewed:** 2026-05-05
 **Status:** Active
+**Disposition:** optional-overlay
 
 ---
 

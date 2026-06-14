@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-03-22
 **Status:** Active
 **Related:** COR-1103, COR-1401, COR-0002
+**Disposition:** inherit-only
 
 ---
 

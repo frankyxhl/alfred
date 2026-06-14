@@ -6,6 +6,7 @@
 **Status:** Approved
 **Related:** COR-1500 (TDD Development Workflow — amended by this proposal), COR-1619 (Orchestrator vs Worker Dispatch — amended), COR-1622 (parameter schema — amended), COR-1617 §Phase 5 (dispatch routing — consumes the split), FXA-2276 (alfred PRJ REF — opts in via parameter)
 **Reviewed by:** glm-5.1 (R6: 9.9), deepseek-v4 (R6: 9.0), minimax-m2.7 (R6: 9.55), codex-gpt-5.5 (R6: 9.6), gemini-3 (R6: 9.9) — quintet panel under COR-1602 + COR-1608 (PRP scoring rubric)
+**Disposition:** inherit-only
 
 ---
 

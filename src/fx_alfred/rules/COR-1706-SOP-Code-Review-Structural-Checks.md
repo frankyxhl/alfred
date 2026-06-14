@@ -6,6 +6,7 @@
 **Status:** Active
 **Related:** COR-1705 (REF — Classification System), COR-1602, COR-1610
 **Task tags:** [review, code-review, structural, architecture, api, database]
+**Disposition:** inherit-only
 
 ---
 

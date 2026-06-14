@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-03-20
 **Status:** Deprecated
 **Related:** COR-1103 (replacement)
+**Disposition:** inherit-only
 
 ---
 

@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1501 (Create GitHub Issue — creation companion), COR-1617 (§Phase 1 auto-pick gate), COR-1618 (consent auto-pick bypass), COR-1802 (scoring framework)
+**Disposition:** inherit-only
 
 ---
 

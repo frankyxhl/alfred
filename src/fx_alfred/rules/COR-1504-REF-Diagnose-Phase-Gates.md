@@ -6,6 +6,7 @@
 **Status:** Active
 **Depends on:** COR-1503 (Diagnose Feedback Loop)
 **Authored from:** FXA-2265 PRP (companion REF to COR-1503, extracted from §1.5 per round-3 review)
+**Disposition:** inherit-only
 
 ---
 

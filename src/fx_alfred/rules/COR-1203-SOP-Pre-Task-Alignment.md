@@ -7,6 +7,7 @@
 **Depends on:** COR-1402 (Declare Active Process), COR-1403 (Interactive Question Principle)
 **Related:** COR-1201 (Discussion Tracking), COR-1202 (Compose Session Plan), COR-1204 (CTX Format REF), COR-1613 (Council Review), COR-1503 (Diagnose Feedback Loop)
 **Authored from:** FXA-2269 PRP (unanimous 3-of-3 PASS, R2)
+**Disposition:** inherit-only
 
 ---
 

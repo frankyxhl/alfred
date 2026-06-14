@@ -6,6 +6,7 @@
 **Status:** Active
 **Related:** COR-1706, COR-1707, COR-1708, COR-1709, COR-1602, COR-1608, COR-1610
 **Supersedes:** code-review-checklist.md v2.0 (Issue #99)
+**Disposition:** inherit-only
 
 ---
 

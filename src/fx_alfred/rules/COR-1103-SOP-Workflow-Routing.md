@@ -8,6 +8,7 @@
 **Workflow input:** proposal:draft
 **Workflow output:** task:routed
 **Always included:** true
+**Disposition:** inherit-only
 
 ---
 
