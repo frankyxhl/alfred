@@ -36,28 +36,15 @@ A consistent naming and numbering system is essential for documents to be findab
 
 ---
 
-## Instantiate vs Inherit
-
-Before creating a PRJ or USR document that parallels an existing COR (PKG) document, check the COR source's `**Disposition:**` metadata field:
-
-| COR Disposition | Your Action |
-|----------------|-------------|
-| `mandatory-bind` | Create a PRJ/USR instance with `**Instantiates:** COR-NNNN` |
-| `optional-overlay` | Create a PRJ/USR overlay with `**Overlays:** COR-NNNN` only when adding substantive project-specific content; otherwise use the COR doc as-is |
-| `inherit-only` | **Do not create a localized copy.** Reference the COR doc via `**Related:**` only. |
-
-See COR-0002 §Localization Governance Fields for the full specification.
-
----
-
 ## Steps
 
-1. **Determine the prefix** — `COR` for universal meta-layer docs, or project code (`ALF`, `BLA`, `CLR`) for business-layer docs
-2. **Determine the ACID number** — run `af list` to find the next available ACID in the correct category, or use `af create --area` to auto-assign
-3. **Determine the type code** — SOP, PLN, INC, CHG, ADR, or REF
-4. **Create the file** — use the naming convention below
-5. **Use the correct template** — refer to the type-specific SOP for the template
-6. **Update the index** — follow COR-1302 (Maintain Document Index)
+1. **Run the instantiate-vs-inherit decision gate** — before creating a PRJ or USR document that parallels an existing COR (PKG) document, check the COR source's `**Disposition:**` metadata field per COR-0002 §Localization Governance Fields: `mandatory-bind` → create `**Instantiates:** COR-NNNN`; `optional-overlay` → create `**Overlays:** COR-NNNN` only when adding substantive project-specific content; `inherit-only` → do not create a localized copy and reference via `**Related:**` only. ✓
+2. **Determine the prefix** — `COR` for universal meta-layer docs, or project code (`ALF`, `BLA`, `CLR`) for business-layer docs
+3. **Determine the ACID number** — run `af list` to find the next available ACID in the correct category, or use `af create --area` to auto-assign
+4. **Determine the type code** — SOP, PLN, INC, CHG, ADR, or REF
+5. **Create the file** — use the naming convention below
+6. **Use the correct template** — refer to the type-specific SOP for the template
+7. **Update the index** — follow COR-1302 (Maintain Document Index)
 
 ---
 
@@ -137,4 +124,4 @@ All documents must be written in English. Discussions may happen in any language
 | 2026-03-08 | Initial version, converted from TEMPLATE-SOP.md | Claude Code |
 | 2026-03-14 | PDCA + Johnny Decimal migration: renamed from ALF-1000 to COR-1001, removed template (moved to COR-1000), updated numbering system | Claude Code |
 | 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |
-| 2026-06-14 | Added Instantiate vs Inherit decision gate with cross-reference to COR-0002 §Localization Governance Fields per Issue #207 | Claude Code |
+| 2026-06-14 | Added Instantiate vs Inherit decision gate to the rendered Steps checklist with cross-reference to COR-0002 §Localization Governance Fields per Issue #207 | Claude Code |
