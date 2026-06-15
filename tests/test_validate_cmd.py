@@ -2300,6 +2300,21 @@ def test_validate_instantiates_valid_target_disposition():
     )
 
 
+def test_validate_instantiates_accepts_multiple_mandatory_bind_targets():
+    """Instantiates accepts comma-separated mandatory-bind COR targets."""
+    parsed = _parsed_sop_doc("**Instantiates:** COR-1622, COR-1623\n")
+    doc = _governance_doc()
+
+    assert (
+        _validate_governance_fields(
+            doc,
+            parsed,
+            {"COR-1622": "mandatory-bind", "COR-1623": "mandatory-bind"},
+        )
+        == []
+    )
+
+
 def test_validate_instantiates_invalid_format(tmp_path):
     """Invalid Instantiates format should be reported as issue."""
     rules_dir = tmp_path / "rules"
@@ -2371,6 +2386,38 @@ def test_validate_overlays_valid_target_disposition():
         )
         == []
     )
+
+
+def test_validate_overlays_accepts_multiple_optional_overlay_targets():
+    """Overlays accepts comma-separated optional-overlay COR targets."""
+    parsed = _parsed_sop_doc("**Overlays:** COR-1617, COR-1618\n")
+    doc = _governance_doc()
+
+    assert (
+        _validate_governance_fields(
+            doc,
+            parsed,
+            {"COR-1617": "optional-overlay", "COR-1618": "optional-overlay"},
+        )
+        == []
+    )
+
+
+def test_validate_overlays_multiple_rejects_wrong_target_disposition():
+    """Every Overlays target must be optional-overlay, even in a list."""
+    parsed = _parsed_sop_doc("**Overlays:** COR-1617, COR-1622\n")
+    doc = _governance_doc()
+
+    issues = _validate_governance_fields(
+        doc,
+        parsed,
+        {"COR-1617": "optional-overlay", "COR-1622": "mandatory-bind"},
+    )
+
+    assert issues == [
+        "Overlays target 'COR-1622' has Disposition "
+        "'mandatory-bind' (expected 'optional-overlay')"
+    ]
 
 
 def test_validate_overlays_requires_optional_overlay_target():
