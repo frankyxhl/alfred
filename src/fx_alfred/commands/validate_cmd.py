@@ -137,12 +137,16 @@ def _validate_binding_field(
 ) -> list[str]:
     """Validate a PRJ/USR binding field against its PKG COR target."""
     issues: list[str] = []
-    target_id = raw_value.strip()
+    target_ids = [part.strip() for part in raw_value.split(",")]
 
-    if not re.match(COR_REFERENCE_PATTERN, target_id):
+    if any(
+        not target_id or not re.match(COR_REFERENCE_PATTERN, target_id)
+        for target_id in target_ids
+    ):
         issues.append(
-            f"Invalid {field_name} value '{target_id}' — "
-            "must match COR-NNNN format (e.g. COR-1622)"
+            f"Invalid {field_name} value '{raw_value.strip()}' — "
+            "must be a comma-separated list of COR-NNNN values "
+            "(e.g. COR-1622, COR-1623)"
         )
         return issues
 
@@ -150,20 +154,21 @@ def _validate_binding_field(
         issues.append(f"{field_name} field is only allowed on PRJ/USR documents")
         return issues
 
-    if target_id not in cor_dispositions:
-        issues.append(
-            f"{field_name} target '{target_id}' does not exist in PKG COR documents"
-        )
-        return issues
+    for target_id in target_ids:
+        if target_id not in cor_dispositions:
+            issues.append(
+                f"{field_name} target '{target_id}' does not exist in PKG COR documents"
+            )
+            continue
 
-    target_disposition = cor_dispositions[target_id]
-    if target_disposition is None:
-        issues.append(f"{field_name} target '{target_id}' has no Disposition value")
-    elif target_disposition != expected_disposition:
-        issues.append(
-            f"{field_name} target '{target_id}' has Disposition "
-            f"'{target_disposition}' (expected '{expected_disposition}')"
-        )
+        target_disposition = cor_dispositions[target_id]
+        if target_disposition is None:
+            issues.append(f"{field_name} target '{target_id}' has no Disposition value")
+        elif target_disposition != expected_disposition:
+            issues.append(
+                f"{field_name} target '{target_id}' has Disposition "
+                f"'{target_disposition}' (expected '{expected_disposition}')"
+            )
     return issues
 
 

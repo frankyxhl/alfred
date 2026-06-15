@@ -1,7 +1,7 @@
 # REF-0002: Document Format Contract
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-06-14
+**Last updated:** 2026-06-15
 **Last reviewed:** 2026-03-20
 **Status:** Active
 **Disposition:** inherit-only
@@ -113,8 +113,8 @@ The `**Instantiates:**` and `**Overlays:**` fields appear on PRJ-layer or USR-la
 
 | Field | Meaning | Format |
 |-------|---------|--------|
-| `**Instantiates:** COR-NNNN` | Required localization of the referenced COR doc. Used when the COR doc has `**Disposition:** mandatory-bind`. | `COR-NNNN` |
-| `**Overlays:** COR-NNNN` | Optional customization of the referenced COR doc. Used when the COR doc has `**Disposition:** optional-overlay`. | `COR-NNNN` |
+| `**Instantiates:** COR-NNNN[, COR-NNNN...]` | Required localization of the referenced COR doc(s). Used when every referenced COR doc has `**Disposition:** mandatory-bind`. | Comma-separated `COR-NNNN` references |
+| `**Overlays:** COR-NNNN[, COR-NNNN...]` | Optional customization of the referenced COR doc(s). Used when every referenced COR doc has `**Disposition:** optional-overlay`. | Comma-separated `COR-NNNN` references |
 
 ### Layer Applicability
 
@@ -125,6 +125,32 @@ The `**Disposition:**` field applies to COR (PKG-layer) documents only. The `**I
 All three fields are **optional** for documents created before the adoption of this specification. Documents created after this specification is adopted MUST include the relevant field when the document participates in the localization governance model — i.e., COR docs declare `**Disposition:**`, and PRJ/USR docs that localize a COR doc declare `**Instantiates:**` or `**Overlays:**`. Existing documents are never required to add these fields retroactively.
 
 Section-level disposition is out of scope for v1; `**Disposition:**` applies to the whole COR document.
+
+### Disposition Change Procedure
+
+A change to a COR document's `**Disposition:**` is a COR-layer governance change, not a local cleanup. Use the standard CHG path for a reclassification whose semantics are already clear. Start with a PRP when the change also redesigns the localization model, changes validation behavior, or redefines what downstream projects must own.
+
+Procedure:
+
+1. Identify the COR document and proposed transition (`inherit-only`, `optional-overlay`, or `mandatory-bind`).
+2. Record the rationale in the governing CHG or PRP, including why the old disposition is no longer correct.
+3. Update the COR document's `**Disposition:**`, `**Last updated:**`, and `## Change History`.
+4. Audit known PRJ/USR adopters with `af validate --root <repo>` and by searching their `rules/` docs for the COR id.
+5. Reconcile downstream binding fields:
+   - `mandatory-bind` targets use `**Instantiates:**`.
+   - `optional-overlay` targets use `**Overlays:**` only when the local doc adds substantive project-specific content.
+   - `inherit-only` targets must not be localized; downstream docs may cite them through `**Related:**` or prose only.
+6. Re-run `af validate --root <repo>` for each reconciled downstream repo before closing the CHG/PRP.
+
+Downstream implications:
+
+| Transition | Downstream action |
+|------------|-------------------|
+| `inherit-only` -> `optional-overlay` | Existing references remain valid. PRJ/USR projects may add `**Overlays:**` only for substantive local content. |
+| `optional-overlay` -> `inherit-only` | Remove or deprecate PRJ/USR overlays; replace with `**Related:**` references where needed. |
+| `optional-overlay` -> `mandatory-bind` | Convert valid overlays to `**Instantiates:**` and verify every required project-specific value is bound. |
+| `mandatory-bind` -> `optional-overlay` | Convert `**Instantiates:**` to `**Overlays:**` only where substantive local customization remains; otherwise remove the local document or keep a plain reference. |
+| Any -> any | `af validate` enforces binding-field correctness when fields are present. It does not discover every missing binding automatically, so the adopter audit is part of the procedure. |
 
 
 ---
@@ -139,3 +165,4 @@ Section-level disposition is out of scope for v1; `**Disposition:**` applies to 
 | 2026-04-05 | Added Workflow input/output/requires/provides optional fields (SOP only) per FXA-2204 | GLM |
 | 2026-04-26 | Added Section Rule 4 clarifying author-project ID attribution in Change History per FXA-2219 | Claude Code |
 | 2026-06-14 | Added Localization Governance Fields section with Disposition (mandatory-bind/optional-overlay/inherit-only), Instantiates/Overlays, USR-layer applicability, backward-compat rules, and v1 section-level out-of-scope note per COR-204 | Claude Code |
+| 2026-06-15 | Added comma-separated binding target format and Disposition Change Procedure with downstream audit requirements per issue #208. | Codex |
