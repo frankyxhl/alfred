@@ -93,3 +93,66 @@ def test_parse_business_filename():
 def test_parse_invalid_filename_returns_none():
     doc = Document.from_filename("README.md", directory=".")
     assert doc is None
+
+
+def test_status_parses_from_file(tmp_path):
+    """Status property reads **Status:** metadata from the document file."""
+    doc = Document.from_filename(
+        "TST-2100-SOP-Test.md",
+        directory="rules",
+        source="prj",
+        base_path=tmp_path,
+    )
+    (tmp_path / "TST-2100-SOP-Test.md").write_text(
+        "# SOP-2100: Test\n"
+        "\n"
+        "**Applies to:** TST project\n"
+        "**Last updated:** 2026-06-14\n"
+        "**Last reviewed:** 2026-06-14\n"
+        "**Status:** Rejected\n"
+        "\n"
+        "---\n"
+    )
+    assert doc.status == "Rejected"
+
+
+def test_status_returns_empty_for_no_status_field(tmp_path):
+    """Status property returns '' when file has no **Status:** metadata field."""
+    doc = Document.from_filename(
+        "TST-2100-SOP-Test.md",
+        directory="rules",
+        source="prj",
+        base_path=tmp_path,
+    )
+    (tmp_path / "TST-2100-SOP-Test.md").write_text(
+        "# SOP-2100: Test\n"
+        "\n"
+        "**Applies to:** TST project\n"
+        "**Last updated:** 2026-06-14\n"
+        "**Last reviewed:** 2026-06-14\n"
+        "\n"
+        "---\n"
+    )
+    assert doc.status == ""
+
+
+def test_status_handles_acid_0000_non_standard_h1(tmp_path):
+    """Status property handles ACID=0000 docs with non-standard H1 format."""
+    doc = Document.from_filename(
+        "TST-0000-REF-Document-Index.md",
+        directory="rules",
+        source="prj",
+        base_path=tmp_path,
+    )
+    # ACID=0000 index docs sometimes have H1 like "Document Index" (no PREFIX-ACID: prefix)
+    (tmp_path / "TST-0000-REF-Document-Index.md").write_text(
+        "Document Index\n"
+        "\n"
+        "**Applies to:** TST project\n"
+        "**Status:** Active\n"
+        "\n"
+        "---\n"
+        "\n"
+        "Body text.\n"
+    )
+    assert doc.status == "Active"

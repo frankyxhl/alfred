@@ -83,6 +83,27 @@ class Document:
         except (ValueError, OSError, MalformedDocumentError):
             return []
 
+    @property
+    def status(self) -> str:
+        """Parse Status metadata field. Returns '' if absent or unreadable."""
+        try:
+            content = self.resolve_resource().read_text(encoding="utf-8")
+            # ACID=0000 index docs may have non-standard H1; substitute
+            # a dummy H1 so the parser can extract metadata (same approach
+            # as tags property).
+            if self.acid == "0000":
+                lines = content.split("\n")
+                if lines and not H1_PATTERN.match(lines[0]):
+                    dummy_h1 = f"# {self.type_code}-{self.acid}: Index"
+                    content = dummy_h1 + content[len(lines[0]) :]
+            parsed = parse_metadata(content)
+            status_field = next(
+                (mf for mf in parsed.metadata_fields if mf.key == "Status"), None
+            )
+            return status_field.value if status_field else ""
+        except (ValueError, OSError, MalformedDocumentError):
+            return ""
+
     def resolve_resource(self) -> Resource:
         """Return a resource that supports read_text().
 

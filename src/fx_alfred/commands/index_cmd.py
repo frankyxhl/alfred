@@ -8,6 +8,21 @@ from fx_alfred.context import get_root, root_option
 from fx_alfred.core.document import Document
 
 
+# Active documents are the only rows that appear without an index marker.
+# Every other authored status is surfaced so the index cannot make a
+# non-active document look live.
+_UNMARKED_STATUS = "Active"
+
+
+def _status_marker(doc: Document) -> str:
+    """Return a status annotation string for *doc*, or ``""`` if the status is
+    a default/working state that needs no marker."""
+    status = doc.status
+    if not status or status == _UNMARKED_STATUS:
+        return ""
+    return f" ({status})"
+
+
 def _build_index(title: str, docs: list[Document], prefix: str) -> str:
     today = date.today().isoformat()
 
@@ -27,7 +42,8 @@ def _build_index(title: str, docs: list[Document], prefix: str) -> str:
     lines.append("|------|------|-------|")
     sorted_docs = sorted(docs, key=lambda d: d.acid)
     for doc in sorted_docs:
-        lines.append(f"| {doc.acid} | {doc.type_code} | {doc.title} |")
+        marker = _status_marker(doc)
+        lines.append(f"| {doc.acid} | {doc.type_code} | {doc.title}{marker} |")
 
     lines.append("")
     lines.append("---")
