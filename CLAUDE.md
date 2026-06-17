@@ -93,6 +93,8 @@ src/fx_alfred/
 └── templates/          # Document templates for af create (5W1H SOP template)
 ```
 
+Top-level (outside the package): `skills/alfred/` — cross-platform agent-skill bundle that teaches Claude Code / Codex / Copilot / droid / opencode to drive the `af` CLI; one canonical `alfred-contract.md` + three native carriers kept in sync by `tests/test_agent_skill_drift.py`. See `skills/alfred/README.md` (FXA-2305).
+
 ## Three-Layer Document Model
 
 | Layer | Location | Source | Writable |

@@ -38,6 +38,7 @@ Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and str
 - **Agent Helpers & Skills** — `af agent` runs explicitly gated local Python helpers/scripts, while `af skill` discovers and reads reusable REF/SOP skill documents without executing code
 - **Document Validation** — `af validate` enforces metadata format, status values, and section structure; warns on unknown TYPE codes
 - **Single-File Export** — `af export` flattens the layer-merged corpus into one self-contained Markdown runbook for zero-install readers (AI agents included); `--list` audits the set before sharing
+- **Cross-Platform Agent Skill** — `skills/alfred/` ships drop-in instructions that teach Claude Code, Codex, GitHub Copilot, droid, and opencode to drive the `af` CLI; one canonical contract + three native carriers (`SKILL.md`, `AGENTS.md`, `copilot-instructions.md`) kept in sync by a drift-guard test. See `skills/alfred/README.md`
 - **Document Formatting** — `af fmt` normalizes metadata order, whitespace, and table alignment to canonical style
 - **File Path Lookup** — `af where` prints the absolute filesystem path of any document by identifier
 - **Document Lifecycle** — Create, read, update, search, and index documents with consistent naming
