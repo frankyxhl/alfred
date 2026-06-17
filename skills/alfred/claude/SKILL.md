@@ -16,8 +16,11 @@ Confirm the CLI is available and current:
 
 - Run `af --version`. The floor is **1.19** (required for project-root
   auto-discovery).
-- If `af` is missing or older, install it with `uv tool install fx-alfred`
-  (or `pipx install fx-alfred`, or `pip install fx-alfred`).
+- If `af` is missing, install it: `uv tool install fx-alfred` (or
+  `pipx install fx-alfred`, or `pip install fx-alfred`).
+- If `af` is present but older than 1.19, upgrade it: `uv tool upgrade
+  fx-alfred` (or `pipx upgrade fx-alfred`, or `pip install --upgrade
+  fx-alfred`).
 
 ## 2. Session start — route
 
