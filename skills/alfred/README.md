@@ -25,9 +25,11 @@ carriers — never hand-edit a carrier's marked region.
 ## Bootstrap (any platform)
 
 ```bash
-af --version          # need >= 1.19 (root auto-discovery)
-# if missing/older:
-uv tool install fx-alfred   # or: pipx install fx-alfred / pip install fx-alfred
+af --version                    # need >= 1.19 (root auto-discovery)
+# if missing — install:
+uv tool install fx-alfred       # or: pipx install fx-alfred / pip install fx-alfred
+# if present but older than 1.19 — upgrade:
+uv tool upgrade fx-alfred       # or: pipx upgrade fx-alfred / pip install --upgrade fx-alfred
 ```
 
 ## Placement matrix
