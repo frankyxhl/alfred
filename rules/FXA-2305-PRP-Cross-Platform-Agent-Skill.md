@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-06-17
 **Last reviewed:** 2026-06-17
-**Status:** Approved
+**Status:** Implemented
 **Reviewed by:** COR-1602 panel R1 — GLM 9.0, DeepSeek 9.1, MiniMax 9.6 (all PASS)
 **Date:** 2026-06-17
 **Requested by:** Frank Xu (2026-06-17 session)
@@ -172,3 +172,4 @@ None — all three questions raised during drafting were resolved into decisions
 |------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
 | 2026-06-17 | Initial version | Claude Code |
 | 2026-06-17 | COR-1602 R1 panel (GLM/DeepSeek/MiniMax, all PASS ≥ 9.0). Applied convergent fixes: resolved the contract/D8 `--root` contradiction (blocking, GLM+DeepSeek) to bare `af guide`; sharpened §Problem (this repo's `AGENTS.md→CLAUDE.md` symlink; real pain = portable bundle); added `Affected SOPs: None`; concretized the CLAUDE.md/README deliverable; pinned `af ≥ 1.19` floor; defined drift-guard normalization; added a contract excerpt + trust boundary; tightened SKILL.md description spec; added §Risks & Trade-offs. | Claude Code |
+| 2026-06-17 | COR-1602 code-review panel R1 (GLM 9.5, DeepSeek 9.3, MiniMax 9.7; all PASS, no blocking). Implemented skills/alfred/ (canonical contract + 3 carriers + README), tests/test_agent_skill_drift.py, and CLAUDE.md/README.md pointers. Applied convergent test-hardening advisories (sentinel-order assert, empty-command-set guard, af>=1.19 floor guard, parser/regex comments) + README append-sync and @file-import caveats. | Claude Code |
