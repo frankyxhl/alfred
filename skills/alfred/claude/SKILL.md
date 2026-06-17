@@ -25,7 +25,11 @@ Run **`af guide`** and read the routing it prints. It merges three document
 layers: bundled PKG SOPs, your personal USR docs, and the project's PRJ docs.
 Version 1.19+ auto-discovers the project root, so prefer the bare command;
 pass `af guide --root <dir>` only when auto-discovery fails — for example when
-you run from outside the project tree.
+you run from outside the project tree. If you need `--root`, pass the **same**
+`--root <dir>` to every `af` command for the rest of the session (`plan`,
+`read`, …): each command resolves the root independently, so a later bare
+command would silently fall back to the current directory and miss the PRJ
+layer.
 
 ## 3. Before every task — plan
 
