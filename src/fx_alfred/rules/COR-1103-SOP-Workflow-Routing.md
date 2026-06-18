@@ -1,7 +1,7 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-07
+**Last updated:** 2026-06-19
 **Last reviewed:** 2026-05-05
 **Status:** Active
 **Related:** COR-1607 (deprecated, replaced by this document), COR-1614, COR-1616
@@ -132,6 +132,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 ═══ OVERLAYS (apply after primary route) ═══
 
 • Code changes              → COR-1500 (TDD: RED → GREEN → REFACTOR)
+• Writing new code (inside GREEN / REFACTOR) → COR-1508 (Minimal Code Ladder: walk need-it? → stdlib → native → installed-dep → one-line → min-build before adding any abstraction, file, or dependency; safety floor is non-negotiable)
 • PRP approval              → COR-1602 strict (both reviewers >= 9)
 • New SOP/doc created       → Review via COR-1600 (Direct Review) at minimum
 • Before any multi-agent work → COR-1606 (select review or implementation workflow)
@@ -162,6 +163,7 @@ COR-1102: New capability/design → PRP; no implementation until COR-1602 strict
 COR-1606: Before any multi-agent work → select workflow (COR-1600–1605) based on task characteristics
 COR-1101: Existing system/config change → CHG with What, Why, Impact, Plan; Standard changes are pre-approved (no review)
 COR-1500: Code change → TDD overlay (RED→GREEN→REFACTOR) applied on top of selected workflow
+COR-1508: Writing new code → walk the Minimal Code Ladder (need-it? → stdlib → native → installed-dep → one-line → min-build) before adding any abstraction/file/dependency; the safety floor (validation, error handling, security, accessibility, tests) is non-negotiable
 COR-1100: Durable decision already made → ADR, write immediately
 PLN: Execution coordination for approved/in-progress work → PLN before starting multi-phase or multi-agent implementation
 COR-1300: Existing document edit → af update, update Last updated + Change History; never delete, deprecate instead (COR-1301)
@@ -256,3 +258,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-05-05 | Add COR-1801 routing entries for PRJ-to-PKG pattern promotion. | Codex |
 | 2026-05-06 | Add COR-1614 routing entries for approved multi-phase continuous execution contracts. | Codex |
 | 2026-05-07 | Add COR-1616 routing entries (OVERLAY + Golden Rule) for Contract-First Delivery Workflow promoted from BAB-1503 per issue #106. | Claude Code |
+| 2026-06-19 | Add COR-1508 routing entries (OVERLAYS line + Golden Rule) for the Minimal Code Ladder write-time gate, adapted from the Ponytail ruleset. | Claude Code |
