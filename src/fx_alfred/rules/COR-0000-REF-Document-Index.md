@@ -1,7 +1,7 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-09
+**Last updated:** 2026-06-19
 **Last reviewed:** 2026-05-09
 **Status:** Active
 **Disposition:** inherit-only
@@ -50,6 +50,8 @@ A reference index of all documents in the COR system.
 | 1504 | REF | Diagnose Phase Gates |
 | 1505 | SOP | Branch and Identity Hygiene |
 | 1506 | SOP | Review GitHub Issue Quality |
+| 1507 | PRP | Two-Worker TDD Dispatch |
+| 1508 | SOP | Minimal Code Ladder |
 | 1600 | SOP | Workflow — Direct Review Loop |
 | 1601 | SOP | Workflow — Leader Mediated Review Loop |
 | 1602 | SOP | Workflow — Multi Model Parallel Review |
@@ -106,3 +108,4 @@ A reference index of all documents in the COR system.
 | 2026-05-10 | Added COR-1802 (Build Weighted Decision Matrix) per CHG FXA-2281 (issue #135). | Claude Sonnet 4.6 |
 | 2026-05-10 | Added COR-1506 (Review GitHub Issue Quality) per issue #136. | Claude Sonnet 4.6 |
 | 2026-05-10 | Added COR-1623 (PR Review Thread Verification) per issue #142. | Claude Sonnet 4.6 |
+| 2026-06-19 | Added COR-1507 (Two-Worker TDD Dispatch — shipped earlier, index entry missed) and COR-1508 (Minimal Code Ladder — write-time minimal-code gate adapted from the Ponytail ruleset). | Claude Code |
