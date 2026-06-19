@@ -206,6 +206,22 @@ def test_json_has_no_cor1501_pointer_text(tmp_path):
     assert "✗" not in result.output
 
 
+def test_tbd_only_fail_has_no_pointer(tmp_path):
+    """AC#4: a TBD-only FAIL (no structural violation) prints no COR-1501
+    pointer — keeps text output byte-for-byte identical to pre-#219."""
+    root = _make_root(tmp_path, with_template=False)
+    result = _run(tmp_path, "implementer chooses the lib\n", root)
+    assert result.exit_code == 1
+    assert "COR-1501" not in result.output
+
+
+def test_structural_fail_with_tbd_still_prints_pointer(tmp_path):
+    """A mixed fail (structural + TBD) still prints the pointer."""
+    root = _make_root(tmp_path)
+    result = _run(tmp_path, "## Work Type\nimplementer chooses\n", root)
+    assert "COR-1501" in result.output
+
+
 # ---------------------------------------------------------------------------
 # AC: structural + TBD violations combine
 # ---------------------------------------------------------------------------
@@ -236,6 +252,70 @@ def test_fenced_heading_does_not_satisfy_required_section(tmp_path):
     data = json.loads(result.output)
     missing = {v["match"] for v in data["violations"] if v["rule"] == "missing-section"}
     assert "Context" in missing
+
+
+def test_indented_heading_not_counted_as_present(tmp_path):
+    """Column-0 discipline: an indented '## Acceptance Criteria' is not a
+    real section (matches extract_section's ^## anchor) → missing-section,
+    not a false no-acceptance-criteria."""
+    root = _make_root(tmp_path)
+    body = _body_from([h for h in REQUIRED if h != "Acceptance Criteria"])
+    body += "\n  ## Acceptance Criteria\n\n  - [ ] indented\n"
+    result = _run(tmp_path, body, root, "--json")
+    data = json.loads(result.output)
+    missing = {v["match"] for v in data["violations"] if v["rule"] == "missing-section"}
+    rules = {v["rule"] for v in data["violations"]}
+    assert "Acceptance Criteria" in missing
+    assert "no-acceptance-criteria" not in rules
+
+
+# ---------------------------------------------------------------------------
+# AC: auto-discovery (no --root) path — the headline real-user behavior
+# ---------------------------------------------------------------------------
+
+
+def test_autodiscovery_without_root_flag(tmp_path, monkeypatch):
+    """Run from inside a repo root (no --root): discover_root falls back to
+    cwd, the template is found, and the structural check activates."""
+    root = _make_root(tmp_path)
+    body = root / "body.md"
+    body.write_text("## Work Type\nx\n")
+    monkeypatch.chdir(root)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body)])
+    assert result.exit_code == 1
+    assert "COR-1501" in result.output
+
+
+# ---------------------------------------------------------------------------
+# AC: template edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_optional_casing_variance_not_required(tmp_path):
+    """A heading ending in '(Optional)' (capitalized) is still optional."""
+    tpl = tmp_path / ".github" / "ISSUE_TEMPLATE" / "blueprint.md"
+    tpl.parent.mkdir(parents=True)
+    tpl.write_text("## Work Type\n\n## Extras (Optional)\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Work Type\ncontent\n")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body), "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Extras" not in result.output
+
+
+def test_template_with_no_headings_is_noop(tmp_path):
+    """A template with zero '## ' headings imposes no structural requirement."""
+    tpl = tmp_path / ".github" / "ISSUE_TEMPLATE" / "blueprint.md"
+    tpl.parent.mkdir(parents=True)
+    tpl.write_text("Just prose, no sections.\n")
+    body = tmp_path / "body.md"
+    body.write_text("anything at all\n")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body), "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "PASS (0 violations)" in result.output
 
 
 def test_fenced_checkbox_does_not_satisfy_acceptance_criteria(tmp_path):

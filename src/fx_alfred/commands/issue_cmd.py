@@ -60,14 +60,18 @@ def _check_tbd_phrases(text: str) -> list[dict]:
 
 
 def _h2_headings(text: str) -> list[str]:
-    """Non-fenced ``## `` heading titles, in order (fence-aware)."""
+    """Non-fenced, column-0 ``## `` heading titles, in order (fence-aware).
+
+    The column-0 requirement matches ``extract_section``'s ``^##`` anchor, so a
+    heading counted "present" here is always extractable there — an indented
+    ``  ## Acceptance Criteria`` is treated as not-a-section by both.
+    """
     out: list[str] = []
     for line, fenced in iter_lines_with_fence_state(text):
         if fenced:
             continue
-        stripped = line.strip()
-        if stripped.startswith("## "):
-            out.append(stripped[3:].strip())
+        if line.startswith("## "):
+            out.append(line[3:].strip())
     return out
 
 
@@ -125,7 +129,7 @@ def _render(v: dict) -> str:
         return f"✗ Missing required section: ## {v['match']}"
     if rule == "no-acceptance-criteria":
         return f'✗ Section "## {v["match"]}" has no checkbox (- [ ]) item'
-    return f"✗ {rule}: {v['match']}"  # defensive; no current path reaches here
+    raise AssertionError(f"unknown violation rule: {rule}")
 
 
 @click.group(name="issue")
@@ -152,6 +156,11 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
 
     Reads from BODY_FILE or stdin if BODY_FILE is `-`.
     Exit 0 on PASS, 1 on FAIL.
+
+    Violation ordering: blueprint-structure violations (``missing-section``,
+    ``no-acceptance-criteria``; ``line: 0``) come first, then TBD-phrases by
+    line. The COR-1501 pointer is printed only when a structural violation is
+    present, so TBD-only output is identical to the pre-#219 behavior.
     """
     if body_file == "-":
         text = sys.stdin.read()
@@ -162,8 +171,8 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
         text = path.read_text(encoding="utf-8")
 
     # Structural violations first (overall shape), then TBD by line.
-    violations = _check_blueprint_structure(text, get_root(ctx))
-    violations += _check_tbd_phrases(text)
+    structural = _check_blueprint_structure(text, get_root(ctx))
+    violations = structural + _check_tbd_phrases(text)
 
     if as_json:
         emit_json(
@@ -179,7 +188,10 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
         click.echo()
         if violations:
             click.echo(f"Lint result: FAIL ({len(violations)} violations)")
-            click.echo(COR_1501_POINTER)
+            # Pointer only for structural fails — keeps TBD-only output
+            # byte-for-byte identical to pre-#219 behavior (AC#4).
+            if structural:
+                click.echo(COR_1501_POINTER)
         else:
             click.echo("Lint result: PASS (0 violations)")
 
