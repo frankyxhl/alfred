@@ -149,9 +149,11 @@ Two clarifications this line implies:
 - **Read-scoped credentials, plus at most one narrow sink-writer.** Every
   capability an L1 loop holds must be read-scoped, with a single exception: a
   narrowly-scoped writer for its passive report sink (append-only to a drafts / log
-  / notification surface). Any write capability that reaches a system of record,
-  execution queue, send/delete path, or auto-remediation trigger fails L1. Enforce
-  by the environment (scoped tokens) where possible, not just by discipline.
+  / notification surface — including a send that delivers a page/alert/email to a
+  *human* to read). Any write capability that reaches a system of record, execution
+  queue, a send/hand-off to a *machine* or another agent, a delete path, or an
+  auto-remediation trigger fails L1. Enforce by the environment (scoped tokens)
+  where possible, not just by discipline.
 - **Never auto-promote.** A loop does not move L1 → L2 on its own; promotion is a
   human decision backed by the loop's track record (Step 7).
 
@@ -161,9 +163,10 @@ The L1 invariant is checkable, not aspirational:
 
 - **Capability audit.** Enumerate every capability the loop *can* exercise. All
   must be read-scoped, except **at most one** narrowly-scoped passive-sink writer (append to
-  the drafts / log / notification surface). Any other write capability — to a
-  system of record, execution queue, send/delete path, or auto-remediation trigger
-  — fails L1, independent of whether this run used it.
+  the drafts / log / notification surface, including a page/alert/email delivered to
+  a *human* to read). Any other write capability — to a system of record, execution
+  queue, a send/hand-off to a *machine* or another agent, a delete path, or an
+  auto-remediation trigger — fails L1, independent of whether this run used it.
 - **No writes to systems of record.** A run must make **no change to any system of
   record or execution queue** — same branches, source files, PRs, and work queues
   before and after. Any mutation must be strictly isolated to the designated
@@ -185,4 +188,5 @@ The L1 invariant is checkable, not aspirational:
 | 2026-06-19 | COR-1602 review fixes (round 2): name the passive-sink exception in the invariant headline; rewrite "byte-identical world" conformance as "no writes to systems of record" (passive external sinks like a drafts store / log table are allowed); scope the sink-write credential narrowly; add the notify-human (L1) vs trigger-machine (L2+) and "L1 governs machine autonomy, not human discipline" clarifications | — |
 | 2026-06-19 | COR-1602 review fixes (round 3): reconcile credential language across Guard Rails + Capability audit with Step 5 — every capability read-scoped except one narrow append-only passive-sink writer; any write reaching a system of record / queue / send-delete / auto-remediation trigger fails L1 | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fixes: reconcile "no sends" with "paging a human is L1" — the forbidden send is one that hands work to a machine; a notification a human reads is the passive sink (invariant + Step 6); remove stale "L2/L3 forthcoming/reserved" language now that COR-1625 (Active) / COR-1626 (Draft) ship in the same change — in BOTH the "What Is It?" block and the Step 7 "(once COR-1626 is published)" conditional (second location caught by MiniMax re-review) | — |
+| 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): the credential rule + Capability audit still listed "send/delete path" as disqualifying, contradicting the invariant's human-notification carve-out — a PagerDuty/Slack/email-only monitor was both allowed and failed. Narrowed both to "a send/hand-off to a machine or another agent"; a page/alert/email to a human is the permitted sink-writer | — |
 | 2026-06-19 | COR-1602 panel PASS (Codex 9.4 / DeepSeek 9.4); final polish: Step 3 forward-references the Step 5 sink-writer exception; "at most one" sink-writer aligned across Guard Rails + audit (pure-observer loop with zero writers is valid); soften COR-1600/1602 `Related:` wording; Step 7 adds minimum-total-run-count + "(once COR-1626 is published)" | — |
