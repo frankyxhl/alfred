@@ -75,17 +75,33 @@ def _h2_headings(text: str) -> list[str]:
     return out
 
 
+def _find_blueprint(start: Path) -> Path | None:
+    """Nearest ``.github/ISSUE_TEMPLATE/blueprint.md`` at ``start`` or any
+    ancestor.
+
+    Walking up (rather than checking only ``start``) means the check works
+    from a repo subdirectory and in repos that are not Alfred projects — where
+    ``get_root`` falls back to the cwd and the template lives further up
+    (PR #223 codex P2).
+    """
+    for directory in (start, *start.parents):
+        candidate = directory / BLUEPRINT_REL
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def _check_blueprint_structure(text: str, root: Path) -> list[dict]:
     """Check the body against the repo's blueprint template.
 
     Required sections are the template's ``## `` headings minus any ending in
     ``(optional)``. Reports a ``missing-section`` violation per absent required
     section, and a ``no-acceptance-criteria`` violation when the Acceptance
-    Criteria section exists but has no ``- [ ]`` checkbox. When the template is
-    absent the check is skipped (returns no violations).
+    Criteria section exists but has no ``- [ ]`` checkbox. When no template is
+    found at ``root`` or any ancestor the check is skipped (no violations).
     """
-    template_path = root / BLUEPRINT_REL
-    if not template_path.is_file():
+    template_path = _find_blueprint(root)
+    if template_path is None:
         return []
 
     required = [
@@ -151,8 +167,9 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
     Checks (1) TBD-after-PR-review phrases and (2) the COR-1501 blueprint
     structure — required ``## `` sections and a checkbox under
     ``## Acceptance Criteria`` — derived from the repo's own
-    ``.github/ISSUE_TEMPLATE/blueprint.md`` (relative to --root). The
-    structural check is skipped when that template is absent.
+    ``.github/ISSUE_TEMPLATE/blueprint.md``, searched at the resolved root
+    (--root or discovery) and every ancestor. The structural check is skipped
+    when no such template is found.
 
     Reads from BODY_FILE or stdin if BODY_FILE is `-`.
     Exit 0 on PASS, 1 on FAIL.

@@ -287,6 +287,22 @@ def test_autodiscovery_without_root_flag(tmp_path, monkeypatch):
     assert "COR-1501" in result.output
 
 
+def test_template_found_from_subdirectory(tmp_path, monkeypatch):
+    """PR #223 codex P2: run from a subdir of a (non-Alfred) repo whose
+    template lives at the repo root. get_root falls back to the subdir, so the
+    check must walk UP to find the template — not silently skip."""
+    root = _make_root(tmp_path)  # template at repo root, no Alfred rules/
+    subdir = root / "src" / "deep"
+    subdir.mkdir(parents=True)
+    body = subdir / "body.md"
+    body.write_text("## Work Type\nx\n")
+    monkeypatch.chdir(subdir)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body)])  # no --root
+    assert result.exit_code == 1
+    assert "COR-1501" in result.output
+
+
 # ---------------------------------------------------------------------------
 # AC: template edge cases
 # ---------------------------------------------------------------------------
