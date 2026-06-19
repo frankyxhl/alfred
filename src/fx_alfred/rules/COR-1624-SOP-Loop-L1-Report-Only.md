@@ -71,8 +71,10 @@ safe to run unattended.
   smuggle the write into an L1 loop.
 - A one-off manual analysis with no recurring trigger — that is not a loop; just
   run the analysis.
-- The action is fully trusted, reversible, audited, and kill-switched — that may
-  qualify for L3 (COR-1626); L1 would only add latency.
+- The action satisfies COR-1626's full six-precondition envelope (verification,
+  audit, kill-switch, bounded blast radius, automated rollback, escalation) under
+  recorded human enablement — that may qualify for L3 (COR-1626); L1 would only add
+  latency.
 
 ## Steps
 
@@ -190,3 +192,4 @@ The L1 invariant is checkable, not aspirational:
 | 2026-06-19 | PR-bot (chatgpt-codex) review fixes: reconcile "no sends" with "paging a human is L1" — the forbidden send is one that hands work to a machine; a notification a human reads is the passive sink (invariant + Step 6); remove stale "L2/L3 forthcoming/reserved" language now that COR-1625 (Active) / COR-1626 (Draft) ship in the same change — in BOTH the "What Is It?" block and the Step 7 "(once COR-1626 is published)" conditional (second location caught by MiniMax re-review) | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): the credential rule + Capability audit still listed "send/delete path" as disqualifying, contradicting the invariant's human-notification carve-out — a PagerDuty/Slack/email-only monitor was both allowed and failed. Narrowed both to "a send/hand-off to a machine or another agent"; a page/alert/email to a human is the permitted sink-writer | — |
 | 2026-06-19 | COR-1602 panel PASS (Codex 9.4 / DeepSeek 9.4); final polish: Step 3 forward-references the Step 5 sink-writer exception; "at most one" sink-writer aligned across Guard Rails + audit (pure-observer loop with zero writers is valid); soften COR-1600/1602 `Related:` wording; Step 7 adds minimum-total-run-count + "(once COR-1626 is published)" | — |
+| 2026-06-19 | PR-bot review sweep: When-NOT-to-Use L3 criterion now references COR-1626's full six-precondition envelope + recorded enablement (was a partial "reversible/audited/kill-switched" enumeration) | — |

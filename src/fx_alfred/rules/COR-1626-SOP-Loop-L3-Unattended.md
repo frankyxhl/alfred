@@ -121,7 +121,7 @@ that envelope cannot be built, the correct level is L2, not L3.
 | 2 | Durable, complete **audit log** | audit-completeness check |
 | 3 | Immediate **kill-switch** | the kill-switch drill |
 | 4 | **Bounded blast radius** (rate + scope caps) | caps present and enforced |
-| 5 | **Reversibility / auto-rollback** | the rollback drill |
+| 5 | **Automated rollback** (manual-only reversibility is not enough) | the rollback drill |
 | 6 | **Escalation** path that wakes a human | the demotion/escalation test |
 
 All six are required. An L3 loop missing any one is misclassified — hold it at L2.
@@ -176,3 +176,4 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix: stop claiming the L3 envelope is declared "per COR-1622" — COR-1622's schema has no envelope keys, making the enablement record non-auditable. The envelope is now declared in the loop's own config/registry (same place `Autonomy: L3` lives, per COR-1624 Step 1); COR-1622 clarified as general loop config only (3 spots: invariant, Step 1, Related:) | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): tighten envelope precondition #5 from "reversible OR automated rollback" to "automated rollback required" — manual-only reversibility now stays L2, matching Step 7, the rollback drill, and the When-NOT clause (closes the weak-checklist gap) | — |
 | 2026-06-19 | Proactive consistency sweep: When-to-Use entry criterion "reversible/bounded" → "automated rollback, bounded" to match the tightened precondition #5 | — |
+| 2026-06-19 | PR-bot review fix: envelope table row 5 label "Reversibility / auto-rollback" → "Automated rollback (manual-only reversibility is not enough)", matching the tightened precondition #5 | — |

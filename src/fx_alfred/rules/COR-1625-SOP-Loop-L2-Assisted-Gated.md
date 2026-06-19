@@ -61,9 +61,12 @@ caught at review and costs nothing, because nothing executed.
 
 - The action is pure observation/reporting — that is L1 (COR-1624); a gate only
   adds latency.
-- The action class is reversible, bounded, audited, kill-switched, and verifiable
-  automatically, and a per-action human gate is now pure latency (the human has
-  become a rubber stamp) — that is L3 (COR-1626).
+- The action class satisfies **all six** of COR-1626's envelope preconditions
+  (automated verification, audit log, kill-switch, bounded blast radius, **automated
+  rollback**, escalation), a human owner has recorded L3 enablement, and a per-action
+  human gate is now pure latency (the human has become a rubber stamp) — that is L3
+  (COR-1626). If even one precondition is missing (e.g. only manual reversibility, or
+  no escalation path), it stays L2.
 - The "approver" would be **another bot**, not a human — that is not L2. Autonomous
   machine execution belongs at L3 (COR-1626) **only inside its six-precondition
   envelope**; a bot rubber-stamping another bot's draft is neither an L2 gate nor a
@@ -182,3 +185,4 @@ caught at review and costs nothing, because nothing executed.
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix: the "executed without approval" remediation no longer permits relabeling a misconfigured L2 bot as L3 — stop it or add the gate; L3 only if COR-1626's envelope + recorded enablement already exist (closes the after-the-fact-legitimization hole) | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): the "no standing license" conformance check no longer calls a reused approval "L3" — it is an L2 violation (stop/re-gate); autonomous repeated execution is L3 only inside COR-1626's envelope + enablement | — |
 | 2026-06-19 | Proactive consistency sweep (pre-empt next bot finding): the "gate is a human" guard rail no longer says machine self-approval "is L3" (same overclaim — it is an ungoverned L2 violation unless COR-1626's envelope exists); Step 9 promotion criteria use "automated rollback + bounded" to match COR-1626 precondition #5 | — |
+| 2026-06-19 | PR-bot review fix: When-NOT-to-Use L3 criterion requires ALL six envelope preconditions (incl. automated rollback + escalation) + recorded enablement — one missing keeps it L2 (was a partial enumeration that could route owners out of the gate) | — |
