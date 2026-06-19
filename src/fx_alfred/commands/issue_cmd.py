@@ -76,18 +76,24 @@ def _h2_headings(text: str) -> list[str]:
 
 
 def _find_blueprint(start: Path) -> Path | None:
-    """Nearest ``.github/ISSUE_TEMPLATE/blueprint.md`` at ``start`` or any
-    ancestor.
+    """Nearest ``.github/ISSUE_TEMPLATE/blueprint.md`` at ``start`` or an
+    ancestor, bounded to the current repository.
 
     Walking up (rather than checking only ``start``) means the check works
-    from a repo subdirectory and in repos that are not Alfred projects — where
+    from a repo subdirectory and in repos that are not Alfred projects, where
     ``get_root`` falls back to the cwd and the template lives further up
-    (PR #223 codex P2).
+    (PR #223 codex P2 #1). The walk stops at the repository boundary — the
+    first ancestor holding ``.git`` (a dir for normal checkouts, a file for
+    submodules/worktrees) — so a child repo without its own template never
+    picks up a parent repo's blueprint (codex P2 #2). The repo root's own
+    template is still considered before the walk stops there.
     """
     for directory in (start, *start.parents):
         candidate = directory / BLUEPRINT_REL
         if candidate.is_file():
             return candidate
+        if (directory / ".git").exists():
+            break  # repository boundary — do not cross into a parent repo
     return None
 
 

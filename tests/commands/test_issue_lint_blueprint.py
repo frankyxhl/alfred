@@ -288,12 +288,44 @@ def test_autodiscovery_without_root_flag(tmp_path, monkeypatch):
 
 
 def test_template_found_from_subdirectory(tmp_path, monkeypatch):
-    """PR #223 codex P2: run from a subdir of a (non-Alfred) repo whose
+    """PR #223 codex P2 #1: run from a subdir of a (non-Alfred) repo whose
     template lives at the repo root. get_root falls back to the subdir, so the
     check must walk UP to find the template — not silently skip."""
     root = _make_root(tmp_path)  # template at repo root, no Alfred rules/
     subdir = root / "src" / "deep"
     subdir.mkdir(parents=True)
+    body = subdir / "body.md"
+    body.write_text("## Work Type\nx\n")
+    monkeypatch.chdir(subdir)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body)])  # no --root
+    assert result.exit_code == 1
+    assert "COR-1501" in result.output
+
+
+def test_walk_up_stops_at_repo_boundary(tmp_path, monkeypatch):
+    """PR #223 codex P2 #2: a child repo (has .git, no template) nested under a
+    parent that DOES have a template must NOT pick up the parent's blueprint —
+    the walk stops at the child repo boundary, so the check is skipped."""
+    _make_root(tmp_path)  # parent repo has a template
+    child = tmp_path / "child"
+    (child / ".git").mkdir(parents=True)  # child is its own repo, no template
+    body = child / "body.md"
+    body.write_text("anything, no sections\n")
+    monkeypatch.chdir(child)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body)])  # no --root
+    assert result.exit_code == 0
+    assert "PASS (0 violations)" in result.output
+
+
+def test_repo_root_with_git_and_template_still_found(tmp_path, monkeypatch):
+    """The repo root's own template is considered before the .git boundary
+    stops the walk (boundary check must not pre-empt the template at root)."""
+    root = _make_root(tmp_path)
+    (root / ".git").mkdir()
+    subdir = root / "pkg"
+    subdir.mkdir()
     body = subdir / "body.md"
     body.write_text("## Work Type\nx\n")
     monkeypatch.chdir(subdir)
