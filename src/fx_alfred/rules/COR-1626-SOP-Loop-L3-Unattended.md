@@ -170,7 +170,11 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 - **Blast-radius check.** Confirm rate/scope caps are enforced (the loop cannot
   exceed them under load), not merely configured.
 - **Audit completeness.** Every action in a sampled window appears in the log with
-  its verification result.
+  its verification result — **and the failure paths are sampled too**: confirm
+  pre-verify aborts (Step 5), post-verify failures + rollbacks (Step 7), and anomaly
+  demotions (Step 9) each appear in the log, recorded *before* the exit/escalation.
+  A loop that logs only successful actions but drops failure-path decisions **fails**
+  this drill (it violates the invariant's "record every decision and outcome").
 - **Demotion test.** Inject an anomaly; confirm the loop auto-demotes/escalates
   rather than continuing.
 
@@ -188,3 +192,4 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 | 2026-06-19 | PR-bot review fix: envelope table row 5 label "Reversibility / auto-rollback" → "Automated rollback (manual-only reversibility is not enough)", matching the tightened precondition #5 | — |
 | 2026-06-19 | Class-ending sweep: When-NOT-to-Use example list now names all six preconditions (was omitting audit log + escalation) | — |
 | 2026-06-19 | PR-bot review fix: the Audit step is now cross-cutting — pre-verify aborts (Step 5), post-verify failures + rollbacks (Step 7), and anomaly demotions (Step 9) all record to the audit log BEFORE exiting/escalating, so the invariant's "record every decision and outcome" holds on failure paths (and Step 9 failure-rate monitoring has pre-verify data) | — |
+| 2026-06-19 | PR-bot review fix (follow-on): the "Audit completeness" conformance drill now samples the failure paths too (pre-verify aborts, rollbacks, demotions), not just successful actions — so a loop dropping failure-path records can no longer pass the enablement checklist | — |
