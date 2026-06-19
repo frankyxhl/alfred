@@ -341,6 +341,24 @@ def test_child_repo_inside_alfred_parent_not_bypassed(tmp_path, monkeypatch):
     assert "PASS (0 violations)" in result.output
 
 
+def test_external_body_uses_cwd_repo_template(tmp_path, monkeypatch):
+    """PR #223 codex P2 #4: linting a body file that lives OUTSIDE the repo
+    (e.g. /tmp/body.md) while cwd is a repo with a template must validate
+    against the cwd repo's template — not silently skip because the body's own
+    directory has none."""
+    repo = tmp_path / "repo"
+    _make_root(repo)  # repo/.github/ISSUE_TEMPLATE/blueprint.md
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    body = elsewhere / "body.md"
+    body.write_text("no sections at all\n")
+    monkeypatch.chdir(repo)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body)])  # no --root
+    assert result.exit_code == 1
+    assert "COR-1501" in result.output
+
+
 def test_repo_root_with_git_and_template_still_found(tmp_path, monkeypatch):
     """The repo root's own template is considered before the .git boundary
     stops the walk (boundary check must not pre-empt the template at root)."""

@@ -174,9 +174,10 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
     structure — required ``## `` sections and a checkbox under
     ``## Acceptance Criteria`` — derived from the repo's own
     ``.github/ISSUE_TEMPLATE/blueprint.md``. The template is searched from the
-    invoking repo: explicit ``--root`` if given, else the body file's own
-    directory (cwd for stdin), walking up to the repository boundary. The
-    structural check is skipped when no such template is found.
+    invoking repo: explicit ``--root`` if given, else the current working
+    directory, walking up to the repository boundary. The structural check is
+    skipped when no such template is found; pass ``--root`` to lint a body
+    file that lives outside the invoking repo.
 
     Reads from BODY_FILE or stdin if BODY_FILE is `-`.
     Exit 0 on PASS, 1 on FAIL.
@@ -194,17 +195,13 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
             raise click.FileError(body_file, hint="No such file")
         text = path.read_text(encoding="utf-8")
 
-    # Anchor the template search to the INVOKING repo, not the Alfred-doc root:
-    # discover_root walks past a child repo's .git to find a parent's rules/,
-    # which would borrow the parent's blueprint (codex P2 #3). Explicit --root
-    # wins; otherwise start at the body's own directory (cwd for stdin).
+    # Anchor the template search to the INVOKING repo (cwd), not the Alfred-doc
+    # root (discover_root walks past a child repo's .git into a parent, codex
+    # P2 #3) and not the body file's dir (a body outside the repo, e.g.
+    # /tmp/body.md, would skip the check, codex P2 #4). Explicit --root wins;
+    # pass it to lint a body that lives outside the invoking repo.
     explicit_root = (ctx.find_root().obj or {}).get("root")
-    if explicit_root is not None:
-        search_start = Path(explicit_root)
-    elif body_file != "-":
-        search_start = Path(body_file).resolve().parent
-    else:
-        search_start = Path.cwd()
+    search_start = Path(explicit_root) if explicit_root is not None else Path.cwd()
 
     # Structural violations first (overall shape), then TBD by line.
     structural = _check_blueprint_structure(text, search_start)
