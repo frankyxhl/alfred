@@ -319,6 +319,28 @@ def test_walk_up_stops_at_repo_boundary(tmp_path, monkeypatch):
     assert "PASS (0 violations)" in result.output
 
 
+def test_child_repo_inside_alfred_parent_not_bypassed(tmp_path, monkeypatch):
+    """PR #223 codex P2 #3: a child Git repo (own .git, no template) nested
+    under an Alfred project (parent has rules/ + a template). discover_root
+    would walk past the child .git to the parent Alfred root; the template
+    lookup must instead anchor to the invoking repo and skip — not borrow the
+    parent's blueprint."""
+    root = _make_root(tmp_path)  # parent has .github template
+    rules = root / "rules"
+    rules.mkdir()
+    # A non-COR doc makes the parent a discoverable Alfred root.
+    (rules / "FXA-9999-SOP-Test-Doc.md").write_text("# placeholder\n")
+    child = root / "child"
+    (child / ".git").mkdir(parents=True)  # child is its own repo, no template
+    body = child / "body.md"
+    body.write_text("no sections\n")
+    monkeypatch.chdir(child)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["issue", "lint", str(body)])  # no --root
+    assert result.exit_code == 0
+    assert "PASS (0 violations)" in result.output
+
+
 def test_repo_root_with_git_and_template_still_found(tmp_path, monkeypatch):
     """The repo root's own template is considered before the .git boundary
     stops the walk (boundary check must not pre-empt the template at root)."""

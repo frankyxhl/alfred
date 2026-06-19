@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 
 from fx_alfred.commands._helpers import emit_json
-from fx_alfred.context import get_root, root_option
+from fx_alfred.context import root_option
 from fx_alfred.core.parser import extract_section, iter_lines_with_fence_state
 
 # Phase 1: TBD-phrase rule (same list as COR-1506 §Hard Cap Trigger B).
@@ -173,9 +173,10 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
     Checks (1) TBD-after-PR-review phrases and (2) the COR-1501 blueprint
     structure — required ``## `` sections and a checkbox under
     ``## Acceptance Criteria`` — derived from the repo's own
-    ``.github/ISSUE_TEMPLATE/blueprint.md``, searched at the resolved root
-    (--root or discovery) and every ancestor. The structural check is skipped
-    when no such template is found.
+    ``.github/ISSUE_TEMPLATE/blueprint.md``. The template is searched from the
+    invoking repo: explicit ``--root`` if given, else the body file's own
+    directory (cwd for stdin), walking up to the repository boundary. The
+    structural check is skipped when no such template is found.
 
     Reads from BODY_FILE or stdin if BODY_FILE is `-`.
     Exit 0 on PASS, 1 on FAIL.
@@ -193,8 +194,20 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
             raise click.FileError(body_file, hint="No such file")
         text = path.read_text(encoding="utf-8")
 
+    # Anchor the template search to the INVOKING repo, not the Alfred-doc root:
+    # discover_root walks past a child repo's .git to find a parent's rules/,
+    # which would borrow the parent's blueprint (codex P2 #3). Explicit --root
+    # wins; otherwise start at the body's own directory (cwd for stdin).
+    explicit_root = (ctx.find_root().obj or {}).get("root")
+    if explicit_root is not None:
+        search_start = Path(explicit_root)
+    elif body_file != "-":
+        search_start = Path(body_file).resolve().parent
+    else:
+        search_start = Path.cwd()
+
     # Structural violations first (overall shape), then TBD by line.
-    structural = _check_blueprint_structure(text, get_root(ctx))
+    structural = _check_blueprint_structure(text, search_start)
     violations = structural + _check_tbd_phrases(text)
 
     if as_json:
