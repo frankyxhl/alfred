@@ -99,18 +99,26 @@ that envelope cannot be built, the correct level is L2, not L3.
 3. **Trigger.** The loop wakes on its schedule/event (pacing per COR-1620).
 4. **Gather + classify (read-scoped).** As at L1/L2.
 5. **Pre-verify.** Check the action's preconditions automatically. If they do not
-   hold, **abort and escalate** — do not act on a stale or unexpected world.
+   hold, **record the failed pre-check to the audit log (Step 8), then abort and
+   escalate** — do not act on a stale or unexpected world, and never exit without
+   logging the anomaly (Step 9's failure-rate monitoring depends on it).
 6. **Execute inside the bounded envelope.** Perform the action under the declared
    rate limits and scope caps. Never exceed them, even to "catch up."
 7. **Post-verify.** Confirm the action had the intended effect. **On failure,
-   auto-rollback and escalate** — never leave a half-applied change in place.
-8. **Audit.** Record the action, its verification results, and any rollback to a
-   durable, human-reviewable log (an L1-style passive sink, per COR-1624).
+   record the failure, auto-rollback, log the rollback (Step 8), and escalate** —
+   never leave a half-applied change in place, and never escalate without auditing first.
+8. **Audit (every path).** Record to a durable, human-reviewable log (an L1-style
+   passive sink, per COR-1624) on **every** path — each action and its verification
+   result, **and** each pre-verify abort (Step 5), post-verify failure + rollback
+   (Step 7), and anomaly demotion (Step 9). The log is written *before* any exit or
+   escalation, so the invariant's "record every action, decision, and outcome" holds
+   even on the failure paths.
 9. **Continuous safety.** Honor the kill-switch immediately. On anomaly — a rising
-   verification-failure rate, drift, or a tripped cap — **auto-demote**: the loop
-   **stops executing autonomously and parks fail-closed, taking no further action
-   until a human gates it.** "Demote to L2/L1" means *wait for a human*; it never
-   means keep acting on its own under a lower label.
+   verification-failure rate, drift, or a tripped cap — **record the anomaly to the
+   audit log (Step 8), then auto-demote**: the loop **stops executing autonomously
+   and parks fail-closed, taking no further action until a human gates it.** "Demote
+   to L2/L1" means *wait for a human*; it never means keep acting on its own under a
+   lower label.
 10. **Periodic human review.** A human reviews the audit log on a **schedule**.
     L3 is unattended *per action*, never *unaudited*.
 
@@ -179,3 +187,4 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 | 2026-06-19 | Proactive consistency sweep: When-to-Use entry criterion "reversible/bounded" → "automated rollback, bounded" to match the tightened precondition #5 | — |
 | 2026-06-19 | PR-bot review fix: envelope table row 5 label "Reversibility / auto-rollback" → "Automated rollback (manual-only reversibility is not enough)", matching the tightened precondition #5 | — |
 | 2026-06-19 | Class-ending sweep: When-NOT-to-Use example list now names all six preconditions (was omitting audit log + escalation) | — |
+| 2026-06-19 | PR-bot review fix: the Audit step is now cross-cutting — pre-verify aborts (Step 5), post-verify failures + rollbacks (Step 7), and anomaly demotions (Step 9) all record to the audit log BEFORE exiting/escalating, so the invariant's "record every decision and outcome" holds on failure paths (and Step 9 failure-rate monitoring has pre-verify data) | — |
