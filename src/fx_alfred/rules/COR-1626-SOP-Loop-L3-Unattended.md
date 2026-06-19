@@ -4,7 +4,7 @@
 **Last updated:** 2026-06-19
 **Last reviewed:** 2026-06-19
 **Status:** Draft
-**Related:** COR-1624 (Loop — L1 Report-Only), COR-1625 (Loop — L2 Assisted + Gated, the rung below), COR-1617 (Multi-Agent Workflow Loop — the loop mechanism), COR-1620 (Self-Pacing Loop Primitives — pacing), COR-1622 (Multi-Agent Loop Project Configuration — where envelope parameters are declared), COR-1600 / COR-1602 (review-loop / multi-model panel — the L2 human gate; *not used per-action at L3*, retained for ladder symmetry and for the scheduled audit review)
+**Related:** COR-1624 (Loop — L1 Report-Only), COR-1625 (Loop — L2 Assisted + Gated, the rung below), COR-1617 (Multi-Agent Workflow Loop — the loop mechanism), COR-1620 (Self-Pacing Loop Primitives — pacing), COR-1622 (Multi-Agent Loop Project Configuration — general loop config; the L3 safety envelope is declared in the loop's own config/registry, not in COR-1622's schema), COR-1600 / COR-1602 (review-loop / multi-model panel — the L2 human gate; *not used per-action at L3*, retained for ladder symmetry and for the scheduled audit review)
 **Disposition:** inherit-only
 
 ---
@@ -43,8 +43,10 @@ held at L2 (COR-1625):
 6. **An escalation path** wakes a human on any anomaly.
 
 This SOP governs only **what an L3 loop may and may not do**. The loop *mechanism*
-is COR-1617 / COR-1620; the envelope *parameters* (rate caps, kill-switch wiring)
-are declared per COR-1622.
+is COR-1617 / COR-1620; the envelope *parameters* (rate caps, kill-switch wiring,
+rollback, escalation) are declared in the loop's own config/registry entry — the
+same place `Autonomy: L3` is recorded (per COR-1624 Step 1). COR-1622 covers
+general multi-agent loop configuration and does **not** define L3 envelope keys.
 
 ## Why
 
@@ -81,7 +83,10 @@ that envelope cannot be built, the correct level is L2, not L3.
 
 1. **Declare the level + the envelope.** Record `Autonomy: L3`, reference this SOP
    (COR-1626), and declare the concrete envelope (which kill-switch, what
-   rate/scope caps, what rollback, what escalation path) per COR-1622.
+   rate/scope caps, what rollback, what escalation path) in the loop's own
+   config/registry entry, the same place `Autonomy: L3` is recorded (per COR-1624
+   Step 1) — this declaration is the auditable envelope record the conformance
+   drills check against. (COR-1622 is general loop config; it has no L3 envelope keys.)
 2. **Enablement gate (once, human-approved).** A human owner runs the envelope
    audit (below), confirms **all six** invariant conditions exist and are wired,
    then **records an explicit approval** promoting the loop to L3. A loop never
@@ -166,3 +171,4 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 |------|--------|----|
 | 2026-06-19 | Initial version (Status: Draft) — L3 rung of the Loop autonomy ladder; autonomous execution permitted only inside a six-precondition verified/bounded/reversible/killable envelope; ships Draft so L3 stays exceptional and opt-in | — |
 | 2026-06-19 | COR-1602 review fixes (Codex 8.7 + DeepSeek 8.8, convergent): add a recorded human-owner enablement gate (no self-promotion to L3); "demote to L2/L1" = stop-and-park-fail-closed-until-a-human-gates, never keep acting; add the non-conformance remediation verb (halt or retrofit-gate-and-run-as-L2); "irreversible AND" → "irreversible OR lacks rollback"; note escalation + scheduled review are the sole human roles; add COR-1600/1602 to Related: for ladder symmetry | — |
+| 2026-06-19 | PR-bot (chatgpt-codex) review fix: stop claiming the L3 envelope is declared "per COR-1622" — COR-1622's schema has no envelope keys, making the enablement record non-auditable. The envelope is now declared in the loop's own config/registry (same place `Autonomy: L3` lives, per COR-1624 Step 1); COR-1622 clarified as general loop config only (3 spots: invariant, Step 1, Related:) | — |
