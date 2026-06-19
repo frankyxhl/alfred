@@ -126,11 +126,26 @@ caught at review and costs nothing, because nothing executed.
 - **Stale approval ⇒ re-gate.** If the world changed and the approved change no
   longer applies cleanly, re-draft and re-approve.
 - **Fail-closed.** Timeout, ambiguity, or error at the gate means **do not act**.
-- **The draft must not act.** Staging the draft (a PR, a branch, a queued payload)
-  must not itself fire execution or downstream automation before approval. If
-  creating the draft trips hooks that act, the draft is an active trigger and you
-  are already past the gate — that is the L1 passive-sink vs active-trigger failure
-  (COR-1624), now at L2.
+- **The draft must not act on the gated resource.** Staging the draft (a PR, a
+  branch, a queued payload) must not itself execute the gated action, nor trip any
+  downstream machine that can act on the gated resource, before approval. Three
+  tests, all by **capability not the action taken this run** (as at COR-1624 Step 3):
+  - **Direct.** A triggered machine that only *reviews/reports* (a code-review bot
+    that comments) is fine **only if it also lacks** the credentials to merge,
+    deploy, or mutate the system of record. A "review" bot holding a write/merge
+    token is L2+ even if it just commented this run.
+  - **Sink-drain.** Judge where that machine's output flows: if the review's output
+    drains into a downstream automation that can act on the gated resource
+    (auto-merge-on-approval, deploy-on-green), that is L2+ too — name the **one-hop,
+    directly-fed** act-capability (a configured flow, not incidental polling or
+    infinite transitive closure), not just the direct producer.
+  - **The one operational test:** *did staging the draft land the gated change, or
+    hand it to something that will? If yes → you are past the gate (L2+). If no —
+    only a human-read review was triggered — the gate still holds.*
+
+  (Field-tested against Voyager's changelog bot, which posts `@codex review` on
+  staging: permitted, because Codex only comments and cannot merge — a human merges
+  the changelog PR, so staging landed nothing.)
 
 ### Conformance — how to verify a loop really is L2
 
@@ -152,3 +167,5 @@ caught at review and costs nothing, because nothing executed.
 |------|--------|----|
 | 2026-06-19 | Initial version — L2 rung of the Loop autonomy ladder (drafts actions; per-action informed human gate before execution; reuses COR-1600/1602 as the gate) | — |
 | 2026-06-19 | COR-1602 review polish (Codex 9.3 + DeepSeek 9.4, both PASS): add "the draft must not act" guard rail (a PR/branch that trips automation hooks pre-approval is an active trigger past the gate); approval expiry keys on a freshness window as well as state drift; tighten the machine-self-approval wording to point at the L3 envelope | — |
+| 2026-06-19 | Field-test refinement: sharpen "the draft must not act" → "must not act on the gated resource" — a triggered review/report machine is permitted (it can't land the change); only a triggered machine that can merge/deploy/mutate the system of record breaks L2. Found by dry-run testing Voyager's changelog bot (posts `@codex review` on staging) | — |
+| 2026-06-19 | COR-1602 review fixes (MiniMax 7.0 → close loopholes; DeepSeek 9.75): judge the trigger by latent capability not the action taken this run (a review bot holding a merge/write token is L2+); add the sink-drain test (review output draining into auto-merge/deploy is L2+); add the one operational test ("did staging land the gated change?"); drop the loose "L1 failure, now at L2" phrasing | — |
