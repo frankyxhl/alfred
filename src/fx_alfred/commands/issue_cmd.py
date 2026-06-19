@@ -8,6 +8,8 @@ from pathlib import Path
 import click
 
 from fx_alfred.commands._helpers import emit_json
+from fx_alfred.context import get_root, root_option
+from fx_alfred.core.parser import extract_section, iter_lines_with_fence_state
 
 # Phase 1: TBD-phrase rule (same list as COR-1506 §Hard Cap Trigger B).
 # Order is significant — when two phrases appear on the same line, the one
@@ -19,6 +21,15 @@ TBD_PHRASES = [
     "exact spec to be drafted after reviewer pick",
     "to be decided in review",
 ]
+
+# Blueprint structural check (issue #219). The required-section contract is the
+# repo's own Iterwheel Blueprint template — NOT hardcoded here, because af ships
+# to many repos. COR-1501 names this file as the source of truth.
+BLUEPRINT_REL = Path(".github") / "ISSUE_TEMPLATE" / "blueprint.md"
+ACCEPTANCE_CRITERIA = "Acceptance Criteria"
+COR_1501_POINTER = (
+    "See COR-1501 (Create GitHub Issue) for the required blueprint structure."
+)
 
 
 def _check_tbd_phrases(text: str) -> list[dict]:
@@ -48,6 +59,75 @@ def _check_tbd_phrases(text: str) -> list[dict]:
     return violations
 
 
+def _h2_headings(text: str) -> list[str]:
+    """Non-fenced ``## `` heading titles, in order (fence-aware)."""
+    out: list[str] = []
+    for line, fenced in iter_lines_with_fence_state(text):
+        if fenced:
+            continue
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            out.append(stripped[3:].strip())
+    return out
+
+
+def _check_blueprint_structure(text: str, root: Path) -> list[dict]:
+    """Check the body against the repo's blueprint template.
+
+    Required sections are the template's ``## `` headings minus any ending in
+    ``(optional)``. Reports a ``missing-section`` violation per absent required
+    section, and a ``no-acceptance-criteria`` violation when the Acceptance
+    Criteria section exists but has no ``- [ ]`` checkbox. When the template is
+    absent the check is skipped (returns no violations).
+    """
+    template_path = root / BLUEPRINT_REL
+    if not template_path.is_file():
+        return []
+
+    required = [
+        h
+        for h in _h2_headings(template_path.read_text(encoding="utf-8"))
+        if not h.lower().endswith("(optional)")
+    ]
+    present = set(_h2_headings(text))
+
+    violations: list[dict] = []
+    for heading in required:
+        if heading not in present:
+            violations.append({"rule": "missing-section", "line": 0, "match": heading})
+
+    if ACCEPTANCE_CRITERIA in present:
+        section = extract_section(text, ACCEPTANCE_CRITERIA) or ""
+        # ponytail: only "- [ ]" counts as a checkbox; mirrors the blueprint
+        # bot's own check. Widen to "* [ ]"/indented forms only if a real
+        # issue body trips on it.
+        has_checkbox = any(
+            not fenced and line.strip().startswith("- [ ]")
+            for line, fenced in iter_lines_with_fence_state(section)
+        )
+        if not has_checkbox:
+            violations.append(
+                {
+                    "rule": "no-acceptance-criteria",
+                    "line": 0,
+                    "match": ACCEPTANCE_CRITERIA,
+                }
+            )
+    return violations
+
+
+def _render(v: dict) -> str:
+    """One-line text rendering for a violation dict."""
+    rule = v["rule"]
+    if rule == "tbd-phrase":
+        return f'✗ TBD-phrase detected at line {v["line"]}: "{v["match"]}"'
+    if rule == "missing-section":
+        return f"✗ Missing required section: ## {v['match']}"
+    if rule == "no-acceptance-criteria":
+        return f'✗ Section "## {v["match"]}" has no checkbox (- [ ]) item'
+    return f"✗ {rule}: {v['match']}"  # defensive; no current path reaches here
+
+
 @click.group(name="issue")
 def issue_cmd() -> None:
     """Issue body utilities (lint, ...)."""
@@ -59,11 +139,17 @@ def issue_cmd() -> None:
     type=click.Path(dir_okay=False, allow_dash=True),
 )
 @click.option("--json", "as_json", is_flag=True, help="Output violations as JSON.")
+@root_option
 @click.pass_context
 def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
     """Lint a GitHub issue body for known anti-patterns.
 
-    Phase 1: detects TBD-after-PR-review phrases (see #168 §Hard Cap Trigger B).
+    Checks (1) TBD-after-PR-review phrases and (2) the COR-1501 blueprint
+    structure — required ``## `` sections and a checkbox under
+    ``## Acceptance Criteria`` — derived from the repo's own
+    ``.github/ISSUE_TEMPLATE/blueprint.md`` (relative to --root). The
+    structural check is skipped when that template is absent.
+
     Reads from BODY_FILE or stdin if BODY_FILE is `-`.
     Exit 0 on PASS, 1 on FAIL.
     """
@@ -75,7 +161,9 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
             raise click.FileError(body_file, hint="No such file")
         text = path.read_text(encoding="utf-8")
 
-    violations = _check_tbd_phrases(text)
+    # Structural violations first (overall shape), then TBD by line.
+    violations = _check_blueprint_structure(text, get_root(ctx))
+    violations += _check_tbd_phrases(text)
 
     if as_json:
         emit_json(
@@ -87,10 +175,11 @@ def lint_cmd(ctx: click.Context, body_file: str, as_json: bool) -> None:
         )
     else:
         for v in violations:
-            click.echo(f'✗ TBD-phrase detected at line {v["line"]}: "{v["match"]}"')
+            click.echo(_render(v))
         click.echo()
         if violations:
             click.echo(f"Lint result: FAIL ({len(violations)} violations)")
+            click.echo(COR_1501_POINTER)
         else:
             click.echo("Lint result: PASS (0 violations)")
 

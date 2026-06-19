@@ -16,6 +16,21 @@ from fx_alfred.commands.issue_cmd import issue_cmd  # noqa: F401
 
 pytestmark = pytest.mark.cli
 
+
+@pytest.fixture(autouse=True)
+def _isolate_from_repo_blueprint(tmp_path, monkeypatch):
+    """Run each TBD-rule test from a template-less cwd.
+
+    The blueprint structural check (issue #219) discovers
+    ``.github/ISSUE_TEMPLATE/blueprint.md`` relative to the resolved root,
+    which defaults to ``discover_root(cwd)``. Under pytest the cwd is the repo
+    root, which *has* that template — so without this isolation the structural
+    check would activate and break these TBD-only tests. Chdir to an empty
+    tmp dir so no template is discoverable and behavior stays TBD-only.
+    """
+    monkeypatch.chdir(tmp_path)
+
+
 TBD_PHRASES = [
     "TBD after PR review",
     "TBD after option selection",

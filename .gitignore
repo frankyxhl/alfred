@@ -28,3 +28,6 @@ rules/logs/
 
 # macOS
 .DS_Store
+
+# Stray agent/session transcripts
+transcript.jsonl
