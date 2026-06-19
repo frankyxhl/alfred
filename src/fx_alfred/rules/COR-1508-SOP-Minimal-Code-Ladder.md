@@ -65,7 +65,7 @@ The agent declares the active posture at the start of the implementation step (p
 | Posture | Behavior |
 |---------|----------|
 | `full` *(default)* | Walk all 6 rungs. Any net-new abstraction, file, or dependency must be justified against the rung that was cleared to reach it. |
-| `off` | Gate disabled. **User-authorized only** — an agent may not self-select `off`. Record the authorizing instruction in the task log. |
+| `off` | Gate disabled. **User-authorized only** — an agent may not self-select `off`. Record the authorizing instruction in the task's working notes. |
 
 A project overlay MAY re-introduce finer gradations (e.g. an advisory-only or a deletion-offset posture) if it demonstrates the need (see Project Overlay).
 
@@ -138,3 +138,4 @@ A cosmetic restatement is not a valid overlay (per COR-0002 Disposition rules).
 | 2026-06-19 | Trim per #218 (make the minimal-code SOP minimal): Intensity Posture reduced to `full` (default) + `off` (user-authorized) — removed `lite`/`ultra` and the posture-resolution prose, deferring gradations to a project overlay; Deferred-Simplification Debt compressed to one line (dropped the per-posture material-deferral protocol); Examples `ultra`→`full` to keep the posture reference valid. | Claude Code |
 | 2026-06-19 | Trinity review round (DeepSeek 9.8, MiniMax 9.3, both PASS): adopted the shared advisory — co-located the overlay-default precedence pointer in the Intensity Posture paragraph. | Claude Code |
 | 2026-06-19 | Per #221: added one clause stating an explicit per-task user instruction takes precedence over an overlay default (resolves the user-vs-overlay precedence gap without re-introducing the removed numbered resolution algorithm). | Claude Code |
+| 2026-06-19 | Per #222: unified task-notes terminology — `off` row "task log" → "task's working notes" to match the Deferred-Simplification Debt section (no semantic change). | Claude Code |
