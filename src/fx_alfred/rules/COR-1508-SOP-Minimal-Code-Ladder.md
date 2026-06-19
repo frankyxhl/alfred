@@ -60,14 +60,14 @@ A new abstraction, file, or dependency introduced without explicitly clearing th
 
 ## Intensity Posture
 
-The agent declares the active posture at the start of the implementation step (per COR-1402). Posture is resolved in this order: (1) explicit user instruction for the task, (2) the repo's COR-1508 project overlay if one exists (see Project Overlay), (3) default **full**.
+The agent declares the active posture at the start of the implementation step (per COR-1402): default **full**, unless the user authorizes **off** for the task.
 
 | Posture | Behavior |
 |---------|----------|
-| `lite` | Apply rungs 1–2 as advisory nudges. No justification required. Use for prototypes / spikes. Deferrals are not logged. |
 | `full` *(default)* | Walk all 6 rungs. Any net-new abstraction, file, or dependency must be justified against the rung that was cleared to reach it. |
-| `ultra` | Walk all 6 rungs **and** require a deletion offset: any net-positive line count must be justified by necessity. (Borrows COR-1800's compression-ratio *definition* as a per-task heuristic; it does not invoke the evolve-time gate.) Record all deferrals as debt (below). |
 | `off` | Gate disabled. **User-authorized only** — an agent may not self-select `off`. Record the authorizing instruction in the task log. |
+
+A project overlay MAY re-introduce finer gradations (e.g. an advisory-only or a deletion-offset posture) if it demonstrates the need (see Project Overlay).
 
 ---
 
@@ -87,11 +87,7 @@ Minimalism is bounded. The ladder must **never** be used to drop:
 
 ## Deferred-Simplification Debt
 
-When the ladder identifies a simplification that cannot be made safely *right now* (e.g. it would require a larger refactor out of scope), record it rather than silently keeping the bigger code:
-
-- One line per deferral: `surface — what could be simpler — why deferred`.
-- Record in the task's working notes, or as a CHG when the simplification is a tracked structural change (COR-1101).
-- Logging by posture: `ultra` logs every deferral; `full` logs **material** deferrals only — a deferral is material if the simpler form would change the public surface or remove a whole abstraction/file/dependency (cosmetic line-count differences are not logged); `lite` and `off` do not log.
+When the ladder finds a simplification that cannot be made safely *right now* (e.g. it would require a larger refactor out of scope), record it rather than silently keeping the bigger code: one line per deferral (`surface — what could be simpler — why deferred`) in the task's working notes, or as a CHG (COR-1101) when the simplification is a tracked structural change.
 
 ---
 
@@ -114,7 +110,7 @@ When the ladder identifies a simplification that cannot be made safely *right no
 
 A naive agent would have written a custom retry loop with sleep, jitter, and a max-attempts counter (~30 lines, its own bug surface). The ladder cut it to a decorator.
 
-**Task: "Build a `UserProfileFormatterFactory` to render display names."** (posture: `ultra`)
+**Task: "Build a `UserProfileFormatterFactory` to render display names."** (posture: `full`)
 
 - Rung 1 — needed? The requirement is "show `First Last`, falling back to email." A factory is speculative generality. ✅ **Stop at rung 1.** This is one expression: `f"{u.first} {u.last}".strip() or u.email`. Record nothing as debt — there was nothing to defer.
 
@@ -139,3 +135,4 @@ A cosmetic restatement is not a valid overlay (per COR-0002 Disposition rules).
 | 2026-06-19 | Initial draft — adapts the Ponytail "laziness ladder" into a COR write-time gate bound to COR-1500; adds intensity postures, safety floor, deferred-debt log, and COR-1610/1800 integration points. | Claude Code |
 | 2026-06-19 | COR-1600 review round 1 (2 reviewers, both FIX): added one-atom scope disclaimer + inherit-only clarification; moved COR-1500 to Related (no illegal overlay); reframed COR-1610 integration as operationalizing the existing Simplicity dimension; clarified `ultra` borrows COR-1800's metric (not the evolve gate); made `off` user-authorized-only; made posture resolution deterministic; defined "material" deferral + lite/off logging; dropped dangling COR-1207 relation. | Claude Code |
 | 2026-06-19 | COR-1600 review round 2: both reviewers 9.0/10 PASS. Promoted Draft → Active. | Claude Code |
+| 2026-06-19 | Trim per #218 (make the minimal-code SOP minimal): Intensity Posture reduced to `full` (default) + `off` (user-authorized) — removed `lite`/`ultra` and the posture-resolution prose, deferring gradations to a project overlay; Deferred-Simplification Debt compressed to one line (dropped the per-posture material-deferral protocol); Examples `ultra`→`full` to keep the posture reference valid. | Claude Code |
