@@ -60,7 +60,7 @@ A new abstraction, file, or dependency introduced without explicitly clearing th
 
 ## Intensity Posture
 
-The agent declares the active posture at the start of the implementation step (per COR-1402): default **full**, unless the user authorizes **off** for the task (or a project overlay sets a different repo default — see Project Overlay).
+The agent declares the active posture at the start of the implementation step (per COR-1402): default **full**, unless the user authorizes **off** for the task (or a project overlay sets a different repo default — see Project Overlay). An explicit per-task user instruction takes precedence over an overlay default.
 
 | Posture | Behavior |
 |---------|----------|
@@ -137,3 +137,4 @@ A cosmetic restatement is not a valid overlay (per COR-0002 Disposition rules).
 | 2026-06-19 | COR-1600 review round 2: both reviewers 9.0/10 PASS. Promoted Draft → Active. | Claude Code |
 | 2026-06-19 | Trim per #218 (make the minimal-code SOP minimal): Intensity Posture reduced to `full` (default) + `off` (user-authorized) — removed `lite`/`ultra` and the posture-resolution prose, deferring gradations to a project overlay; Deferred-Simplification Debt compressed to one line (dropped the per-posture material-deferral protocol); Examples `ultra`→`full` to keep the posture reference valid. | Claude Code |
 | 2026-06-19 | Trinity review round (DeepSeek 9.8, MiniMax 9.3, both PASS): adopted the shared advisory — co-located the overlay-default precedence pointer in the Intensity Posture paragraph. | Claude Code |
+| 2026-06-19 | Per #221: added one clause stating an explicit per-task user instruction takes precedence over an overlay default (resolves the user-vs-overlay precedence gap without re-introducing the removed numbered resolution algorithm). | Claude Code |
