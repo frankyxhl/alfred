@@ -78,7 +78,7 @@ A reference index of all documents in the COR system.
 | 1623 | SOP | PR Review Thread Verification |
 | 1624 | SOP | Loop — L1 Report-Only |
 | 1625 | SOP | Loop — L2 Assisted + Gated |
-| 1626 | SOP | Loop — L3 Unattended |
+| 1626 | SOP | Loop — L3 Unattended (Draft) |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
