@@ -39,7 +39,9 @@ held at L2 (COR-1625):
 3. **A kill-switch** can halt the loop immediately, mid-flight.
 4. **Bounded blast radius** — rate limits and scope caps cap the damage a runaway
    loop can do before the kill-switch or escalation fires.
-5. **Reversibility** — every action class is reversible or has automated rollback.
+5. **Automated rollback** — every action class has **automated** rollback (Step 7
+   rolls back on post-verify failure). Manual-only reversibility is not enough — an
+   action class without automated rollback stays L2.
 6. **An escalation path** wakes a human on any anomaly.
 
 This SOP governs only **what an L3 loop may and may not do**. The loop *mechanism*
@@ -172,3 +174,4 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 | 2026-06-19 | Initial version (Status: Draft) — L3 rung of the Loop autonomy ladder; autonomous execution permitted only inside a six-precondition verified/bounded/reversible/killable envelope; ships Draft so L3 stays exceptional and opt-in | — |
 | 2026-06-19 | COR-1602 review fixes (Codex 8.7 + DeepSeek 8.8, convergent): add a recorded human-owner enablement gate (no self-promotion to L3); "demote to L2/L1" = stop-and-park-fail-closed-until-a-human-gates, never keep acting; add the non-conformance remediation verb (halt or retrofit-gate-and-run-as-L2); "irreversible AND" → "irreversible OR lacks rollback"; note escalation + scheduled review are the sole human roles; add COR-1600/1602 to Related: for ladder symmetry | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix: stop claiming the L3 envelope is declared "per COR-1622" — COR-1622's schema has no envelope keys, making the enablement record non-auditable. The envelope is now declared in the loop's own config/registry (same place `Autonomy: L3` lives, per COR-1624 Step 1); COR-1622 clarified as general loop config only (3 spots: invariant, Step 1, Related:) | — |
+| 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): tighten envelope precondition #5 from "reversible OR automated rollback" to "automated rollback required" — manual-only reversibility now stays L2, matching Step 7, the rollback drill, and the When-NOT clause (closes the weak-checklist gap) | — |

@@ -158,7 +158,10 @@ caught at review and costs nothing, because nothing executed.
 - **Payload equivalence.** Diff the executed payload against the approved one; they
   must match. Any widening/modification fails L2.
 - **No standing license.** Over any window, executions ≤ approvals, one-to-one. A
-  single approval driving repeated actions fails L2 (that is L3).
+  single approval driving repeated actions is an **L2 violation — stop it or
+  re-gate** each action. It is *not* thereby L3: autonomous repeated execution is
+  L3 only inside COR-1626's full envelope + recorded enablement; without those, a
+  standing approval is just an ungoverned L2 loop, not a promotion.
 - **Informed-gate check.** Confirm the approval surface presented the concrete
   change, not a summary — an uninformed gate is not an L2 gate.
 
@@ -173,3 +176,4 @@ caught at review and costs nothing, because nothing executed.
 | 2026-06-19 | Field-test refinement: sharpen "the draft must not act" → "must not act on the gated resource" — a triggered review/report machine is permitted (it can't land the change); only a triggered machine that can merge/deploy/mutate the system of record breaks L2. Found by dry-run testing Voyager's changelog bot (posts `@codex review` on staging) | — |
 | 2026-06-19 | COR-1602 review fixes (MiniMax 7.0 → close loopholes; DeepSeek 9.75): judge the trigger by latent capability not the action taken this run (a review bot holding a merge/write token is L2+); add the sink-drain test (review output draining into auto-merge/deploy is L2+); add the one operational test ("did staging land the gated change?"); drop the loose "L1 failure, now at L2" phrasing | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix: the "executed without approval" remediation no longer permits relabeling a misconfigured L2 bot as L3 — stop it or add the gate; L3 only if COR-1626's envelope + recorded enablement already exist (closes the after-the-fact-legitimization hole) | — |
+| 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): the "no standing license" conformance check no longer calls a reused approval "L3" — it is an L2 violation (stop/re-gate); autonomous repeated execution is L3 only inside COR-1626's envelope + enablement | — |
