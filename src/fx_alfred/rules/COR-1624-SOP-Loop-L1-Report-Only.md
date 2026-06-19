@@ -15,20 +15,27 @@ The lowest rung of the **Loop autonomy ladder** — the classification of how mu
 a running agent loop is allowed to do on its own:
 
 - **L1 — Report-Only** (this SOP): the loop observes and reports; no authority-bearing side effects.
-- **L2 — Assisted + Gated** (COR-1625, *forthcoming*): the loop drafts actions; a human approves each risky one.
-- **L3 — Unattended** (COR-1626, *forthcoming*): the loop executes autonomously under strong verification.
+- **L2 — Assisted + Gated** (COR-1625): the loop drafts actions; a human approves each risky one.
+- **L3 — Unattended** (COR-1626, *Draft*): the loop executes autonomously under strong verification.
 
-> COR-1625 and COR-1626 are reserved rungs, not yet published. Until they ship,
-> any loop that needs to act is held at L1 (i.e. its acting step is done by a human).
+> A loop only ever sits at one rung. Start at L1; a loop earns **L2** by a recorded
+> promotion once its judgment is proven (COR-1625), and **L3** only by a recorded
+> human-owner decision against COR-1626's envelope — which ships `Draft`, so treat
+> L3 as exceptional and opt-in. A loop that needs to act is not "held at L1"; it is
+> promoted to the rung whose gate it can satisfy.
 
 **The L1 invariant — passive reporting only; no authority-bearing side effects.**
 An L1 loop may read any source and write its findings to a **passive report sink**
 (a log, a feed, a draft artifact a human reads) — writing to that sink is the one
 mutation it is allowed. It must never perform an action that changes a system of
 record or hands work to anything that will act on it — no writes to source state,
-no sends, no deletes, no opening/merging of PRs, no enqueuing of actions for
-pickup. Recording an observation is permitted; *acting on it* is not. The single
-test that separates the two is in [Passive sink vs active trigger](#passive-sink-vs-active-trigger).
+no send that hands work to a system or another agent, no deletes, no opening/merging
+of PRs, no enqueuing of actions for pickup. (A *notification delivered to a human to
+read* — a page, an alert, an email — is a passive report sink, not a forbidden send;
+see [Notifying a human is L1](#passive-sink-vs-active-trigger). The forbidden "send"
+is one that asks a *machine* to act or hands off work.) Recording an observation is
+permitted; *acting on it* is not. The single test that separates the two is in
+[Passive sink vs active trigger](#passive-sink-vs-active-trigger).
 
 This SOP governs only **what an L1 loop may and may not do**. The loop *mechanism*
 — scheduling, pacing, multi-agent wiring — is COR-1617 and COR-1620.
@@ -92,15 +99,16 @@ safe to run unattended.
    to a drafts/log/notification store), never a system of record — an L1 loop must
    not hold a token that can write production state even to "report" with it.
 6. **Stop.** The loop ends. It does **not** queue an action, open a PR, send a
-   message that asks for work, delete anything, or hand a payload to anything that
-   will execute. Acting on the report is a separate, human-initiated step (or a
-   promotion to L2).
+   message that asks a machine to act / hands off work, delete anything, or hand a
+   payload to anything that will execute. (Paging or notifying a *human* to read is
+   fine — that is the passive sink, not a hand-off.) Acting on the report is a
+   separate, human-initiated step (or a promotion to L2).
 7. **(Promotion check.)** Track the loop's hit rate. When its reports have been
    correct and acted-on by a human across enough runs to trust — set a concrete
    threshold per project (e.g. ≥ N consecutive runs at 100% human-accepted) —
-   propose promotion to **L2 (COR-1625)**. Never skip straight to L3 (once COR-1626
-   is published). Set a minimum *total* run count too, so a 2-for-2 loop is not
-   promoted prematurely.
+   propose promotion to **L2 (COR-1625)**. Never skip straight to **L3 (COR-1626)** —
+   promotion is one rung at a time. Set a minimum *total* run count too, so a 2-for-2
+   loop is not promoted prematurely.
 
 ### Passive sink vs active trigger
 
@@ -176,4 +184,5 @@ The L1 invariant is checkable, not aspirational:
 | 2026-06-19 | COR-1602 review fixes (round 1): restate invariant as "no authority-bearing side effects" (reconcile with passive sink); add `Related:` line + mark L2/L3 forthcoming; fold Conformance under Guard Rails; define where `Autonomy: L1` is declared; judge read-only by capability not HTTP verb; add passive-sink vs active-trigger table | — |
 | 2026-06-19 | COR-1602 review fixes (round 2): name the passive-sink exception in the invariant headline; rewrite "byte-identical world" conformance as "no writes to systems of record" (passive external sinks like a drafts store / log table are allowed); scope the sink-write credential narrowly; add the notify-human (L1) vs trigger-machine (L2+) and "L1 governs machine autonomy, not human discipline" clarifications | — |
 | 2026-06-19 | COR-1602 review fixes (round 3): reconcile credential language across Guard Rails + Capability audit with Step 5 — every capability read-scoped except one narrow append-only passive-sink writer; any write reaching a system of record / queue / send-delete / auto-remediation trigger fails L1 | — |
+| 2026-06-19 | PR-bot (chatgpt-codex) review fixes: reconcile "no sends" with "paging a human is L1" — the forbidden send is one that hands work to a machine; a notification a human reads is the passive sink (invariant + Step 6); remove stale "L2/L3 forthcoming/reserved" language now that COR-1625 (Active) / COR-1626 (Draft) ship in the same change — in BOTH the "What Is It?" block and the Step 7 "(once COR-1626 is published)" conditional (second location caught by MiniMax re-review) | — |
 | 2026-06-19 | COR-1602 panel PASS (Codex 9.4 / DeepSeek 9.4); final polish: Step 3 forward-references the Step 5 sink-writer exception; "at most one" sink-writer aligned across Guard Rails + audit (pure-observer loop with zero writers is valid); soften COR-1600/1602 `Related:` wording; Step 7 adds minimum-total-run-count + "(once COR-1626 is published)" | — |

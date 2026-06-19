@@ -116,8 +116,11 @@ caught at review and costs nothing, because nothing executed.
 ## Guard Rails
 
 - **Never execute an unapproved action.** No action is "obvious enough" to skip the
-  gate. If it executed without a recorded human approval, the loop is acting as L3 —
-  reclassify or stop it.
+  gate. A loop that executed without a recorded human approval is operating above
+  L2: **stop it, or add the gate and run it as a proper L2.** It may be called L3
+  only if COR-1626's full six-condition envelope *and* a recorded human enablement
+  already exist — never relabel a misconfigured L2 bot as L3 after the fact to
+  legitimize an ungoverned execution.
 - **Never widen, modify, or batch an approved action.** Approval is for the exact
   staged payload. A bigger/cleverer action than the one approved is unapproved.
 - **The gate is a human.** Machine self-approval is L3 (COR-1626), not L2.
@@ -169,3 +172,4 @@ caught at review and costs nothing, because nothing executed.
 | 2026-06-19 | COR-1602 review polish (Codex 9.3 + DeepSeek 9.4, both PASS): add "the draft must not act" guard rail (a PR/branch that trips automation hooks pre-approval is an active trigger past the gate); approval expiry keys on a freshness window as well as state drift; tighten the machine-self-approval wording to point at the L3 envelope | — |
 | 2026-06-19 | Field-test refinement: sharpen "the draft must not act" → "must not act on the gated resource" — a triggered review/report machine is permitted (it can't land the change); only a triggered machine that can merge/deploy/mutate the system of record breaks L2. Found by dry-run testing Voyager's changelog bot (posts `@codex review` on staging) | — |
 | 2026-06-19 | COR-1602 review fixes (MiniMax 7.0 → close loopholes; DeepSeek 9.75): judge the trigger by latent capability not the action taken this run (a review bot holding a merge/write token is L2+); add the sink-drain test (review output draining into auto-merge/deploy is L2+); add the one operational test ("did staging land the gated change?"); drop the loose "L1 failure, now at L2" phrasing | — |
+| 2026-06-19 | PR-bot (chatgpt-codex) review fix: the "executed without approval" remediation no longer permits relabeling a misconfigured L2 bot as L3 — stop it or add the gate; L3 only if COR-1626's envelope + recorded enablement already exist (closes the after-the-fact-legitimization hole) | — |
