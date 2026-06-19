@@ -53,7 +53,7 @@ src/fx_alfred/
 │   ├── fmt_cmd.py      # format to canonical style (metadata order, whitespace, table align)
 │   ├── guide_cmd.py    # workflow routing (layered PKG→USR→PRJ)
 │   ├── index_cmd.py    # regenerate document index (COR-0002 compliant)
-│   ├── issue_cmd.py    # af issue lint (TBD-phrase detection)
+│   ├── issue_cmd.py    # af issue lint (TBD-phrase + COR-1501 blueprint-structure checks)
 │   ├── list_cmd.py     # list + filtering + --json
 │   ├── log_cmd.py          # Phase 0 scaffolding (CHG-2231) — NOT wired into cli.py
 │   ├── log_archive_cmd.py  # Phase 0 scaffolding (CHG-2231) — NOT wired into cli.py
