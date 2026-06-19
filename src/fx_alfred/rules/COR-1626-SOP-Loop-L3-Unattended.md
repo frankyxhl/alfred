@@ -75,8 +75,9 @@ that envelope cannot be built, the correct level is L2, not L3.
 
 ## When NOT to Use
 
-- **Any** envelope precondition is missing — no kill-switch, no rollback, unbounded
-  blast radius, or no automated verification. Hold at L2 (COR-1625).
+- **Any** of the six envelope preconditions is missing — no automated verification,
+  no audit log, no kill-switch, unbounded blast radius, no automated rollback, or no
+  escalation path. Hold at L2 (COR-1625).
 - The action is irreversible **or** lacks automated rollback — keep a human in the
   loop (L2), regardless of volume (this is envelope precondition #5 failing).
 - The loop's judgment is still unproven — stay at L1/L2 until it is.
@@ -177,3 +178,4 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): tighten envelope precondition #5 from "reversible OR automated rollback" to "automated rollback required" — manual-only reversibility now stays L2, matching Step 7, the rollback drill, and the When-NOT clause (closes the weak-checklist gap) | — |
 | 2026-06-19 | Proactive consistency sweep: When-to-Use entry criterion "reversible/bounded" → "automated rollback, bounded" to match the tightened precondition #5 | — |
 | 2026-06-19 | PR-bot review fix: envelope table row 5 label "Reversibility / auto-rollback" → "Automated rollback (manual-only reversibility is not enough)", matching the tightened precondition #5 | — |
+| 2026-06-19 | Class-ending sweep: When-NOT-to-Use example list now names all six preconditions (was omitting audit log + escalation) | — |
