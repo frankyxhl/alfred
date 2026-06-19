@@ -1,5 +1,51 @@
 # Changelog
 
+## v1.21.0 (2026-06-19)
+
+Feature release: `af issue lint` now enforces the COR-1501 blueprint
+structure (not just TBD-phrases), plus the cross-platform agent-skill
+bundle, multi-target localization bindings, and the COR-1508 Minimal Code
+Ladder.
+
+### New Features
+
+- **`af issue lint` blueprint-structure check** — beyond TBD-phrases, the
+  lint now validates an issue body against the repo's own
+  `.github/ISSUE_TEMPLATE/blueprint.md`: a `missing-section` violation per
+  absent required `##` heading and a `no-acceptance-criteria` violation when
+  `## Acceptance Criteria` has no `- [ ]` item. Required sections are derived
+  from that template (not hardcoded — `af` ships to many repos); `(optional)`
+  headings are exempt. The template is found by walking up from the invoking
+  repo (cwd, or explicit `--root`), bounded at the repository (`.git`)
+  boundary; the check is skipped when no template is present (TBD-only
+  behavior unchanged). A COR-1501 pointer prints on structural fails.
+  (#219, #223)
+- **Cross-platform agent-skill bundle** — `skills/alfred/`: one canonical
+  `alfred-contract.md` plus native carriers for Claude Code / Codex /
+  Copilot / droid / opencode, kept in sync by a drift test. (FXA-2305, #216)
+- **Multi-target localization bindings** — bind a document to multiple
+  localization targets. (#215)
+- **COR-1508 Minimal Code Ladder** — a write-time minimal-code gate
+  (`full`/`off` postures, safety floor, deferred-debt note) bound to
+  COR-1500, adapted from the Ponytail laziness ladder. (#217, #220, #221, #222)
+
+### Improvements
+
+- COR localization governance: a `Disposition` field on all COR docs
+  (default inherit-only) plus PRJ binding-metadata fields. (#210, #211)
+- COR-1001 gains an instantiate-vs-inherit decision gate; the COR-1617
+  cluster is marked optional-overlay. (#212, #213)
+
+### Bug Fixes
+
+- `af index` no longer strips status markers — status is derived from the
+  Status field. (#209, #214)
+
+### Stats
+
+- 1130 tests, all passing
+- 0 breaking changes
+
 ## v1.20.0 (2026-06-12)
 
 Feature release: `af export` — the single-file runbook (PRP FXA-2303 +
