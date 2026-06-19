@@ -94,8 +94,9 @@ caught at review and costs nothing, because nothing executed.
 8. **Stop / loop.** One approval authorizes one action, never a standing license to
    keep acting.
 9. **(Promotion check.)** Propose promotion to **L3 (COR-1626)** only when: the
-   action class is reversible/bounded, automated verification can catch its failure
-   modes, an audit log + kill-switch exist, and the human gate has been approving
+   action class has **automated rollback** and is bounded, automated verification
+   can catch its failure modes, an audit log + kill-switch exist, and the human gate
+   has been approving
    essentially-unmodified drafts long enough that the gate is now a rubber stamp —
    which is precisely the signal it is safe to replace with the L3 envelope.
 
@@ -123,7 +124,10 @@ caught at review and costs nothing, because nothing executed.
   legitimize an ungoverned execution.
 - **Never widen, modify, or batch an approved action.** Approval is for the exact
   staged payload. A bigger/cleverer action than the one approved is unapproved.
-- **The gate is a human.** Machine self-approval is L3 (COR-1626), not L2.
+- **The gate is a human.** A machine approving in a human's place is not an L2
+  gate. Autonomous execution is L3 — but **only** inside COR-1626's envelope +
+  recorded enablement; a bot rubber-stamping another bot's draft without that is an
+  ungoverned L2 violation, not L3.
 - **Approval is single-use.** N approvals authorize at most N executions — never a
   standing license.
 - **Stale approval ⇒ re-gate.** If the world changed and the approved change no
@@ -177,3 +181,4 @@ caught at review and costs nothing, because nothing executed.
 | 2026-06-19 | COR-1602 review fixes (MiniMax 7.0 → close loopholes; DeepSeek 9.75): judge the trigger by latent capability not the action taken this run (a review bot holding a merge/write token is L2+); add the sink-drain test (review output draining into auto-merge/deploy is L2+); add the one operational test ("did staging land the gated change?"); drop the loose "L1 failure, now at L2" phrasing | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix: the "executed without approval" remediation no longer permits relabeling a misconfigured L2 bot as L3 — stop it or add the gate; L3 only if COR-1626's envelope + recorded enablement already exist (closes the after-the-fact-legitimization hole) | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): the "no standing license" conformance check no longer calls a reused approval "L3" — it is an L2 violation (stop/re-gate); autonomous repeated execution is L3 only inside COR-1626's envelope + enablement | — |
+| 2026-06-19 | Proactive consistency sweep (pre-empt next bot finding): the "gate is a human" guard rail no longer says machine self-approval "is L3" (same overclaim — it is an ungoverned L2 violation unless COR-1626's envelope exists); Step 9 promotion criteria use "automated rollback + bounded" to match COR-1626 precondition #5 | — |

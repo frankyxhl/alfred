@@ -69,7 +69,7 @@ that envelope cannot be built, the correct level is L2, not L3.
 
 - A loop promoted from L2 (COR-1625) whose gate has been approving
   essentially-unmodified drafts long enough to be a rubber stamp.
-- An action class that is **reversible/bounded and automatically verifiable**, at a
+- An action class with **automated rollback**, bounded and automatically verifiable, at a
   volume where a human gate is impractical.
 - A deployment where **all six envelope preconditions** demonstrably hold.
 
@@ -175,3 +175,4 @@ All six are required. An L3 loop missing any one is misclassified — hold it at
 | 2026-06-19 | COR-1602 review fixes (Codex 8.7 + DeepSeek 8.8, convergent): add a recorded human-owner enablement gate (no self-promotion to L3); "demote to L2/L1" = stop-and-park-fail-closed-until-a-human-gates, never keep acting; add the non-conformance remediation verb (halt or retrofit-gate-and-run-as-L2); "irreversible AND" → "irreversible OR lacks rollback"; note escalation + scheduled review are the sole human roles; add COR-1600/1602 to Related: for ladder symmetry | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix: stop claiming the L3 envelope is declared "per COR-1622" — COR-1622's schema has no envelope keys, making the enablement record non-auditable. The envelope is now declared in the loop's own config/registry (same place `Autonomy: L3` lives, per COR-1624 Step 1); COR-1622 clarified as general loop config only (3 spots: invariant, Step 1, Related:) | — |
 | 2026-06-19 | PR-bot (chatgpt-codex) review fix (follow-on): tighten envelope precondition #5 from "reversible OR automated rollback" to "automated rollback required" — manual-only reversibility now stays L2, matching Step 7, the rollback drill, and the When-NOT clause (closes the weak-checklist gap) | — |
+| 2026-06-19 | Proactive consistency sweep: When-to-Use entry criterion "reversible/bounded" → "automated rollback, bounded" to match the tightened precondition #5 | — |
