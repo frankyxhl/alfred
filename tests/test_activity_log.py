@@ -53,6 +53,22 @@ def test_task_text_is_hashed_and_redacted_for_sensitive_values():
     assert activity_log.validate_record(record) == []
 
 
+@pytest.mark.parametrize(
+    "task_text",
+    [
+        "deploy with sk-" + ("a" * 24),
+        "push with ghp_" + ("A" * 32),
+        "rotate AWS_SECRET_ACCESS_KEY=" + ("b" * 40),
+    ],
+)
+def test_task_text_redacts_provider_token_shapes(task_text):
+    record = activity_log.compose_record(summary="secret", task_text=task_text)
+
+    assert "task_text" not in record
+    assert record["task_text_redacted"] is True
+    assert len(record["task_text_sha256"]) == 64
+
+
 def test_validate_record_rejects_unknown_fields():
     record = activity_log.compose_record(summary="manual note")
     record["surprise"] = "not allowed"
@@ -60,6 +76,23 @@ def test_validate_record_rejects_unknown_fields():
     violations = activity_log.validate_record(record)
 
     assert any(v.field == "surprise" for v in violations)
+
+
+def test_validate_record_rejects_invalid_required_values():
+    record = activity_log.compose_record(summary="valid")
+    record.update(
+        {
+            "ts": "not-a-date",
+            "summary": "bad\nsummary",
+            "agent_version": "bad version",
+            "session_id": "bad session",
+        }
+    )
+
+    violations = activity_log.validate_record(record)
+
+    fields = {violation.field for violation in violations}
+    assert {"ts", "summary", "agent_version", "session_id"} <= fields
 
 
 def test_iter_records_reads_zip_with_double_colon_source(tmp_path):

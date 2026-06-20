@@ -84,8 +84,21 @@ FILES_CAP = 32
 TASK_TEXT_CAP_CHARS = 200
 
 _SENSITIVE_RE = re.compile(
-    r"(?i)(api[_-]?key|token|secret|password|authorization|bearer)\s*[:=]\s*\S+"
+    r"""
+    (
+        (?:api[_-]?key|token|secret|password|authorization|bearer|
+           aws[_-]?secret[_-]?access[_-]?key)\s*[:=]\s*\S+
+        |
+        \b(?:sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9_]{8,}|
+           github_pat_[A-Za-z0-9_]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|
+           AKIA[0-9A-Z]{12,})\b
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
+_TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+_NO_WHITESPACE_RE = re.compile(r"\S+\Z")
+_ASCII_NO_WHITESPACE_RE = re.compile(r"[\x21-\x7e]+\Z")
 
 
 @dataclass(frozen=True)
@@ -328,6 +341,37 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
         violations.append(Violation(field, "unknown field"))
     if record.get("schema") != SCHEMA_LITERAL:
         violations.append(Violation("schema", f"must be {SCHEMA_LITERAL}"))
+    ts = record.get("ts")
+    if not isinstance(ts, str) or not _TS_RE.fullmatch(ts):
+        violations.append(Violation("ts", "must be RFC 3339 UTC timestamp"))
+    else:
+        try:
+            datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            violations.append(Violation("ts", "must be valid UTC timestamp"))
+    summary = record.get("summary")
+    if (
+        not isinstance(summary, str)
+        or not summary
+        or len(summary) > SUMMARY_CAP_CHARS
+        or "\n" in summary
+        or "\x00" in summary
+    ):
+        violations.append(Violation("summary", "invalid summary"))
+    agent_version = record.get("agent_version")
+    if (
+        not isinstance(agent_version, str)
+        or not (1 <= len(agent_version) <= 64)
+        or not _ASCII_NO_WHITESPACE_RE.fullmatch(agent_version)
+    ):
+        violations.append(Violation("agent_version", "invalid agent version"))
+    session_id = record.get("session_id")
+    if (
+        not isinstance(session_id, str)
+        or not (1 <= len(session_id) <= 128)
+        or not _NO_WHITESPACE_RE.fullmatch(session_id)
+    ):
+        violations.append(Violation("session_id", "invalid session id"))
     if record.get("agent") not in AGENT_WHITELIST:
         violations.append(Violation("agent", "unknown agent"))
     if record.get("agent") == "other" and not record.get("agent_name"):
