@@ -159,6 +159,10 @@ def _lock_nb() -> int:
     return fcntl.LOCK_NB
 
 
+def _is_json_integer(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -456,11 +460,11 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
         violations.append(Violation("summary_truncated", "must be true if present"))
     if "result_count" in record:
         count = record["result_count"]
-        if not isinstance(count, int) or count < 0:
+        if not _is_json_integer(count) or count < 0:
             violations.append(Violation("result_count", "must be non-negative integer"))
     if "duration_ms" in record:
         duration = record["duration_ms"]
-        if not isinstance(duration, int) or not (0 <= duration <= 86_400_000):
+        if not _is_json_integer(duration) or not (0 <= duration <= 86_400_000):
             violations.append(
                 Violation("duration_ms", "must be integer between 0 and 86400000")
             )
@@ -560,7 +564,12 @@ def archive_directory(
     day = today or _today_utc()
     log_dir.mkdir(parents=True, exist_ok=True)
     with _append_lock_path(log_dir).open("w", encoding="utf-8") as append_lock_fh:
-        _flock(append_lock_fh.fileno(), _lock_ex())
+        try:
+            _flock(append_lock_fh.fileno(), _lock_ex() | _lock_nb())
+        except BlockingIOError:
+            return ArchiveResult(
+                [], skipped=True, message="another writer is active, skipping"
+            )
         lock_fd = os.open(log_dir, os.O_RDONLY) if fcntl is not None else None
         try:
             try:

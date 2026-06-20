@@ -145,6 +145,17 @@ def test_validate_record_rejects_invalid_optional_values():
     assert {"agent_name", "duration_ms", "parent_event"} <= fields
 
 
+def test_validate_record_rejects_bool_integer_fields():
+    record = activity_log.compose_record(summary="bool counters")
+    record["result_count"] = True
+    record["duration_ms"] = False
+
+    violations = activity_log.validate_record(record)
+
+    fields = {violation.field for violation in violations}
+    assert {"result_count", "duration_ms"} <= fields
+
+
 def test_validate_record_rejects_false_summary_truncated_marker():
     record = activity_log.compose_record(summary="summary")
     record["summary_truncated"] = False
@@ -214,6 +225,28 @@ def test_archive_directory_locks_append_file_then_log_dir_fd(tmp_path, monkeypat
         log_dir.stat().st_ino,
     ]
     assert not (log_dir / ".archive.lock").exists()
+
+
+def test_archive_directory_skips_when_append_lock_is_held(tmp_path, monkeypatch):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        encoding="utf-8",
+    )
+
+    def busy_flock(fd, operation):
+        if operation & activity_log.fcntl.LOCK_EX:
+            raise BlockingIOError("busy")
+
+    monkeypatch.setattr(activity_log.fcntl, "flock", busy_flock)
+
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert result.skipped is True
+    assert old_file.exists()
+    assert not (log_dir / "archive.zip").exists()
 
 
 def test_archive_directory_writes_readable_archive_permissions(tmp_path):
