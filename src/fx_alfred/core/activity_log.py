@@ -163,6 +163,15 @@ def _is_json_integer(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def _is_repo_relative_posix_path(value: str) -> bool:
+    if not value or value.startswith(("/", "~")):
+        return False
+    if "\\" in value or "\n" in value or "\x00" in value:
+        return False
+    parts = value.split("/")
+    return all(part not in {"", ".", ".."} for part in parts)
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -488,6 +497,10 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
             _DOC_REF_RE.fullmatch(item) for item in value
         ):
             violations.append(Violation("refs", "must contain canonical document ids"))
+        elif list_field == "files" and not all(
+            _is_repo_relative_posix_path(item) for item in value
+        ):
+            violations.append(Violation("files", "must contain repo-relative paths"))
     return violations
 
 
@@ -550,6 +563,15 @@ def _archive_tmp_is_stale(path: Path) -> bool:
     return False
 
 
+def _cleanup_stale_archive_tmps(log_dir: Path) -> None:
+    for stale in log_dir.glob("archive.zip.tmp.*"):
+        if _archive_tmp_is_stale(stale):
+            try:
+                stale.unlink()
+            except OSError:
+                pass
+
+
 def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
     """Yield ``(source, line_number, record)`` from a file, dir, or zip archive."""
 
@@ -598,6 +620,7 @@ def archive_directory(
                     [], skipped=True, message="another archiver is running, skipping"
                 )
 
+            _cleanup_stale_archive_tmps(log_dir)
             archive = log_dir / "archive.zip"
             existing: dict[str, bytes] = {}
             archive_was_corrupt = False
@@ -645,12 +668,7 @@ def archive_directory(
                 except FileNotFoundError:
                     pass
 
-            for stale in log_dir.glob("archive.zip.tmp.*"):
-                if _archive_tmp_is_stale(stale):
-                    try:
-                        stale.unlink()
-                    except OSError:
-                        pass
+            _cleanup_stale_archive_tmps(log_dir)
             return ArchiveResult([p.name for p in closed])
         finally:
             if lock_fd is not None:

@@ -145,6 +145,20 @@ def test_validate_record_rejects_invalid_optional_values():
     assert {"agent_name", "duration_ms", "parent_event"} <= fields
 
 
+def test_validate_record_rejects_non_repo_relative_files():
+    record = activity_log.compose_record(summary="files")
+    record["files"] = [
+        "src/fx_alfred/core/activity_log.py",
+        "/Users/alice/token.txt",
+        "../secrets",
+        "rules\\private.md",
+    ]
+
+    violations = activity_log.validate_record(record)
+
+    assert any(violation.field == "files" for violation in violations)
+
+
 def test_validate_record_rejects_bool_integer_fields():
     record = activity_log.compose_record(summary="bool counters")
     record["result_count"] = True
@@ -277,6 +291,25 @@ def test_archive_directory_preserves_live_pid_tmpfile(tmp_path):
     activity_log.archive_directory(log_dir, today="2026-06-21")
 
     assert live_tmp.exists()
+
+
+def test_archive_directory_cleans_stale_tmpfile_before_nothing_to_archive(
+    tmp_path, monkeypatch
+):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    stale_tmp = log_dir / "archive.zip.tmp.123456.dead"
+    stale_tmp.write_text("stale", encoding="utf-8")
+
+    def dead_process(_pid, _signal):
+        raise ProcessLookupError
+
+    monkeypatch.setattr(activity_log.os, "kill", dead_process)
+
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert result.message == "nothing to archive"
+    assert not stale_tmp.exists()
 
 
 def test_jsonl_files_returns_rollover_parts_once(tmp_path):
