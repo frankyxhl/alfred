@@ -223,6 +223,7 @@
 | 2310 | CHG | Implement Evolve Engine SOP Refactor | Proposed |
 | 2311 | CHG | Strengthen L2 PR Readiness Loop Gates | Proposed |
 | 2312 | CHG | COR 1402 Active Process Output | Completed |
+| 2313 | REF | Case Study Loop Governance Of The PR Review Fix Loop | Active |
 
 ---
 
