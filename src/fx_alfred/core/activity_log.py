@@ -215,9 +215,7 @@ def _is_project_root(root: Path) -> bool:
 def resolve_log_dir(root: Path | None = None, *, explicit_root: bool = True) -> Path:
     """Resolve public ``af log*`` storage using COR-1205 layer semantics."""
 
-    if root is not None and (
-        (explicit_root and (root / "rules").is_dir()) or _is_project_root(root)
-    ):
+    if root is not None and (explicit_root or _is_project_root(root)):
         return root / "rules" / "logs"
     return user_log_dir()
 
@@ -702,7 +700,7 @@ def collect_evolve_signals(
             command = record.get("command")
             usage_kind = record.get("usage_kind")
             if command in {"guide", "plan"}:
-                for ref in record.get("refs", []):
+                for ref in dict.fromkeys(record.get("refs", [])):
                     if ref in sop_ids:
                         usage_counts[ref] = usage_counts.get(ref, 0) + 1
             if command == "plan" and usage_kind == "plan_task_gap":

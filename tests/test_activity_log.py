@@ -498,8 +498,17 @@ def test_log_dir_resolution_honors_explicit_empty_rules_root(tmp_path):
     assert activity_log.resolve_log_dir(root=tmp_path) == tmp_path / "rules" / "logs"
 
 
-def test_log_dir_resolution_falls_back_to_user_home_when_no_project(tmp_path):
-    assert activity_log.resolve_log_dir(root=tmp_path) == activity_log.user_log_dir()
+def test_log_dir_resolution_honors_explicit_root_without_rules_dir(tmp_path):
+    assert activity_log.resolve_log_dir(root=tmp_path) == tmp_path / "rules" / "logs"
+
+
+def test_log_dir_resolution_falls_back_to_user_home_when_no_project_discovered(
+    tmp_path,
+):
+    assert (
+        activity_log.resolve_log_dir(root=tmp_path, explicit_root=False)
+        == activity_log.user_log_dir()
+    )
 
 
 def test_collect_evolve_signals_reports_usage_gaps_and_never_used(sample_project):
@@ -527,15 +536,26 @@ def test_collect_evolve_signals_reports_usage_gaps_and_never_used(sample_project
         encoding="utf-8",
     )
     log_dir = activity_log.user_log_dir()
-    activity_log.append_record(
-        activity_log.compose_record(
-            summary="plan",
-            command="plan",
-            usage_kind="plan_explicit",
-            refs=["TST-6101"],
-            result_count=1,
-        ),
-        log_dir=log_dir,
+    log_dir.mkdir(parents=True)
+    (log_dir / "2026-06-21.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2026-06-21T00:00:00Z",
+                "agent": "other",
+                "agent_name": "native-emitter",
+                "agent_version": "unknown",
+                "event": "plan",
+                "summary": "plan",
+                "session_id": "session",
+                "command": "plan",
+                "usage_kind": "plan_explicit",
+                "refs": ["TST-6101", "TST-6101"],
+                "result_count": 1,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
     )
     activity_log.append_record(
         activity_log.compose_record(
