@@ -131,7 +131,8 @@ def test_log_continues_when_lazy_archive_fails(sample_project, monkeypatch):
     result = CliRunner().invoke(cli, ["log", "new"], catch_exceptions=False)
 
     assert result.exit_code == 0
-    assert "archive skipped" in result.stderr
+    assert "af log: lazy archival failed" in result.stderr
+    assert "Recover: af log-archive --force" in result.stderr
     assert (log_dir / "2000-01-01.jsonl").exists()
     current_files = [
         path for path in log_dir.glob("*.jsonl") if path.name != "2000-01-01.jsonl"
@@ -145,14 +146,17 @@ def test_log_continues_when_lazy_archive_filesystem_error(sample_project, monkey
     monkeypatch.chdir(sample_project)
 
     def broken_archive(_log_dir):
-        raise FileNotFoundError("closed log disappeared")
+        raise FileNotFoundError("closed log\ndisappeared")
 
     monkeypatch.setattr("fx_alfred.commands.log_cmd.archive_directory", broken_archive)
 
     result = CliRunner().invoke(cli, ["log", "new"], catch_exceptions=False)
 
     assert result.exit_code == 0
-    assert "archive skipped" in result.stderr
+    assert "af log: lazy archival failed" in result.stderr
+    assert "closed log\\ndisappeared" in result.stderr
+    assert "closed log\ndisappeared" not in result.stderr
+    assert "Recover: af log-archive --force" in result.stderr
     current_files = sorted((sample_project / "rules" / "logs").glob("*.jsonl"))
     assert len(current_files) == 1
     payload = json.loads(current_files[0].read_text(encoding="utf-8"))
@@ -291,6 +295,35 @@ def test_log_validate_missing_default_log_dir_is_empty(sample_project, monkeypat
     assert "activity log ok" in result.output
 
 
+def test_log_validate_default_only_checks_today_log(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    monkeypatch.setattr(activity_log, "_today_utc", lambda: "2026-06-21")
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "2000-01-01.jsonl").write_text("{bad json\n", encoding="utf-8")
+    (log_dir / "2026-06-21.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2026-06-21T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "today",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(cli, ["log-validate"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "activity log ok" in result.output
+
+
 def test_log_archive_moves_closed_project_log(sample_project, monkeypatch):
     monkeypatch.chdir(sample_project)
     log_dir = sample_project / "rules" / "logs"
@@ -313,6 +346,35 @@ def test_log_archive_moves_closed_project_log(sample_project, monkeypatch):
     )
 
     result = CliRunner().invoke(cli, ["log-archive"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert (log_dir / "archive.zip").exists()
+    assert not (log_dir / "2000-01-01.jsonl").exists()
+
+
+def test_log_archive_accepts_explicit_log_dir_path(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "2000-01-01.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2000-01-01T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "old",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["log-archive", str(log_dir)], catch_exceptions=False
+    )
 
     assert result.exit_code == 0
     assert (log_dir / "archive.zip").exists()

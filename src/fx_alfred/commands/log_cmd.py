@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from json.encoder import encode_basestring_ascii
+
 import click
 
 from fx_alfred.context import get_root, has_explicit_root, root_option
@@ -59,6 +61,10 @@ def log_cmd(
     try:
         archive_directory(log_dir)
     except (ArchiveError, OSError) as exc:
-        click.echo(f"warning: activity log archive skipped: {exc}", err=True)
+        detail = encode_basestring_ascii(str(exc))
+        click.echo(
+            f"af log: lazy archival failed {detail}; Recover: af log-archive --force",
+            err=True,
+        )
     path = append_record(record, log_dir=log_dir)
     click.echo(str(path))

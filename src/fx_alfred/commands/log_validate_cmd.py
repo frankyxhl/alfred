@@ -12,6 +12,7 @@ from fx_alfred.context import get_root, has_explicit_root, root_option
 from fx_alfred.core.activity_log import (
     ActivityLogLineError,
     iter_records,
+    log_file_for_dir,
     resolve_log_dir,
     validate_record,
 )
@@ -28,9 +29,8 @@ from fx_alfred.core.activity_log import (
 def log_validate_cmd(ctx: click.Context, path: Path | None) -> None:
     """Validate loose or archived activity-log rows."""
 
-    target = path or resolve_log_dir(
-        get_root(ctx), explicit_root=has_explicit_root(ctx)
-    )
+    log_dir = resolve_log_dir(get_root(ctx), explicit_root=has_explicit_root(ctx))
+    target = path or log_file_for_dir(log_dir)
     violation_count = 0
     try:
         for source, lineno, record in iter_records(target):
