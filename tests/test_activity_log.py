@@ -188,7 +188,7 @@ def test_archive_directory_moves_closed_day_to_zip(tmp_path):
         assert "2026-06-20.jsonl" in zf.namelist()
 
 
-def test_archive_directory_locks_log_dir_fd(tmp_path, monkeypatch):
+def test_archive_directory_locks_append_file_then_log_dir_fd(tmp_path, monkeypatch):
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
     old_file = log_dir / "2026-06-20.jsonl"
@@ -209,8 +209,25 @@ def test_archive_directory_locks_log_dir_fd(tmp_path, monkeypatch):
     result = activity_log.archive_directory(log_dir, today="2026-06-21")
 
     assert result.archived_files == ["2026-06-20.jsonl"]
-    assert locked_inodes == [log_dir.stat().st_ino]
+    assert locked_inodes == [
+        activity_log._append_lock_path(log_dir).stat().st_ino,
+        log_dir.stat().st_ino,
+    ]
     assert not (log_dir / ".archive.lock").exists()
+
+
+def test_archive_directory_writes_readable_archive_permissions(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        encoding="utf-8",
+    )
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert (log_dir / "archive.zip").stat().st_mode & 0o777 == 0o644
 
 
 def test_jsonl_files_returns_rollover_parts_once(tmp_path):

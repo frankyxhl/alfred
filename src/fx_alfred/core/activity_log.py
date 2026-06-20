@@ -310,14 +310,17 @@ def _append_target_path(log_dir: Path, line_len: int) -> Path:
         part += 1
 
 
+def _append_lock_path(log_dir: Path) -> Path:
+    return log_dir / ".append.lock"
+
+
 def append_record(record: dict[str, Any], *, log_dir: Path | None = None) -> Path:
     """Append ``record`` to the active loose JSONL file."""
 
     target_dir = log_dir or user_log_dir()
     target_dir.mkdir(parents=True, exist_ok=True)
     _record, line = _fit_record_line(record)
-    lock_path = target_dir / ".append.lock"
-    with lock_path.open("w", encoding="utf-8") as lock_fh:
+    with _append_lock_path(target_dir).open("w", encoding="utf-8") as lock_fh:
         fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
         path = _append_target_path(target_dir, len(line))
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
@@ -534,65 +537,70 @@ def archive_directory(
 
     day = today or _today_utc()
     log_dir.mkdir(parents=True, exist_ok=True)
-    lock_fd = os.open(log_dir, os.O_RDONLY)
-    try:
+    with _append_lock_path(log_dir).open("w", encoding="utf-8") as append_lock_fh:
+        fcntl.flock(append_lock_fh.fileno(), fcntl.LOCK_EX)
+        lock_fd = os.open(log_dir, os.O_RDONLY)
         try:
-            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            return ArchiveResult(
-                [], skipped=True, message="another archiver is running, skipping"
-            )
-
-        closed = [p for p in _jsonl_files(log_dir) if p.name.split(".")[0] < day]
-        if not closed:
-            return ArchiveResult([], message="nothing to archive")
-
-        archive = log_dir / "archive.zip"
-        existing: dict[str, bytes] = {}
-        if archive.exists():
             try:
-                with zipfile.ZipFile(archive) as zf:
-                    existing = {name: zf.read(name) for name in zf.namelist()}
-            except zipfile.BadZipFile as exc:
-                if not force:
-                    raise ArchiveError(
-                        "corrupt archive.zip; rerun with --force"
-                    ) from exc
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return ArchiveResult(
+                    [], skipped=True, message="another archiver is running, skipping"
+                )
 
-        fd, tmp_name = tempfile.mkstemp(
-            prefix=f"archive.zip.tmp.{os.getpid()}.", dir=log_dir
-        )
-        os.close(fd)
-        tmp_path = Path(tmp_name)
-        try:
-            with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-                closed_names = {file_path.name for file_path in closed}
-                for name, payload in sorted(existing.items()):
-                    if name in closed_names:
-                        continue
-                    zf.writestr(name, payload)
-                for file_path in closed:
-                    zf.write(file_path, arcname=file_path.name)
-            os.replace(tmp_path, archive)
-            for file_path in closed:
+            closed = [p for p in _jsonl_files(log_dir) if p.name.split(".")[0] < day]
+            if not closed:
+                return ArchiveResult([], message="nothing to archive")
+
+            archive = log_dir / "archive.zip"
+            existing: dict[str, bytes] = {}
+            if archive.exists():
                 try:
-                    file_path.unlink()
+                    with zipfile.ZipFile(archive) as zf:
+                        existing = {name: zf.read(name) for name in zf.namelist()}
+                except zipfile.BadZipFile as exc:
+                    if not force:
+                        raise ArchiveError(
+                            "corrupt archive.zip; rerun with --force"
+                        ) from exc
+
+            fd, tmp_name = tempfile.mkstemp(
+                prefix=f"archive.zip.tmp.{os.getpid()}.", dir=log_dir
+            )
+            os.fchmod(fd, 0o644)
+            os.close(fd)
+            tmp_path = Path(tmp_name)
+            try:
+                with zipfile.ZipFile(
+                    tmp_path, "w", compression=zipfile.ZIP_DEFLATED
+                ) as zf:
+                    closed_names = {file_path.name for file_path in closed}
+                    for name, payload in sorted(existing.items()):
+                        if name in closed_names:
+                            continue
+                        zf.writestr(name, payload)
+                    for file_path in closed:
+                        zf.write(file_path, arcname=file_path.name)
+                os.replace(tmp_path, archive)
+                for file_path in closed:
+                    try:
+                        file_path.unlink()
+                    except OSError:
+                        pass
+            finally:
+                try:
+                    tmp_path.unlink()
+                except FileNotFoundError:
+                    pass
+
+            for stale in log_dir.glob("archive.zip.tmp.*"):
+                try:
+                    stale.unlink()
                 except OSError:
                     pass
+            return ArchiveResult([p.name for p in closed])
         finally:
-            try:
-                tmp_path.unlink()
-            except FileNotFoundError:
-                pass
-
-        for stale in log_dir.glob("archive.zip.tmp.*"):
-            try:
-                stale.unlink()
-            except OSError:
-                pass
-        return ArchiveResult([p.name for p in closed])
-    finally:
-        os.close(lock_fd)
+            os.close(lock_fd)
 
 
 def _in_date_window(
