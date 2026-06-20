@@ -131,6 +131,15 @@ def test_validate_record_rejects_invalid_optional_values():
     assert {"agent_name", "duration_ms", "parent_event"} <= fields
 
 
+def test_validate_record_rejects_false_summary_truncated_marker():
+    record = activity_log.compose_record(summary="summary")
+    record["summary_truncated"] = False
+
+    violations = activity_log.validate_record(record)
+
+    assert any(violation.field == "summary_truncated" for violation in violations)
+
+
 def test_iter_records_reads_zip_with_double_colon_source(tmp_path):
     archive = tmp_path / "archive.zip"
     with ZipFile(archive, "w") as zf:

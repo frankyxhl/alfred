@@ -127,6 +127,16 @@ class ArchiveError(Exception):
     """Raised for archive failures the CLI maps to non-zero exits."""
 
 
+class ActivityLogLineError(Exception):
+    """Raised when a raw JSONL line violates ledger framing."""
+
+    def __init__(self, source: str, lineno: int, reason: str) -> None:
+        super().__init__(reason)
+        self.source = source
+        self.lineno = lineno
+        self.reason = reason
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -415,6 +425,8 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
             violations.append(Violation("task_text_sha256", "invalid digest"))
     if "task_text_redacted" in record and record["task_text_redacted"] is not True:
         violations.append(Violation("task_text_redacted", "must be true if present"))
+    if "summary_truncated" in record and record["summary_truncated"] is not True:
+        violations.append(Violation("summary_truncated", "must be true if present"))
     if "result_count" in record:
         count = record["result_count"]
         if not isinstance(count, int) or count < 0:
@@ -465,6 +477,12 @@ def _iter_zip_records(
             with zf.open(member) as fh:
                 for lineno, raw in enumerate(fh, start=1):
                     if raw.strip():
+                        if len(raw) > RECORD_LINE_CAP_BYTES:
+                            raise ActivityLogLineError(
+                                f"{path}::{member}",
+                                lineno,
+                                "JSONL line exceeds 4096 bytes",
+                            )
                         yield (
                             f"{path}::{member}",
                             lineno,
@@ -490,10 +508,14 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
     if path.suffix == ".zip":
         yield from _iter_zip_records(path)
         return
-    with path.open(encoding="utf-8") as fh:
-        for lineno, line in enumerate(fh, start=1):
-            if line.strip():
-                yield (str(path), lineno, json.loads(line))
+    with path.open("rb") as fh:
+        for lineno, raw in enumerate(fh, start=1):
+            if raw.strip():
+                if len(raw) > RECORD_LINE_CAP_BYTES:
+                    raise ActivityLogLineError(
+                        str(path), lineno, "JSONL line exceeds 4096 bytes"
+                    )
+                yield (str(path), lineno, json.loads(raw.decode("utf-8")))
 
 
 def archive_directory(

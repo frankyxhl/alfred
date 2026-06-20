@@ -9,7 +9,12 @@ from zipfile import BadZipFile
 import click
 
 from fx_alfred.context import get_root, root_option
-from fx_alfred.core.activity_log import iter_records, resolve_log_dir, validate_record
+from fx_alfred.core.activity_log import (
+    ActivityLogLineError,
+    iter_records,
+    resolve_log_dir,
+    validate_record,
+)
 
 
 @click.command("log-validate")
@@ -30,8 +35,14 @@ def log_validate_cmd(ctx: click.Context, path: Path | None) -> None:
             for violation in validate_record(record):
                 violation_count += 1
                 click.echo(f"{source}:{lineno}: {violation.field}: {violation.reason}")
+    except ActivityLogLineError as exc:
+        raise click.ClickException(
+            f"{exc.source}:{exc.lineno}: record: {exc.reason}"
+        ) from exc
     except BadZipFile as exc:
-        raise click.ClickException(f"corrupt archive.zip: {exc}") from exc
+        err = click.ClickException(f"corrupt archive.zip: {exc}")
+        err.exit_code = 5
+        raise err from exc
     except json.JSONDecodeError as exc:
         raise click.ClickException(f"invalid JSONL: {exc}") from exc
 

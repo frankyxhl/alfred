@@ -145,6 +145,60 @@ def test_log_validate_reports_unknown_field(tmp_path):
     assert "surprise" in result.output
 
 
+def test_log_validate_rejects_oversized_loose_jsonl_line(tmp_path):
+    log_file = tmp_path / "oversized.jsonl"
+    payload = {
+        "schema": "alfred.activity/v1",
+        "ts": "2026-06-21T00:00:00Z",
+        "agent": "other",
+        "agent_name": "af",
+        "agent_version": "unknown",
+        "event": "note",
+        "summary": "ok",
+        "session_id": "session",
+        "files": ["x" * 4100],
+    }
+    log_file.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(log_file)])
+
+    assert result.exit_code == 1
+    assert "JSONL line exceeds 4096 bytes" in result.output
+
+
+def test_log_validate_rejects_oversized_archived_jsonl_line(tmp_path):
+    archive = tmp_path / "archive.zip"
+    payload = {
+        "schema": "alfred.activity/v1",
+        "ts": "2026-06-21T00:00:00Z",
+        "agent": "other",
+        "agent_name": "af",
+        "agent_version": "unknown",
+        "event": "note",
+        "summary": "ok",
+        "session_id": "session",
+        "files": ["x" * 4100],
+    }
+    with ZipFile(archive, "w") as zf:
+        zf.writestr("2026-06-21.jsonl", json.dumps(payload) + "\n")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(archive)])
+
+    assert result.exit_code == 1
+    assert "archive.zip::2026-06-21.jsonl" in result.output
+    assert "JSONL line exceeds 4096 bytes" in result.output
+
+
+def test_log_validate_corrupt_archive_uses_exit_code_five(tmp_path):
+    archive = tmp_path / "archive.zip"
+    archive.write_text("not a zip", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(archive)])
+
+    assert result.exit_code == 5
+    assert "corrupt archive.zip" in result.output
+
+
 def test_log_validate_missing_default_log_dir_is_empty(sample_project, monkeypatch):
     monkeypatch.chdir(sample_project)
 
