@@ -15,12 +15,22 @@ import re
 _HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
 _UL = re.compile(r"^[-*]\s+(.*)$")
 _OL = re.compile(r"^\d+\.\s+(.*)$")
-_FENCE = re.compile(r"^```")
+_FENCE = re.compile(r"^(`{3,})")  # captures the opening backtick run
 
 _LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
-_ITALIC = re.compile(r"(?<!\*)\*([^*]+)\*(?!\*)|_([^_]+)_")
+# Underscore emphasis must be at word boundaries (no intraword: ALFRED_AGENT_TOOLS).
+_ITALIC = re.compile(
+    r"(?<!\*)\*([^*]+)\*(?!\*)|(?<![A-Za-z0-9_])_([^_]+)_(?![A-Za-z0-9_])"
+)
 _CODE = re.compile(r"`([^`]+)`")
+
+
+def _is_closing_fence(stripped: str, opener: str) -> bool:
+    """A closing fence is a run of >= len(opener) backticks and nothing else."""
+    s = stripped.rstrip()
+    return bool(s) and set(s) == {"`"} and len(s) >= len(opener)
+
 
 _DEFAULT_CSS = (
     "body{max-width:48rem;margin:2rem auto;padding:0 1rem;"
@@ -76,10 +86,12 @@ def render_body(md: str) -> str:
         if not line.strip():
             i += 1
             continue
-        if _FENCE.match(line.strip()):  # fenced code block (verbatim)
+        fence_open = _FENCE.match(line.strip())  # fenced code block (verbatim)
+        if fence_open:
+            opener = fence_open.group(1)
             i += 1
             code: list[str] = []
-            while i < n and not _FENCE.match(lines[i].strip()):
+            while i < n and not _is_closing_fence(lines[i].strip(), opener):
                 code.append(lines[i])
                 i += 1
             i += 1  # consume closing fence

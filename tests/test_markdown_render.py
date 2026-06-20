@@ -54,6 +54,22 @@ def test_paragraph_escapes_html():
     assert "<p>plain &lt;text&gt; &amp;</p>" in render_body("plain <text> &")
 
 
+def test_intraword_underscore_is_not_emphasis():
+    html = render_body("ALFRED_AGENT_TOOLS and foo_bar_baz in prose")
+    assert "<em>" not in html
+    assert "ALFRED_AGENT_TOOLS" in html
+    assert "foo_bar_baz" in html
+
+
+def test_longer_fence_keeps_inner_triple_backticks_literal():
+    # a 4-backtick fence containing a literal ``` and a # line: must stay verbatim
+    html = render_body("````\n```\n# not a heading\n````")
+    assert "<h1>" not in html
+    assert "<pre><code>" in html
+    assert "# not a heading" in html
+    assert "```" in html
+
+
 def test_document_is_standalone():
     doc = render_document("# Hi", title="T")
     assert doc.startswith("<!DOCTYPE html>")
