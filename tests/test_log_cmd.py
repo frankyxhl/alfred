@@ -189,6 +189,16 @@ def test_log_validate_rejects_oversized_archived_jsonl_line(tmp_path):
     assert "JSONL line exceeds 4096 bytes" in result.output
 
 
+def test_log_validate_rejects_non_object_jsonl_record(tmp_path):
+    log_file = tmp_path / "bad.jsonl"
+    log_file.write_text("[]\n", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(log_file)])
+
+    assert result.exit_code == 1
+    assert "JSONL record must be an object" in result.output
+
+
 def test_log_validate_corrupt_archive_uses_exit_code_five(tmp_path):
     archive = tmp_path / "archive.zip"
     archive.write_text("not a zip", encoding="utf-8")

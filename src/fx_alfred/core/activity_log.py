@@ -335,7 +335,7 @@ def append_usage_event(
     refs: list[str] | tuple[str, ...] | None = None,
     task_text: str | None = None,
     result_count: int | None = None,
-) -> Path:
+) -> Path | None:
     """Append first-party command telemetry to the user-layer ledger."""
 
     record = compose_record(
@@ -346,6 +346,8 @@ def append_usage_event(
         task_text=task_text,
         result_count=result_count,
     )
+    if validate_record(record):
+        return None
     return append_record(record, log_dir=user_log_dir())
 
 
@@ -483,10 +485,17 @@ def _iter_zip_records(
                                 lineno,
                                 "JSONL line exceeds 4096 bytes",
                             )
+                        record = json.loads(raw.decode("utf-8"))
+                        if not isinstance(record, dict):
+                            raise ActivityLogLineError(
+                                f"{path}::{member}",
+                                lineno,
+                                "JSONL record must be an object",
+                            )
                         yield (
                             f"{path}::{member}",
                             lineno,
-                            json.loads(raw.decode("utf-8")),
+                            record,
                         )
 
 
@@ -515,7 +524,12 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
                     raise ActivityLogLineError(
                         str(path), lineno, "JSONL line exceeds 4096 bytes"
                     )
-                yield (str(path), lineno, json.loads(raw.decode("utf-8")))
+                record = json.loads(raw.decode("utf-8"))
+                if not isinstance(record, dict):
+                    raise ActivityLogLineError(
+                        str(path), lineno, "JSONL record must be an object"
+                    )
+                yield (str(path), lineno, record)
 
 
 def archive_directory(

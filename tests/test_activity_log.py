@@ -38,6 +38,20 @@ def test_compose_and_append_user_usage_record_round_trips():
     assert activity_log.validate_record(payload) == []
 
 
+def test_append_usage_event_skips_invalid_composed_record(tmp_path, monkeypatch):
+    monkeypatch.setattr(activity_log, "user_log_dir", lambda: tmp_path / "logs")
+    monkeypatch.setenv("ALFRED_AGENT_VERSION", "Codex CLI")
+
+    path = activity_log.append_usage_event(
+        command="guide",
+        usage_kind="routing_docs",
+        refs=["COR-1103"],
+    )
+
+    assert path is None
+    assert not (tmp_path / "logs").exists()
+
+
 def test_task_text_is_hashed_and_redacted_for_sensitive_values():
     record = activity_log.compose_record(
         summary="af plan task gap",
