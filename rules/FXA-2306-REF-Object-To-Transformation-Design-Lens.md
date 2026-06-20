@@ -39,7 +39,7 @@ layer already models typed morphisms and their composition:
 |---|---|---|
 | Object | `Document` / Agent | `core/document.py` |
 | Morphism with typed boundary | SOP `Workflow input/output/requires/provides` | `core/schema.py` (`_WORKFLOW_FIELDS`) |
-| Composition `A→B ∘ B→C ⇒ A→C` | `af plan --task` auto-chains SOPs by Task tags + requires/provides | `core/compose.py` |
+| Composition `A→B ∘ B→C ⇒ A→C` | `af plan --task` auto-chains SOPs by Task tags + `Workflow input/output` (matching output→input; `requires/provides` are parsed but not used for chaining) | `core/compose.py` |
 | Where does failure land / branch | `Workflow branches`, `Workflow loops` | `core/workflow.py` |
 | Who triggered / what evidence | COR-1402 Declare Active Process + COR-1206 Agent Activity Log | PKG |
 | State honesty (allowed states) | `ALLOWED_STATUSES` per `DocType` | `core/schema.py` |
