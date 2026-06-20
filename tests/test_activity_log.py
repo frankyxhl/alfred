@@ -305,6 +305,18 @@ def test_append_record_locks_target_selection_and_write(tmp_path, monkeypatch):
     assert (log_dir / ".append.lock").exists()
 
 
+def test_append_record_runs_when_fcntl_unavailable(tmp_path, monkeypatch):
+    log_dir = tmp_path / "logs"
+    monkeypatch.setattr(activity_log, "fcntl", None)
+
+    path = activity_log.append_record(
+        activity_log.compose_record(summary="portable append"),
+        log_dir=log_dir,
+    )
+
+    assert path.exists()
+
+
 def test_compose_record_reads_documented_alfred_env(monkeypatch):
     monkeypatch.setenv("ALFRED_SESSION_ID", "session-123")
     monkeypatch.setenv("ALFRED_AGENT_VERSION", "agent-9")

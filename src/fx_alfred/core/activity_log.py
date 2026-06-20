@@ -7,7 +7,6 @@ telemetry uses ``append_usage_event()`` as a fail-open convenience boundary.
 
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import os
@@ -21,6 +20,11 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from fx_alfred.core.document import Document, FILENAME_PATTERN
+
+try:
+    import fcntl
+except ModuleNotFoundError:  # pragma: no cover - exercised on non-POSIX platforms.
+    fcntl = None  # type: ignore[assignment]
 
 SCHEMA_LITERAL = "alfred.activity/v1"
 AGENT_WHITELIST = {
@@ -135,6 +139,24 @@ class ActivityLogLineError(Exception):
         self.source = source
         self.lineno = lineno
         self.reason = reason
+
+
+def _flock(fd: int, operation: int) -> None:
+    if fcntl is None:
+        return
+    fcntl.flock(fd, operation)
+
+
+def _lock_ex() -> int:
+    if fcntl is None:
+        return 0
+    return fcntl.LOCK_EX
+
+
+def _lock_nb() -> int:
+    if fcntl is None:
+        return 0
+    return fcntl.LOCK_NB
 
 
 def _utc_now() -> datetime:
@@ -321,7 +343,7 @@ def append_record(record: dict[str, Any], *, log_dir: Path | None = None) -> Pat
     target_dir.mkdir(parents=True, exist_ok=True)
     _record, line = _fit_record_line(record)
     with _append_lock_path(target_dir).open("w", encoding="utf-8") as lock_fh:
-        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        _flock(lock_fh.fileno(), _lock_ex())
         path = _append_target_path(target_dir, len(line))
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
         try:
@@ -538,11 +560,12 @@ def archive_directory(
     day = today or _today_utc()
     log_dir.mkdir(parents=True, exist_ok=True)
     with _append_lock_path(log_dir).open("w", encoding="utf-8") as append_lock_fh:
-        fcntl.flock(append_lock_fh.fileno(), fcntl.LOCK_EX)
-        lock_fd = os.open(log_dir, os.O_RDONLY)
+        _flock(append_lock_fh.fileno(), _lock_ex())
+        lock_fd = os.open(log_dir, os.O_RDONLY) if fcntl is not None else None
         try:
             try:
-                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                if lock_fd is not None:
+                    _flock(lock_fd, _lock_ex() | _lock_nb())
             except BlockingIOError:
                 return ArchiveResult(
                     [], skipped=True, message="another archiver is running, skipping"
@@ -600,7 +623,8 @@ def archive_directory(
                     pass
             return ArchiveResult([p.name for p in closed])
         finally:
-            os.close(lock_fd)
+            if lock_fd is not None:
+                os.close(lock_fd)
 
 
 def _in_date_window(
