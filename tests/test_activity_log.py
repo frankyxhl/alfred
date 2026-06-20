@@ -263,6 +263,22 @@ def test_archive_directory_writes_readable_archive_permissions(tmp_path):
     assert (log_dir / "archive.zip").stat().st_mode & 0o777 == 0o644
 
 
+def test_archive_directory_preserves_live_pid_tmpfile(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        encoding="utf-8",
+    )
+    live_tmp = log_dir / f"archive.zip.tmp.{activity_log.os.getpid()}.live"
+    live_tmp.write_text("in progress", encoding="utf-8")
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert live_tmp.exists()
+
+
 def test_jsonl_files_returns_rollover_parts_once(tmp_path):
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
@@ -443,6 +459,12 @@ def test_log_dir_resolution_uses_project_rules_log_when_project_exists(sample_pr
     assert activity_log.resolve_log_dir(root=sample_project) == (
         sample_project / "rules" / "logs"
     )
+
+
+def test_log_dir_resolution_honors_explicit_empty_rules_root(tmp_path):
+    (tmp_path / "rules").mkdir()
+
+    assert activity_log.resolve_log_dir(root=tmp_path) == tmp_path / "rules" / "logs"
 
 
 def test_log_dir_resolution_falls_back_to_user_home_when_no_project(tmp_path):

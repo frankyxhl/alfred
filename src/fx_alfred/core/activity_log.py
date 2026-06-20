@@ -204,7 +204,7 @@ def _is_project_root(root: Path) -> bool:
 def resolve_log_dir(root: Path | None = None) -> Path:
     """Resolve public ``af log*`` storage using COR-1205 layer semantics."""
 
-    if root is not None and _is_project_root(root):
+    if root is not None and (root / "rules").is_dir():
         return root / "rules" / "logs"
     return user_log_dir()
 
@@ -532,6 +532,24 @@ def _parse_jsonl_record(source: str, lineno: int, raw: bytes) -> dict[str, Any]:
     return record
 
 
+def _archive_tmp_is_stale(path: Path) -> bool:
+    match = re.fullmatch(r"archive\.zip\.tmp\.(\d+)\..+", path.name)
+    if match is None:
+        return False
+    pid = int(match.group(1))
+    if pid == os.getpid():
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        return False
+    except OSError:
+        return False
+    return False
+
+
 def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
     """Yield ``(source, line_number, record)`` from a file, dir, or zip archive."""
 
@@ -628,10 +646,11 @@ def archive_directory(
                     pass
 
             for stale in log_dir.glob("archive.zip.tmp.*"):
-                try:
-                    stale.unlink()
-                except OSError:
-                    pass
+                if _archive_tmp_is_stale(stale):
+                    try:
+                        stale.unlink()
+                    except OSError:
+                        pass
             return ArchiveResult([p.name for p in closed])
         finally:
             if lock_fd is not None:
