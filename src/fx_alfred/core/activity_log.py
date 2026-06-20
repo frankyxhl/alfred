@@ -479,24 +479,28 @@ def _iter_zip_records(
             with zf.open(member) as fh:
                 for lineno, raw in enumerate(fh, start=1):
                     if raw.strip():
-                        if len(raw) > RECORD_LINE_CAP_BYTES:
-                            raise ActivityLogLineError(
-                                f"{path}::{member}",
-                                lineno,
-                                "JSONL line exceeds 4096 bytes",
-                            )
-                        record = json.loads(raw.decode("utf-8"))
-                        if not isinstance(record, dict):
-                            raise ActivityLogLineError(
-                                f"{path}::{member}",
-                                lineno,
-                                "JSONL record must be an object",
-                            )
+                        record = _parse_jsonl_record(f"{path}::{member}", lineno, raw)
                         yield (
                             f"{path}::{member}",
                             lineno,
                             record,
                         )
+
+
+def _parse_jsonl_record(source: str, lineno: int, raw: bytes) -> dict[str, Any]:
+    if len(raw) > RECORD_LINE_CAP_BYTES:
+        raise ActivityLogLineError(source, lineno, "JSONL line exceeds 4096 bytes")
+    try:
+        decoded = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ActivityLogLineError(source, lineno, f"invalid UTF-8: {exc}") from exc
+    try:
+        record = json.loads(decoded)
+    except json.JSONDecodeError as exc:
+        raise ActivityLogLineError(source, lineno, f"invalid JSONL: {exc}") from exc
+    if not isinstance(record, dict):
+        raise ActivityLogLineError(source, lineno, "JSONL record must be an object")
+    return record
 
 
 def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
@@ -520,16 +524,7 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
     with path.open("rb") as fh:
         for lineno, raw in enumerate(fh, start=1):
             if raw.strip():
-                if len(raw) > RECORD_LINE_CAP_BYTES:
-                    raise ActivityLogLineError(
-                        str(path), lineno, "JSONL line exceeds 4096 bytes"
-                    )
-                record = json.loads(raw.decode("utf-8"))
-                if not isinstance(record, dict):
-                    raise ActivityLogLineError(
-                        str(path), lineno, "JSONL record must be an object"
-                    )
-                yield (str(path), lineno, record)
+                yield (str(path), lineno, _parse_jsonl_record(str(path), lineno, raw))
 
 
 def archive_directory(
@@ -539,10 +534,10 @@ def archive_directory(
 
     day = today or _today_utc()
     log_dir.mkdir(parents=True, exist_ok=True)
-    lock_path = log_dir / ".archive.lock"
-    with lock_path.open("w", encoding="utf-8") as lock_fh:
+    lock_fd = os.open(log_dir, os.O_RDONLY)
+    try:
         try:
-            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return ArchiveResult(
                 [], skipped=True, message="another archiver is running, skipping"
@@ -596,6 +591,8 @@ def archive_directory(
             except OSError:
                 pass
         return ArchiveResult([p.name for p in closed])
+    finally:
+        os.close(lock_fd)
 
 
 def _in_date_window(

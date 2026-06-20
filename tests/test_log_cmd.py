@@ -199,6 +199,29 @@ def test_log_validate_rejects_non_object_jsonl_record(tmp_path):
     assert "JSONL record must be an object" in result.output
 
 
+def test_log_validate_rejects_invalid_utf8_loose_jsonl_line(tmp_path):
+    log_file = tmp_path / "bad.jsonl"
+    log_file.write_bytes(b'{"schema":"alfred.activity/v1","summary":"\xff"}\n')
+
+    result = CliRunner().invoke(cli, ["log-validate", str(log_file)])
+
+    assert result.exit_code == 1
+    assert "invalid UTF-8" in result.output
+    assert f"{log_file}:1" in result.output
+
+
+def test_log_validate_rejects_invalid_utf8_archived_jsonl_line(tmp_path):
+    archive = tmp_path / "archive.zip"
+    with ZipFile(archive, "w") as zf:
+        zf.writestr("2026-06-21.jsonl", b'{"schema":"alfred.activity/v1","\xff":1}\n')
+
+    result = CliRunner().invoke(cli, ["log-validate", str(archive)])
+
+    assert result.exit_code == 1
+    assert "archive.zip::2026-06-21.jsonl:1" in result.output
+    assert "invalid UTF-8" in result.output
+
+
 def test_log_validate_corrupt_archive_uses_exit_code_five(tmp_path):
     archive = tmp_path / "archive.zip"
     archive.write_text("not a zip", encoding="utf-8")
