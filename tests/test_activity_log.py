@@ -75,6 +75,7 @@ def test_task_text_is_hashed_and_redacted_for_sensitive_values():
         "rotate AWS_SECRET_ACCESS_KEY=" + ("b" * 40),
         "connect DATABASE_URL=postgres://user:pass@host/db",
         "call https://user:pass@example.com/api",
+        "curl -H 'Authorization: Bearer abcdef1234567890'",
     ],
 )
 def test_task_text_redacts_provider_token_shapes(task_text):

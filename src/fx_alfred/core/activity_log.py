@@ -93,6 +93,8 @@ _SENSITIVE_RE = re.compile(
         (?:api[_-]?key|token|secret|password|authorization|bearer|
            aws[_-]?secret[_-]?access[_-]?key)\s*[:=]\s*\S+
         |
+        \bbearer\s+\S+
+        |
         \b(?:sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9_]{8,}|
            github_pat_[A-Za-z0-9_]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|
            AKIA[0-9A-Z]{12,})\b
