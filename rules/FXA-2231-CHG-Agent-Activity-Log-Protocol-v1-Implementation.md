@@ -15,7 +15,9 @@
 
 ## What
 
-Implement the v1 of the **Agent Activity Log Protocol** defined in PRP-2230: ship the two PKG documents (`COR-1205` REF data contract + `COR-1206` SOP implementation guide), the two CLI surfaces (`af log` writer + `af log-validate` checker), the `COR-1200` retrospective additive bullet, and one reference Claude Code `Stop` hook script.
+Implement the v1 of the **Agent Activity Log Protocol** defined in PRP-2230: ship the two PKG documents (`COR-1205` REF data contract + `COR-1206` SOP implementation guide), the CLI surfaces (`af log` writer, `af log-validate` checker, `af log-archive` archival), the `COR-1200` retrospective additive bullet, and one reference Claude Code `Stop` hook script.
+
+**FXA-2307 disposition:** issue #233 supersedes and realizes this CHG's Phases 2-4 in the current codebase: `core/activity_log.py`, `af log`, `af log-validate`, `af log-archive`, scanner-skip behavior, and first-party `af guide` / `af plan` usage telemetry. Phase 5 remains future work for native cross-agent hooks and release packaging.
 
 This CHG also folds in the two **4/4 satellite advisories** from the strict review (PRP `## Change History` 2026-05-02 row): a long-term retention/aggregate-disk-space policy beyond per-file 8 MiB rotation, and a tightened POSIX wording for the `O_APPEND` atomicity rationale.
 
@@ -35,7 +37,7 @@ The protocol is the **emit surface** counterpart to FXA-2229's recall surface. O
 | `src/fx_alfred/rules/COR-1206-SOP-Emit-Agent-Activity.md` | Implementation guide — sourced from PRP-2230 trigger/mapping sections, plus per-agent integration examples, `.gitignore` snippet (`rules/logs/`), and the **scanner-skip enforcement rule** for `rules/logs/` subtree | ~200 |
 | `src/fx_alfred/core/activity_log.py` | Framework-agnostic schema + validator + reader (no Click). Constants: `SCHEMA_LITERAL`, `AGENT_WHITELIST`, `EVENT_ENUM`, `RECORD_LINE_CAP_BYTES = 4096`, `FILE_SIZE_CAP_BYTES = 8 * 1024 * 1024`, `RETENTION_DAYS_DEFAULT = 30`, `DIR_SOFT_CAP_BYTES = 256 * 1024 * 1024`. Functions: `validate_record(dict) → list[Violation]`, `iter_records(path_or_dir) → Iterator[(source, lineno, dict)]` (transparently reads loose `.jsonl` and `archive.zip` entries), `compose_record(...) → bytes` (truncation + `summary_truncated` flag), `archive_directory(dir, force=False) → ArchiveResult`. | ~340 |
 | `src/fx_alfred/commands/log_cmd.py` | Click command for `af log`. Layer resolution per PRP-2230 (`./rules/logs/...` for PRJ; `~/.alfred/logs/...` for USR), auto-fill `ts`/`schema`/`session_id`/`agent_version`, pre-condition rotation check, **lazy startup archival** of any closed-day raw files, atomic O_APPEND write ≤ 4096 bytes, exit codes 0/2/3/4. | ~150 |
-| `src/fx_alfred/commands/log_validate_cmd.py` | Click command for `af log-validate`. Default-target = today's PRJ log via shared layer resolution. Path-vs-dir-vs-zip dispatch. Per-line check via `core/activity_log.validate_record`. Reads zip entries transparently via `core/activity_log.iter_records`. Output `<path>:<lineno>: <field>: <reason>` for loose, `<dir>/archive.zip!<member>:<lineno>:` for zip entries. Exit codes 0/1/2/4/5. | ~110 |
+| `src/fx_alfred/commands/log_validate_cmd.py` | Click command for `af log-validate`. Default-target = today's PRJ log via shared layer resolution. Path-vs-dir-vs-zip dispatch. Per-line check via `core/activity_log.validate_record`. Reads zip entries transparently via `core/activity_log.iter_records`. Output `<path>:<lineno>: <field>: <reason>` for loose, `<dir>/archive.zip::<member>:<lineno>:` for zip entries. Exit codes 0/1/2/4/5. | ~110 |
 | `src/fx_alfred/commands/log_archive_cmd.py` | **NEW (this amendment).** Click command for `af log-archive`. Calls `core/activity_log.archive_directory` on the resolved log directory. Idempotent. Exit codes 0/2/4/5. `--force` flag to overwrite a corrupt existing archive. | ~80 |
 | `hooks/emit-activity.sh` | Reference Claude Code `Stop` hook. Reads `$CLAUDE_*` env vars, builds `af log ... \|\| true` invocation. Idempotent on re-source. | ~40 |
 | `tests/test_activity_log_schema.py` | TDD: `validate_record` unit tests covering all v1 rules including the cases pinned in PRP-2230 acceptance criteria (`summary_truncated: false`, line > 4096 bytes, `agent: "other"` without `agent_name`, etc.) | ~250 |
@@ -157,10 +159,10 @@ Red-Green-Refactor per COR-1500:
    10. `test_violation_summary_truncated_true_no_size_correlation` — `summary_truncated: true` on a 1024-byte record → 0 violations (regression for PR #78 R2 fix; validator must not require near-cap size).
    11. `test_violation_line_too_long` — synthetic 4097-byte line → exit 1.
    12. `test_violation_malformed_schema_literal` — `schema: "alfred.activity/v0.9"` → exit 1.
-   13. `test_violation_inside_zip_uses_bang_notation` — invalid record packed inside `archive.zip` → output uses `<dir>/archive.zip!2026-04-15.jsonl:N: <field>: <reason>` form.
+   13. `test_violation_inside_zip_uses_double_colon_notation` — invalid record packed inside `archive.zip` → output uses `<dir>/archive.zip::2026-04-15.jsonl:N: <field>: <reason>` form.
    14. `test_corrupt_zip_exits_5` — truncated zip file → exit code 5; clear error message.
    15. `test_quiet_on_success` — clean file → empty stdout, exit 0.
-   16. `test_output_format` — violation output matches `<path>:<lineno>: <field>: <reason>` for loose, `<dir>/archive.zip!<member>:<lineno>:` for zip members.
+   16. `test_output_format` — violation output matches `<path>:<lineno>: <field>: <reason>` for loose, `<dir>/archive.zip::<member>:<lineno>:` for zip members.
 2. **Green.** Implement `commands/log_validate_cmd.py` and `core/activity_log.iter_records` (the union-reader). Reuse `core/activity_log.validate_record`.
 3. **Refactor.** Extract zip-vs-loose dispatch into `core/activity_log.iter_records` so `log_archive_cmd` (Phase 4) can reuse it.
 
@@ -280,3 +282,4 @@ The protocol is additive (new CLI commands, new doc types, no breaking change to
 |------|--------|----|
 | 2026-05-02 | Initial version. Implements PRP-2230 (Agent Activity Log Protocol v1) which passed strict 4-reviewer review on the same date and was merged via PR #78 (with 3 follow-on review rounds covering 4 schema/CLI bug fixes). Folds the 4/4 PRP satellite advisories (L84 retention policy + L85 POSIX wording) into Phase 1. | Frank + Claude |
 | 2026-05-02 | Sync to PRP-2230 amendment (PR #80, route A): (a) Path migrated from `./logs/agent-activity/` to `./rules/logs/` throughout. (b) New file `commands/log_archive_cmd.py` and `core/activity_log.archive_directory` for atomic zip archival. (c) New tests: `test_activity_log_archive.py`, `test_activity_log_reader.py`, `test_log_archive_cmd.py`, `test_scanner_skip_rules_logs.py`. (d) Phase decomposition expanded 4 → 5 (Phase 4 = af log-archive + scanner-skip enforcement; Phase 5 = reference hook + v1.9.0 release). (e) `core/scanner.py` modification listed in 'Files to be modified' to add `rules/logs/` to skip set. (f) Phase 2 test count 16 → 18 (lazy archival on startup); Phase 3 test count 13 → 16 (zip-aware paths). (g) Total LOC estimate updated 1300 → 1700, tests 700 → 900. | Frank + Claude (sync to amended PRP) |
+| 2026-06-21 | FXA-2307 disposition added: Phases 2-4 are realized by the issue #233 usage-ledger slice; Phase 5 remains deferred. | Codex |

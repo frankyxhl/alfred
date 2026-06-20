@@ -238,6 +238,9 @@ af validate --json                  # validation results as JSON
 af status                           # document counts by type/layer
 af index                            # regenerate project index
 af changelog                        # view version history
+af log "summary" --ref COR-1205     # append an activity-ledger row
+af log-validate [PATH]              # validate activity ledger JSONL / archive.zip
+af log-archive                      # archive closed-day activity logs
 
 # Where (file path lookup)
 af where FXA-2107                   # print absolute path
@@ -412,6 +415,9 @@ af setup
 af status [--json]
 af index
 af changelog
+af log SUMMARY [--ref ID ...]
+af log-validate [PATH]
+af log-archive [--force]
 ```
 
 ## Install / Upgrade

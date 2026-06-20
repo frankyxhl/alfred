@@ -1,12 +1,40 @@
-"""Click command for `af log-validate` — activity-log schema checker.
+"""Click command for ``af log-validate``."""
 
-Per PRP-2230 §"`af log-validate`" (lines 150–172 of merged spec).
-Transparent reader for both loose `*.jsonl` and entries inside
-`archive.zip` via `core/activity_log.iter_records()`. Implementation
-lands in CHG-2231 Phase 3 with 16 TDD tests including zip-aware paths
-and `archive.zip::<member>:<lineno>:` violation notation.
+from __future__ import annotations
 
-This file is a Phase 0 scaffolding placeholder per CHG-2231 §Phase 0;
-NOT wired into `cli.py` yet (registration lands with the Phase 3
-implementation).
-"""
+import json
+from pathlib import Path
+from zipfile import BadZipFile
+
+import click
+
+from fx_alfred.context import get_root, root_option
+from fx_alfred.core.activity_log import iter_records, resolve_log_dir, validate_record
+
+
+@click.command("log-validate")
+@root_option
+@click.argument(
+    "path",
+    required=False,
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.pass_context
+def log_validate_cmd(ctx: click.Context, path: Path | None) -> None:
+    """Validate loose or archived activity-log rows."""
+
+    target = path or resolve_log_dir(get_root(ctx))
+    violation_count = 0
+    try:
+        for source, lineno, record in iter_records(target):
+            for violation in validate_record(record):
+                violation_count += 1
+                click.echo(f"{source}:{lineno}: {violation.field}: {violation.reason}")
+    except BadZipFile as exc:
+        raise click.ClickException(f"corrupt archive.zip: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"invalid JSONL: {exc}") from exc
+
+    if violation_count:
+        raise click.ClickException(f"{violation_count} activity-log issue(s) found")
+    click.echo("activity log ok")

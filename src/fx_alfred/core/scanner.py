@@ -88,6 +88,14 @@ def _scan_path_dir(
     for f in files:
         if not f.is_file():
             continue
+        try:
+            rel_parts = f.relative_to(directory).parts
+        except ValueError:
+            rel_parts = f.parts
+        if rel_parts and rel_parts[0] == "logs":
+            continue
+        if "rules" in rel_parts and "logs" in rel_parts:
+            continue
         doc = Document.from_filename(
             f.name,
             directory=str(directory.name),

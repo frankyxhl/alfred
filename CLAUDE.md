@@ -36,6 +36,9 @@ af skill read ID [--json]                   # read a skill document
 af issue lint BODY_FILE|-                   # pre-creation GitHub issue body lint
 af agent call HELPER [--arg k=v ...] [--json]  # PRJ/USR helper exec (needs ALFRED_AGENT_TOOLS=1)
 af agent run SCRIPT [--json]                # run script via current interpreter (same gate)
+af log SUMMARY [--ref ID ...]               # append an activity-ledger row
+af log-validate [PATH]                      # validate activity-ledger JSONL / archive.zip
+af log-archive [--force]                    # archive closed-day activity logs
 ```
 
 ## Architecture
@@ -56,9 +59,9 @@ src/fx_alfred/
 │   ├── index_cmd.py    # regenerate document index (COR-0002 compliant)
 │   ├── issue_cmd.py    # af issue lint (TBD-phrase + COR-1501 blueprint-structure checks)
 │   ├── list_cmd.py     # list + filtering + --json
-│   ├── log_cmd.py          # Phase 0 scaffolding (CHG-2231) — NOT wired into cli.py
-│   ├── log_archive_cmd.py  # Phase 0 scaffolding (CHG-2231) — NOT wired into cli.py
-│   ├── log_validate_cmd.py # Phase 0 scaffolding (CHG-2231) — NOT wired into cli.py
+│   ├── log_cmd.py          # af log activity-ledger writer
+│   ├── log_archive_cmd.py  # af log-archive closed-day archival
+│   ├── log_validate_cmd.py # af log-validate schema checker
 │   ├── plan_cmd.py     # workflow checklist from SOPs (text/JSON/todo/graph modes)
 │   ├── read_cmd.py     # read + --json
 │   ├── render_cmd.py   # af render — Markdown file -> standalone HTML document
@@ -71,7 +74,7 @@ src/fx_alfred/
 │   ├── validate_cmd.py # metadata + status + SOP section validation; unknown-TYPE warnings
 │   └── where_cmd.py    # find absolute file path of a document (--json)
 ├── core/
-│   ├── activity_log.py    # Phase 0 scaffolding docstring (CHG-2231)
+│   ├── activity_log.py    # activity-ledger schema, writer, reader, archive, Evolve signals
 │   ├── agent_helpers.py   # af agent engine: env gate, helper loading, script exec
 │   ├── ascii_graph.py     # flat ASCII workflow graph renderer
 │   ├── branch_geometry.py # pure branch-layout geometry (wcwidth)

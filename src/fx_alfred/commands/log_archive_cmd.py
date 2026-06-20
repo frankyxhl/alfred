@@ -1,23 +1,24 @@
-"""Click command for `af log-archive` — explicit archival.
+"""Click command for ``af log-archive``."""
 
-Per PRP-2230 §"`af log-archive`" (lines 174–196 of merged spec). Calls
-`core/activity_log.archive_directory()` on the resolved log directory.
-Implements the 5-step §Archival procedure: step 0 `fcntl.flock` lock
-(try-lock-and-skip on contention), step 1 build
-`archive.zip.tmp.<pid>.<rand6>`, step 2 `os.replace`, step 3 unlink raw
-files with self-healing on partial failure, step 4 PID-based stale
-tmpfile cleanup.
+from __future__ import annotations
 
-CLI options: `--root <DIR>` (layer resolution), `--force` (overwrite
-corrupt existing archive). Exit codes: 0 (archived or nothing to do),
-2 (invalid CLI args), 4 (filesystem error), 5 (corrupt archive without
---force). Standalone lock-contention behavior: exit code 0 with stderr
-"another archiver is running, skipping" (preserves try-lock-and-skip
-semantics consistent with lazy `af log` path; avoids blocking cron/CI).
+import click
 
-Implementation lands in CHG-2231 Phase 4 with 12 TDD tests (8 archive
-behavior + 4 scanner-skip enforcement regression tests).
+from fx_alfred.context import get_root, root_option
+from fx_alfred.core.activity_log import ArchiveError, archive_directory, resolve_log_dir
 
-This file is a Phase 0 scaffolding placeholder per CHG-2231 §Phase 0;
-NOT wired into `cli.py` yet.
-"""
+
+@click.command("log-archive")
+@root_option
+@click.option("--force", is_flag=True, help="Overwrite corrupt archive.zip")
+@click.pass_context
+def log_archive_cmd(ctx: click.Context, force: bool) -> None:
+    """Archive closed-day activity logs into archive.zip."""
+
+    try:
+        result = archive_directory(resolve_log_dir(get_root(ctx)), force=force)
+    except ArchiveError as exc:
+        err = click.ClickException(str(exc))
+        err.exit_code = 5
+        raise err from exc
+    click.echo(result.message or f"archived {len(result.archived_files)} file(s)")

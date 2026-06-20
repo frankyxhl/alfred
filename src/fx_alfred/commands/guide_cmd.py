@@ -2,6 +2,7 @@ import click
 
 from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json, scan_or_fail
 from fx_alfred.context import root_option
+from fx_alfred.core.activity_log import append_usage_event
 from fx_alfred.core.parser import MalformedDocumentError, parse_metadata
 from fx_alfred.core.routing import ROUTING_FILENAME_PATTERN as ROUTING_PATTERN
 from fx_alfred.core.routing import document_status, is_routing_document
@@ -102,8 +103,26 @@ def guide_cmd(ctx: click.Context, output_json: bool):
             "schema_version": SCHEMA_VERSION,
             "routing_docs": routing_docs,
         }
+        try:
+            append_usage_event(
+                command="guide",
+                usage_kind="routing_docs",
+                refs=[item["doc_id"] for item in routing_docs],
+                result_count=len(routing_docs),
+            )
+        except Exception:
+            pass
         emit_json(result)
     else:
+        try:
+            append_usage_event(
+                command="guide",
+                usage_kind="routing_docs",
+                refs=[item["doc_id"] for item in routing_docs],
+                result_count=len(routing_docs),
+            )
+        except Exception:
+            pass
         click.echo(
             "Run this at session start for routing context."
             " Then run `af plan <SOP_IDs>` before each task."

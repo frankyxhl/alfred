@@ -2560,3 +2560,61 @@ def test_task_unknown_positional_exits_1_through_boundary(sample_project, monkey
     result = runner.invoke(cli, ["plan", "--task", "implement", "NOPE-9999"])
     assert result.exit_code == 1
     assert "SOP 'NOPE-9999' not found" in result.output
+
+
+def test_plan_explicit_appends_usage_record_to_user_log(sample_project, monkeypatch):
+    """Explicit af plan records selected SOP frequency in the user ledger."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5901", "Telemetry-Explicit")
+    monkeypatch.chdir(sample_project)
+
+    result = CliRunner().invoke(cli, ["plan", "TST-5901"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    files = sorted((Path.home() / ".alfred" / "logs").glob("*.jsonl"))
+    assert len(files) == 1
+    payload = json.loads(files[0].read_text(encoding="utf-8").strip())
+    assert payload["command"] == "plan"
+    assert payload["usage_kind"] == "plan_explicit"
+    assert payload["refs"] == ["TST-5901"]
+    assert payload["result_count"] == 1
+
+
+def test_plan_task_zero_match_appends_gap_record(sample_project, monkeypatch):
+    """Zero-match --task failures are recorded without changing exit code."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir, "TST", "5902", "Telemetry-Routing", "[]", always_included=True
+    )
+    monkeypatch.chdir(sample_project)
+
+    result = CliRunner().invoke(
+        cli, ["plan", "--task", "rare unmatched xyzzy"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 2
+    files = sorted((Path.home() / ".alfred" / "logs").glob("*.jsonl"))
+    assert len(files) == 1
+    payload = json.loads(files[0].read_text(encoding="utf-8").strip())
+    assert payload["command"] == "plan"
+    assert payload["usage_kind"] == "plan_task_gap"
+    assert payload["result_count"] == 0
+    assert payload["task_text"] == "rare unmatched xyzzy"
+    assert len(payload["task_text_sha256"]) == 64
+
+
+def test_plan_logging_failure_does_not_break_command(sample_project, monkeypatch):
+    """Plan telemetry is fail-open for normal command output."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5903", "Telemetry-Fail-Open")
+    monkeypatch.chdir(sample_project)
+
+    def boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("fx_alfred.commands.plan_cmd.append_usage_event", boom)
+
+    result = CliRunner().invoke(cli, ["plan", "TST-5903"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "TST-5903" in result.output

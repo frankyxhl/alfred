@@ -2,6 +2,7 @@ import pytest
 
 
 from pathlib import Path
+import json
 
 from click.testing import CliRunner
 from fx_alfred.cli import cli
@@ -223,3 +224,35 @@ def test_help_contains_quickstart():
     assert result.exit_code == 0
     assert "PREFIX-ACID" in result.output or "Document Naming" in result.output
     assert "PKG" in result.output or "Layer" in result.output
+
+
+def test_guide_appends_usage_record_to_user_log(sample_project, monkeypatch):
+    """af guide records routing-doc usage in the user ledger."""
+    monkeypatch.chdir(sample_project)
+
+    result = CliRunner().invoke(cli, ["guide"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    files = sorted((Path.home() / ".alfred" / "logs").glob("*.jsonl"))
+    assert len(files) == 1
+    payload = json.loads(files[0].read_text(encoding="utf-8").strip())
+    assert payload["command"] == "guide"
+    assert payload["usage_kind"] == "routing_docs"
+    assert payload["agent_name"] == "af"
+    assert payload["refs"]
+    assert payload["result_count"] == len(payload["refs"])
+
+
+def test_guide_logging_failure_does_not_break_command(sample_project, monkeypatch):
+    """Usage telemetry is fail-open for the user-facing command."""
+    monkeypatch.chdir(sample_project)
+
+    def boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("fx_alfred.commands.guide_cmd.append_usage_event", boom)
+
+    result = CliRunner().invoke(cli, ["guide"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "Workflow Routing" in result.output
