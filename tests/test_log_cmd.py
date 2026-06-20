@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from zipfile import ZipFile
 
 import pytest
 from click.testing import CliRunner
@@ -37,6 +38,40 @@ def test_log_writes_to_project_rules_log(sample_project, monkeypatch):
     assert payload["command"] == "log"
     assert payload["usage_kind"] == "manual_log"
     assert payload["refs"] == ["COR-1205"]
+
+
+def test_log_lazily_archives_closed_day_before_append(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "2000-01-01.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2000-01-01T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "old",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(cli, ["log", "new"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert not (log_dir / "2000-01-01.jsonl").exists()
+    assert (log_dir / "archive.zip").exists()
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == ["2000-01-01.jsonl"]
+    current_files = [path for path in log_dir.glob("*.jsonl")]
+    assert len(current_files) == 1
+    payload = json.loads(current_files[0].read_text(encoding="utf-8"))
+    assert payload["summary"] == "new"
 
 
 def test_log_rejects_invalid_event_before_append(sample_project, monkeypatch):

@@ -78,6 +78,24 @@ def test_validate_record_rejects_unknown_fields():
     assert any(v.field == "surprise" for v in violations)
 
 
+def test_compose_record_deduplicates_refs_before_truncation():
+    record = activity_log.compose_record(
+        summary="refs",
+        refs=["TST-6101", "TST-6101", "COR-1205"],
+    )
+
+    assert record["refs"] == ["TST-6101", "COR-1205"]
+
+
+def test_validate_record_rejects_noncanonical_refs():
+    record = activity_log.compose_record(summary="refs", refs=["TST-6101"])
+    record["refs"] = ["not-a-doc-id"]
+
+    violations = activity_log.validate_record(record)
+
+    assert any(violation.field == "refs" for violation in violations)
+
+
 def test_validate_record_rejects_invalid_required_values():
     record = activity_log.compose_record(summary="valid")
     record.update(
@@ -239,6 +257,31 @@ def test_archive_directory_replaces_existing_member_once(tmp_path):
         assert zf.namelist() == ["2026-06-20.jsonl"]
         payload = json.loads(zf.read("2026-06-20.jsonl"))
     assert payload["summary"] == "new"
+
+
+def test_archive_directory_treats_unlink_failure_as_best_effort(tmp_path, monkeypatch):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        encoding="utf-8",
+    )
+    original_unlink = type(old_file).unlink
+
+    def flaky_unlink(self, *args, **kwargs):
+        if self.name.endswith(".jsonl"):
+            raise PermissionError("leftover raw file")
+        return original_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(type(old_file), "unlink", flaky_unlink)
+
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert result.archived_files == ["2026-06-20.jsonl"]
+    assert old_file.exists()
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == ["2026-06-20.jsonl"]
 
 
 def test_log_dir_resolution_uses_project_rules_log_when_project_exists(sample_project):

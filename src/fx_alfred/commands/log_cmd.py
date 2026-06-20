@@ -7,6 +7,7 @@ import click
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.activity_log import (
     append_record,
+    archive_directory,
     compose_record,
     resolve_log_dir,
     validate_record,
@@ -53,5 +54,7 @@ def log_cmd(
     if violations:
         message = "; ".join(f"{v.field}: {v.reason}" for v in violations)
         raise click.ClickException(message)
-    path = append_record(record, log_dir=resolve_log_dir(get_root(ctx)))
+    log_dir = resolve_log_dir(get_root(ctx))
+    archive_directory(log_dir)
+    path = append_record(record, log_dir=log_dir)
     click.echo(str(path))

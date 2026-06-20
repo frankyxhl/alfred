@@ -99,6 +99,7 @@ _SENSITIVE_RE = re.compile(
 _TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 _NO_WHITESPACE_RE = re.compile(r"\S+\Z")
 _ASCII_NO_WHITESPACE_RE = re.compile(r"[\x21-\x7e]+\Z")
+_DOC_REF_RE = re.compile(r"[A-Z]{3}-\d{4}\Z")
 
 
 @dataclass(frozen=True)
@@ -233,7 +234,7 @@ def compose_record(
     if summary_truncated:
         record["summary_truncated"] = True
     if refs:
-        record["refs"] = list(refs)[:REFS_CAP]
+        record["refs"] = list(dict.fromkeys(refs))[:REFS_CAP]
     if files:
         record["files"] = list(files)[:FILES_CAP]
     if command:
@@ -412,6 +413,10 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
             violations.append(Violation(list_field, f"must be list of at most {cap}"))
         elif not all(isinstance(item, str) for item in value):
             violations.append(Violation(list_field, "must contain strings"))
+        elif list_field == "refs" and not all(
+            _DOC_REF_RE.fullmatch(item) for item in value
+        ):
+            violations.append(Violation("refs", "must contain canonical document ids"))
     return violations
 
 
@@ -511,7 +516,10 @@ def archive_directory(
                     zf.write(file_path, arcname=file_path.name)
             os.replace(tmp_path, archive)
             for file_path in closed:
-                file_path.unlink()
+                try:
+                    file_path.unlink()
+                except OSError:
+                    pass
         finally:
             try:
                 tmp_path.unlink()
