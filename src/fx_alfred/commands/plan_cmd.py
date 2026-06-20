@@ -985,6 +985,9 @@ def plan_cmd(
         raise click.UsageError("--json and --human are mutually exclusive")
 
     phase_info = _collect_phase_info(docs, sop_ids, output_json)
+    edges = _validate_composition(phase_info)
+    _validate_cross_sop_loops(phase_info)
+    composition_valid = all(e.compatible for e in edges) if edges else True
     usage_refs = [f"{doc.prefix}-{doc.acid}" for _, doc, *_ in phase_info]
     try:
         append_usage_event(
@@ -996,9 +999,6 @@ def plan_cmd(
         )
     except Exception:
         pass
-    edges = _validate_composition(phase_info)
-    _validate_cross_sop_loops(phase_info)
-    composition_valid = all(e.compatible for e in edges) if edges else True
 
     if output_todo and not output_json:
         _emit_todo_text(

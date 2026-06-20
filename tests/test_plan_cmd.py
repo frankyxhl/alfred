@@ -2580,6 +2580,26 @@ def test_plan_explicit_appends_usage_record_to_user_log(sample_project, monkeypa
     assert payload["result_count"] == 1
 
 
+def test_plan_validation_failure_does_not_record_success_usage(
+    sample_project, monkeypatch
+):
+    """Failed composition validation must not inflate successful plan usage."""
+    rules_dir = sample_project / "rules"
+    _create_typed_sop(
+        rules_dir, "TST", "5911", "Telemetry-Step-A", "proposal:draft", "proposal:ready"
+    )
+    _create_typed_sop(
+        rules_dir, "TST", "5912", "Telemetry-Step-B", "change:ready", "change:done"
+    )
+    monkeypatch.chdir(sample_project)
+
+    result = CliRunner().invoke(cli, ["plan", "TST-5911", "TST-5912"])
+
+    assert result.exit_code != 0
+    assert "Workflow type mismatch" in result.output
+    assert sorted((Path.home() / ".alfred" / "logs").glob("*.jsonl")) == []
+
+
 def test_plan_task_zero_match_appends_gap_record(sample_project, monkeypatch):
     """Zero-match --task failures are recorded without changing exit code."""
     rules_dir = sample_project / "rules"
