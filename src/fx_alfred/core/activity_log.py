@@ -210,10 +210,12 @@ def _is_project_root(root: Path) -> bool:
         return False
 
 
-def resolve_log_dir(root: Path | None = None) -> Path:
+def resolve_log_dir(root: Path | None = None, *, explicit_root: bool = True) -> Path:
     """Resolve public ``af log*`` storage using COR-1205 layer semantics."""
 
-    if root is not None and (root / "rules").is_dir():
+    if root is not None and (
+        (explicit_root and (root / "rules").is_dir()) or _is_project_root(root)
+    ):
         return root / "rules" / "logs"
     return user_log_dir()
 

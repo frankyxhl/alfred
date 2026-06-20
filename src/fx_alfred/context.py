@@ -79,3 +79,10 @@ def get_root(ctx: click.Context) -> Path:
     if root_ctx.obj and "root" in root_ctx.obj:
         return root_ctx.obj["root"]
     return discover_root(Path.cwd())
+
+
+def has_explicit_root(ctx: click.Context) -> bool:
+    """Return whether the root came from an explicit ``--root`` option."""
+
+    root_ctx = ctx.find_root()
+    return bool(root_ctx.obj and "root" in root_ctx.obj)

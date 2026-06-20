@@ -9,6 +9,7 @@ import pytest
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+from fx_alfred.core import activity_log
 
 
 pytestmark = pytest.mark.cli
@@ -38,6 +39,37 @@ def test_log_writes_to_project_rules_log(sample_project, monkeypatch):
     assert payload["command"] == "log"
     assert payload["usage_kind"] == "manual_log"
     assert payload["refs"] == ["COR-1205"]
+
+
+def test_log_with_explicit_empty_rules_root_writes_project_log(tmp_path):
+    root = tmp_path / "empty-project"
+    (root / "rules").mkdir(parents=True)
+
+    result = CliRunner().invoke(
+        cli,
+        ["--root", str(root), "log", "manual checkpoint"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert len(list((root / "rules" / "logs").glob("*.jsonl"))) == 1
+
+
+def test_log_without_project_discovery_uses_user_log_dir(tmp_path, monkeypatch):
+    unrelated = tmp_path / "unrelated"
+    (unrelated / "rules").mkdir(parents=True)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.chdir(unrelated)
+    monkeypatch.setattr(activity_log, "user_log_dir", lambda: home / ".alfred" / "logs")
+
+    result = CliRunner().invoke(
+        cli, ["log", "manual checkpoint"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    assert not (unrelated / "rules" / "logs").exists()
+    assert len(list((home / ".alfred" / "logs").glob("*.jsonl"))) == 1
 
 
 def test_log_lazily_archives_closed_day_before_append(sample_project, monkeypatch):
