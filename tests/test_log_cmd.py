@@ -75,6 +75,15 @@ def test_log_validate_reports_unknown_field(tmp_path):
     assert "surprise" in result.output
 
 
+def test_log_validate_missing_default_log_dir_is_empty(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+
+    result = CliRunner().invoke(cli, ["log-validate"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "activity log ok" in result.output
+
+
 def test_log_archive_moves_closed_project_log(sample_project, monkeypatch):
     monkeypatch.chdir(sample_project)
     log_dir = sample_project / "rules" / "logs"

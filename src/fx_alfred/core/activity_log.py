@@ -233,20 +233,55 @@ def _line_bytes(record: dict[str, Any]) -> bytes:
     ).encode("utf-8")
 
 
+def _fit_record_line(record: dict[str, Any]) -> tuple[dict[str, Any], bytes]:
+    fitted = dict(record)
+    line = _line_bytes(fitted)
+    while len(line) > RECORD_LINE_CAP_BYTES:
+        fitted["summary_truncated"] = True
+        files = fitted.get("files")
+        refs = fitted.get("refs")
+        summary = str(fitted.get("summary", ""))
+        if isinstance(files, list) and files:
+            files.pop()
+            if not files:
+                fitted.pop("files", None)
+        elif isinstance(refs, list) and refs:
+            refs.pop()
+            if not refs:
+                fitted.pop("refs", None)
+        elif "task_text" in fitted:
+            fitted.pop("task_text", None)
+            fitted["task_text_redacted"] = True
+        elif len(summary) > 1:
+            fitted["summary"] = summary[: max(1, len(summary) // 2)]
+        else:
+            raise ValueError("activity record cannot fit within line cap")
+        line = _line_bytes(fitted)
+    return fitted, line
+
+
+def _append_target_path(log_dir: Path, line_len: int) -> Path:
+    base = log_file_for_dir(log_dir)
+    if not base.exists() or base.stat().st_size + line_len <= FILE_SIZE_CAP_BYTES:
+        return base
+    part = 1
+    while True:
+        candidate = log_dir / f"{base.stem}.part{part}.jsonl"
+        if (
+            not candidate.exists()
+            or candidate.stat().st_size + line_len <= FILE_SIZE_CAP_BYTES
+        ):
+            return candidate
+        part += 1
+
+
 def append_record(record: dict[str, Any], *, log_dir: Path | None = None) -> Path:
     """Append ``record`` to the active loose JSONL file."""
 
     target_dir = log_dir or user_log_dir()
     target_dir.mkdir(parents=True, exist_ok=True)
-    path = log_file_for_dir(target_dir)
-    line = _line_bytes(record)
-    if len(line) > RECORD_LINE_CAP_BYTES:
-        compact = dict(record)
-        compact["summary"] = str(compact.get("summary", ""))[:120]
-        compact["summary_truncated"] = True
-        line = _line_bytes(compact)
-    if path.exists() and path.stat().st_size + len(line) > FILE_SIZE_CAP_BYTES:
-        path = target_dir / f"{_today_utc()}.part1.jsonl"
+    _record, line = _fit_record_line(record)
+    path = _append_target_path(target_dir, len(line))
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
     try:
         os.write(fd, line)
@@ -341,6 +376,8 @@ def _jsonl_files(directory: Path) -> list[Path]:
 def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
     """Yield ``(source, line_number, record)`` from a file, dir, or zip archive."""
 
+    if not path.exists():
+        return
     if path.is_dir():
         for file_path in _jsonl_files(path):
             yield from iter_records(file_path)

@@ -95,6 +95,40 @@ def test_archive_directory_moves_closed_day_to_zip(tmp_path):
         assert "2026-06-20.jsonl" in zf.namelist()
 
 
+def test_append_record_rolls_to_next_part_when_part_one_is_full(tmp_path, monkeypatch):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    monkeypatch.setattr(activity_log, "FILE_SIZE_CAP_BYTES", 260)
+    day = activity_log.log_file_for_dir(log_dir).stem
+    (log_dir / f"{day}.jsonl").write_text("x" * 240, encoding="utf-8")
+    (log_dir / f"{day}.part1.jsonl").write_text("x" * 240, encoding="utf-8")
+
+    path = activity_log.append_record(
+        activity_log.compose_record(summary="small rollover record"),
+        log_dir=log_dir,
+    )
+
+    assert path.name == f"{day}.part2.jsonl"
+    assert path.stat().st_size <= activity_log.FILE_SIZE_CAP_BYTES
+
+
+def test_append_record_trims_refs_and_files_until_line_fits(tmp_path, monkeypatch):
+    log_dir = tmp_path / "logs"
+    monkeypatch.setattr(activity_log, "RECORD_LINE_CAP_BYTES", 700)
+    record = activity_log.compose_record(
+        summary="oversize",
+        refs=[f"TST-{i:04d}" for i in range(16)],
+        files=[f"very/long/path/{i}/" + ("x" * 80) for i in range(32)],
+    )
+
+    path = activity_log.append_record(record, log_dir=log_dir)
+    line = path.read_bytes()
+    payload = json.loads(line)
+
+    assert len(line) <= activity_log.RECORD_LINE_CAP_BYTES
+    assert payload["summary_truncated"] is True
+
+
 def test_log_dir_resolution_uses_project_rules_log_when_project_exists(sample_project):
     assert activity_log.resolve_log_dir(root=sample_project) == (
         sample_project / "rules" / "logs"
