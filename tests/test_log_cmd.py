@@ -132,6 +132,8 @@ def test_log_continues_when_lazy_archive_fails(sample_project, monkeypatch):
 
     assert result.exit_code == 0
     assert "af log: lazy archival failed" in result.stderr
+    assert f"in {log_dir}" in result.stderr
+    assert "ArchiveError:" in result.stderr
     assert "Recover: af log-archive --force" in result.stderr
     assert (log_dir / "2000-01-01.jsonl").exists()
     current_files = [
@@ -154,6 +156,8 @@ def test_log_continues_when_lazy_archive_filesystem_error(sample_project, monkey
 
     assert result.exit_code == 0
     assert "af log: lazy archival failed" in result.stderr
+    assert f"in {sample_project / 'rules' / 'logs'}" in result.stderr
+    assert "FileNotFoundError:" in result.stderr
     assert "closed log\\ndisappeared" in result.stderr
     assert "closed log\ndisappeared" not in result.stderr
     assert "Recover: af log-archive --force" in result.stderr
@@ -168,7 +172,7 @@ def test_log_rejects_invalid_event_before_append(sample_project, monkeypatch):
 
     result = CliRunner().invoke(cli, ["log", "bad", "--event", "not-an-event"])
 
-    assert result.exit_code == 1
+    assert result.exit_code == 3
     assert "event" in result.output
     assert not (sample_project / "rules" / "logs").exists()
 
@@ -394,3 +398,19 @@ def test_log_archive_force_replaces_corrupt_archive_without_loose_files(
     assert result.exit_code == 0
     with ZipFile(log_dir / "archive.zip") as zf:
         assert zf.namelist() == []
+
+
+def test_log_archive_filesystem_error_uses_exit_code_four(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+
+    def broken_archive(_log_dir, *, force=False):
+        raise PermissionError("archive.zip.tmp denied")
+
+    monkeypatch.setattr(
+        "fx_alfred.commands.log_archive_cmd.archive_directory", broken_archive
+    )
+
+    result = CliRunner().invoke(cli, ["log-archive"])
+
+    assert result.exit_code == 4
+    assert "archive.zip.tmp denied" in result.output

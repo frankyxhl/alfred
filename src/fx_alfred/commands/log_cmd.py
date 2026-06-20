@@ -56,14 +56,18 @@ def log_cmd(
     violations = validate_record(record)
     if violations:
         message = "; ".join(f"{v.field}: {v.reason}" for v in violations)
-        raise click.ClickException(message)
+        err = click.ClickException(message)
+        err.exit_code = 3
+        raise err
     log_dir = resolve_log_dir(get_root(ctx), explicit_root=has_explicit_root(ctx))
     try:
         archive_directory(log_dir)
     except (ArchiveError, OSError) as exc:
         detail = encode_basestring_ascii(str(exc))
         click.echo(
-            f"af log: lazy archival failed {detail}; Recover: af log-archive --force",
+            f"af log: lazy archival failed in {log_dir}: "
+            f"{exc.__class__.__name__}: {detail}. "
+            "Recover: af log-archive --force",
             err=True,
         )
     path = append_record(record, log_dir=log_dir)

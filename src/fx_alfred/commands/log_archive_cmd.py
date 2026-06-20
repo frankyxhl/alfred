@@ -34,4 +34,8 @@ def log_archive_cmd(ctx: click.Context, force: bool, path: Path | None) -> None:
         err = click.ClickException(str(exc))
         err.exit_code = 5
         raise err from exc
+    except OSError as exc:
+        err = click.ClickException(str(exc))
+        err.exit_code = 4
+        raise err from exc
     click.echo(result.message or f"archived {len(result.archived_files)} file(s)")
