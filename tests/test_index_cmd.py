@@ -166,7 +166,7 @@ def test_index_multiple_prefixes_compliant(tmp_path):
     assert nrv_content.startswith("# REF-0000: Document Index\n")
 
 
-# --- Part B: Status marker tests ---
+# --- Part B: Status column tests ---
 
 
 def _make_doc_with_status(
@@ -189,32 +189,43 @@ def _make_doc_with_status(
     return path
 
 
-def test_index_omits_marker_for_active_status(tmp_path):
-    """Active SOP doc has no status marker in its index row."""
+def test_index_has_status_column_header(tmp_path):
+    """Generated index table has a dedicated Status column."""
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
     _make_doc_with_status(rules_dir, "2100", "SOP", "Active")
     runner = CliRunner()
     runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
     content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | SOP | Doc 2100 |" in content
-    assert "(Active)" not in content
+    assert "| ACID | Type | Title | Status |" in content
 
 
-def test_index_shows_approved_marker(tmp_path):
-    """Approved PRP doc shows (Approved) marker in its index row."""
+def test_index_shows_active_in_status_column(tmp_path):
+    """Active status is rendered in the Status column, not hidden."""
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "PRP", "Approved")
+    _make_doc_with_status(rules_dir, "2100", "SOP", "Active")
     runner = CliRunner()
     runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
     content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | PRP | Doc 2100 (Approved) |" in content
+    assert "| 2100 | SOP | Doc 2100 | Active |" in content
+
+
+def test_index_renders_em_dash_when_status_missing(tmp_path):
+    """A doc with no Status field renders an em dash in the Status column."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    (rules_dir / "TST-2100-SOP-Doc-2100.md").write_text("# SOP-2100: Doc 2100\n")
+    runner = CliRunner()
+    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
+    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
+    assert "| 2100 | SOP | Doc 2100 | — |" in content
 
 
 @pytest.mark.parametrize(
     ("type_code", "status"),
     [
+        ("SOP", "Active"),
         ("SOP", "Draft"),
         ("SOP", "Deprecated"),
         ("PRP", "Draft"),
@@ -230,6 +241,7 @@ def test_index_shows_approved_marker(tmp_path):
         ("ADR", "Accepted"),
         ("ADR", "Superseded"),
         ("ADR", "Deprecated"),
+        ("REF", "Active"),
         ("REF", "Draft"),
         ("REF", "Deprecated"),
         ("PLN", "Draft"),
@@ -240,107 +252,19 @@ def test_index_shows_approved_marker(tmp_path):
         ("INC", "Monitoring"),
     ],
 )
-def test_index_shows_all_allowed_non_active_status_markers(tmp_path, type_code, status):
-    """Every allowed non-Active status is visible in the generated index."""
+def test_index_shows_status_in_column(tmp_path, type_code, status):
+    """Every allowed status is rendered verbatim in the Status column."""
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
     _make_doc_with_status(rules_dir, "2100", type_code, status)
     runner = CliRunner()
     runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
     content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert f"| 2100 | {type_code} | Doc 2100 ({status}) |" in content
-
-
-def test_index_shows_withdrawn_marker_when_authored(tmp_path):
-    """A Withdrawn status marker is derived when a document carries it."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "PRP", "Withdrawn")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | PRP | Doc 2100 (Withdrawn) |" in content
-
-
-def test_index_shows_rejected_marker(tmp_path):
-    """Rejected PRP doc shows (Rejected) marker in its index row."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "PRP", "Rejected")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | PRP | Doc 2100 (Rejected) |" in content
-
-
-def test_index_shows_draft_marker(tmp_path):
-    """Draft SOP doc shows (Draft) marker in its index row."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "SOP", "Draft")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | SOP | Doc 2100 (Draft) |" in content
-
-
-def test_index_shows_deprecated_marker(tmp_path):
-    """Deprecated SOP doc shows (Deprecated) marker in its index row."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "SOP", "Deprecated")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | SOP | Doc 2100 (Deprecated) |" in content
-
-
-def test_index_shows_superseded_marker(tmp_path):
-    """Superseded ADR doc shows (Superseded) marker in its index row."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "ADR", "Superseded")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | ADR | Doc 2100 (Superseded) |" in content
-
-
-def test_index_shows_implemented_marker(tmp_path):
-    """Implemented PRP doc shows (Implemented) marker in its index row."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "PRP", "Implemented")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | PRP | Doc 2100 (Implemented) |" in content
-
-
-def test_index_shows_completed_marker(tmp_path):
-    """Completed PLN doc shows (Completed) marker in its index row."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "PLN", "Completed")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | PLN | Doc 2100 (Completed) |" in content
-
-
-def test_index_shows_cancelled_marker(tmp_path):
-    """Cancelled PLN doc shows (Cancelled) marker in its index row."""
-    rules_dir = tmp_path / "rules"
-    rules_dir.mkdir()
-    _make_doc_with_status(rules_dir, "2100", "PLN", "Cancelled")
-    runner = CliRunner()
-    runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
-    content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | PLN | Doc 2100 (Cancelled) |" in content
+    assert f"| 2100 | {type_code} | Doc 2100 | {status} |" in content
 
 
 def test_index_handles_mixed_statuses(tmp_path):
-    """Multiple docs with different statuses each show correct markers."""
+    """Multiple docs with different statuses each show their own column value."""
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
     _make_doc_with_status(rules_dir, "2100", "SOP", "Active")
@@ -350,9 +274,7 @@ def test_index_handles_mixed_statuses(tmp_path):
     runner = CliRunner()
     runner.invoke(cli, ["index", "--root", str(tmp_path)], catch_exceptions=False)
     content = (rules_dir / "TST-0000-REF-Document-Index.md").read_text()
-    assert "| 2100 | SOP | Doc 2100 |" in content
-    assert "| 2101 | PRP | Doc 2101 (Rejected) |" in content
-    assert "| 2102 | SOP | Doc 2102 (Draft) |" in content
-    assert "| 2103 | SOP | Doc 2103 (Deprecated) |" in content
-    # Verify no false positives
-    assert "(Active)" not in content
+    assert "| 2100 | SOP | Doc 2100 | Active |" in content
+    assert "| 2101 | PRP | Doc 2101 | Rejected |" in content
+    assert "| 2102 | SOP | Doc 2102 | Draft |" in content
+    assert "| 2103 | SOP | Doc 2103 | Deprecated |" in content
