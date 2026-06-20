@@ -15,17 +15,27 @@ import re
 _HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
 _UL = re.compile(r"^[-*]\s+(.*)$")
 _OL = re.compile(r"^\d+\.\s+(.*)$")
-_FENCE = re.compile(r"^(`{3,})")  # captures the opening backtick run
+_FENCE = re.compile(
+    r"^(`{3,}|~{3,})"
+)  # captures the opening fence (backtick or tilde run)
 
 # Link target allows one level of balanced parens, e.g. /wiki/C_(programming_language).
 _LINK = re.compile(r"\[([^\]]+)\]\(((?:[^()]|\([^()]*\))*)\)")
-_UNSAFE_SCHEME = re.compile(r"^\s*(?:javascript|data|vbscript):", re.IGNORECASE)
+_UNSAFE_SCHEME = re.compile(r"^(?:javascript|data|vbscript):", re.IGNORECASE)
+_URL_CONTROL = re.compile(
+    r"[\x00-\x20]"
+)  # browsers ignore C0 controls/spaces in the scheme
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
 
 
 def _safe_href(url: str) -> str:
-    """Neutralize javascript:/data:/vbscript: targets — the output is opened in a browser."""
-    return "#" if _UNSAFE_SCHEME.match(url) else url
+    """Neutralize javascript:/data:/vbscript: targets — the output is opened in a browser.
+
+    Strip C0 controls/spaces before the scheme check, since browsers ignore an
+    embedded tab/newline (``java\\tscript:``) when resolving the protocol.
+    """
+    probe = _URL_CONTROL.sub("", url)
+    return "#" if _UNSAFE_SCHEME.match(probe) else url
 
 
 # Underscore emphasis must be at word boundaries (no intraword: ALFRED_AGENT_TOOLS).
@@ -36,9 +46,33 @@ _CODE = re.compile(r"`([^`]+)`")
 
 
 def _is_closing_fence(stripped: str, opener: str) -> bool:
-    """A closing fence is a run of >= len(opener) backticks and nothing else."""
+    """A closing fence: a run of the opener's char (` or ~), length >= the opener."""
     s = stripped.rstrip()
-    return bool(s) and set(s) == {"`"} and len(s) >= len(opener)
+    return bool(s) and set(s) == {opener[0]} and len(s) >= len(opener)
+
+
+def first_h1(md: str) -> str | None:
+    """The first ATX H1 *outside* fenced code blocks (opener-length aware), else None.
+
+    Shared by ``af render``'s title derivation so it honors the same fence rules
+    as ``render_body`` (a ``#`` line inside a fence is not a heading).
+    """
+    md = md.replace("\x00", "")
+    lines = md.splitlines()
+    i, n = 0, len(lines)
+    while i < n:
+        fence_open = _FENCE.match(lines[i].strip())
+        if fence_open:
+            opener = fence_open.group(1)
+            i += 1
+            while i < n and not _is_closing_fence(lines[i].strip(), opener):
+                i += 1
+            i += 1
+            continue
+        if lines[i].startswith("# "):
+            return lines[i][2:].strip()
+        i += 1
+    return None
 
 
 _DEFAULT_CSS = (

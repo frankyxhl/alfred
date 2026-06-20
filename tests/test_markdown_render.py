@@ -2,7 +2,7 @@
 
 import pytest
 
-from fx_alfred.core.markdown_render import render_body, render_document
+from fx_alfred.core.markdown_render import first_h1, render_body, render_document
 
 pytestmark = pytest.mark.unit
 
@@ -85,6 +85,26 @@ def test_data_url_is_neutralized():
     html = render_body("[x](data:text/html,alert(1))")
     assert "data:text/html" not in html
     assert 'href="#"' in html
+
+
+def test_scheme_with_embedded_control_is_neutralized():
+    # browsers ignore a tab inside the scheme, so java<TAB>script: still executes
+    html = render_body("[x](java\tscript:alert(1))")
+    assert 'href="#"' in html
+    assert "script:" not in html
+
+
+def test_tilde_fence_is_a_code_block():
+    html = render_body("~~~\n# example\n~~~")
+    assert "<pre><code>" in html
+    assert "<h1>" not in html
+    assert "# example" in html
+
+
+def test_first_h1_honors_longer_fence():
+    # a 4-backtick fence containing a literal ``` and a # must not become the title
+    assert first_h1("````\n```\n# fake\n````\n\n# Real") == "Real"
+    assert first_h1("no heading") is None
 
 
 def test_parens_in_url_are_preserved():
