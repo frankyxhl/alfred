@@ -62,9 +62,11 @@ condition and an exit condition, not just a name.
 - **Evidence (real, not hypothetical):** FXA-2189 / FXA-2191 — "Fix invalid CHG
   status" — an illegal status value already shipped once and needed a corrective
   CHG. A transition graph would have rejected it at write time.
-- **Smallest honest fix (defer to PRP):** one adjacency table per `DocType`
-  (e.g. `Proposed → {Approved, Rejected}`), enforced in `af update --status`,
-  with a `--force` escape hatch for migrations. ~30 LoC + one TDD test.
+- **Smallest honest fix (defer to PRP):** one adjacency table per `DocType`,
+  built only from that type's own `ALLOWED_STATUSES` (e.g. for PRP,
+  `Draft → {Approved, Rejected}`; never an edge that mixes statuses across
+  types), enforced in `af update --status`, with a `--force` escape hatch for
+  migrations. ~30 LoC + one TDD test.
 
 ### 3. Gap B — morphism metadata exists but is mostly unused
 
