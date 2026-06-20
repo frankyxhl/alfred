@@ -10,9 +10,13 @@ from fx_alfred.core.markdown_render import render_document
 
 
 def _derive_title(md: str, file: Path) -> str:
-    """Title = the first ATX H1 if present, else the file stem."""
+    """Title = the first ATX H1 *outside* code fences, else the file stem."""
+    in_fence = False
     for line in md.splitlines():
-        if line.startswith("# "):
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence and line.startswith("# "):
             return line[2:].strip()
     return file.stem
 
@@ -35,6 +39,8 @@ def render_cmd(file: Path, output: Path | None, title: str | None) -> None:
     """
     if not file.exists():
         raise click.ClickException(f"File not found: {file}")
+    if file.is_dir():
+        raise click.ClickException(f"Not a file: {file}")
     md = file.read_text(encoding="utf-8")
     html_doc = render_document(md, title or _derive_title(md, file))
     if output is not None:

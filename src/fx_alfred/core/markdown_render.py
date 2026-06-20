@@ -17,8 +17,17 @@ _UL = re.compile(r"^[-*]\s+(.*)$")
 _OL = re.compile(r"^\d+\.\s+(.*)$")
 _FENCE = re.compile(r"^(`{3,})")  # captures the opening backtick run
 
-_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+# Link target allows one level of balanced parens, e.g. /wiki/C_(programming_language).
+_LINK = re.compile(r"\[([^\]]+)\]\(((?:[^()]|\([^()]*\))*)\)")
+_UNSAFE_SCHEME = re.compile(r"^\s*(?:javascript|data|vbscript):", re.IGNORECASE)
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
+
+
+def _safe_href(url: str) -> str:
+    """Neutralize javascript:/data:/vbscript: targets — the output is opened in a browser."""
+    return "#" if _UNSAFE_SCHEME.match(url) else url
+
+
 # Underscore emphasis must be at word boundaries (no intraword: ALFRED_AGENT_TOOLS).
 _ITALIC = re.compile(
     r"(?<!\*)\*([^*]+)\*(?!\*)|(?<![A-Za-z0-9_])_([^_]+)_(?![A-Za-z0-9_])"
@@ -62,7 +71,7 @@ def _inline(text: str) -> str:
     # Links next: text is escaped; the URL is quote-escaped into href (no injection).
     text = _LINK.sub(
         lambda m: _hold(
-            f'<a href="{html.escape(m.group(2), quote=True)}">'
+            f'<a href="{html.escape(_safe_href(m.group(2)), quote=True)}">'
             f"{html.escape(m.group(1), quote=False)}</a>"
         ),
         text,
@@ -71,13 +80,21 @@ def _inline(text: str) -> str:
     out = html.escape(text, quote=False)
     out = _BOLD.sub(lambda m: f"<strong>{m.group(1)}</strong>", out)
     out = _ITALIC.sub(lambda m: f"<em>{m.group(1) or m.group(2)}</em>", out)
-    for idx, replacement in enumerate(stash):  # restore protected spans
-        out = out.replace(f"\x00{idx}\x00", replacement)
+    # Restore protected spans; repeat so a span nested in link text (a placeholder
+    # held inside another stash entry) is resolved too.
+    for _ in range(len(stash) + 1):
+        if "\x00" not in out:
+            break
+        for idx, replacement in enumerate(stash):
+            out = out.replace(f"\x00{idx}\x00", replacement)
     return out
 
 
 def render_body(md: str) -> str:
     """Render Markdown source into an HTML body fragment (no document wrapper)."""
+    md = md.replace(
+        "\x00", ""
+    )  # NUL is our placeholder sentinel; never accept it from input
     lines = md.splitlines()
     parts: list[str] = []
     i, n = 0, len(lines)

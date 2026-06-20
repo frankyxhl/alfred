@@ -61,6 +61,37 @@ def test_intraword_underscore_is_not_emphasis():
     assert "foo_bar_baz" in html
 
 
+def test_nul_in_input_does_not_corrupt_output():
+    # a literal NUL placeholder sequence must not alias a real stash slot
+    html = render_body("\x000\x00 and `realcode`")
+    assert "<code>realcode</code>" in html
+    assert "\x00" not in html
+
+
+def test_code_span_inside_link_text():
+    # the project's own README link style: [`code`](url) must not leak \x00
+    html = render_body("See [`af render`](README.md)")
+    assert '<a href="README.md"><code>af render</code></a>' in html
+    assert "\x00" not in html
+
+
+def test_javascript_url_is_neutralized():
+    html = render_body("[x](javascript:alert(1))")
+    assert "javascript:" not in html
+    assert 'href="#"' in html
+
+
+def test_data_url_is_neutralized():
+    html = render_body("[x](data:text/html,alert(1))")
+    assert "data:text/html" not in html
+    assert 'href="#"' in html
+
+
+def test_parens_in_url_are_preserved():
+    html = render_body("[wiki](https://en.wikipedia.org/wiki/C_(programming_language))")
+    assert 'href="https://en.wikipedia.org/wiki/C_(programming_language)"' in html
+
+
 def test_longer_fence_keeps_inner_triple_backticks_literal():
     # a 4-backtick fence containing a literal ``` and a # line: must stay verbatim
     html = render_body("````\n```\n# not a heading\n````")

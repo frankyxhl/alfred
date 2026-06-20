@@ -54,3 +54,18 @@ def test_title_option_overrides(tmp_path):
     md.write_text("# Heading")
     result = CliRunner().invoke(cli, ["render", str(md), "--title", "Custom"])
     assert "<title>Custom</title>" in result.output
+
+
+def test_directory_input_errors(tmp_path):
+    d = tmp_path / "adir"
+    d.mkdir()
+    result = CliRunner().invoke(cli, ["render", str(d)])
+    assert result.exit_code != 0
+    assert "not a file" in result.output.lower()
+
+
+def test_title_ignores_heading_inside_code_fence(tmp_path):
+    md = tmp_path / "a.md"
+    md.write_text("```\n# fake title\n```\n\n# Real Title")
+    result = CliRunner().invoke(cli, ["render", str(md)])
+    assert "<title>Real Title</title>" in result.output
