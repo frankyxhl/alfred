@@ -18,6 +18,12 @@ from fx_alfred.core.activity_log import (
 )
 
 
+def _default_targets(log_dir: Path) -> list[Path]:
+    base = log_file_for_dir(log_dir)
+    parts = sorted(log_dir.glob(f"{base.stem}.part*.jsonl")) if log_dir.exists() else []
+    return [base, *parts]
+
+
 @click.command("log-validate")
 @root_option
 @click.argument(
@@ -30,13 +36,16 @@ def log_validate_cmd(ctx: click.Context, path: Path | None) -> None:
     """Validate loose or archived activity-log rows."""
 
     log_dir = resolve_log_dir(get_root(ctx), explicit_root=has_explicit_root(ctx))
-    target = path or log_file_for_dir(log_dir)
+    targets = [path] if path is not None else _default_targets(log_dir)
     violation_count = 0
     try:
-        for source, lineno, record in iter_records(target):
-            for violation in validate_record(record):
-                violation_count += 1
-                click.echo(f"{source}:{lineno}: {violation.field}: {violation.reason}")
+        for target in targets:
+            for source, lineno, record in iter_records(target):
+                for violation in validate_record(record):
+                    violation_count += 1
+                    click.echo(
+                        f"{source}:{lineno}: {violation.field}: {violation.reason}"
+                    )
     except ActivityLogLineError as exc:
         raise click.ClickException(
             f"{exc.source}:{exc.lineno}: record: {exc.reason}"

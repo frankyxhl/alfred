@@ -328,6 +328,36 @@ def test_log_validate_default_only_checks_today_log(sample_project, monkeypatch)
     assert "activity log ok" in result.output
 
 
+def test_log_validate_default_checks_today_rollover_parts(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    monkeypatch.setattr(activity_log, "_today_utc", lambda: "2026-06-21")
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "2026-06-21.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2026-06-21T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "today",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (log_dir / "2026-06-21.part1.jsonl").write_text("[]\n", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate"])
+
+    assert result.exit_code == 1
+    assert "2026-06-21.part1.jsonl:1" in result.output
+    assert "JSONL record must be an object" in result.output
+
+
 def test_log_archive_moves_closed_project_log(sample_project, monkeypatch):
     monkeypatch.chdir(sample_project)
     log_dir = sample_project / "rules" / "logs"
