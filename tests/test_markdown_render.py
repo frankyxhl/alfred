@@ -1,6 +1,10 @@
 """Tests for the dependency-free Markdown -> HTML renderer (FXA af render)."""
 
+import pytest
+
 from fx_alfred.core.markdown_render import render_body, render_document
+
+pytestmark = pytest.mark.unit
 
 
 def test_headings():
@@ -17,7 +21,9 @@ def test_ordered_list():
 
 
 def test_fenced_code_is_escaped_verbatim():
-    assert "<pre><code>&lt;x&gt; &amp; y</code></pre>" in render_body("```\n<x> & y\n```")
+    assert "<pre><code>&lt;x&gt; &amp; y</code></pre>" in render_body(
+        "```\n<x> & y\n```"
+    )
 
 
 def test_link_and_emphasis():
@@ -29,6 +35,19 @@ def test_link_and_emphasis():
 
 def test_inline_code():
     assert "<code>af render</code>" in render_body("`af render`")
+
+
+def test_inline_code_with_markup_stays_literal():
+    # underscores/asterisks inside a code span must NOT become emphasis
+    assert "<code>ALFRED_AGENT_TOOLS</code>" in render_body("`ALFRED_AGENT_TOOLS`")
+    assert "<code>**literal**</code>" in render_body("`**literal**`")
+
+
+def test_link_target_is_quote_escaped():
+    # a double quote in the URL must not break out of the href attribute
+    html = render_body('[x](https://e/?q=" onmouseover="alert(1))')
+    assert 'onmouseover="alert(1)"' not in html
+    assert "&quot;" in html
 
 
 def test_paragraph_escapes_html():

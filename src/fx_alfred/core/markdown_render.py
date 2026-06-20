@@ -33,12 +33,36 @@ _DEFAULT_CSS = (
 
 
 def _inline(text: str) -> str:
-    """Render inline Markdown (emphasis, code, links) over HTML-escaped text."""
+    """Render inline Markdown (emphasis, code, links) to HTML.
+
+    Code spans and links are extracted to placeholders *before* escaping and
+    emphasis run, so emphasis markup never leaks into code/link content and the
+    link target is quote-escaped into the ``href`` attribute.
+    """
+    stash: list[str] = []
+
+    def _hold(replacement: str) -> str:
+        stash.append(replacement)
+        return f"\x00{len(stash) - 1}\x00"
+
+    # Code spans first: content is escaped and protected from emphasis/links.
+    text = _CODE.sub(
+        lambda m: _hold(f"<code>{html.escape(m.group(1), quote=False)}</code>"), text
+    )
+    # Links next: text is escaped; the URL is quote-escaped into href (no injection).
+    text = _LINK.sub(
+        lambda m: _hold(
+            f'<a href="{html.escape(m.group(2), quote=True)}">'
+            f"{html.escape(m.group(1), quote=False)}</a>"
+        ),
+        text,
+    )
+    # Escape the remaining text, then apply emphasis (placeholders are inert).
     out = html.escape(text, quote=False)
-    out = _CODE.sub(lambda m: f"<code>{m.group(1)}</code>", out)
     out = _BOLD.sub(lambda m: f"<strong>{m.group(1)}</strong>", out)
     out = _ITALIC.sub(lambda m: f"<em>{m.group(1) or m.group(2)}</em>", out)
-    out = _LINK.sub(lambda m: f'<a href="{m.group(2)}">{m.group(1)}</a>', out)
+    for idx, replacement in enumerate(stash):  # restore protected spans
+        out = out.replace(f"\x00{idx}\x00", replacement)
     return out
 
 

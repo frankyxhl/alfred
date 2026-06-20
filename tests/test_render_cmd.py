@@ -1,8 +1,11 @@
 """Tests for the `af render` command."""
 
+import pytest
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+
+pytestmark = pytest.mark.cli
 
 
 def test_render_to_stdout(tmp_path):
@@ -37,3 +40,17 @@ def test_title_defaults_to_first_h1(tmp_path):
     md.write_text("# My Doc\n\ntext")
     result = CliRunner().invoke(cli, ["render", str(md)])
     assert "<title>My Doc</title>" in result.output
+
+
+def test_title_falls_back_to_file_stem(tmp_path):
+    md = tmp_path / "notes.md"
+    md.write_text("no heading here")
+    result = CliRunner().invoke(cli, ["render", str(md)])
+    assert "<title>notes</title>" in result.output
+
+
+def test_title_option_overrides(tmp_path):
+    md = tmp_path / "a.md"
+    md.write_text("# Heading")
+    result = CliRunner().invoke(cli, ["render", str(md), "--title", "Custom"])
+    assert "<title>Custom</title>" in result.output
