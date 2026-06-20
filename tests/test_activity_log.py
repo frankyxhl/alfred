@@ -545,7 +545,7 @@ def test_collect_evolve_signals_reports_usage_gaps_and_never_used(sample_project
                 "agent": "other",
                 "agent_name": "native-emitter",
                 "agent_version": "unknown",
-                "event": "plan",
+                "event": "note",
                 "summary": "plan",
                 "session_id": "session",
                 "command": "plan",
@@ -557,6 +557,26 @@ def test_collect_evolve_signals_reports_usage_gaps_and_never_used(sample_project
         + "\n",
         encoding="utf-8",
     )
+    with (log_dir / "2026-06-21.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write(
+            json.dumps(
+                {
+                    "schema": "alfred.activity/v1",
+                    "ts": "2026-06-21T00:01:00Z",
+                    "agent": "other",
+                    "agent_name": "native-emitter",
+                    "agent_version": "unknown",
+                    "event": "not-real",
+                    "summary": "invalid row must not count",
+                    "session_id": "session",
+                    "command": "guide",
+                    "usage_kind": "routing_docs",
+                    "refs": ["TST-6102"],
+                    "result_count": 1,
+                }
+            )
+            + "\n"
+        )
     activity_log.append_record(
         activity_log.compose_record(
             summary="gap",

@@ -697,6 +697,8 @@ def collect_evolve_signals(
         for _source, _lineno, record in iter_records(target):
             if not _in_date_window(record, since, until):
                 continue
+            if validate_record(record):
+                continue
             command = record.get("command")
             usage_kind = record.get("usage_kind")
             if command in {"guide", "plan"}:
