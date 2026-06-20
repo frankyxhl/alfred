@@ -59,7 +59,12 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
 4. **Document health** — `af --root /path/to/fx_alfred validate --json`. Record issues.
 5. **Content analysis** — Read all SOPs via `af --root /path/to/fx_alfred list --type SOP --json`, then `af --root /path/to/fx_alfred read <ACID>` for each. Check for logic gaps, ambiguity, or drift vs COR-0002.
 6. **GitHub Issues** — `gh issue list --label agent-input --json number,title,body`. Record relevant issues.
-7. **Session logs** — Optional: scan Claude Code session history for SOP violation patterns. Skip if unavailable.
+7. **Activity ledger + session logs** — Read the user activity ledger via the COR-1205 / FXA-2307 reader before optional session-log scanning. Record:
+   - never-routed/planned SOPs in the selected window
+   - `af plan --task` zero-match routing gaps
+   - per-SOP usage frequency from `refs`
+
+   Then optionally scan Claude Code session history for SOP violation patterns. Skip the session-log scan if unavailable; do not skip the ledger read when `~/.alfred/logs/` exists.
 8. **Experience-axis signals (optional)** — For each candidate target SOP, run a brief star-ladder exercise to surface friction the structural signals miss. Write a 1-line description for each rung:
    - **1-star**: SOP is broken or causes the agent to take the wrong path.
    - **5-star**: SOP as it currently reads — executable but mechanical.
@@ -130,6 +135,7 @@ Alfred SOPs currently improve only through manual human-initiated sessions. This
   - af validate: <N issues>
   - Content analysis: <N SOPs reviewed>
   - GitHub Issues: <N relevant>
+  - Activity ledger: <N never-used SOPs, N task gaps, N SOPs with usage>
 - [ ] **Candidates evaluated** — <N generated, N passed, N discarded>
 - [ ] **PRP review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
 - [ ] **Hard gate (af validate)** — <PASS/FAIL>
@@ -167,3 +173,4 @@ claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2148)"
 | 2026-04-06 | CHG FXA-2110: Add Phase 7 Completion Checklist — mandatory post-run audit trail                                                                                                                                                                                                  | Frank + Claude  |
 | 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8                                                                                                                                                                                                   | Frank + Claude  |
 | 2026-05-17 | issue #183: insert §Phase 2 Step 8 — optional star-ladder exercise for experience-axis signals; cascade-renumber Phase 3+ steps 8–29 → 9–30 (+ workflow_loops `from: 27, to: 24` → `from: 28, to: 25`, 6 prose Step-N cross-refs); implements Option B from PRP-2293 (FXA-2293). | Claude Opus 4.7 |
+| 2026-06-21 | FXA-2307: Phase 2 now reads the activity ledger before optional session-log scanning and records never-used SOPs, `af plan --task` zero-match gaps, and per-SOP usage frequency. | Codex |

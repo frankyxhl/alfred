@@ -1,0 +1,446 @@
+"""CLI tests for activity ledger commands (FXA-2307)."""
+
+from __future__ import annotations
+
+import json
+from zipfile import ZipFile
+
+import pytest
+from click.testing import CliRunner
+
+from fx_alfred.cli import cli
+from fx_alfred.core import activity_log
+
+
+pytestmark = pytest.mark.cli
+
+
+def test_log_commands_are_registered():
+    runner = CliRunner()
+
+    for command in ("log", "log-validate", "log-archive"):
+        result = runner.invoke(cli, [command, "--help"], catch_exceptions=False)
+        assert result.exit_code == 0
+
+
+def test_log_writes_to_project_rules_log(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(
+        cli,
+        ["log", "manual checkpoint", "--ref", "COR-1205"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    files = sorted((sample_project / "rules" / "logs").glob("*.jsonl"))
+    assert len(files) == 1
+    payload = json.loads(files[0].read_text(encoding="utf-8").strip())
+    assert payload["summary"] == "manual checkpoint"
+    assert payload["command"] == "log"
+    assert payload["usage_kind"] == "manual_log"
+    assert payload["refs"] == ["COR-1205"]
+
+
+def test_log_with_explicit_empty_rules_root_writes_project_log(tmp_path):
+    root = tmp_path / "empty-project"
+    (root / "rules").mkdir(parents=True)
+
+    result = CliRunner().invoke(
+        cli,
+        ["--root", str(root), "log", "manual checkpoint"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert len(list((root / "rules" / "logs").glob("*.jsonl"))) == 1
+
+
+def test_log_without_project_discovery_uses_user_log_dir(tmp_path, monkeypatch):
+    unrelated = tmp_path / "unrelated"
+    (unrelated / "rules").mkdir(parents=True)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.chdir(unrelated)
+    monkeypatch.setattr(activity_log, "user_log_dir", lambda: home / ".alfred" / "logs")
+
+    result = CliRunner().invoke(
+        cli, ["log", "manual checkpoint"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    assert not (unrelated / "rules" / "logs").exists()
+    assert len(list((home / ".alfred" / "logs").glob("*.jsonl"))) == 1
+
+
+def test_log_lazily_archives_closed_day_before_append(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "2000-01-01.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2000-01-01T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "old",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(cli, ["log", "new"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert not (log_dir / "2000-01-01.jsonl").exists()
+    assert (log_dir / "archive.zip").exists()
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == ["2000-01-01.jsonl"]
+    current_files = [path for path in log_dir.glob("*.jsonl")]
+    assert len(current_files) == 1
+    payload = json.loads(current_files[0].read_text(encoding="utf-8"))
+    assert payload["summary"] == "new"
+
+
+def test_log_continues_when_lazy_archive_fails(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "archive.zip").write_text("not a zip", encoding="utf-8")
+    (log_dir / "2000-01-01.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2000-01-01T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "old",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(cli, ["log", "new"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "af log: lazy archival failed" in result.stderr
+    assert f"in {log_dir}" in result.stderr
+    assert "ArchiveError:" in result.stderr
+    assert "Recover: af log-archive --force" in result.stderr
+    assert (log_dir / "2000-01-01.jsonl").exists()
+    current_files = [
+        path for path in log_dir.glob("*.jsonl") if path.name != "2000-01-01.jsonl"
+    ]
+    assert len(current_files) == 1
+    payload = json.loads(current_files[0].read_text(encoding="utf-8"))
+    assert payload["summary"] == "new"
+
+
+def test_log_continues_when_lazy_archive_filesystem_error(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+
+    def broken_archive(_log_dir):
+        raise FileNotFoundError("closed log\ndisappeared")
+
+    monkeypatch.setattr("fx_alfred.commands.log_cmd.archive_directory", broken_archive)
+
+    result = CliRunner().invoke(cli, ["log", "new"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "af log: lazy archival failed" in result.stderr
+    assert f"in {sample_project / 'rules' / 'logs'}" in result.stderr
+    assert "FileNotFoundError:" in result.stderr
+    assert "closed log\\ndisappeared" in result.stderr
+    assert "closed log\ndisappeared" not in result.stderr
+    assert "Recover: af log-archive --force" in result.stderr
+    current_files = sorted((sample_project / "rules" / "logs").glob("*.jsonl"))
+    assert len(current_files) == 1
+    payload = json.loads(current_files[0].read_text(encoding="utf-8"))
+    assert payload["summary"] == "new"
+
+
+def test_log_rejects_invalid_event_before_append(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+
+    result = CliRunner().invoke(cli, ["log", "bad", "--event", "not-an-event"])
+
+    assert result.exit_code == 3
+    assert "event" in result.output
+    assert not (sample_project / "rules" / "logs").exists()
+
+
+def test_log_validate_reports_unknown_field(tmp_path):
+    log_file = tmp_path / "bad.jsonl"
+    log_file.write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2026-06-21T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "bad",
+                "session_id": "session",
+                "surprise": "not allowed",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(cli, ["log-validate", str(log_file)])
+
+    assert result.exit_code == 1
+    assert "surprise" in result.output
+
+
+def test_log_validate_rejects_oversized_loose_jsonl_line(tmp_path):
+    log_file = tmp_path / "oversized.jsonl"
+    payload = {
+        "schema": "alfred.activity/v1",
+        "ts": "2026-06-21T00:00:00Z",
+        "agent": "other",
+        "agent_name": "af",
+        "agent_version": "unknown",
+        "event": "note",
+        "summary": "ok",
+        "session_id": "session",
+        "files": ["x" * 4100],
+    }
+    log_file.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(log_file)])
+
+    assert result.exit_code == 1
+    assert "JSONL line exceeds 4096 bytes" in result.output
+
+
+def test_log_validate_rejects_oversized_archived_jsonl_line(tmp_path):
+    archive = tmp_path / "archive.zip"
+    payload = {
+        "schema": "alfred.activity/v1",
+        "ts": "2026-06-21T00:00:00Z",
+        "agent": "other",
+        "agent_name": "af",
+        "agent_version": "unknown",
+        "event": "note",
+        "summary": "ok",
+        "session_id": "session",
+        "files": ["x" * 4100],
+    }
+    with ZipFile(archive, "w") as zf:
+        zf.writestr("2026-06-21.jsonl", json.dumps(payload) + "\n")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(archive)])
+
+    assert result.exit_code == 1
+    assert "archive.zip::2026-06-21.jsonl" in result.output
+    assert "JSONL line exceeds 4096 bytes" in result.output
+
+
+def test_log_validate_rejects_non_object_jsonl_record(tmp_path):
+    log_file = tmp_path / "bad.jsonl"
+    log_file.write_text("[]\n", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(log_file)])
+
+    assert result.exit_code == 1
+    assert "JSONL record must be an object" in result.output
+
+
+def test_log_validate_rejects_invalid_utf8_loose_jsonl_line(tmp_path):
+    log_file = tmp_path / "bad.jsonl"
+    log_file.write_bytes(b'{"schema":"alfred.activity/v1","summary":"\xff"}\n')
+
+    result = CliRunner().invoke(cli, ["log-validate", str(log_file)])
+
+    assert result.exit_code == 1
+    assert "invalid UTF-8" in result.output
+    assert f"{log_file}:1" in result.output
+
+
+def test_log_validate_rejects_invalid_utf8_archived_jsonl_line(tmp_path):
+    archive = tmp_path / "archive.zip"
+    with ZipFile(archive, "w") as zf:
+        zf.writestr("2026-06-21.jsonl", b'{"schema":"alfred.activity/v1","\xff":1}\n')
+
+    result = CliRunner().invoke(cli, ["log-validate", str(archive)])
+
+    assert result.exit_code == 1
+    assert "archive.zip::2026-06-21.jsonl:1" in result.output
+    assert "invalid UTF-8" in result.output
+
+
+def test_log_validate_corrupt_archive_uses_exit_code_five(tmp_path):
+    archive = tmp_path / "archive.zip"
+    archive.write_text("not a zip", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate", str(archive)])
+
+    assert result.exit_code == 5
+    assert "corrupt archive.zip" in result.output
+
+
+def test_log_validate_missing_default_log_dir_is_empty(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+
+    result = CliRunner().invoke(cli, ["log-validate"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "activity log ok" in result.output
+
+
+def test_log_validate_default_only_checks_today_log(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    monkeypatch.setattr(activity_log, "_today_utc", lambda: "2026-06-21")
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "2000-01-01.jsonl").write_text("{bad json\n", encoding="utf-8")
+    (log_dir / "2026-06-21.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2026-06-21T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "today",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(cli, ["log-validate"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "activity log ok" in result.output
+
+
+def test_log_validate_default_checks_today_rollover_parts(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    monkeypatch.setattr(activity_log, "_today_utc", lambda: "2026-06-21")
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "2026-06-21.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2026-06-21T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "today",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (log_dir / "2026-06-21.part1.jsonl").write_text("[]\n", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-validate"])
+
+    assert result.exit_code == 1
+    assert "2026-06-21.part1.jsonl:1" in result.output
+    assert "JSONL record must be an object" in result.output
+
+
+def test_log_archive_moves_closed_project_log(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "2000-01-01.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2026-06-20T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "old",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(cli, ["log-archive"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert (log_dir / "archive.zip").exists()
+    assert not (log_dir / "2000-01-01.jsonl").exists()
+
+
+def test_log_archive_accepts_explicit_log_dir_path(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "2000-01-01.jsonl").write_text(
+        json.dumps(
+            {
+                "schema": "alfred.activity/v1",
+                "ts": "2000-01-01T00:00:00Z",
+                "agent": "other",
+                "agent_name": "af",
+                "agent_version": "unknown",
+                "event": "note",
+                "summary": "old",
+                "session_id": "session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["log-archive", str(log_dir)], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    assert (log_dir / "archive.zip").exists()
+    assert not (log_dir / "2000-01-01.jsonl").exists()
+
+
+def test_log_archive_force_replaces_corrupt_archive_without_loose_files(
+    sample_project, monkeypatch
+):
+    monkeypatch.chdir(sample_project)
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "archive.zip").write_text("not a zip", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-archive", "--force"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == []
+
+
+def test_log_archive_filesystem_error_uses_exit_code_four(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+
+    def broken_archive(_log_dir, *, force=False):
+        raise PermissionError("archive.zip.tmp denied")
+
+    monkeypatch.setattr(
+        "fx_alfred.commands.log_archive_cmd.archive_directory", broken_archive
+    )
+
+    result = CliRunner().invoke(cli, ["log-archive"])
+
+    assert result.exit_code == 4
+    assert "archive.zip.tmp denied" in result.output

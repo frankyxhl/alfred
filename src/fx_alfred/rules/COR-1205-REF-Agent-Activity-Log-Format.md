@@ -13,7 +13,7 @@
 
 The canonical data contract for the Alfred activity log protocol. Defines the on-disk format, schema (`alfred.activity/v1`), required + optional fields, event enum, file rotation, archival procedure, and operational constraints. Any coding agent — Claude Code, GitHub Copilot, Cursor, Cline, Aider, Codex CLI, Gemini CLI, or any future tool — emits structured events to this format so "what was done in this session" becomes machine-readable across tools.
 
-This document defines the **format**. The **emit protocol** (mandatory triggers, per-agent integration recipes, scanner-skip enforcement) lives in COR-1206. The **CLI surfaces** that read and write this format are `af log`, `af log-validate`, `af log-archive` — **scaffolded in CHG-2231 Phase 0 and implemented across Phases 2–5; target release v1.9.0**. Until those phases land in `main`, the commands are placeholder modules and `af <log|log-validate|log-archive>` will return non-zero (command not registered); this REF still describes the eventual contract authoritatively.
+This document defines the **format**. The **emit protocol** (mandatory triggers, per-agent integration recipes, scanner-skip enforcement) lives in COR-1206. The **CLI surfaces** that read and write this format are `af log`, `af log-validate`, and `af log-archive`. FXA-2307 implements the command surfaces and first-party Alfred command-usage telemetry for `af guide` and `af plan`; cross-agent native hooks remain future work.
 
 ---
 
@@ -69,6 +69,14 @@ UTF-8, LF line terminator, one JSON object per line, no embedded newlines, no tr
 | `parent_event` | string | Same format as `session_id`; correlation id |
 | `agent_name` | string | **Required when `agent: "other"`**, MUST be omitted otherwise. 1–64 chars; identifies the unrecognized harness (e.g. `"qodo"`, `"continue"`). |
 | `summary_truncated` | boolean | `true` only when `af log` truncated `summary` or trimmed `files`/`refs` to fit the 4 KiB line cap. MUST be omitted otherwise. `false` is **not allowed** in v1 (absence implies no truncation). |
+| `command` | string | Optional first-party Alfred command marker. One of `guide`, `plan`, `log`, `log-validate`, `log-archive`. |
+| `usage_kind` | string | Optional command-usage subtype. One of `routing_docs`, `plan_explicit`, `plan_task`, `plan_task_gap`, `manual_log`. |
+| `task_text` | string | Optional sanitized `af plan --task` value, ≤ 200 chars, no newlines or NUL bytes. Must not contain secrets. |
+| `task_text_sha256` | string | Optional lowercase hex SHA-256 of the raw UTF-8 `--task` value before sanitization/truncation. |
+| `task_text_redacted` | boolean | `true` only when the task text was omitted or truncated for privacy. MUST be omitted otherwise. |
+| `result_count` | integer | Optional non-negative count for surfaced routing docs or composed SOP refs. |
+
+First-party Alfred command telemetry uses `agent: "other"` with `agent_name: "af"`, `event: "note"`, and existing `refs` for SOP / routing document ids. `af guide` and `af plan` write these rows to the USR ledger at `~/.alfred/logs/` so personal routing telemetry does not churn a project repository.
 
 ---
 
@@ -184,7 +192,7 @@ Agents are responsible for their own redaction; the validator does not detect se
 
 ## Versioning
 
-Schema version is fixed in the `schema` field as the literal string `"alfred.activity/v1"`. Breaking changes ship as `alfred.activity/v2` and require a new PRP. v1 readers MUST ignore unknown optional fields they encounter (forward compatibility); v1 writers MUST NOT emit fields not listed in v1.
+Schema version is fixed in the `schema` field as the literal string `"alfred.activity/v1"`. Breaking changes ship as `alfred.activity/v2` and require a new PRP. v1 readers MAY ignore unknown optional fields they encounter for forward compatibility; v1 writers and `af log-validate` MUST NOT accept fields not listed in v1.
 
 ---
 
@@ -209,3 +217,4 @@ On detection, emit a one-time stderr warning. Hard refusal is deferred to v2 to 
 | Date | Change | By |
 |------|--------|----|
 | 2026-05-02 | Initial version. Implements PRP-2230 (Agent Activity Log Protocol v1) §"Storage location" + §"Required/Optional fields" + §"v1 event enum" + §"Per-record line size cap" + §"Rotation" + §"Archival" + §"File permissions" + §"Default git policy" + §"Privacy & safety" + §"Versioning". Adds retention policy (30-day default + 256 MiB soft cap) and explicit OS-appropriate filesystem-type detection guidance per PRP-2230 R5+R7 advisories. | Frank + Claude |
+| 2026-06-21 | FXA-2307: command surfaces implemented; added first-party Alfred command-usage fields for `af guide` / `af plan`, USR telemetry behavior, and writer-side unknown-field validation. | Codex |

@@ -8,6 +8,7 @@ import click
 
 from fx_alfred.commands._helpers import emit_json, find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
+from fx_alfred.core.activity_log import append_usage_event
 from fx_alfred.core.document import Document
 from fx_alfred.core.parser import (
     MalformedDocumentError,
@@ -527,6 +528,16 @@ def _resolve_sop_ids(
             task_description, all_sops, list(sop_ids)
         )
     except CompositionError as e:
+        if e.exit_code == 2:
+            try:
+                append_usage_event(
+                    command="plan",
+                    usage_kind="plan_task_gap",
+                    task_text=task_description,
+                    result_count=0,
+                )
+            except Exception:
+                pass
         exc = click.ClickException(str(e))
         exc.exit_code = e.exit_code
         raise exc from e
@@ -977,6 +988,17 @@ def plan_cmd(
     edges = _validate_composition(phase_info)
     _validate_cross_sop_loops(phase_info)
     composition_valid = all(e.compatible for e in edges) if edges else True
+    usage_refs = [f"{doc.prefix}-{doc.acid}" for _, doc, *_ in phase_info]
+    try:
+        append_usage_event(
+            command="plan",
+            usage_kind="plan_task" if task_description is not None else "plan_explicit",
+            refs=usage_refs,
+            task_text=task_description,
+            result_count=len(usage_refs),
+        )
+    except Exception:
+        pass
 
     if output_todo and not output_json:
         _emit_todo_text(

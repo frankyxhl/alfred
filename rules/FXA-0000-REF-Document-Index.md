@@ -1,8 +1,8 @@
 # REF-0000: Document Index
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-20
-**Last reviewed:** 2026-06-20
+**Last updated:** 2026-06-21
+**Last reviewed:** 2026-06-21
 **Status:** Active
 
 ---
@@ -217,6 +217,7 @@
 | 2304 | CHG | Export Repeatable Sources And File Includes | Completed |
 | 2305 | PRP | Cross Platform Agent Skill | Implemented |
 | 2306 | REF | Object To Transformation Design Lens | Active |
+| 2307 | PRP | Append Only Usage Ledger For Evolve Signals | Approved |
 
 ---
 
