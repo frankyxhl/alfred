@@ -580,12 +580,9 @@ def archive_directory(
                     [], skipped=True, message="another archiver is running, skipping"
                 )
 
-            closed = [p for p in _jsonl_files(log_dir) if p.name.split(".")[0] < day]
-            if not closed:
-                return ArchiveResult([], message="nothing to archive")
-
             archive = log_dir / "archive.zip"
             existing: dict[str, bytes] = {}
+            archive_was_corrupt = False
             if archive.exists():
                 try:
                     with zipfile.ZipFile(archive) as zf:
@@ -595,6 +592,11 @@ def archive_directory(
                         raise ArchiveError(
                             "corrupt archive.zip; rerun with --force"
                         ) from exc
+                    archive_was_corrupt = True
+
+            closed = [p for p in _jsonl_files(log_dir) if p.name.split(".")[0] < day]
+            if not closed and not archive_was_corrupt:
+                return ArchiveResult([], message="nothing to archive")
 
             fd, tmp_name = tempfile.mkstemp(
                 prefix=f"archive.zip.tmp.{os.getpid()}.", dir=log_dir

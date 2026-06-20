@@ -109,6 +109,24 @@ def test_log_continues_when_lazy_archive_fails(sample_project, monkeypatch):
     assert payload["summary"] == "new"
 
 
+def test_log_continues_when_lazy_archive_filesystem_error(sample_project, monkeypatch):
+    monkeypatch.chdir(sample_project)
+
+    def broken_archive(_log_dir):
+        raise FileNotFoundError("closed log disappeared")
+
+    monkeypatch.setattr("fx_alfred.commands.log_cmd.archive_directory", broken_archive)
+
+    result = CliRunner().invoke(cli, ["log", "new"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "archive skipped" in result.stderr
+    current_files = sorted((sample_project / "rules" / "logs").glob("*.jsonl"))
+    assert len(current_files) == 1
+    payload = json.loads(current_files[0].read_text(encoding="utf-8"))
+    assert payload["summary"] == "new"
+
+
 def test_log_rejects_invalid_event_before_append(sample_project, monkeypatch):
     monkeypatch.chdir(sample_project)
 
@@ -267,3 +285,18 @@ def test_log_archive_moves_closed_project_log(sample_project, monkeypatch):
     assert result.exit_code == 0
     assert (log_dir / "archive.zip").exists()
     assert not (log_dir / "2000-01-01.jsonl").exists()
+
+
+def test_log_archive_force_replaces_corrupt_archive_without_loose_files(
+    sample_project, monkeypatch
+):
+    monkeypatch.chdir(sample_project)
+    log_dir = sample_project / "rules" / "logs"
+    log_dir.mkdir(parents=True)
+    (log_dir / "archive.zip").write_text("not a zip", encoding="utf-8")
+
+    result = CliRunner().invoke(cli, ["log-archive", "--force"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == []

@@ -58,7 +58,7 @@ def log_cmd(
     log_dir = resolve_log_dir(get_root(ctx))
     try:
         archive_directory(log_dir)
-    except ArchiveError as exc:
+    except (ArchiveError, OSError) as exc:
         click.echo(f"warning: activity log archive skipped: {exc}", err=True)
     path = append_record(record, log_dir=log_dir)
     click.echo(str(path))
