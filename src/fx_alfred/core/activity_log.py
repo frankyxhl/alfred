@@ -13,6 +13,7 @@ import json
 import os
 import re
 import tempfile
+import uuid
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -203,10 +204,16 @@ def compose_record(
         "schema": SCHEMA_LITERAL,
         "ts": _rfc3339(_utc_now()),
         "agent": agent,
-        "agent_version": agent_version or os.environ.get("AF_AGENT_VERSION", "unknown"),
+        "agent_version": agent_version
+        or os.environ.get("ALFRED_AGENT_VERSION")
+        or os.environ.get("AF_AGENT_VERSION")
+        or "unknown",
         "event": event,
         "summary": summary_text,
-        "session_id": session_id or os.environ.get("AF_SESSION_ID", "unknown"),
+        "session_id": session_id
+        or os.environ.get("ALFRED_SESSION_ID")
+        or os.environ.get("AF_SESSION_ID")
+        or str(uuid.uuid4()),
     }
     if agent_name is not None or agent == "other":
         record["agent_name"] = agent_name or "af"
@@ -365,12 +372,27 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
 
 
 def _jsonl_files(directory: Path) -> list[Path]:
-    return sorted(
-        p
-        for pattern in ("*.jsonl", "*.part*.jsonl")
-        for p in directory.glob(pattern)
-        if p.is_file()
-    )
+    return sorted(p for p in directory.glob("*.jsonl") if p.is_file())
+
+
+def _iter_zip_records(
+    path: Path, *, skip_members: set[str] | None = None
+) -> Iterator[tuple[str, int, dict[str, Any]]]:
+    skipped = skip_members or set()
+    seen: set[str] = set()
+    with zipfile.ZipFile(path) as zf:
+        for member in sorted(zf.namelist()):
+            if not member.endswith(".jsonl") or member in skipped or member in seen:
+                continue
+            seen.add(member)
+            with zf.open(member) as fh:
+                for lineno, raw in enumerate(fh, start=1):
+                    if raw.strip():
+                        yield (
+                            f"{path}::{member}",
+                            lineno,
+                            json.loads(raw.decode("utf-8")),
+                        )
 
 
 def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
@@ -379,25 +401,17 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
     if not path.exists():
         return
     if path.is_dir():
-        for file_path in _jsonl_files(path):
+        loose_files = _jsonl_files(path)
+        for file_path in loose_files:
             yield from iter_records(file_path)
         archive = path / "archive.zip"
         if archive.exists():
-            yield from iter_records(archive)
+            yield from _iter_zip_records(
+                archive, skip_members={file_path.name for file_path in loose_files}
+            )
         return
     if path.suffix == ".zip":
-        with zipfile.ZipFile(path) as zf:
-            for member in sorted(zf.namelist()):
-                if not member.endswith(".jsonl"):
-                    continue
-                with zf.open(member) as fh:
-                    for lineno, raw in enumerate(fh, start=1):
-                        if raw.strip():
-                            yield (
-                                f"{path}::{member}",
-                                lineno,
-                                json.loads(raw.decode("utf-8")),
-                            )
+        yield from _iter_zip_records(path)
         return
     with path.open(encoding="utf-8") as fh:
         for lineno, line in enumerate(fh, start=1):
@@ -444,7 +458,10 @@ def archive_directory(
         tmp_path = Path(tmp_name)
         try:
             with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                closed_names = {file_path.name for file_path in closed}
                 for name, payload in sorted(existing.items()):
+                    if name in closed_names:
+                        continue
                     zf.writestr(name, payload)
                 for file_path in closed:
                     zf.write(file_path, arcname=file_path.name)

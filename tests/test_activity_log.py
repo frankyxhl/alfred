@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from zipfile import ZipFile
 
 import pytest
@@ -95,6 +96,20 @@ def test_archive_directory_moves_closed_day_to_zip(tmp_path):
         assert "2026-06-20.jsonl" in zf.namelist()
 
 
+def test_jsonl_files_returns_rollover_parts_once(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    base = log_dir / "2026-06-20.jsonl"
+    part = log_dir / "2026-06-20.part1.jsonl"
+    base.write_text("", encoding="utf-8")
+    part.write_text("", encoding="utf-8")
+
+    files = activity_log._jsonl_files(log_dir)
+
+    assert files == [part, base] or files == [base, part]
+    assert len(files) == len({file.name for file in files})
+
+
 def test_append_record_rolls_to_next_part_when_part_one_is_full(tmp_path, monkeypatch):
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
@@ -127,6 +142,70 @@ def test_append_record_trims_refs_and_files_until_line_fits(tmp_path, monkeypatc
 
     assert len(line) <= activity_log.RECORD_LINE_CAP_BYTES
     assert payload["summary_truncated"] is True
+
+
+def test_compose_record_reads_documented_alfred_env(monkeypatch):
+    monkeypatch.setenv("ALFRED_SESSION_ID", "session-123")
+    monkeypatch.setenv("ALFRED_AGENT_VERSION", "agent-9")
+
+    record = activity_log.compose_record(summary="env")
+
+    assert record["session_id"] == "session-123"
+    assert record["agent_version"] == "agent-9"
+
+
+def test_compose_record_generates_session_id_when_missing(monkeypatch):
+    monkeypatch.delenv("ALFRED_SESSION_ID", raising=False)
+    monkeypatch.delenv("AF_SESSION_ID", raising=False)
+
+    record = activity_log.compose_record(summary="env")
+
+    assert re.fullmatch(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+        record["session_id"],
+    )
+
+
+def test_iter_records_skips_archive_member_when_loose_file_exists(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_text(
+        json.dumps(activity_log.compose_record(summary="loose")) + "\n",
+        encoding="utf-8",
+    )
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr(
+            "2026-06-20.jsonl",
+            json.dumps(activity_log.compose_record(summary="archived")) + "\n",
+        )
+
+    records = list(activity_log.iter_records(log_dir))
+
+    assert len(records) == 1
+    assert records[0][2]["summary"] == "loose"
+
+
+def test_archive_directory_replaces_existing_member_once(tmp_path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="new")) + "\n",
+        encoding="utf-8",
+    )
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr(
+            "2026-06-20.jsonl",
+            json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        )
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == ["2026-06-20.jsonl"]
+        payload = json.loads(zf.read("2026-06-20.jsonl"))
+    assert payload["summary"] == "new"
 
 
 def test_log_dir_resolution_uses_project_rules_log_when_project_exists(sample_project):
