@@ -59,6 +59,8 @@ def test_task_text_is_hashed_and_redacted_for_sensitive_values():
         "deploy with sk-" + ("a" * 24),
         "push with ghp_" + ("A" * 32),
         "rotate AWS_SECRET_ACCESS_KEY=" + ("b" * 40),
+        "connect DATABASE_URL=postgres://user:pass@host/db",
+        "call https://user:pass@example.com/api",
     ],
 )
 def test_task_text_redacts_provider_token_shapes(task_text):
@@ -193,6 +195,33 @@ def test_append_record_trims_refs_and_files_until_line_fits(tmp_path, monkeypatc
 
     assert len(line) <= activity_log.RECORD_LINE_CAP_BYTES
     assert payload["summary_truncated"] is True
+
+
+def test_append_record_locks_target_selection_and_write(tmp_path, monkeypatch):
+    log_dir = tmp_path / "logs"
+    lock_state = {"held": False}
+    original_target_path = activity_log._append_target_path
+    original_flock = activity_log.fcntl.flock
+
+    def tracking_flock(fd, operation):
+        if operation & activity_log.fcntl.LOCK_EX:
+            lock_state["held"] = True
+        return original_flock(fd, operation)
+
+    def checking_target_path(target_dir, line_len):
+        assert lock_state["held"] is True
+        return original_target_path(target_dir, line_len)
+
+    monkeypatch.setattr(activity_log.fcntl, "flock", tracking_flock)
+    monkeypatch.setattr(activity_log, "_append_target_path", checking_target_path)
+
+    path = activity_log.append_record(
+        activity_log.compose_record(summary="locked append"),
+        log_dir=log_dir,
+    )
+
+    assert path.exists()
+    assert (log_dir / ".append.lock").exists()
 
 
 def test_compose_record_reads_documented_alfred_env(monkeypatch):

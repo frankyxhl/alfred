@@ -92,6 +92,10 @@ _SENSITIVE_RE = re.compile(
         \b(?:sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9_]{8,}|
            github_pat_[A-Za-z0-9_]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|
            AKIA[0-9A-Z]{12,})\b
+        |
+        \b[A-Z][A-Z0-9_]{2,}\s*=\s*\S+
+        |
+        [A-Za-z][A-Za-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@
     )
     """,
     re.IGNORECASE | re.VERBOSE,
@@ -302,12 +306,15 @@ def append_record(record: dict[str, Any], *, log_dir: Path | None = None) -> Pat
     target_dir = log_dir or user_log_dir()
     target_dir.mkdir(parents=True, exist_ok=True)
     _record, line = _fit_record_line(record)
-    path = _append_target_path(target_dir, len(line))
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
-    try:
-        os.write(fd, line)
-    finally:
-        os.close(fd)
+    lock_path = target_dir / ".append.lock"
+    with lock_path.open("w", encoding="utf-8") as lock_fh:
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        path = _append_target_path(target_dir, len(line))
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+        try:
+            os.write(fd, line)
+        finally:
+            os.close(fd)
     return path
 
 
