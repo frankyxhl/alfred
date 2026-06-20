@@ -6,6 +6,7 @@ import click
 
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.activity_log import (
+    ArchiveError,
     append_record,
     archive_directory,
     compose_record,
@@ -55,6 +56,9 @@ def log_cmd(
         message = "; ".join(f"{v.field}: {v.reason}" for v in violations)
         raise click.ClickException(message)
     log_dir = resolve_log_dir(get_root(ctx))
-    archive_directory(log_dir)
+    try:
+        archive_directory(log_dir)
+    except ArchiveError as exc:
+        click.echo(f"warning: activity log archive skipped: {exc}", err=True)
     path = append_record(record, log_dir=log_dir)
     click.echo(str(path))

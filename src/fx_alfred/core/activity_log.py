@@ -382,12 +382,19 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
         violations.append(Violation("session_id", "invalid session id"))
     if record.get("agent") not in AGENT_WHITELIST:
         violations.append(Violation("agent", "unknown agent"))
-    if record.get("agent") == "other" and not record.get("agent_name"):
+    agent_name = record.get("agent_name")
+    if record.get("agent") == "other" and not agent_name:
         violations.append(Violation("agent_name", "required when agent is other"))
     if record.get("agent") != "other" and "agent_name" in record:
         violations.append(
             Violation("agent_name", "must be omitted unless agent is other")
         )
+    if "agent_name" in record and (
+        not isinstance(agent_name, str)
+        or not (1 <= len(agent_name) <= 64)
+        or not _ASCII_NO_WHITESPACE_RE.fullmatch(agent_name)
+    ):
+        violations.append(Violation("agent_name", "invalid agent name"))
     if record.get("event") not in EVENT_ENUM:
         violations.append(Violation("event", "unknown event"))
     if "command" in record and record["command"] not in COMMAND_ENUM:
@@ -412,6 +419,20 @@ def validate_record(record: dict[str, Any]) -> list[Violation]:
         count = record["result_count"]
         if not isinstance(count, int) or count < 0:
             violations.append(Violation("result_count", "must be non-negative integer"))
+    if "duration_ms" in record:
+        duration = record["duration_ms"]
+        if not isinstance(duration, int) or not (0 <= duration <= 86_400_000):
+            violations.append(
+                Violation("duration_ms", "must be integer between 0 and 86400000")
+            )
+    if "parent_event" in record:
+        parent_event = record["parent_event"]
+        if (
+            not isinstance(parent_event, str)
+            or not (1 <= len(parent_event) <= 128)
+            or not _NO_WHITESPACE_RE.fullmatch(parent_event)
+        ):
+            violations.append(Violation("parent_event", "invalid correlation id"))
     for list_field, cap in (("refs", REFS_CAP), ("files", FILES_CAP)):
         if list_field not in record:
             continue

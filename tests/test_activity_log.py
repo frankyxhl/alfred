@@ -115,6 +115,22 @@ def test_validate_record_rejects_invalid_required_values():
     assert {"ts", "summary", "agent_version", "session_id"} <= fields
 
 
+def test_validate_record_rejects_invalid_optional_values():
+    record = activity_log.compose_record(summary="optional")
+    record.update(
+        {
+            "agent_name": "bad name",
+            "duration_ms": -1,
+            "parent_event": "bad parent",
+        }
+    )
+
+    violations = activity_log.validate_record(record)
+
+    fields = {violation.field for violation in violations}
+    assert {"agent_name", "duration_ms", "parent_event"} <= fields
+
+
 def test_iter_records_reads_zip_with_double_colon_source(tmp_path):
     archive = tmp_path / "archive.zip"
     with ZipFile(archive, "w") as zf:
