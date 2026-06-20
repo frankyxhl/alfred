@@ -104,6 +104,15 @@ def test_compose_record_deduplicates_refs_before_truncation():
     assert record["refs"] == ["TST-6101", "COR-1205"]
 
 
+def test_compose_record_deduplicates_files_before_truncation():
+    record = activity_log.compose_record(
+        summary="files",
+        files=["src/a.py", "src/a.py", "src/b.py"],
+    )
+
+    assert record["files"] == ["src/a.py", "src/b.py"]
+
+
 def test_validate_record_rejects_noncanonical_refs():
     record = activity_log.compose_record(summary="refs", refs=["TST-6101"])
     record["refs"] = ["not-a-doc-id"]
@@ -558,6 +567,7 @@ def test_collect_evolve_signals_reports_usage_gaps_and_never_used(sample_project
         encoding="utf-8",
     )
     with (log_dir / "2026-06-21.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write("{bad json\n")
         fh.write(
             json.dumps(
                 {

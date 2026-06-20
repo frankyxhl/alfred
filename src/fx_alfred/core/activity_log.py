@@ -287,7 +287,7 @@ def compose_record(
     if refs:
         record["refs"] = list(dict.fromkeys(refs))[:REFS_CAP]
     if files:
-        record["files"] = list(files)[:FILES_CAP]
+        record["files"] = list(dict.fromkeys(files))[:FILES_CAP]
     if command:
         record["command"] = command
     if usage_kind:
@@ -595,7 +595,76 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
     with path.open("rb") as fh:
         for lineno, raw in enumerate(fh, start=1):
             if raw.strip():
-                yield (str(path), lineno, _parse_jsonl_record(str(path), lineno, raw))
+                yield (
+                    str(path),
+                    lineno,
+                    _parse_jsonl_record(str(path), lineno, raw),
+                )
+
+
+def _iter_zip_records_best_effort(
+    path: Path, *, skip_members: set[str] | None = None
+) -> Iterator[tuple[str, int, dict[str, Any]]]:
+    skipped = skip_members or set()
+    seen: set[str] = set()
+    try:
+        with zipfile.ZipFile(path) as zf:
+            for member in sorted(zf.namelist()):
+                if not member.endswith(".jsonl") or member in skipped or member in seen:
+                    continue
+                seen.add(member)
+                with zf.open(member) as fh:
+                    for lineno, raw in enumerate(fh, start=1):
+                        if not raw.strip():
+                            continue
+                        source = f"{path}::{member}"
+                        try:
+                            yield (
+                                source,
+                                lineno,
+                                _parse_jsonl_record(source, lineno, raw),
+                            )
+                        except ActivityLogLineError:
+                            continue
+    except (OSError, zipfile.BadZipFile):
+        return
+
+
+def _iter_records_best_effort(
+    path: Path,
+) -> Iterator[tuple[str, int, dict[str, Any]]]:
+    """Yield parseable records while skipping corrupt ledger rows."""
+
+    if not path.exists():
+        return
+    if path.is_dir():
+        loose_files = _jsonl_files(path)
+        for file_path in loose_files:
+            yield from _iter_records_best_effort(file_path)
+        archive = path / "archive.zip"
+        if archive.exists():
+            yield from _iter_zip_records_best_effort(
+                archive, skip_members={file_path.name for file_path in loose_files}
+            )
+        return
+    if path.suffix == ".zip":
+        yield from _iter_zip_records_best_effort(path)
+        return
+    try:
+        with path.open("rb") as fh:
+            for lineno, raw in enumerate(fh, start=1):
+                if not raw.strip():
+                    continue
+                try:
+                    yield (
+                        str(path),
+                        lineno,
+                        _parse_jsonl_record(str(path), lineno, raw),
+                    )
+                except ActivityLogLineError:
+                    continue
+    except OSError:
+        return
 
 
 def archive_directory(
@@ -694,7 +763,7 @@ def collect_evolve_signals(
     plan_task_gaps: list[dict[str, Any]] = []
 
     if target.exists():
-        for _source, _lineno, record in iter_records(target):
+        for _source, _lineno, record in _iter_records_best_effort(target):
             if not _in_date_window(record, since, until):
                 continue
             if validate_record(record):
