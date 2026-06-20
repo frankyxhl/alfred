@@ -44,6 +44,7 @@ Quick Start:
         "list": "fx_alfred.commands.list_cmd:list_cmd",
         "plan": "fx_alfred.commands.plan_cmd:plan_cmd",
         "read": "fx_alfred.commands.read_cmd:read_cmd",
+        "render": "fx_alfred.commands.render_cmd:render_cmd",
         "setup": "fx_alfred.commands.setup_cmd:setup_cmd",
         "search": "fx_alfred.commands.search_cmd:search_cmd",
         "skill": "fx_alfred.commands.skill_cmd:skill_cmd",
