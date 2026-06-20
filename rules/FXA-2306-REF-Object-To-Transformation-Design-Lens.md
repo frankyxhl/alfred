@@ -59,9 +59,13 @@ move *from the current value*". Today `Completed → Proposed` and
 This is exactly the essay's "state honesty" point: a state needs an entry
 condition and an exit condition, not just a name.
 
-- **Evidence (real, not hypothetical):** FXA-2189 / FXA-2191 — "Fix invalid CHG
-  status" — an illegal status value already shipped once and needed a corrective
-  CHG. A transition graph would have rejected it at write time.
+- **Two layers, do not conflate them.** *Membership* (is the value in the set)
+  is already guarded: FXA-2189 / FXA-2191 fixed FXA-2185, a CHG carrying the
+  out-of-set value `Implemented`, and today's `validate_spec_status` membership
+  check would reject that at write time. That incident is **not** transition
+  evidence. *Transition ordering* (a valid value moving in an illegal order,
+  e.g. `Completed → Proposed`) is the actual Gap A — currently unguarded, no
+  logged incident yet, a latent gap rather than a past failure.
 - **Smallest honest fix (defer to PRP):** one adjacency table per `DocType`,
   built only from that type's own `ALLOWED_STATUSES` (e.g. for PRP,
   `Draft → {Approved, Rejected}`; never an edge that mixes statuses across
