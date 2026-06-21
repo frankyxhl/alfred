@@ -36,8 +36,8 @@ Alfred SOPs improve through reviewed document changes. This wrapper keeps the SO
 ## Steps
 
 1. **Start engine** — Read `FXA-2309` and run it with `instance_id: evolve-sop`.
-2. **Apply prerequisites and skip conditions** — Require `gh auth`, Trinity review capability, and `af`. Skip if `gh pr list --label evolve` returns an open PR.
-3. **Use SOP signal profile** — Collect `af validate --json`, SOP content analysis, GitHub issues labeled `agent-input`, activity ledger/session-log signals, and optional experience-axis signals (method: `FXA-2293`; do not propose 11-star candidates).
+2. **Apply prerequisites and skip conditions** — Require `gh auth`, Trinity review capability, and `af`. Skip if `gh pr list --label evolve` returns an open PR or if the operator is mid-session with uncommitted FXA/rules changes.
+3. **Use SOP signal profile** — First read the mandatory activity ledger, then collect `af validate --json`, SOP content analysis, GitHub issues labeled `agent-input`, optional session-log signals, and optional experience-axis signals (method: `FXA-2293`; do not propose 11-star candidates).
 4. **Use SOP evaluation profile** — Use `FXA-2146` Evolve-SOP weights. Preserve the `FXA-2146` candidate discard threshold and review pass threshold by reference.
 5. **Use SOP candidate cardinality** — Implement each passing candidate, not only the top candidate.
 6. **Use SOP implementation profile** — Create an evolve issue, branch `chore/<issue-number>-evolve-sop-YYYYMMDD`, PRP, CHG, hard gate, and implementation review through the document lifecycle.
@@ -51,8 +51,9 @@ Alfred SOPs improve through reviewed document changes. This wrapper keeps the SO
 
 - `entry_sop_acid`: `FXA-2148`
 - `prerequisites`: `gh auth`, Trinity review capability, `af`
-- `skip_conditions`: open evolve PR exists
-- `signal_sources`: `af validate`, SOP content analysis, GitHub issues, activity ledger/session logs, optional experience-axis signals
+- `skip_conditions`: open evolve PR exists; uncommitted FXA/rules changes exist
+- `mandatory_ordered_signal_sources`: activity ledger before optional session-log scanning
+- `signal_sources`: `af validate`, SOP content analysis, GitHub issues, optional session logs, optional experience-axis signals
 - `source_roots`: `rules/`
 - `weight_table_ref`: `FXA-2146` Evolve-SOP weights
 - `hard_gate`: `af validate`

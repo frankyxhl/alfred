@@ -44,7 +44,7 @@ The `fx_alfred` CLI improves through reviewed, testable code changes. This wrapp
 7. **Use CLI no-op disposition** — If no candidate passes, write `no-op: no candidate reached threshold` to the run log, commit and push the run log to `main`, print the completion checklist with skipped rows, and exit.
 8. **Use CLI hard and review gates** — Hard gate is pytest 100% pass plus `ruff check` with 0 issues. Review gates use the applicable COR rubrics and must satisfy the current `FXA-2146` review pass threshold.
 9. **Open or resume PR and enter post-push loop** — Open the PR with the run-log summary if no PR exists yet. On loop re-entry, use the existing PR, wait for CI and automated reviews, categorize comments, and apply only mechanical fixes: test ordering, variable names, doc wording, and style.
-10. **Check loop exit or retry** — If CI is not green or actionable comments remain, loop to Step 9 for at most 3 total iterations. If a fix is substantive, stop and rerun the hard gate before returning to the loop.
+10. **Check loop exit or retry** — If CI is not green or actionable comments remain, loop to Step 9 for at most 3 total iterations. If a fix is substantive, stop and rerun the hard gate plus implementation review gate before returning to the loop.
 11. **Print CLI run checklist** — Print every checklist row with explicit status: guard, run log, signals, candidates, PRP review, hard gate, README check, code review, PR URL, post-push loop, and skipped rows.
 
 ### Instance profile
@@ -60,7 +60,7 @@ The `fx_alfred` CLI improves through reviewed, testable code changes. This wrapp
 - `candidate_cardinality`: top passing candidate
 - `phase_conditional_substeps`: none
 - `workflow_loop_spec`: local `review-retry` loop from Step 10 to Step 9, max 3
-- `escalation_target_gate`: hard gate
+- `escalation_target_gate`: hard gate plus implementation review gate
 - `noop_disposition`: commit and push no-op run log to `main`
 - `branch_name_pattern`: `chore/<issue-number>-evolve-cli-YYYYMMDD`
 - `pr_body_template`: run-log summary with signals, scores, and change
