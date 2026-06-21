@@ -4,7 +4,6 @@
 **Last updated:** 2026-06-21
 **Last reviewed:** 2026-06-21
 **Status:** Active
-**Task tags:** [evolve, engine, refactor-sop, improve-cli]
 
 ---
 
