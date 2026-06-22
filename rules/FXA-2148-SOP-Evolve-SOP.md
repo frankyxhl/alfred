@@ -1,176 +1,93 @@
 # SOP-2148: Evolve-SOP
 
 **Applies to:** FXA project
-**Last updated:** 2026-03-30
-**Last reviewed:** 2026-03-30
+**Last updated:** 2026-06-21
+**Last reviewed:** 2026-06-21
 **Status:** Active
-**Workflow loops:** [{id: review-retry, from: 28, to: 25, max_iterations: 3, condition: "CI not green or unresolved comments"}]
+**Workflow loops:** [{id: review-retry, from: 10, to: 9, max_iterations: 3, condition: "CI not green or unresolved comments"}]
 **Task tags:** [evolve, sop, refactor-sop, improve-sop]
 
 ---
 
 ## What Is It?
 
-An automated self-improvement procedure that periodically discovers improvements to alfred SOPs and documents, evaluates candidates using a weighted rubric, implements approved changes through the standard PRP/CHG lifecycle, and opens a PR for human review.
+Entry point for running the FXA SOP/document evolve loop. It applies the shared `FXA-2309` Evolve Engine with the Evolve-SOP instance profile.
 
 
 ## Why
 
-Alfred SOPs currently improve only through manual human-initiated sessions. This SOP closes the feedback loop by running a Generator → Evaluator cycle against live signals (validation output, GitHub Issues, content analysis), ensuring continuous compression toward the "Compression as Intelligence" north star.
+Alfred SOPs improve through reviewed document changes. This wrapper keeps the SOP-specific signals, gates, and no-op behavior close to the public entry point while delegating common engine behavior to `FXA-2309`.
 
 ---
 
 ## When to Use
 
-- Operator wants to run a SOP improvement cycle manually (Phase 1)
-- Scheduled via cron (Phase 2)
+- Operator wants to run an SOP improvement cycle manually.
+- Scheduled SOP/document evolution needs the Evolve-SOP profile.
 
 
 ## When NOT to Use
 
-- An evolve PR is already open (`gh pr list --label evolve` returns results — skip run)
-- Operator is mid-session with uncommitted changes to `alfred_ops/rules/`
-
-
-## Prerequisites
-
-- `gh auth login` pre-configured
-- `/trinity` USR-layer skill available (Codex + Gemini reviewers)
-- `af` installed and accessible with `--root /path/to/fx_alfred`
+- An evolve PR is already open; skip the run.
+- Operator is mid-session with uncommitted changes to FXA rules.
+- The target is CLI implementation rather than SOP/document behavior; use `FXA-2149`.
 
 
 ## Steps
 
-### Phase 0: Guard checks
+1. **Start engine** — Read `FXA-2309` and run it with `instance_id: evolve-sop`.
+2. **Apply prerequisites and skip conditions** — Require `gh auth`, Trinity review capability, and `af`. Skip if `gh pr list --label evolve` returns an open PR or if the operator is mid-session with uncommitted FXA/rules changes.
+3. **Use SOP signal profile** — First read the mandatory activity ledger, then collect `af validate --json`, SOP content analysis, GitHub issues labeled `agent-input`, optional session-log signals, and optional experience-axis signals (method: `FXA-2293`; do not propose 11-star candidates).
+4. **Use SOP evaluation profile** — Use `FXA-2146` Evolve-SOP weights. Preserve the `FXA-2146` candidate discard threshold and review pass threshold by reference.
+5. **Use SOP candidate cardinality** — Implement each passing candidate, not only the top candidate.
+6. **Use SOP implementation profile** — Create an evolve issue, branch `chore/<issue-number>-evolve-sop-YYYYMMDD`, PRP, CHG, hard gate, and implementation review through the document lifecycle.
+7. **Use SOP no-op disposition** — If no candidate passes, write `no-op: no candidate reached threshold` to the run log, leave the run log uncommitted in the working tree, print the completion checklist with skipped rows, and exit.
+8. **Use SOP hard and review gates** — Hard gate is `af validate` with 0 issues on modified documents. Review gates use the applicable COR rubrics and must satisfy the current `FXA-2146` review pass threshold.
+9. **Open or resume PR and enter post-push loop** — Open the PR with the run-log summary if no PR exists yet. On loop re-entry, use the existing PR, wait for CI and automated reviews, categorize comments, and apply only mechanical fixes: doc wording, formatting, and metadata.
+10. **Check loop exit or retry** — If CI is not green or actionable comments remain, loop to Step 9 for at most 3 total iterations. If a fix is substantive, stop and rerun the code review gate before returning to the loop.
+11. **Print SOP run checklist** — Print every checklist row with explicit status: guard, run log, signals, candidates, PRP review, hard gate, code review, PR URL, post-push loop, and skipped rows.
 
-1. **Check for open evolve PR** — run `gh pr list --label evolve`. If any open PR exists, print "evolve PR already open — skipping" and exit.
-2. **Read Evolution Philosophy** — `af --root /path/to/fx_alfred read FXA-2146`. Load thresholds and weights.
+### Instance profile
 
-### Phase 1: Create run log
-
-3. **Create run log REF** —
-   ```bash
-   af --root /path/to/fx_alfred create ref --prefix FXA --area 21 --title "Evolve-Run-YYYYMMDD-HHMMSS"
-   ```
-   Record the assigned ACID. All subsequent findings are appended to this file.
-
-### Phase 2: Collect signals (Generator input)
-
-4. **Document health** — `af --root /path/to/fx_alfred validate --json`. Record issues.
-5. **Content analysis** — Read all SOPs via `af --root /path/to/fx_alfred list --type SOP --json`, then `af --root /path/to/fx_alfred read <ACID>` for each. Check for logic gaps, ambiguity, or drift vs COR-0002.
-6. **GitHub Issues** — `gh issue list --label agent-input --json number,title,body`. Record relevant issues.
-7. **Activity ledger + session logs** — Read the user activity ledger via the COR-1205 / FXA-2307 reader before optional session-log scanning. Record:
-   - never-routed/planned SOPs in the selected window
-   - `af plan --task` zero-match routing gaps
-   - per-SOP usage frequency from `refs`
-
-   Then optionally scan Claude Code session history for SOP violation patterns. Skip the session-log scan if unavailable; do not skip the ledger read when `~/.alfred/logs/` exists.
-8. **Experience-axis signals (optional)** — For each candidate target SOP, run a brief star-ladder exercise to surface friction the structural signals miss. Write a 1-line description for each rung:
-   - **1-star**: SOP is broken or causes the agent to take the wrong path.
-   - **5-star**: SOP as it currently reads — executable but mechanical.
-   - **7-star**: feasible magic — anticipates failure modes, includes recovery paths, gives clear gates.
-   - **11-star**: fantasy — the SOP plus tooling auto-detects intent and proposes fixes with zero operator burden.
-
-   Any 5→7 delta becomes a candidate signal (file path + proposed change + evidence). The 11-star rung is a discovery tool only — do NOT propose 11-star candidates. See FXA-2293 for full method. Skip this step if no target SOP feels experience-hostile.
-
-### Phase 3: Generate candidates
-
-9. **Generator role** — Produce a list of improvement candidates based on signals collected. Each candidate must include: target SOP, proposed change, evidence source.
-
-### Phase 4: Evaluate candidates (Evaluator role)
-
-10. **Switch to Evaluator role** (skeptical by default). Score each candidate using Evolve-SOP weights from FXA-2146:
-   - Necessity 30% / Consistency 25% / Atomicity 20% / Actionability 15% / Impact 10%
-11. **Discard candidates scoring < 7.0**. Record scores and discards in the run log.
-12. **If no candidates pass** — update run log with "no-op: no candidate reached threshold", leave file as uncommitted working-tree file, exit.
-
-### Phase 5: Implement (for each passing candidate)
-
-13. **Open GitHub issue** — `gh issue create --title "evolve: <change-title>" --label evolve`
-14. **Create branch** — `git checkout -b chore/<issue-number>-evolve-sop-YYYYMMDD`
-15. **Create PRP** — `af --root /path/to/fx_alfred create prp --prefix FXA --area 21 --title "<change-title>"`
-16. **Fill PRP** with candidate details (problem, proposed change, evidence).
-17. **Review PRP** — dispatch via `/trinity codex "Review PRP <ACID>" gemini "Review PRP <ACID>"`. Both must score >= 9.0. If either fails, revise PRP and re-dispatch following COR-1602 round rules.
-18. **Create CHG** — `af --root /path/to/fx_alfred create chg --prefix FXA --area 21 --title "<change-title>"`
-19. **Implement change** using Claude's built-in tools (Read, Write, Edit).
-20. **Hard gate** — `af --root /path/to/fx_alfred validate`. Must pass with 0 issues on modified documents. If it fails, fix and re-run.
-21. **Code review** — dispatch via `/trinity codex "Review CHG <ACID> implementation" gemini "Review CHG <ACID> implementation"`. Both must score >= 9.0. If either fails, revise and re-dispatch following COR-1602 round rules.
-
-### Phase 6: Git / PR
-
-22. **Commit changes** — stage modified/new files, `git commit`
-23. **Push branch** — `git push -u origin <branch>`
-24. **Open PR** — `gh pr create --title "evolve: <change-title>" --body "<run log summary: signals, scores, change>"` — body auto-populated from run log REF
-
-### Phase 7: Post-Push Review Loop
-
-> **Loop limit:** Steps 25–28 repeat at most **3 iterations** in total (counting both CI-wait retries and actionable-fix cycles). If the limit is reached, go to Step 29.
-
-25. **Wait for CI + automated reviews** — sleep 3 minutes after PR is opened (or after each fix-push), then:
-    ```bash
-    gh pr checks <PR-number>
-    gh api --paginate repos/{owner}/{repo}/pulls/<PR-number>/comments
-    ```
-26. **Categorize each review comment:**
-    - **Actionable** — valid issue, fix it
-    - **Advisory** — noted, no code change needed (reply explaining why)
-    - **False positive** — reply with reasoning, no change
-27. **If actionable items exist:**
-    a. Fix the issues — fixes must be **mechanical** (doc wording, formatting, metadata). If a fix requires substantive content changes, stop the loop and re-run Phase 5 Step 21 (code review gate) instead.
-    b. Re-run hard gate (`af --root /path/to/fx_alfred validate` must pass with 0 issues on modified documents)
-    c. Commit + push
-28. **Check CI** — if CI is not green and no fixes were pushed in Step 27, go to Step 25 (counts as one iteration). If fixes were pushed in Step 27, go to Step 25 (CI will re-run on the new push).
-29. **Exit loop** when: CI passes AND 0 unresolved actionable comments, OR max iterations reached. If unresolved items remain, list them in the completion checklist for human review.
-
-### Phase 8: Completion Checklist
-
-30. **Display checklist** — After all phases complete (or on early exit at Step 12), print the following checklist with results filled in. Every item must show an explicit status — never omit silently.
-
-```
-## Evolve-SOP Run Checklist
-
-- [ ] **Guard: no open evolve PR** — <PASS/FAIL>
-- [ ] **Run log created** — <ACID>
-- [ ] **Signals collected**
-  - af validate: <N issues>
-  - Content analysis: <N SOPs reviewed>
-  - GitHub Issues: <N relevant>
-  - Activity ledger: <N never-used SOPs, N task gaps, N SOPs with usage>
-- [ ] **Candidates evaluated** — <N generated, N passed, N discarded>
-- [ ] **PRP review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
-- [ ] **Hard gate (af validate)** — <PASS/FAIL>
-- [ ] **Code review gate** — Codex <score> / Gemini <score> — <PASS/FIX>
-- [ ] **PR opened** — <URL>
-- [ ] **Post-push review loop** — <N iterations, N comments fixed / N advisory / N false positive>
-```
-
-If a step was skipped due to early exit (e.g., no candidate passed), mark remaining items as `— SKIPPED (reason)`.
-
-### Prohibited actions
-
-- Must not modify `FXA-2148-SOP-Evolve-SOP.md`, `FXA-2149-SOP-Evolve-CLI.md`, or `FXA-2146-REF-Evolution-Philosophy.md`
-- Must not bypass hard gate or review gate
-  - **review gate** = both reviewers (Codex + Gemini) score >= 9.0 per the applicable rubric (COR-1608 for PRP, COR-1609 for CHG, COR-1610 for code)
+- `entry_sop_acid`: `FXA-2148`
+- `prerequisites`: `gh auth`, Trinity review capability, `af`
+- `skip_conditions`: open evolve PR exists; uncommitted FXA/rules changes exist
+- `mandatory_ordered_signal_sources`: activity ledger before optional session-log scanning
+- `signal_sources`: `af validate`, SOP content analysis, GitHub issues, optional session logs, optional experience-axis signals
+- `source_roots`: `rules/`
+- `weight_table_ref`: `FXA-2146` Evolve-SOP weights
+- `hard_gate`: `af validate`
+- `implementation_mode`: document lifecycle through PRP/CHG
+- `candidate_cardinality`: each passing candidate
+- `phase_conditional_substeps`: optional experience-axis signals in Phase 2
+- `workflow_loop_spec`: local `review-retry` loop from Step 10 to Step 9, max 3
+- `escalation_target_gate`: implementation review gate
+- `noop_disposition`: leave no-op run log uncommitted
+- `branch_name_pattern`: `chore/<issue-number>-evolve-sop-YYYYMMDD`
+- `pr_body_template`: run-log summary with signals, scores, and change
+- `mechanical_fix_boundary`: doc wording, formatting, metadata
+- `working_directory_overrides`: repo root
+- `mutation_guard`: autonomous runs must not modify `FXA-2146`, `FXA-2309`, `FXA-2148`, or `FXA-2149`
 
 ---
 
 ## Examples
 
 ```bash
-# Manual run — Phase 1
-claude -p "Follow the SOP at $(af --root /path/to/fx_alfred where FXA-2148)"
+claude -p "Follow FXA-2148 for one Evolve-SOP run"
 ```
 
 ---
 
 ## Change History
 
-| Date       | Change                                                                                                                                                                                                                                                                           | By              |
-|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
-| 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147                                                                                                                                                                                                                    | Frank + Claude  |
-| 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5 (before PRP); D3: fix af where identifier in example                                                                                                                                                                 | Frank + Claude  |
-| 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions                                                                                                                                                                                                                         | Claude Code     |
-| 2026-04-06 | CHG FXA-2110: Add Phase 7 Completion Checklist — mandatory post-run audit trail                                                                                                                                                                                                  | Frank + Claude  |
-| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8                                                                                                                                                                                                   | Frank + Claude  |
-| 2026-05-17 | issue #183: insert §Phase 2 Step 8 — optional star-ladder exercise for experience-axis signals; cascade-renumber Phase 3+ steps 8–29 → 9–30 (+ workflow_loops `from: 27, to: 24` → `from: 28, to: 25`, 6 prose Step-N cross-refs); implements Option B from PRP-2293 (FXA-2293). | Claude Opus 4.7 |
-| 2026-06-21 | FXA-2307: Phase 2 now reads the activity ledger before optional session-log scanning and records never-used SOPs, `af plan --task` zero-match gaps, and per-SOP usage frequency. | Codex |
+| Date       | Change                                                                                                                                                                           | By              |
+|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| 2026-03-30 | Initial version from FXA-2145 PRP (approved R9), CHG FXA-2147                                                                                                                    | Frank + Claude  |
+| 2026-03-30 | D1: move gh issue create + git checkout to start of Phase 5 (before PRP); D3: fix af where identifier in example                                                                 | Frank + Claude  |
+| 2026-04-01 | CHG FXA-2174: Define "review gate" in Prohibited Actions                                                                                                                         | Claude Code     |
+| 2026-04-06 | CHG FXA-2110: Add Phase 7 Completion Checklist — mandatory post-run audit trail                                                                                                  | Frank + Claude  |
+| 2026-04-06 | CHG FXA-2111: Add Phase 7 Post-Push Review Loop; renumber Checklist to Phase 8                                                                                                   | Frank + Claude  |
+| 2026-05-17 | issue #183: insert optional experience-axis signal step; cascade-renumber later phases and workflow loops; implements Option B from PRP-2293 (FXA-2293).                         | Claude Opus 4.7 |
+| 2026-06-21 | FXA-2307: Phase 2 now reads the activity ledger before optional session-log scanning and records never-used SOPs, `af plan --task` zero-match gaps, and per-SOP usage frequency. | Codex           |
+| 2026-06-21 | FXA-2310: Compress into an Evolve-SOP wrapper over shared engine FXA-2309 while preserving SOP-specific signals, gates, no-op disposition, and review loop.                      | Codex           |
