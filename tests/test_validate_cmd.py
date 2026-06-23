@@ -2467,3 +2467,178 @@ def test_validate_doc_without_governance_fields_still_valid(tmp_path):
     result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
     assert result.exit_code == 0
     assert "0 issues found" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Single / multiple document selection (parity with `af fmt`/`af export`)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_single_valid_doc_reports_only_that_doc(tmp_path):
+    """`af validate <ID>` validates only the named document.
+
+    Two valid docs exist; validating one must report 1 document checked
+    and not surface the other.
+    """
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "SOP-1000-SOP-One.md", "SOP", "1000", "SOP", "One"
+    )
+    _write_valid_document(
+        rules_dir / "SOP-2000-SOP-Two.md", "SOP", "2000", "SOP", "Two"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "SOP-1000", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "1 documents checked" in result.output
+    assert "0 issues found" in result.output
+    # The other document is not part of this run.
+    assert "SOP-2000" not in result.output
+
+
+def test_validate_single_doc_reports_its_issues(tmp_path):
+    """`af validate <ID>` surfaces that document's issues and exits 1.
+
+    One healthy doc, one broken doc (missing Last reviewed). Validating
+    the broken one must report its issue; the healthy one must be absent.
+    """
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "SOP-1000-SOP-Healthy.md", "SOP", "1000", "SOP", "Healthy"
+    )
+    (rules_dir / "SOP-2000-SOP-Broken.md").write_text(
+        """# SOP-2000: Broken
+
+**Applies to:** All projects
+**Last updated:** 2026-03-14
+**Status:** Active
+
+---
+
+## What Is It?
+
+Missing Last reviewed.
+
+## Why
+x
+## When to Use
+x
+## When NOT to Use
+x
+## Steps
+
+1. x
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-14 | Initial | Frank |
+"""
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "SOP-2000", "--root", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "SOP-2000" in result.output
+    assert "Last reviewed" in result.output
+    # The healthy document is not part of this run.
+    assert "SOP-1000" not in result.output
+
+
+def test_validate_multiple_docs_validates_each(tmp_path):
+    """`af validate A B` validates exactly A and B."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "SOP-1000-SOP-One.md", "SOP", "1000", "SOP", "One"
+    )
+    _write_valid_document(
+        rules_dir / "SOP-2000-SOP-Two.md", "SOP", "2000", "SOP", "Two"
+    )
+    _write_valid_document(
+        rules_dir / "SOP-3000-SOP-Three.md", "SOP", "3000", "SOP", "Three"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "SOP-1000", "SOP-2000", "--root", str(tmp_path)]
+    )
+
+    assert result.exit_code == 0
+    assert "2 documents checked" in result.output
+    assert "SOP-3000" not in result.output
+
+
+def test_validate_single_doc_by_acid_only(tmp_path):
+    """`af validate <ACID>` resolves by ACID alone, like `af read`/`af fmt`.
+
+    Uses ACID 9000 (no bundled COR-NNNN collides with it) so ACID-only
+    resolution is unambiguous across all three layers.
+    """
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "SOP-9000-SOP-One.md", "SOP", "9000", "SOP", "One"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "9000", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "1 documents checked" in result.output
+
+
+def test_validate_unknown_doc_id_errors(tmp_path):
+    """`af validate <unknown>` reports the missing document and exits non-zero.
+
+    This is a document-resolution error, NOT a Click usage error: the ID
+    is accepted as an argument and then fails to resolve. So the output
+    must NOT be the Click "Got unexpected extra argument" usage message.
+    """
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "SOP-1000-SOP-One.md", "SOP", "1000", "SOP", "One"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "SOP-9999", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0
+    # Must mention the identifier the operator asked for.
+    assert "SOP-9999" in result.output
+    # Must NOT be a Click usage error (that would mean the arg was rejected
+    # at the CLI surface, not resolved against the corpus).
+    assert "unexpected extra argument" not in result.output
+
+
+def test_validate_single_doc_json_output(tmp_path):
+    """`af validate <ID> --json` returns results for only that document."""
+    import json as json_mod
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "SOP-1000-SOP-One.md", "SOP", "1000", "SOP", "One"
+    )
+    _write_valid_document(
+        rules_dir / "SOP-2000-SOP-Two.md", "SOP", "2000", "SOP", "Two"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "SOP-1000", "--root", str(tmp_path), "--json"]
+    )
+
+    assert result.exit_code == 0
+    payload = json_mod.loads(result.output)
+    doc_ids = [r["doc_id"] for r in payload["results"]]
+    assert doc_ids == ["SOP-1000"]

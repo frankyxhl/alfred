@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json
+from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json, find_or_fail
 
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.schema import (
@@ -63,6 +63,44 @@ def _scan_all_layers(root: Path):
     rules_path = root / "rules"
     docs.extend(_scan_path_dir(rules_path, source="prj"))
     return docs
+
+
+def _load_corpus_and_targets(
+    root: Path, doc_ids: tuple[str, ...]
+) -> tuple[
+    list[Document],
+    list[Document],
+    dict[tuple[str, str], Document],
+    dict[str, str | None],
+]:
+    """Scan the full corpus and resolve the validation target set.
+
+    Returns ``(all_docs, docs, docs_by_id, cor_dispositions)`` where
+    ``docs`` is the set to actually validate (the full corpus when no
+    identifiers are given, otherwise the resolved subset). ``docs_by_id``
+    and ``cor_dispositions`` are always built from the FULL corpus so
+    that filtering the validation set does not mis-report a valid
+    cross-SOP loop target or governance binding as missing.
+    """
+    try:
+        all_docs = scan_documents(root)
+    except LayerValidationError:
+        # Layer violations found -- re-scan without validation so we can
+        # report them as per-document issues instead of aborting.
+        all_docs = _scan_all_layers(root)
+
+    # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
+    docs_by_id: dict[tuple[str, str], Document] = {
+        (d.prefix, d.acid): d for d in all_docs if d.type_code == "SOP"
+    }
+    cor_dispositions = _build_cor_disposition_index(all_docs)
+
+    if doc_ids:
+        docs: list[Document] = [find_or_fail(all_docs, doc_id) for doc_id in doc_ids]
+    else:
+        docs = all_docs
+
+    return all_docs, docs, docs_by_id, cor_dispositions
 
 
 def _validate_history_header(header: str) -> list[str]:
@@ -231,6 +269,8 @@ _EPILOG = """\
 Examples:
 
   af validate                      # check all documents
+  af validate FXA-2148             # check one document
+  af validate FXA-2148 COR-1103    # check specific documents
   af validate --root myproj        # check specific project
 
 Checks:
@@ -247,31 +287,26 @@ Exit code 0 if clean, 1 if issues found. Warnings never affect the exit code.
 
 @click.command("validate", epilog=_EPILOG)
 @root_option
+@click.argument("doc_ids", nargs=-1, required=False)
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def validate_cmd(ctx: click.Context, output_json: bool):
-    """Validate all documents for structural correctness."""
+def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool):
+    """Validate documents for structural correctness.
+
+    With no arguments, validates all documents. With one or more
+    PREFIX-ACID / ACID identifiers, validates only those documents
+    (parity with `af fmt` and `af export`).
+    """
     root = get_root(ctx)
-    try:
-        docs = scan_documents(root)
-    except LayerValidationError:
-        # Layer violations found -- re-scan without validation so we can
-        # report them as per-document issues instead of aborting.
-        docs = _scan_all_layers(root)
+    _all_docs, docs, docs_by_id, cor_dispositions = _load_corpus_and_targets(
+        root, doc_ids
+    )
 
     issues_by_doc: dict[str, list[str]] = {}
     # CHG-2296: non-fatal findings. Warnings never affect the exit code;
     # they surface degraded validation (e.g. unknown TYPE codes) that was
     # previously silent.
     warnings_by_doc: dict[str, list[str]] = {}
-
-    # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
-    # Filter out PRP/CHG/REF/etc. so `Workflow loops.to = "FXA-2217.3"` cannot
-    # resolve (PR #59 Codex review P2).
-    docs_by_id: dict[tuple[str, str], Document] = {
-        (d.prefix, d.acid): d for d in docs if d.type_code == "SOP"
-    }
-    cor_dispositions = _build_cor_disposition_index(docs)
 
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
