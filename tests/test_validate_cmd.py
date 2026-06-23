@@ -2493,7 +2493,7 @@ def test_validate_single_valid_doc_reports_only_that_doc(tmp_path):
     result = runner.invoke(cli, ["validate", "SOP-1000", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "1 document checked" in result.output
+    assert "1 documents checked" in result.output
     assert "0 issues found" in result.output
     # The other document is not part of this run.
     assert "SOP-2000" not in result.output
@@ -2578,18 +2578,22 @@ def test_validate_multiple_docs_validates_each(tmp_path):
 
 
 def test_validate_single_doc_by_acid_only(tmp_path):
-    """`af validate <ACID>` resolves by ACID alone, like `af read`/`af fmt`."""
+    """`af validate <ACID>` resolves by ACID alone, like `af read`/`af fmt`.
+
+    Uses ACID 9000 (no bundled COR-NNNN collides with it) so ACID-only
+    resolution is unambiguous across all three layers.
+    """
     rules_dir = tmp_path / "rules"
     rules_dir.mkdir()
     _write_valid_document(
-        rules_dir / "SOP-1000-SOP-One.md", "SOP", "1000", "SOP", "One"
+        rules_dir / "SOP-9000-SOP-One.md", "SOP", "9000", "SOP", "One"
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["validate", "1000", "--root", str(tmp_path)])
+    result = runner.invoke(cli, ["validate", "9000", "--root", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert "1 document checked" in result.output
+    assert "1 documents checked" in result.output
 
 
 def test_validate_unknown_doc_id_errors(tmp_path):
