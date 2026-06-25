@@ -113,7 +113,7 @@ Read PR state and recent review objects:
 
 ```bash
 gh pr view "$PR_NUM" --repo "$OWNER/$REPO" \
-  --json number,state,isDraft,mergeable,reviewDecision,headRefName,headRefOid,latestReviews,comments,statusCheckRollup
+  --json number,state,isDraft,mergeable,mergeStateStatus,reviewDecision,headRefName,headRefOid,latestReviews,comments,statusCheckRollup
 ```
 
 Trigger a manual review when the project uses a comment-requested bot:
@@ -487,3 +487,4 @@ Use the GitHub App PR review bot loop:
 | 2026-05-15 | FXA-2285 R1: add fail-closed nested comment pagination guard to the GraphQL review-thread sweep example. | Codex |
 | 2026-05-15 | FXA-2285 R2: clarify no-bot repos do not waive unresolved human or code-review-app GitHub threads. | Codex |
 | 2026-06-26 | FXA-2311: completion criteria now require required-check policy evidence, merge state, review decision, draft/open state, and explicit human-gate handoff. | Codex |
+| 2026-06-26 | FXA-2311 R1 (codex bot P2): added `mergeStateStatus` to the §Commands `gh pr view` field list so operators following the SOP can record the value the completion gate now requires. | Codex |
