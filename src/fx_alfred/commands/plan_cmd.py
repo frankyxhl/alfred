@@ -6,7 +6,12 @@ from dataclasses import dataclass
 
 import click
 
-from fx_alfred.commands._helpers import emit_json, find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import (
+    ExitCodeError,
+    emit_json,
+    find_or_fail,
+    scan_or_fail,
+)
 from fx_alfred.context import root_option
 from fx_alfred.core.activity_log import append_usage_event
 from fx_alfred.core.document import Document
@@ -538,9 +543,7 @@ def _resolve_sop_ids(
                 )
             except Exception:
                 pass
-        exc = click.ClickException(str(e))
-        exc.exit_code = e.exit_code
-        raise exc from e
+        raise ExitCodeError(str(e), e.exit_code) from e
     return tuple(resolved_ids), provenance
 
 

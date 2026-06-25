@@ -19,7 +19,6 @@ af plan --task "DESC" [SOP_ID ...]          # auto-compose SOPs via Task tags
 af setup                                    # suggested prompts for agent config
 af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
 af read IDENTIFIER [--json]                 # read by PREFIX-ACID or ACID only
-af render FILE.md [-o OUT.html] [--title T] # render a Markdown file to a standalone HTML document
 af create [TYPE] --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer project|user] [--subdir] [--spec FILE] [--dry-run]
 af update IDENTIFIER [--status] [--field KEY VALUE] [--history TEXT] [--by TEXT] [--title TEXT] [--dry-run] [-y] [--spec FILE]
 af where IDENTIFIER [--json]               # print absolute file path of a document
@@ -64,7 +63,6 @@ src/fx_alfred/
 │   ├── log_validate_cmd.py # af log-validate schema checker
 │   ├── plan_cmd.py     # workflow checklist from SOPs (text/JSON/todo/graph modes)
 │   ├── read_cmd.py     # read + --json
-│   ├── render_cmd.py   # af render — Markdown file -> standalone HTML document
 │   ├── search_cmd.py   # content search
 │   ├── setup_cmd.py    # agent configuration prompts
 │   ├── skill_cmd.py    # skill document discovery/read
@@ -82,7 +80,6 @@ src/fx_alfred/
 │   ├── compose.py         # af plan --task auto-composition; raises CompositionError
 │   ├── dag_graph.py       # nested phase-box DAG renderer
 │   ├── document.py        # Document dataclass, FILENAME_PATTERN
-│   ├── markdown_render.py # minimal zero-dep Markdown -> HTML renderer (af render)
 │   ├── mermaid.py         # Mermaid diagram renderer
 │   ├── normalize.py       # slugify(), sort_metadata(), normalize_date(), strip_trailing_whitespace()
 │   ├── parser.py          # parse_metadata(), render_document(), extract_section(), fence-state iterator
@@ -184,3 +181,4 @@ af list --type PRP --root /Users/frank/Projects/alfred
 - Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
 - Documents: always `af create`, never manual files
 - Documents live in top-level `rules/` (PRJ layer)
+- To render Markdown documents to HTML, use external tool marky (`marky doc.md --diagrams`); Alfred no longer includes built-in rendering.

@@ -8,6 +8,7 @@ from zipfile import BadZipFile
 
 import click
 
+from fx_alfred.commands._helpers import ExitCodeError
 from fx_alfred.context import get_root, has_explicit_root, root_option
 from fx_alfred.core.activity_log import (
     ActivityLogLineError,
@@ -51,9 +52,7 @@ def log_validate_cmd(ctx: click.Context, path: Path | None) -> None:
             f"{exc.source}:{exc.lineno}: record: {exc.reason}"
         ) from exc
     except BadZipFile as exc:
-        err = click.ClickException(f"corrupt archive.zip: {exc}")
-        err.exit_code = 5
-        raise err from exc
+        raise ExitCodeError(f"corrupt archive.zip: {exc}", 5) from exc
     except json.JSONDecodeError as exc:
         raise click.ClickException(f"invalid JSONL: {exc}") from exc
 

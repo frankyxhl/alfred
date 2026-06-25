@@ -26,6 +26,19 @@ from fx_alfred.core.schema import ALLOWED_STATUSES, DocType
 SCHEMA_VERSION = "1"
 
 
+class ExitCodeError(click.ClickException):
+    """ClickException with a caller-specified exit code.
+
+    Click 8.4 types ``ClickException.exit_code`` as a ClassVar, so assigning it
+    on an instance fails type checking. Re-declaring it as an instance attribute
+    restores the per-instance exit code without changing runtime behavior.
+    """
+
+    def __init__(self, message: str, exit_code: int) -> None:
+        super().__init__(message)
+        self.exit_code = exit_code  # type: ignore[misc]
+
+
 def emit_json(data: Any) -> None:
     """Emit ``data`` as the canonical CLI JSON form (CHG-2301).
 

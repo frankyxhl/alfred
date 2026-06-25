@@ -6,6 +6,7 @@ from pathlib import Path
 
 import click
 
+from fx_alfred.commands._helpers import ExitCodeError
 from fx_alfred.context import get_root, has_explicit_root, root_option
 from fx_alfred.core.activity_log import ArchiveError, archive_directory, resolve_log_dir
 
@@ -31,11 +32,7 @@ def log_archive_cmd(ctx: click.Context, force: bool, path: Path | None) -> None:
             force=force,
         )
     except ArchiveError as exc:
-        err = click.ClickException(str(exc))
-        err.exit_code = 5
-        raise err from exc
+        raise ExitCodeError(str(exc), 5) from exc
     except OSError as exc:
-        err = click.ClickException(str(exc))
-        err.exit_code = 4
-        raise err from exc
+        raise ExitCodeError(str(exc), 4) from exc
     click.echo(result.message or f"archived {len(result.archived_files)} file(s)")

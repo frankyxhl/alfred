@@ -420,6 +420,8 @@ af log-validate [PATH]
 af log-archive [--force]
 ```
 
+> **Rendering Markdown to HTML:** Alfred no longer includes built-in rendering. Use external tool marky (`marky doc.md --diagrams`) instead.
+
 ## Install / Upgrade
 
 ```bash

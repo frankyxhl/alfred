@@ -6,6 +6,7 @@ from json.encoder import encode_basestring_ascii
 
 import click
 
+from fx_alfred.commands._helpers import ExitCodeError
 from fx_alfred.context import get_root, has_explicit_root, root_option
 from fx_alfred.core.activity_log import (
     ArchiveError,
@@ -56,9 +57,7 @@ def log_cmd(
     violations = validate_record(record)
     if violations:
         message = "; ".join(f"{v.field}: {v.reason}" for v in violations)
-        err = click.ClickException(message)
-        err.exit_code = 3
-        raise err
+        raise ExitCodeError(message, 3)
     log_dir = resolve_log_dir(get_root(ctx), explicit_root=has_explicit_root(ctx))
     try:
         archive_directory(log_dir)
