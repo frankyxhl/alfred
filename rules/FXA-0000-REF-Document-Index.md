@@ -221,6 +221,7 @@
 | 2308 | PRP | Evolve Engine SOP Refactor | Draft |
 | 2309 | SOP | Evolve Engine | Active |
 | 2310 | CHG | Implement Evolve Engine SOP Refactor | Proposed |
+| 2311 | CHG | Strengthen L2 PR Readiness Loop Gates | Proposed |
 
 ---
 

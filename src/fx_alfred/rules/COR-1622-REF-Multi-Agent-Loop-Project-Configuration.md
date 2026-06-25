@@ -105,6 +105,15 @@ When a doc uses `<X>`, look it up here first. If absent, treat as a runtime vari
 |-----|------|----------|---------|-------------|
 | `<bot-actors>` | list[string] | yes | — | GitHub App logins whose review/comment activity counts as bot review (e.g. `[chatgpt-codex-connector[bot]]`). Polled per-HEAD across the three `gh api` review/comment endpoints documented in COR-1615. |
 
+### PR readiness gate (COR-1615 / COR-1617 binding)
+
+| Key | Type | Required | Default | Description |
+|-----|------|----------|---------|-------------|
+| `<required-check-policy>` | string | yes | `branch-protection-required-or-all-statusCheckRollup` | The check set that must be green before Phase 10 handoff. Projects with explicit branch protection list those contexts by name; projects without a named list treat every non-skipped `statusCheckRollup` context for the current head as required. |
+| `<review-decision-policy>` | enum | yes | `APPROVED_OR_NULL` | Allowed `gh pr view --json reviewDecision` values at handoff. `APPROVED_OR_NULL` means approval is required when branch protection requires it; `null` is permitted only when GitHub reports no required-review decision for the repo. |
+| `<merge-state-policy>` | enum | yes | `CLEAN` | Required `gh pr view --json mergeStateStatus` value before readiness handoff. Use `CLEAN` unless the project has a documented branch-protection exception. |
+| `<human-gate-owner>` | string | yes | `<repo-owner>` | The person or owner group that must perform the final human approval or merge when branch protection or authority boundaries require it. The loop may hand off at this gate but must not claim the PR is merged. |
+
 ### Loop primitives (COR-1620)
 
 | Key | Type | Required | Default | Description |
@@ -143,6 +152,10 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | `<cli-retry-backoff-seconds>` | `600` (default) |
 | `<cli-retry-on-failure>` | `pause-and-ask` (default) |
 | `<bot-actors>` | `[chatgpt-codex-connector[bot]]` |
+| `<required-check-policy>` | `branch-protection-required-or-all-statusCheckRollup` |
+| `<review-decision-policy>` | `APPROVED_OR_NULL` |
+| `<merge-state-policy>` | `CLEAN` |
+| `<human-gate-owner>` | `frankyxhl` |
 | `<wakeup-tool>` | `ScheduleWakeup` |
 | `<idle-cap>` | `12` |
 | `<merge-watch-cap>` | `24` |
@@ -173,3 +186,4 @@ Trinity instantiates this schema as `TRN-1209-REF-Multi-Agent-Loop-Config.md` (i
 | 2026-05-10 | Issue #144: add §R-count cap parameter group (`<max-r-count>`, `<max-r-count-extension>`, `<convergence-severity>`) for COR-1617 §Phase 8 round-count guard. Defaults (10 / 3 / advisory) define soft cap R10, hard stop R13. Worked Example updated with trinity's effective defaults (all three inherit schema defaults). | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #144 R2: `<convergence-severity>` — add enum ordering note (advisory < p2 < p1) and clarify that `advisory` is a threshold label, not COR-1621's "advisory" finding class (GLM P1 / DeepSeek P3). | Claude Sonnet 4.6 |
 | 2026-05-17 | FXA-2291 (CHG-D of PRP-1507): added optional `<test-writer-worker-agent>` row under §Worker dispatch (COR-1619). Default = same value as `<worker-agent>` (split OFF for non-adopters; backwards-compatible). MUST-level `:instance` suffix verification note. Bundled with CHG-A/B/C1/C2 in PR closing issue #175. | Claude Opus 4.7 |
+| 2026-06-26 | FXA-2311: add PR readiness gate parameters for required checks, review-decision policy, merge-state policy, and human gate owner. | Codex |

@@ -363,7 +363,14 @@ If the sweep finds unresolved threads, route them to COR-1612 before declaring m
 - Latest review result is matched to current `headRefOid`, or a no-suggestion signal is tied to the current request/head.
 - No new actionable PR comments remain unhandled.
 - Pre-merge sweep finds no unresolved or unreplied non-bookkeeping GitHub-side review threads. If the sweep finds zero such threads, the gate is clear.
-- Relevant validation or CI has passed after the last fix push.
+- Relevant validation or CI has passed after the last fix push, using the
+  project's `<required-check-policy>` from COR-1622 where the multi-agent loop is
+  configured.
+- `gh pr view` state is recorded for `state`, `isDraft`, `mergeStateStatus`, and
+  `reviewDecision`; the PR is open, not draft, and any non-clean merge state is
+  named as the next blocker rather than hidden behind "review clean".
+- The handoff note names the remaining human gate, if any: required approval,
+  owner merge, branch-protection merge queue, or `none`.
 - Any remaining blockers are explicitly external to the GitHub App review loop.
 
 ---
@@ -479,3 +486,4 @@ Use the GitHub App PR review bot loop:
 | 2026-05-15 | FXA-2285: add pre-merge sweep trigger, non-bookkeeping thread filters, no-bot/zero-thread vacuous pass behavior, and real-session example for panel-missed GitHub App review threads. | Codex |
 | 2026-05-15 | FXA-2285 R1: add fail-closed nested comment pagination guard to the GraphQL review-thread sweep example. | Codex |
 | 2026-05-15 | FXA-2285 R2: clarify no-bot repos do not waive unresolved human or code-review-app GitHub threads. | Codex |
+| 2026-06-26 | FXA-2311: completion criteria now require required-check policy evidence, merge state, review decision, draft/open state, and explicit human-gate handoff. | Codex |
