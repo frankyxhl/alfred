@@ -256,7 +256,7 @@ When the current-head state packet proves all readiness conditions below:
 
 - `state == OPEN` and `isDraft == false`.
 - `headRefOid` matches the latest bot review / no-finding signal for `<bot-actors>`.
-- `<required-check-policy>` is satisfied for the current head: no required check is failed, cancelled, timed out, pending, or missing.
+- `<required-check-policy>` is satisfied for the current head: every required check is completed with `conclusion in {success, skipped, neutral}`. Any other completed conclusion (`failure`, `cancelled`, `timed_out`, `action_required`, `stale`, `startup_failure`) is a blocker, as is any pending, missing, or unknown context.
 - COR-1615 pre-merge sweep finds zero unresolved/unreplied non-bookkeeping GitHub-side review threads, or every returned thread is resolved, outdated, or author-addressed per COR-1612.
 - COR-1602 / COR-1610 panel gate is passed, or explicitly `n/a` because the project does not configure that detector for this artifact class.
 - `mergeStateStatus` satisfies `<merge-state-policy>` (default `CLEAN`).
@@ -391,3 +391,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-17 | issue #166: tighten §Phase 1 User-driven trigger row — only phrases that name a target issue (e.g. `do <PREFIX>-<NNNN>`) qualify for bypass; non-naming phrases (`pick next issue`, `auto-pick`) become autonomous triggers and apply full COR-1618 + COR-1506. Reconciles §Phase 1 with COR-1618 §Normative Bypass Clause's strict definition. | Claude Opus 4.7 |
 | 2026-05-17 | issue #166 R2 (PR #180 codex bot P2): R1's fall-through note from User-driven to "Continuation or Loop-driven" was broken — those rows cover post-merge mandate-carry and scheduled wakeup re-entry respectively, NOT initial user-typed loop-start. Added a 4th trigger row **Loop-start (user-initiated)** explicitly covering bare `pick next issue` / `auto-pick` / `follow FXA-2276` — mandate from invocation, consent gate applies on every pick including the first. Phrase-list table updated 3-row → 4-row; intro sentence updated accordingly. | Claude Opus 4.7 |
 | 2026-06-26 | FXA-2311: Phase 8 now carries a current-head PR state packet; Phase 10 readiness requires current-head review, required checks, pre-merge sweep, merge-state policy, review-decision policy, and explicit human gate state. | Codex |
+| 2026-06-26 | FXA-2311 R2 (codex bot P2): Phase 10 required-check bullet now whitelists allowed `conclusion in {success, skipped, neutral}` and names the full set of completed non-green conclusions (`action_required`, `stale`, `startup_failure`, etc.) as blockers, closing the blacklist gap. | Codex |
