@@ -1,7 +1,7 @@
 # SOP-1615: GitHub App PR Review Bot Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-15
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-05-15
 **Status:** Active
 **Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)

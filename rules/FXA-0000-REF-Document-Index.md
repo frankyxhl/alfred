@@ -1,7 +1,7 @@
 # REF-0000: Document Index
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-06-21
 **Status:** Active
 

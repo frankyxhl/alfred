@@ -1,7 +1,7 @@
 # REF-1622: Multi-Agent Loop Project Configuration
 
 **Applies to:** All projects adopting the COR-1617 Multi-Agent Workflow Loop
-**Last updated:** 2026-05-17
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella SOP), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage)

@@ -1,7 +1,7 @@
 # REF-2276: Multi-Agent Loop Configuration
 
 **Applies to:** FXA project (alfred — `frankyxhl/alfred`)
-**Last updated:** 2026-05-17
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella SOP being instantiated), COR-1622 (parameter schema), FXA-2277 (CHG that landed alongside this doc)

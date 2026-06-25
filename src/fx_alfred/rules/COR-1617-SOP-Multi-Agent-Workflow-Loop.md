@@ -1,7 +1,7 @@
 # SOP-1617: Multi-Agent Workflow Loop
 
 **Applies to:** All projects with a multi-provider review setup and an autonomous-orchestrator capability
-**Last updated:** 2026-05-17
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema), COR-1506 (issue quality gate — Phase 1 autonomous picks)
