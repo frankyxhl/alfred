@@ -1,7 +1,7 @@
 # SOP-1617: Multi-Agent Workflow Loop
 
 **Applies to:** All projects with a multi-provider review setup and an autonomous-orchestrator capability
-**Last updated:** 2026-05-17
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema), COR-1506 (issue quality gate — Phase 1 autonomous picks)
@@ -200,6 +200,19 @@ Verify the auto-link before merge: `gh pr view <N> --repo <repo> --json closingI
 
 After every R-push, arm a poll wake per COR-1620 (cadence 270 s for active polling, 1200–1800 s for long-running CI/panel).
 
+After every push and before every handoff, maintain a **current-head PR state packet**. The packet is the loop's memory boundary; if it cannot be reconstructed, re-fetch before acting:
+
+| Field | Source | Required use |
+|-------|--------|--------------|
+| `pr` / `branch` / `headRefOid` | `gh pr view <N> --json number,headRefName,headRefOid` | Anchor every review, CI, and mergeability claim to the current head. |
+| `last_push_or_head_observed_at` | GitHub push/check/review evidence, or conservative local fallback | Boundary for "new since last push" comment polling per COR-1612. |
+| `checks` | `<required-check-policy>` via `statusCheckRollup` / branch protection | Distinguish pending, failed, skipped, and passing contexts. |
+| `review_surfaces` | COR-1615 three surfaces plus thread-aware GraphQL when needed | Count unresolved, outdated, resolved, and author-addressed non-bookkeeping threads. |
+| `bot_review_state` | COR-1615 review/comment polling for `<bot-actors>` | Confirm the latest result applies to `headRefOid`; stale clean reviews do not count. |
+| `panel_state` | COR-1602 / COR-1610 review records | Confirm the configured panel gate passed for the artifact or record `n/a` when not configured. |
+| `merge_state` | `gh pr view <N> --json mergeStateStatus,reviewDecision,isDraft,state` | Prove readiness or identify the exact human gate. |
+| `blockers` / `next_action` | Synthesized from the fields above | The loop must always know whether to wait, fix, re-review, re-trigger, or hand off. |
+
 Three poll endpoints (per COR-1615; missing any one leaves inline blockers untriaged):
 
 | Endpoint | Catches | HEAD anchor |
@@ -219,7 +232,7 @@ CI status splits four ways:
 | Timeout | Log + re-trigger ONCE; 3 timeouts on same PR → abort + surface "likely test or infra regression" |
 | Failed | Read failing log; fix in code; push R<n+1> |
 
-Code-review panel runs once per HEAD when CI is green AND bot has reviewed the current HEAD. Panel gate per phase 4. If gate met → phase 10. If gate not met → triage per phase 9 → push R<n+1> → loop back.
+Code-review panel runs once per HEAD when CI is green AND bot has reviewed the current HEAD. Panel gate per phase 4. If gate met, update the state packet and evaluate the Phase 10 readiness gate. If gate not met → triage per phase 9 → push R<n+1> → loop back.
 
 ### Round-count cap
 
@@ -239,7 +252,18 @@ Apply COR-1621 to every finding. Plan-review architectural blockers go back to p
 
 ### Phase 10 — Handoff + merge-watch
 
-When PR is mergeable (CI green, bot 👍, panel gate met, no open blockers):
+When the current-head state packet proves all readiness conditions below:
+
+- `state == OPEN` and `isDraft == false`.
+- `headRefOid` matches the latest bot review / no-finding signal for `<bot-actors>`.
+- `<required-check-policy>` is satisfied for the current head: every required check is completed with `conclusion in {success, skipped, neutral}`. Any other completed conclusion (`failure`, `cancelled`, `timed_out`, `action_required`, `stale`, `startup_failure`) is a blocker, as is any pending, missing, or unknown context.
+- COR-1615 pre-merge sweep finds zero unresolved/unreplied non-bookkeeping GitHub-side review threads, or every returned thread is resolved, outdated, or author-addressed per COR-1612.
+- COR-1602 / COR-1610 panel gate is passed, or explicitly `n/a` because the project does not configure that detector for this artifact class.
+- `mergeStateStatus` satisfies `<merge-state-policy>` (default `CLEAN`).
+- `reviewDecision` satisfies `<review-decision-policy>` (default `APPROVED_OR_NULL`).
+- The only remaining action is a declared `<human-gate-owner>` approval and/or merge, or there is no remaining action.
+
+Then:
 
 - The orchestrator's job is done.
 - The repo owner merges manually. `<gh-write-identity>` typically cannot merge under branch protection — that is intentional.
@@ -366,3 +390,5 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-11 | PR #154 codex-bot Thread 1: wire COR-1506 quality gate into Phase 1 — Related header, routing table row 1, and phase flow (consent pass → COR-1506 check → scope-rank tree). Autonomous picks now explicitly apply the quality gate before the scope-rank tree. | Claude Sonnet 4.6 |
 | 2026-05-17 | issue #166: tighten §Phase 1 User-driven trigger row — only phrases that name a target issue (e.g. `do <PREFIX>-<NNNN>`) qualify for bypass; non-naming phrases (`pick next issue`, `auto-pick`) become autonomous triggers and apply full COR-1618 + COR-1506. Reconciles §Phase 1 with COR-1618 §Normative Bypass Clause's strict definition. | Claude Opus 4.7 |
 | 2026-05-17 | issue #166 R2 (PR #180 codex bot P2): R1's fall-through note from User-driven to "Continuation or Loop-driven" was broken — those rows cover post-merge mandate-carry and scheduled wakeup re-entry respectively, NOT initial user-typed loop-start. Added a 4th trigger row **Loop-start (user-initiated)** explicitly covering bare `pick next issue` / `auto-pick` / `follow FXA-2276` — mandate from invocation, consent gate applies on every pick including the first. Phrase-list table updated 3-row → 4-row; intro sentence updated accordingly. | Claude Opus 4.7 |
+| 2026-06-26 | FXA-2311: Phase 8 now carries a current-head PR state packet; Phase 10 readiness requires current-head review, required checks, pre-merge sweep, merge-state policy, review-decision policy, and explicit human gate state. | Codex |
+| 2026-06-26 | FXA-2311 R2 (codex bot P2): Phase 10 required-check bullet now whitelists allowed `conclusion in {success, skipped, neutral}` and names the full set of completed non-green conclusions (`action_required`, `stale`, `startup_failure`, etc.) as blockers, closing the blacklist gap. | Codex |

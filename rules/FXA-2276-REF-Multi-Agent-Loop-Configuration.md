@@ -1,7 +1,7 @@
 # REF-2276: Multi-Agent Loop Configuration
 
 **Applies to:** FXA project (alfred — `frankyxhl/alfred`)
-**Last updated:** 2026-05-17
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella SOP being instantiated), COR-1622 (parameter schema), FXA-2277 (CHG that landed alongside this doc)
@@ -67,6 +67,15 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 |-----|--------------|-------|
 | `<bot-actors>` | `[chatgpt-codex-connector[bot]]` | the only PR-review bot installed on the repo today; codex bot's review of PR #117 surfaced 18 real defects |
 
+### PR readiness gate (COR-1615 / COR-1617 binding)
+
+| Key | Alfred value | Notes |
+|-----|--------------|-------|
+| `<required-check-policy>` | `branch-protection-required-or-all-statusCheckRollup` | Alfred treats every non-skipped `statusCheckRollup` context for the current head as required unless branch protection exposes a stricter required-check list. Local `af validate`, pytest, ruff, format, and typecheck evidence support the claim but do not replace GitHub-side checks. |
+| `<review-decision-policy>` | `APPROVED_OR_NULL` | `APPROVED` clears when branch protection requires review; `null` is allowed only when GitHub reports no required-review decision. A human-requested approval gate remains a handoff gate even if GitHub reports `null`. |
+| `<merge-state-policy>` | `CLEAN` | Phase 10 readiness requires `gh pr view --json mergeStateStatus` to report `CLEAN`; bare `mergeable` is not sufficient. |
+| `<human-gate-owner>` | `frankyxhl` | The loop stops at Frank's explicit approval and/or merge gate. Agents do not merge Alfred PRs unless Frank separately authorizes that exact action. |
+
 ### Loop primitives (COR-1620)
 
 | Key | Alfred value | Notes |
@@ -118,7 +127,7 @@ Alfred today adopts a subset of COR-1617's 12 phases. The values above are fille
 | 7 — PR open | ✓ adopted | `git push origin <branch>` (NOT to fork — per `<pr-push-remote>: origin`); `gh pr create` as `<gh-write-identity>`. |
 | 8 — Iterate (CI + bot + code-review) | ✓ adopted | Codex bot reviews every push; PR #117 ran 12 R-rounds. CI checks via GitHub Actions. |
 | 9 — Triage | ✓ adopted | COR-1621 severity vocab (P0–P3) applied; convergence rule + hallucinated-finding rejection used in PR #117. |
-| 10 — Handoff + merge-watch | ✓ adopted | merge-watch wake polls the mergeable conjunction `mergeStateStatus == "CLEAN"` AND `reviewDecision in ("APPROVED", null)` (via `gh pr view <N> --json mergeStateStatus,reviewDecision`). On detection, the orchestrator runs `git switch main` (no pull — origin/main has not yet advanced; see §Known Risk), executes Phase 11 (Retrospective) synchronously (evidence re-fetched from GitHub PR review comments per COR-1617 §Phase 11 Step 1), then arms the Phase 12 wake (60 s cadence per COR-1620 §Cadence). The bare `mergeable` field is omitted (lags per gh CLI #9583, weaker than `CLEAN`); `statusCheckRollup` is omitted (`CLEAN` already implies CI green). **Default sessions**: behavior unchanged — sessions still end at handoff with no §12 wake; the polled-mergeable arming applies only under `follow FXA-2276` looping mode. |
+| 10 — Handoff + merge-watch | ✓ adopted | Handoff requires the full COR-1617 current-head state packet: current `headRefOid`, latest bot review/no-finding signal for that head, COR-1615 pre-merge sweep clear, all required checks under `<required-check-policy>` green or explicitly skipped by GitHub, `mergeStateStatus == "CLEAN"`, `reviewDecision in ("APPROVED", null)`, and named human gate `<human-gate-owner> = frankyxhl` when approval/merge remains. On detection, the orchestrator runs `git switch main` (no pull — origin/main has not yet advanced; see §Known Risk), executes Phase 11 (Retrospective) synchronously (evidence re-fetched from GitHub PR review comments per COR-1617 §Phase 11 Step 1), then arms the Phase 12 wake (60 s cadence per COR-1620 §Cadence). The bare `mergeable` field is omitted (lags per gh CLI #9583, weaker than `CLEAN`). **Default sessions**: behavior unchanged — sessions still end at handoff with no §12 wake; the polled-readiness arming applies only under `follow FXA-2276` looping mode. |
 | 11 — Retrospective | ✓ adopted | Synchronous; runs in the Phase 10 merge-watch wake turn (before human merge). Steps 2–3 (pattern check + CHG nomination) require user confirmation before writing. Evidence re-fetched from GitHub PR review comments using COR-1615 §Commands fetch endpoints (session state from Phase 8 rounds is unavailable across wakeup turns). **Alfred deviation from COR-1617 PKG precondition**: COR-1617 §Phase 11 states it runs after `git switch main && git pull --ff-only origin main`; under FXA-2280's mergeable trigger, Phase 11 fires before the PR is merged so origin/main has not advanced — the pull is a no-op. Functionally equivalent. **Alfred deviation — Trinity-miss/codex-catch**: alfred dispatches the panel via `Skill(trinity)` in-session; findings appear in chat, not as GitHub PR review comments. At merge-watch wake, panel findings are not GitHub-re-fetchable. Output `n/a — panel findings not GitHub-accessible` for this field. **Default sessions**: retrospective may be run manually at session end; no automated trigger. |
 | 12 — Loop restart | ✓ adopted | **Default sessions**: behavior unchanged — sessions end at handoff; no §12 wake. **Looping mode** (under `follow FXA-2276` queue-drain — see §Invocation): the §12 wake fires on **mergeable detection** (not on merge event). The 60 s figure is the COR-1620 §Cadence loop-restart delay between arm and wake-fire; from the orchestrator's standpoint, the next phase 1 begins ~60 s after the in-flight PR becomes mergeable, regardless of whether the human has clicked merge. Branch-guard pre-arm (`git switch main` without `git pull --ff-only`, since the in-flight PR isn't merged yet so origin/main hasn't advanced) makes the COR-1620 §Primitive 3 check pass on wake; this is an alfred-local extension to §Primitive 3, not a change to the SOP. |
 
@@ -186,3 +195,4 @@ These project-specific deviations are intentional and not gaps in the SOP:
 | 2026-05-17 | FXA-2292 (CHG-E of PRP-1507, closes issue #176): added `<test-writer-worker-agent>` row to §Worker dispatch table with alfred value `trinity-deepseek via droid exec`. Opts alfred into the two-worker TDD split per COR-1500 §Phase 1 Worker assignment (introduced in PR #177). Re-evaluation trigger references PRP-1507 §Validation log after first 3 two-worker dispatches per PRP-1507 §Decisions item 1. | Claude Opus 4.7 |
 | 2026-05-17 | issue #166: remove "Alfred deviation from COR-1617 §Phase 1" paragraph from §Invocation — PKG reconciliation landed (COR-1617 §Phase 1 narrowed to name-target-issue phrases; COR-1618 §Normative Bypass cross-reference added). FXA-2276's strict reading is now the SOP-wide rule, not a deviation. | Claude Opus 4.7 |
 | 2026-05-17 | issue #166 R5 (PR #180 codex bot P2): post-§Invocation-table sentence still referenced the OLD COR-1617 User-driven phrase list (`"pick next issue" / "do <PREFIX>-<NNNN>" / "auto-pick"`) that's now split across two trigger rows. Stale reference re-classified non-naming loop starts as User-driven, contradicting the table above. Fix: sentence now maps the three FXA-2276 phrases to their correct COR-1617 row — `for #N` → row 1 (User-driven); bare + `once` → row 2 (Loop-start). | Claude Opus 4.7 |
+| 2026-06-26 | FXA-2311: instantiate COR-1622 PR readiness gate parameters and strengthen Phase 10 handoff wording around current-head state, GitHub-side checks, review-thread sweep, merge-state, review-decision, and Frank's human gate. | Codex |

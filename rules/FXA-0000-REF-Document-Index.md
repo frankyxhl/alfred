@@ -1,7 +1,7 @@
 # REF-0000: Document Index
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-26
 **Last reviewed:** 2026-06-21
 **Status:** Active
 
@@ -221,6 +221,7 @@
 | 2308 | PRP | Evolve Engine SOP Refactor | Draft |
 | 2309 | SOP | Evolve Engine | Active |
 | 2310 | CHG | Implement Evolve Engine SOP Refactor | Proposed |
+| 2311 | CHG | Strengthen L2 PR Readiness Loop Gates | Proposed |
 
 ---
 
