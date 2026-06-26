@@ -1,0 +1,54 @@
+# CHG-2312: COR-1402 Active Process Output
+
+**Applies to:** FXA project
+**Last updated:** 2026-06-26
+**Last reviewed:** 2026-06-26
+**Status:** Completed
+**Related:** COR-1202, COR-1402, FXA-2102
+
+---
+
+## What Is It?
+
+Make COR-1402 declarations a generated, visible output of Alfred plans so agents can start every user-visible task with an active-process line instead of relying on memory.
+
+---
+
+## Why
+
+`COR-1402` already requires active-process declaration, and `COR-1202` already composes it into task plans as an always-included SOP. The weak spot was execution ergonomics: plan output told the operator to declare the active process, but did not provide a copyable declaration per phase. That left agents to remember and format the declaration manually, which is easy to skip in chat.
+
+---
+
+## Scope
+
+- Update `af plan` text output to include an `Active Process — COR-1402` section with one copyable declaration per phase.
+- Add `active_process` to `--todo --json` output.
+- Tighten `COR-1402` so every user-visible task emits an active-process line, including no-formal-SOP quick tasks.
+- Tighten `COR-1202` so executing a composed plan means emitting the generated COR-1402 declaration at task start and phase transitions.
+- Add task tags to `FXA-2102` so release tasks can be composed by `COR-1202`.
+
+Out of scope:
+
+- Enforcing declarations in external chat surfaces.
+- Creating a new runtime hook or bot.
+- Releasing a new package version.
+
+## Acceptance Criteria
+
+- [x] `af plan <SOP> --todo` prints an `Active Process — COR-1402` section before the flat TODO.
+- [x] `af plan <SOP> --todo --json` includes a structured `active_process` list.
+- [x] `COR-1402` covers every user-visible task, not only tasks with a task-specific SOP.
+- [x] `COR-1202` tells executors to emit the generated declaration at task start and phase transitions.
+- [x] `af plan --task "release fx-alfred to pypi"` can resolve `FXA-2102` via task tags.
+
+## Validation
+
+- `uv run pytest tests/test_plan_cmd.py -q`
+- `uv run af validate --root /Users/frank/Projects/alfred-1402-active-process-output`
+
+## Change History
+
+| Date       | Change                                      | By   |
+|------------|---------------------------------------------|------|
+| 2026-06-26 | Initial CHG for generated COR-1402 output   | Moth |

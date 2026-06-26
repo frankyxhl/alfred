@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-07
 **Last reviewed:** 2026-03-17
 **Status:** Active
+**Task tags:** release, pypi, publish, version, changelog
 
 ---
 
@@ -166,3 +167,4 @@ pipx upgrade fx-alfred                        # verify on PyPI
 | 2026-03-21 | Added Examples section + release notes template | Claude Code |
 | 2026-04-18 | Add pyright to Prerequisites + Step 1 per CHG-FXA-2208 (post v1.6.0 publish incident). | Frank + Claude Code |
 | 2026-05-07 | FXA-2275: promote README check from Prerequisites to a numbered Step (new Step 2). Renumbered subsequent steps 3-7. Reason: README updates were silently skipped twice during v1.12.0 and v1.13.0 release work because the check sat in Prerequisites and was easy to miss when reading top-down. | Claude Code |
+| 2026-06-26 | Add task tags so COR-1202 can compose release plans from natural-language tasks. | Moth |

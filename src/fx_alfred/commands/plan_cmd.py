@@ -113,6 +113,37 @@ def _format_composed_from_header(provenance: dict[str, list[str]]) -> str:
     return "Composed from: " + " → ".join(parts)
 
 
+def _build_active_process_declarations(phase_info: list[_PhaseInfo]) -> list[dict]:
+    """Build COR-1402 active-process declarations for each composed phase."""
+    declarations: list[dict] = []
+    for phase_num, (_sop_id, doc, _parsed, _sig, _loops) in enumerate(
+        phase_info, start=1
+    ):
+        doc_id = f"{doc.prefix}-{doc.acid}"
+        declaration = f"📋 {doc_id} {doc.title}"
+        declarations.append(
+            {
+                "phase": phase_num,
+                "sop": doc_id,
+                "title": doc.title,
+                "declaration": declaration,
+            }
+        )
+    return declarations
+
+
+def _emit_active_process_text(phase_info: list[_PhaseInfo]) -> None:
+    """Emit copyable COR-1402 declarations for text plan modes."""
+    declarations = _build_active_process_declarations(phase_info)
+    if not declarations:
+        return
+    click.echo("# Active Process — COR-1402")
+    click.echo()
+    for item in declarations:
+        click.echo(f"- Phase {item['phase']}: {item['declaration']}")
+    click.echo()
+
+
 _LLM_RULES = """\
 ## RULES
 - Complete each checkbox before moving to the next phase
@@ -725,6 +756,7 @@ def _emit_todo_text(
         header = _format_composed_from_header(composed_from_provenance)
         click.echo(f"# {header}")
         click.echo()
+    _emit_active_process_text(phase_info)
     click.echo("# Flat TODO — Follow each item in order")
     click.echo()
     click.echo("\n".join(todo_items))
@@ -829,6 +861,7 @@ def _emit_json_output(
     if output_todo:
         result["todo"] = todo_json
         result["loops"] = loops_json
+        result["active_process"] = _build_active_process_declarations(phase_info)
 
     if output_graph:
         provenance_map = _build_provenance_map(composed_from_provenance)
@@ -889,6 +922,7 @@ def _emit_phased_text(
         header = _format_composed_from_header(composed_from_provenance)
         click.echo(f"# {header}")
         click.echo()
+    _emit_active_process_text(phase_info)
     if human:
         click.echo("\n".join(phases_text))
     else:

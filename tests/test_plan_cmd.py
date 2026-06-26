@@ -23,14 +23,22 @@ from fx_alfred.core.workflow import BranchSignature, WorkflowSignature
 pytestmark = pytest.mark.cli
 
 
-def _create_sop_with_steps(rules_dir: Path, prefix: str, acid: str, title: str) -> Path:
+def _create_sop_with_steps(
+    rules_dir: Path,
+    prefix: str,
+    acid: str,
+    title: str,
+    *,
+    task_tags: str | None = None,
+) -> Path:
     """Helper to create an SOP document with Steps section."""
     filename = f"{prefix}-{acid}-SOP-{title}.md"
+    task_tags_line = f"**Task tags:** {task_tags}\n" if task_tags else ""
     content = f"""# {prefix}-{acid}: {title.replace("-", " ")}
 
 **Applies to:** Test
 **Status:** Active
----
+{task_tags_line}---
 ## What Is It?
 A test SOP for plan command testing.
 ## Steps
@@ -93,6 +101,48 @@ def test_plan_multiple_sops(sample_project, monkeypatch):
     assert result.exit_code == 0
     assert "Phase 1" in result.output
     assert "Phase 2" in result.output
+
+
+def test_plan_todo_outputs_active_process_declarations(sample_project, monkeypatch):
+    """--todo emits COR-1402 declarations for each composed phase."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-5001", "--todo"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    assert "# Active Process — COR-1402" in result.output
+    assert "- Phase 1: 📋 TST-5001 Test Workflow" in result.output
+    assert "# Flat TODO — Follow each item in order" in result.output
+
+
+def test_plan_todo_json_outputs_active_process_declarations(
+    sample_project, monkeypatch
+):
+    """--todo --json includes structured COR-1402 declarations."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-5001", "--todo", "--json"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["active_process"] == [
+        {
+            "phase": 1,
+            "sop": "TST-5001",
+            "title": "Test Workflow",
+            "declaration": "📋 TST-5001 Test Workflow",
+        }
+    ]
 
 
 def test_plan_skips_non_sop(sample_project, monkeypatch):
