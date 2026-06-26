@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-06-21
 **Status:** Draft
 **Related:** COR-1624, COR-1625, COR-1626, COR-1617, COR-1620, COR-1602, COR-1609
-**Task tags:** [loop, pdca, audit, retrospective, process-improvement]
+**Task tags:** []
 **Autonomy:** L1 report-only
 **Disposition:** inherit-only
 
@@ -18,6 +18,8 @@ A report-only PDCA loop for auditing a completed or in-progress run and turning 
 This SOP is not a delivery loop. It does not implement code, modify documents, open issues, deploy services, or execute remediations. It observes an already-recorded run, checks what happened against the intended plan and gates, and emits feedback that a human or later L2 workflow can choose to act on.
 
 Default autonomy is **L1 report-only** per COR-1624. The audit itself stays L1: it may recommend changes, but any follow-up action starts a separate COR-1625 L2 workflow or normal project workflow with its own concrete draft, human gate, and validation.
+
+While this SOP is `Draft`, task tags stay empty so `af plan --task` does not auto-compose it as an active runbook. Add discoverability tags only when the SOP is promoted to an approved active status.
 
 ---
 
@@ -85,7 +87,7 @@ Do not read or copy secrets. If the source evidence includes private config path
    - target-project amendment;
    - GitHub issue/PR candidate recorded in the report, not opened or staged for machine pickup;
    - no action / keep watching.
-8. **Record the audit report** — Write a passive report sink: new REF draft, append-only activity log, audit Markdown, or dashboard row. The sink must be read by a human and must not be drained by automation. If a PLN or other tracked system-of-record status change is wanted, route that mutation through a separate L2 workflow. The report must include evidence links, findings, recommendations, rejected suggestions, and residual risks.
+8. **Record the audit report** — Write a passive report sink: external REF-style draft outside the tracked document corpus, append-only activity log, audit Markdown, or dashboard row. The sink must be read by a human and must not be drained by automation. If a PLN, REF, SOP, or other tracked system-of-record document/status change is wanted, route that mutation through a separate L2 workflow. The report must include evidence links, findings, recommendations, rejected suggestions, and residual risks.
 9. **Stop at the boundary** — Do not execute the recommendations in the same L1 loop. If follow-up work is approved, start a new L2 gated action or normal project workflow with its own plan and validation.
 
 ---
