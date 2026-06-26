@@ -120,7 +120,7 @@ def _build_active_process_declarations(phase_info: list[_PhaseInfo]) -> list[dic
         phase_info, start=1
     ):
         doc_id = f"{doc.prefix}-{doc.acid}"
-        declaration = f"📋 {doc_id} {doc.title}"
+        declaration = f"📋 {doc_id} {doc.title} ▶ Phase {phase_num}"
         declarations.append(
             {
                 "phase": phase_num,
@@ -140,7 +140,7 @@ def _emit_active_process_text(phase_info: list[_PhaseInfo]) -> None:
     click.echo("# Active Process — COR-1402")
     click.echo()
     for item in declarations:
-        click.echo(f"- Phase {item['phase']}: {item['declaration']}")
+        click.echo(f"- {item['declaration']}")
     click.echo()
 
 

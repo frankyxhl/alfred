@@ -114,8 +114,28 @@ def test_plan_todo_outputs_active_process_declarations(sample_project, monkeypat
 
     assert result.exit_code == 0
     assert "# Active Process — COR-1402" in result.output
-    assert "- Phase 1: 📋 TST-5001 Test Workflow" in result.output
+    assert "- 📋 TST-5001 Test Workflow ▶ Phase 1" in result.output
     assert "# Flat TODO — Follow each item in order" in result.output
+
+
+def test_plan_todo_active_process_multiphase_text_ordering(sample_project, monkeypatch):
+    """--todo with two SOPs emits both COR-1402 declarations with correct phase suffixes and ordering."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+    _create_sop_with_steps(rules_dir, "TST", "5002", "Second-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-5001", "TST-5002", "--todo"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    phase1_line = "- 📋 TST-5001 Test Workflow ▶ Phase 1"
+    phase2_line = "- 📋 TST-5002 Second Workflow ▶ Phase 2"
+    assert phase1_line in result.output
+    assert phase2_line in result.output
+    assert result.output.index(phase1_line) < result.output.index(phase2_line)
 
 
 def test_plan_todo_json_outputs_active_process_declarations(
@@ -138,7 +158,7 @@ def test_plan_todo_json_outputs_active_process_declarations(
             "phase": 1,
             "sop": "TST-5001",
             "title": "Test Workflow",
-            "declaration": "📋 TST-5001 Test Workflow",
+            "declaration": "📋 TST-5001 Test Workflow ▶ Phase 1",
         }
     ]
 

@@ -99,9 +99,9 @@ Expected output (abbreviated — header + flat TODO first):
 
 # Active Process — COR-1402
 
-- Phase 1: 📋 COR-1103 Session Routing
-- Phase 2: 📋 COR-1402 Declare Active Process
-- Phase 3: 📋 COR-1500 TDD Development Workflow
+- 📋 COR-1103 Session Routing ▶ Phase 1
+- 📋 COR-1402 Declare Active Process ▶ Phase 2
+- 📋 COR-1500 TDD Development Workflow ▶ Phase 3
 
 # Flat TODO — Follow each item in order
 - [ ] 1.1 [COR-1103] (session routing)
@@ -109,6 +109,8 @@ Expected output (abbreviated — header + flat TODO first):
 - [ ] 3.1 [COR-1500] (TDD)
   ...
 ```
+
+> Note: the generated active-process lines intentionally use the compact `▶ Phase N` form (the phase's SOP title already precedes the `▶`), rather than COR-1402's full canonical `<PLN-ACID> Phase N <Name>` form — there is no persisted PLN document in a composed plan to reference.
 
 Then the fenced Mermaid block (for GitHub / Obsidian rendering):
 
