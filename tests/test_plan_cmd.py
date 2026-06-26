@@ -187,6 +187,18 @@ def test_setup_outputs_prompts(sample_project, monkeypatch):
     assert "af guide" in result.output
 
 
+def test_setup_cor1402_reflects_hardened_rule(sample_project, monkeypatch):
+    """af setup COR-1402 guidance must say 'first line of every reply' and
+    include the no-formal-SOP canonical form (PR #242 Codex finding)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["setup"], catch_exceptions=False)
+    assert result.exit_code == 0
+    output_lower = result.output.lower()
+    assert "first line of every reply" in output_lower
+    assert "📋 COR-1402 Declare Active Process → no formal task SOP" in result.output
+
+
 def _create_skill_ref(
     rules_dir: Path,
     prefix: str,
