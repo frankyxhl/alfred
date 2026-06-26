@@ -1679,6 +1679,44 @@ def test_task_header_shows_provenance(sample_project, monkeypatch):
     assert "(auto)" in result.output
 
 
+def test_release_task_routes_to_pypi_sop_but_changelog_task_does_not(
+    sample_project, monkeypatch
+):
+    """Release tags stay specific enough to avoid routine changelog routing."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir, "FXA", "2102", "Release-To-PyPI", "[release, pypi, publish]"
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+
+    release_result = runner.invoke(
+        cli,
+        ["plan", "--task", "release fx-alfred to pypi", "--json"],
+        catch_exceptions=False,
+    )
+    assert release_result.exit_code == 0
+    release_data = json.loads(release_result.output)
+    assert "FXA-2102" in release_data["composed_from"]["auto"]
+
+    changelog_result = runner.invoke(
+        cli, ["plan", "--task", "update changelog"], catch_exceptions=False
+    )
+    assert changelog_result.exit_code == 2
+    assert "matched 0 tagged SOPs" in changelog_result.output
+    assert "FXA-2102" not in changelog_result.output
+
+
+def test_release_sop_task_tags_are_release_specific():
+    """FXA-2102 avoids generic maintenance tags that misroute tasks."""
+    rule_path = Path(__file__).parents[1] / "rules" / "FXA-2102-SOP-Release-To-PyPI.md"
+    parsed = parse_metadata(rule_path.read_text(encoding="utf-8"))
+    field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
+
+    assert field_map["Task tags"] == "release, pypi, publish"
+
+
 def test_task_json_composed_from_structure(sample_project, monkeypatch):
     """--task --json composed_from has always/auto lists."""
     import json
