@@ -110,9 +110,7 @@ def test_plan_todo_outputs_active_process_declarations(sample_project, monkeypat
 
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["plan", "TST-5001", "--todo"], catch_exceptions=False
-    )
+    result = runner.invoke(cli, ["plan", "TST-5001", "--todo"], catch_exceptions=False)
 
     assert result.exit_code == 0
     assert "# Active Process — COR-1402" in result.output
