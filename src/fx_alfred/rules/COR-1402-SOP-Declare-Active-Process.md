@@ -71,7 +71,7 @@ The declaration must include all applicable dimensions:
 | **PLN** (plan) | When executing a plan | `NRV-2207-PLN` |
 | **Phase / Step** | When the plan has phases | `Phase 2.5 BDD + Coverage` |
 
-For compact chat surfaces, the declaration may be one line. Do not skip it only because the task is short; use the no-formal-SOP form instead.
+**Chat surface (mandatory).** In conversational/chat surfaces, emit the active-process declaration as the **first line of every reply**, before any other content. Re-state it on every turn — including continuation, clarification, and quick-answer turns — so the active process is always visible. Keep it to one line when space is tight, but never omit it; for quick answers or uncovered tasks use the one-line no-formal-SOP form `📋 COR-1402 Declare Active Process → no formal task SOP`.
 
 ### 2. When switching processes, declare each transition
 
@@ -99,3 +99,4 @@ If the task produced a checklist or release/PR handoff, include whether the COR-
 | 2026-03-16 | Added plan-driven declaration format (SOP + PLN + Phase) based on field usage | Claude Code |
 | 2026-03-20 | Added When to Use/When NOT to Use sections, reordered Why section per FXA-2223 | Claude Code |
 | 2026-06-26 | Require active-process content for every user-visible task, including no-formal-SOP cases | Moth |
+| 2026-06-26 | Mandate active-process line as first line of every chat reply (chat-surface hardening) | Claude Code |

@@ -27,6 +27,9 @@ Make COR-1402 declarations a generated, visible output of Alfred plans so agents
 - Tighten `COR-1402` so every user-visible task emits an active-process line, including no-formal-SOP quick tasks.
 - Tighten `COR-1202` so executing a composed plan means emitting the generated COR-1402 declaration at task start and phase transitions.
 - Add task tags to `FXA-2102` so release tasks can be composed by `COR-1202`.
+- Harden `COR-1402` so the active-process declaration must be the first line of every chat/conversational reply, not only plan-driven phases.
+- Add an `af guide` closing reminder so the routing output itself nudges agents to open every reply with a COR-1402 line.
+- Wire the project `CLAUDE.md` Workflow section to require the first-line declaration.
 
 Out of scope:
 
@@ -41,6 +44,8 @@ Out of scope:
 - [x] `COR-1402` covers every user-visible task, not only tasks with a task-specific SOP.
 - [x] `COR-1202` tells executors to emit the generated declaration at task start and phase transitions.
 - [x] `af plan --task "release fx-alfred to pypi"` can resolve `FXA-2102` via task tags.
+- [x] `COR-1402` mandates the active-process line as the first line of every chat reply.
+- [x] `af guide` text output ends with a COR-1402 active-process reminder.
 
 ## Validation
 
@@ -52,3 +57,4 @@ Out of scope:
 | Date       | Change                                      | By   |
 |------------|---------------------------------------------|------|
 | 2026-06-26 | Initial CHG for generated COR-1402 output   | Moth |
+| 2026-06-26 | Extend scope: chat-surface first-line mandate + `af guide` reminder + CLAUDE.md wiring | Claude Code |

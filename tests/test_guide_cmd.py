@@ -243,6 +243,19 @@ def test_guide_appends_usage_record_to_user_log(sample_project, monkeypatch):
     assert payload["result_count"] == len(payload["refs"])
 
 
+def test_guide_reminds_active_process_declaration(sample_project, monkeypatch):
+    """Closing reminder tells operators to open replies with a COR-1402 line."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["guide"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "active-process line" in result.output
+    assert "COR-1402" in result.output
+    json_result = runner.invoke(cli, ["guide", "--json"], catch_exceptions=False)
+    assert json_result.exit_code == 0
+    assert "active-process line" not in json_result.output
+
+
 def test_guide_logging_failure_does_not_break_command(sample_project, monkeypatch):
     """Usage telemetry is fail-open for the user-facing command."""
     monkeypatch.chdir(sample_project)

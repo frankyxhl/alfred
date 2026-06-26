@@ -169,7 +169,7 @@ af list --type PRP --root /Users/frank/Projects/alfred
 ## Workflow
 
 - **Session start:** Run COR-1208 (Session Startup Sanity Check — `pwd`, `git status`/`log`, smoke test, load tracker, surface anomalies) before anything else. Then `af guide --root /Users/frank/Projects/alfred`. Smoke for this project: `.venv/bin/pytest -v --tb=short` and `af validate --root /Users/frank/Projects/alfred`.
-- **Before every task:** Declare active SOP per COR-1402 before starting work (or flag if none exist)
+- **Before every task:** Declare the active SOP per COR-1402 as the **first line of every reply** (including quick chat answers — use the no-formal-SOP form `📋 COR-1402 Declare Active Process → no formal task SOP` when nothing else applies). Never skip it because a task is short.
 - **Workflow checklist:** `af plan <SOP_IDs>` (LLM-optimized, follow each phase)
 - **First time:** `af setup` (suggested prompts for agent config)
 - **Workflow branches:** SOPs can declare `Workflow branches:` metadata to express branching task flows (e.g., "do EITHER A or B"). `af plan --graph` renders these as ASCII/Mermaid branch diagrams. Branch targets use step indices; sub-steps use `{phase}.{step}{letter}` notation (e.g., `3.1a`).

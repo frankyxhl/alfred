@@ -128,3 +128,8 @@ def guide_cmd(ctx: click.Context, output_json: bool):
             " Then run `af plan <SOP_IDs>` before each task."
             " First time? Run `af setup` to configure your agent."
         )
+        click.echo(
+            "Open every reply with a COR-1402 active-process line"
+            " (use `📋 COR-1402 Declare Active Process → no formal task SOP`"
+            " when no task SOP applies)."
+        )
