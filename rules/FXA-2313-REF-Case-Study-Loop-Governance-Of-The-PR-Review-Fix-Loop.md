@@ -38,6 +38,7 @@ The `act` step makes **authority-bearing writes** — it mutates a system of rec
 (the repo) and posts to GitHub. By COR-1624's passive-sink-vs-active-trigger line
 that is **not L1**.
 
+
 ## Classifying it against the ladder
 
 - **Not L1** — it writes to the repo and to GitHub.
@@ -51,6 +52,7 @@ that is **not L1**.
 > **Verdict: under-governed.** Read one way it is an L2 loop running on a standing
 > license (a COR-1625 violation); read the other way it is an L3 loop without a
 > complete envelope. Same diagnosis from both directions.
+
 
 ## Envelope audit — the six L3 preconditions vs. what this loop had
 
@@ -73,6 +75,7 @@ bot was an independent verifier and the blast radius was contained to one PR bra
 ladder warns against: an L3 loop is supposed to be safe **by construction** (the
 envelope), not by luck. Take away the external bot or point it at `main` and the
 missing preconditions bite.
+
 
 ## The empirical run (real data)
 
@@ -131,6 +134,7 @@ caught in-flight) and a **glm/minimax/deepseek COR-1602 panel** that scored the 
 changes ≥9.0 and caught issues the single bot missed (e.g. MiniMax found a residual
 stale conditional DeepSeek passed). Diversity of reviewers mattered.
 
+
 ## The lesson
 
 Loop engineering eats its own tail: the act of *writing* the autonomy ladder was
@@ -140,6 +144,7 @@ the surrounding context** (an external verifier, a contained blast radius, an at
 human), not because it had an envelope. The ladder's whole point is to make that
 distinction legible and to say: if you want this to run unattended and safely, **build
 the envelope**.
+
 
 ## The compliant redesign (the build spec)
 
@@ -167,6 +172,7 @@ Complete the six preconditions so it runs unattended **safely by construction**:
 
 Only branches, never `main`; never auto-merge (the merge stays a human L2 gate).
 
+
 ## Honest limits
 
 This is **one** loop, **one** review bot, **one** session — an *illustrative* case, not
@@ -180,7 +186,7 @@ becomes the first row of a dataset rather than an anecdote.
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-06-27 | Renumbered from FXA-2307 to FXA-2313 after main claimed 2307; replaced unreachable short SHA citations with full PR #227 commit links. | Moth |
-| 2026-06-20 | Initial version — case study of the PR #227 review-fix loop classified against the COR-1624/1625/1626 ladder; build spec for a Voyager implementation | — |
+| Date       | Change                                                                                                                                                | By   |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|------|
+| 2026-06-27 | Renumbered from FXA-2307 to FXA-2313 after main claimed 2307; replaced unreachable short SHA citations with full PR #227 commit links.                | Moth |
+| 2026-06-20 | Initial version — case study of the PR #227 review-fix loop classified against the COR-1624/1625/1626 ladder; build spec for a Voyager implementation | —    |
