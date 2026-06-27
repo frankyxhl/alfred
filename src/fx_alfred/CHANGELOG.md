@@ -1,5 +1,55 @@
 # Changelog
 
+## v1.22.0 (2026-06-28)
+
+Feature release: USR sub-project layer via `~/.alfred/projects.json` (FXA-2314)
+lets third-party repos that cannot host a `rules/` directory get project-scoped
+routing. Also: an append-only activity usage ledger (`af log` / `af log-archive`
+/ `af log-validate`), per-doc targeting for `af validate <DOC_IDS>`, and
+COR-1402 active-process declarations embedded in `af plan` output.
+
+### New Features
+
+- **`~/.alfred/projects.json` USR sub-project layer (FXA-2314, #245)** — a new
+  JSON config maps an absolute external project root to a `~/.alfred/<NAME>/`
+  subdirectory; that subdir becomes the PRJ layer for the registered repo. The
+  redirect always fires for registered roots (mapping wins; if the repo also has
+  its own `rules/`, it is shadowed with a warning). The redirected layer is
+  scanned recursively, and registered subdirs are excluded from the flat USR
+  layer, eliminating the "2 active routing docs in USR layer" warning. Both the
+  read path (scan, guide, list, …) and the write path (`af create --layer
+  project`, `af index`) route through the mapping; `af validate`'s error-path
+  fallback is also mapping-aware. cwd auto-discovery: if cwd or an ancestor is a
+  `projects.json` key, the root resolves without `--root` (nearest/deepest
+  match wins). Missing file, malformed JSON, unknown keys, or invalid values →
+  graceful empty mapping with a stderr warning on a present-but-unparseable file.
+- **Activity usage ledger (#235)** — three new commands: `af log <summary>`
+  appends a manual activity-log row (options: `--event`, `--agent`, `--ref`,
+  `--file`, …); `af log-archive` rotates old entries; `af log-validate` checks
+  log integrity. `af guide` and `af plan` also emit usage records automatically.
+- **`af plan` COR-1402 active-process declarations (#242)** — each plan phase
+  now includes a ready-to-paste declaration line (`📋 <SOP-ID> <Title> ▶ Phase
+  N`), eliminating the need to hand-craft it at phase transitions. The `af guide`
+  closing output also carries a reminder to open every reply with the declaration.
+- **`af validate <DOC_IDS>` (#238)** — validate one or more specific documents
+  by PREFIX-ACID or ACID-only identifier, matching the targeting surface of `af
+  fmt`, `af export`, and `af read`. Cross-SOP workflow-loop checks still resolve
+  against the full corpus even when the validation set is filtered, so targeted
+  runs do not mis-report valid cross-references as missing.
+
+### Improvements
+
+- **`af index` Status column (#229)** — document Status is now a dedicated
+  fourth column instead of being parenthetically appended to the Title as
+  `Title (Approved)`. Every row's lifecycle state — including Active, which was
+  previously hidden — is now consistently visible; missing status renders as an
+  em dash.
+
+### Stats
+
+- 1262 tests, all passing
+- 0 breaking changes
+
 ## v1.21.0 (2026-06-19)
 
 Feature release: `af issue lint` now enforces the COR-1501 blueprint
