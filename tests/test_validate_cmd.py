@@ -1,5 +1,6 @@
 """Tests for af validate command."""
 
+import json
 import pytest
 
 from click.testing import CliRunner
@@ -2642,3 +2643,42 @@ def test_validate_single_doc_json_output(tmp_path):
     payload = json_mod.loads(result.output)
     doc_ids = [r["doc_id"] for r in payload["results"]]
     assert doc_ids == ["SOP-1000"]
+
+
+# ── FXA-2314: validate inherits projects.json redirect via scan_documents ─────
+
+
+def test_validate_mapped_context_scans_subproject_docs(tmp_path):
+    """af validate in a mapped context validates the subproject (PRJ) docs."""
+    from pathlib import Path
+
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir(exist_ok=True)
+    _write_valid_document(
+        nrv_dir / "NRV-2500-SOP-Workflow-Routing-PRJ.md",
+        "NRV",
+        "2500",
+        "SOP",
+        "Workflow Routing PRJ",
+    )
+
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0, result.output
+    assert "0 issues found" in result.output, (
+        "af validate must scan the subproject docs via projects.json redirect "
+        "and find NRV-2500 valid"
+    )

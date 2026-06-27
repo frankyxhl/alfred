@@ -1,3 +1,4 @@
+import json
 import pytest
 
 
@@ -278,3 +279,47 @@ def test_index_handles_mixed_statuses(tmp_path):
     assert "| 2101 | PRP | Doc 2101 | Rejected |" in content
     assert "| 2102 | SOP | Doc 2102 | Draft |" in content
     assert "| 2103 | SOP | Doc 2103 | Deprecated |" in content
+
+
+# ── FXA-2314: index inherits projects.json redirect via scan_documents ────────
+
+
+def test_index_mapped_context_includes_subproject_docs(tmp_path):
+    """af index in a mapped context indexes the subproject (PRJ) docs, not local rules/."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir(exist_ok=True)
+    (nrv_dir / "NRV-2500-SOP-Workflow-Routing-PRJ.md").write_text(
+        "# SOP-2500: Workflow Routing PRJ\n"
+        "\n"
+        "**Applies to:** NRV\n"
+        "**Status:** Active\n"
+        "\n"
+        "---\n"
+        "\n"
+        "NRV routing content.\n"
+    )
+
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["index", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0, result.output
+    # index_cmd writes to <root>/rules/; the subproject docs (from ~/.alfred/NRV/)
+    # must appear in the generated index because scan_documents resolves them as PRJ.
+    index_file = ext_repo / "rules" / "NRV-0000-REF-Document-Index.md"
+    assert index_file.exists(), (
+        "af index must generate an NRV prefix index that includes the subproject docs"
+    )
+    content = index_file.read_text()
+    assert "2500" in content, "NRV-2500 must appear in the generated index"

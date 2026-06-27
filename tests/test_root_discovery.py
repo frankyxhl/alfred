@@ -7,7 +7,9 @@ no qualifying ancestor → cwd fallback (the pre-CHG-2300 behavior).
 
 from __future__ import annotations
 
+import json
 import pytest
+from pathlib import Path
 
 from click.testing import CliRunner
 
@@ -181,3 +183,139 @@ def test_usr_alfred_home_is_never_a_prj_root(tmp_path):
     start.mkdir()
     # Pre-exclusion this would discover ~/.alfred; now it must fall back.
     assert discover_root(start) == start
+
+
+# ── FXA-2314: mapping-aware root discovery ────────────────────────────────────
+
+
+def _write_projects_json(alfred_dir: Path, mapping: dict) -> None:
+    (alfred_dir / "projects.json").write_text(
+        json.dumps({"projects": mapping}), encoding="utf-8"
+    )
+
+
+def test_discover_root_mapped_ancestor_recognized(tmp_path):
+    """discover_root returns the mapped ancestor when cwd is inside a mapped repo.
+
+    Without the feature: discover_root falls back to `start` (no rules/ found).
+    With the feature:    it recognises ext_repo as a mapping key and returns it.
+    """
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True)
+    ext_repo = tmp_path / "ext_repo"
+    subdir = ext_repo / "src" / "pkg"
+    subdir.mkdir(parents=True)
+
+    _write_projects_json(alfred, {str(ext_repo.resolve()): "NRV"})
+
+    result = discover_root(subdir)
+    assert result == ext_repo, (
+        f"Expected discover_root to return mapped ext_repo, got {result}"
+    )
+
+
+def test_discover_root_nearest_mapped_ancestor_wins(tmp_path):
+    """When several mapped ancestors exist, the DEEPEST (nearest) one wins."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True)
+
+    outer = tmp_path / "outer"
+    inner = outer / "sub" / "inner"
+    deep = inner / "src"
+    deep.mkdir(parents=True)
+
+    _write_projects_json(
+        alfred,
+        {
+            str(outer.resolve()): "OUT",
+            str(inner.resolve()): "INN",
+        },
+    )
+
+    result = discover_root(deep)
+    assert result == inner, (
+        f"Deepest mapped ancestor must win; expected {inner}, got {result}"
+    )
+
+
+def test_discover_root_mapped_beats_distant_rules_ancestor(tmp_path):
+    """Deepest match wins whether it's a rules/ ancestor or a mapped ancestor.
+
+    Setup: outer has rules/ (discovered by old logic); inner is a mapping key
+    (no rules/).  Starting from inner/src, the nearest qualifying ancestor is
+    inner (mapped) — it must beat the more distant outer (rules/).
+    """
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True)
+
+    outer = _make_project(tmp_path / "outer")
+    inner = outer / "sub" / "inner"
+    start = inner / "src"
+    start.mkdir(parents=True)
+
+    _write_projects_json(alfred, {str(inner.resolve()): "INN"})
+
+    result = discover_root(start)
+    assert result == inner, (
+        f"Nearest (mapped) inner must beat the more distant outer (rules/); got {result}"
+    )
+
+
+def test_discover_root_explicit_root_overrides_mapping(tmp_path, monkeypatch):
+    """Explicit --root always wins over mapping-based discovery.
+
+    This is a regression guard (--root already worked before FXA-2314) and
+    ensures the new mapping branch doesn't accidentally break --root priority.
+    """
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+    _write_projects_json(alfred, {str(ext_repo.resolve()): "NRV"})
+
+    # elsewhere has its own rules/; --root points here
+    elsewhere = _make_project(tmp_path / "elsewhere")
+
+    # cwd is inside ext_repo (mapping would normally resolve here)
+    monkeypatch.chdir(ext_repo)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["list", "--root", str(elsewhere)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # TST-7001 only exists under elsewhere (created by _make_project)
+    assert "TST-7001" in result.output, (
+        "--root must override mapping-based discovery; TST-7001 from elsewhere must appear"
+    )
+
+
+def test_discover_root_many_to_one_each_key_resolves(tmp_path):
+    """Many-to-one mapping: each registered key independently discovers its own root."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True)
+
+    repo_a = tmp_path / "repo_a"
+    repo_b = tmp_path / "repo_b"
+    src_a = repo_a / "src"
+    src_b = repo_b / "src"
+    src_a.mkdir(parents=True)
+    src_b.mkdir(parents=True)
+
+    _write_projects_json(
+        alfred,
+        {
+            str(repo_a.resolve()): "NRV",
+            str(repo_b.resolve()): "NRV",  # many-to-one: both map to "NRV"
+        },
+    )
+
+    assert discover_root(src_a) == repo_a, (
+        f"src_a must resolve to repo_a; got {discover_root(src_a)}"
+    )
+    assert discover_root(src_b) == repo_b, (
+        f"src_b must resolve to repo_b; got {discover_root(src_b)}"
+    )

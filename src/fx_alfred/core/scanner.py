@@ -5,7 +5,10 @@ from importlib import resources
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from fx_alfred.core.document import Document
+import sys
+
+from fx_alfred.core.document import Document, FILENAME_PATTERN
+from fx_alfred.core.projects import load_projects, resolve_subproject
 from fx_alfred.core.source import source_sort_key
 
 
@@ -67,7 +70,10 @@ def _scan_pkg_dir(traversable: Traversable) -> list[Document]:
 
 
 def _scan_path_dir(
-    directory: Path, source: str, recursive: bool = False
+    directory: Path,
+    source: str,
+    recursive: bool = False,
+    exclude_subdirs: set[str] | None = None,
 ) -> list[Document]:
     """Scan USR/PRJ layer using Path.
 
@@ -75,6 +81,8 @@ def _scan_path_dir(
         directory: Path to scan
         source: Source label ('usr' or 'prj')
         recursive: If True, scan subdirectories recursively
+        exclude_subdirs: Top-level subdirectory names to skip entirely
+            (used to hide registered subproject dirs from the USR layer).
     """
     if not directory.is_dir():
         return []
@@ -93,6 +101,8 @@ def _scan_path_dir(
         except ValueError:
             rel_parts = f.parts
         if rel_parts and rel_parts[0] == "logs":
+            continue
+        if exclude_subdirs and rel_parts and rel_parts[0] in exclude_subdirs:
             continue
         if "rules" in rel_parts and "logs" in rel_parts:
             continue
@@ -141,21 +151,74 @@ def _validate_layers(docs: list[Document]) -> None:
 def scan_documents(project_root: Path) -> list[Document]:
     """Scan all layers for documents.
 
-    Layers (in order): PKG (bundled), USR (~/.alfred/), PRJ (rules/)
+    Layers (in order): PKG (bundled), USR (~/.alfred/), PRJ (rules/ or
+    ~/.alfred/<NAME>/ when the root is registered in projects.json).
+
+    FXA-2314: when ``~/.alfred/projects.json`` maps *project_root* to a
+    subproject NAME, the PRJ layer is loaded from ``~/.alfred/<NAME>/``
+    (recursive) instead of ``<project_root>/rules/`` (non-recursive).  Every
+    registered subproject directory is globally excluded from the USR
+    recursive scan so the same file is never classified as both USR and PRJ.
     """
     docs: list[Document] = []
+
+    # Load projects mapping once per invocation (no module-level cache).
+    mapping = load_projects()
+    registered_names: set[str] = set(mapping.values())
 
     # Layer 1: PKG - bundled rules inside the package
     pkg_rules = resources.files("fx_alfred").joinpath("rules")
     docs.extend(_scan_pkg_dir(pkg_rules))
 
-    # Layer 2: USR - ~/.alfred/ (recursive)
+    # Layer 2: USR - ~/.alfred/ (recursive, excluding registered subproject dirs)
     user_alfred = Path.home() / ".alfred"
-    docs.extend(_scan_path_dir(user_alfred, source="usr", recursive=True))
+    docs.extend(
+        _scan_path_dir(
+            user_alfred,
+            source="usr",
+            recursive=True,
+            exclude_subdirs=registered_names,
+        )
+    )
 
-    # Layer 3: PRJ - rules/ in project (no .alfred/)
-    rules_path = project_root / "rules"
-    docs.extend(_scan_path_dir(rules_path, source="prj"))
+    # Layer 3: PRJ
+    name = resolve_subproject(project_root, mapping)
+    if name is not None:
+        # Mapping wins: load ~/.alfred/<NAME>/ as PRJ (recursive).
+        subproject_dir = user_alfred / name
+
+        # Emit a shadow warning when local rules/ is populated (mapping wins
+        # unconditionally, but warn so the operator is aware).
+        local_rules = project_root / "rules"
+        if local_rules.is_dir():
+            try:
+                if any(
+                    f.is_file()
+                    and FILENAME_PATTERN.match(f.name)
+                    and not f.name.startswith("COR-")
+                    for f in local_rules.iterdir()
+                ):
+                    print(
+                        f"Warning: {local_rules} is shadowed by the projects.json "
+                        f"mapping to ~/.alfred/{name}/; local rules/ docs will not "
+                        "be loaded as PRJ.",
+                        file=sys.stderr,
+                    )
+            except OSError:
+                pass
+
+        if not subproject_dir.is_dir():
+            print(
+                f"Warning: projects.json maps this project to {name!r} but "
+                f"~/.alfred/{name}/ does not exist; PRJ layer will be empty.",
+                file=sys.stderr,
+            )
+        else:
+            docs.extend(_scan_path_dir(subproject_dir, source="prj", recursive=True))
+    else:
+        # Normal behavior: use <project_root>/rules/ (non-recursive)
+        rules_path = project_root / "rules"
+        docs.extend(_scan_path_dir(rules_path, source="prj"))
 
     # Validate layer invariants
     _validate_layers(docs)

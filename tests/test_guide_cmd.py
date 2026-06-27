@@ -269,3 +269,80 @@ def test_guide_logging_failure_does_not_break_command(sample_project, monkeypatc
 
     assert result.exit_code == 0
     assert "Workflow Routing" in result.output
+
+
+# ── FXA-2314: USR sub-project layer via projects.json mapping ─────────────────
+
+
+def _setup_mapped_guide_context(tmp_path):
+    """Build the full fixture for a mapped-root guide test.
+
+    Layout:
+        ~/.alfred/ALF-2207-SOP-Workflow-Routing-USR.md   (sole USR routing doc)
+        ~/.alfred/NRV/NRV-2500-SOP-Workflow-Routing-PRJ.md  (subproject)
+        ~/.alfred/projects.json  → { <ext_repo>: "NRV" }
+        <ext_repo>/  (no rules/)
+    """
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    # Sole USR routing doc
+    (alfred / "ALF-2207-SOP-Workflow-Routing-USR.md").write_text(
+        "# SOP-2207: Workflow Routing USR\n\n"
+        "**Applies to:** All\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "USR routing content.\n",
+        encoding="utf-8",
+    )
+
+    # Subproject routing doc
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir(exist_ok=True)
+    (nrv_dir / "NRV-2500-SOP-Workflow-Routing-PRJ.md").write_text(
+        "# SOP-2500: Workflow Routing PRJ\n\n"
+        "**Applies to:** NRV\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "NRV subproject routing content.\n",
+        encoding="utf-8",
+    )
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir(exist_ok=True)
+
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+    return ext_repo
+
+
+def test_guide_mapped_root_no_usr_layer_warning(tmp_path):
+    """Mapped root: guide must NOT warn about multiple active routing docs in USR."""
+    ext_repo = _setup_mapped_guide_context(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["guide", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "2 active routing docs in USR layer" not in result.output, (
+        "With NRV mapped as PRJ, ALF-2207 should be the sole USR routing doc "
+        "— no 'multiple active' warning should appear"
+    )
+
+
+def test_guide_mapped_root_shows_subproject_routing_doc_under_prj(tmp_path):
+    """Mapped root: guide shows the subproject routing doc in the PRJ section."""
+    ext_repo = _setup_mapped_guide_context(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["guide", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    # The PRJ section header must reference NRV-2500
+    assert "PRJ: NRV-2500" in result.output, (
+        "Guide output must show NRV-2500 as the PRJ routing doc in a mapped context"
+    )
+    # The "no active routing document found" placeholder must NOT appear for PRJ
+    assert "PRJ: (no active routing document found)" not in result.output
