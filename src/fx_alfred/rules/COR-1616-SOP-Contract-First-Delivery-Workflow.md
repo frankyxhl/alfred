@@ -96,7 +96,7 @@ flowchart TD
 ## Steps
 
 1. **Route the work.**
-   Read the project routing SOP and identify whether the slice needs a new PRP, CHG, PLN, ADR, or fits an existing contract. Declare the active SOP before starting and at major transitions (per COR-1402).
+   Read the project routing SOP and identify whether the slice needs a new PRP, CHG, PLN, ADR, or fits an existing contract. Declare the active SOP as the first line of every reply, re-stating it at major transitions (per COR-1402).
 
 2. **Load slice context.**
    Read the roadmap / phase document, relevant ADRs, recent discussion-tracker entries, and any prior contracts the slice continues. State the current objective, deferred items, and explicit out-of-scope items.
@@ -247,3 +247,4 @@ The adapter declares "Inherits from: COR-1616" in its metadata and only override
 | 2026-05-07 | Initial version — promoted from BAB-1503 (Babs phase delivery workflow) into a project-neutral SOP per issue #106 | Claude Code |
 | 2026-05-07 | Trinity review round 1: Gemini 10.0 PASS, GLM 9.05 PASS, Codex 9.20 CONCERNS (1 blocking), DeepSeek 9.00 PASS. Fix Codex blocker (de-Babs Example 3: drop literal `BAB-2300`/`FXA-21xx`/`babs.gate_a`); fix convergent advisory (Step 7 fallback when no validation stack declared); fold in Pitfalls section, COR-1614 boundary line, Chrome-version softening | Claude Code |
 | 2026-05-07 | Trinity review round 2: Gemini 9.35 PASS, GLM 9.28 PASS, Codex 9.70 PASS, DeepSeek 9.45 PASS — all four reviewers PASS, zero blocking. Fix 2/4-convergent advisory (Gemini + DeepSeek): drop self-referential `BAB-1503` parenthetical from Example 3 line 238. Fix single-reviewer ambiguity (Gemini): clarify Step 3 PLN guidance vs. COR-1614 multi-PR territory | Claude Code |
+| 2026-06-26 | Align Step 1 declaration cadence with hardened COR-1402 (first line of every reply) | Claude Code |

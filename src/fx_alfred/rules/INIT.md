@@ -16,7 +16,7 @@ If a `*-0000-REF-*.md` file appears in the PRJ layer, read it too — that's the
 
 ## Step 3: Follow the rules
 
-- **COR-1402**: Always declare which SOP you are following before starting a task.
+- **COR-1402**: Declare the active SOP as the first line of every reply — re-state it each turn; use `📋 COR-1402 Declare Active Process → no formal task SOP` when no task SOP applies.
 - **COR-1400**: Every SOP does exactly one thing.
 - **COR-1401**: All documents must be written in English.
 

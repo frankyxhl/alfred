@@ -222,6 +222,7 @@
 | 2309 | SOP | Evolve Engine | Active |
 | 2310 | CHG | Implement Evolve Engine SOP Refactor | Proposed |
 | 2311 | CHG | Strengthen L2 PR Readiness Loop Gates | Proposed |
+| 2312 | CHG | COR 1402 Active Process Output | Completed |
 
 ---
 

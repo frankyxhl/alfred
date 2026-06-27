@@ -1,8 +1,8 @@
 # SOP-1202: Compose Session Plan
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-18
-**Last reviewed:** 2026-04-18
+**Last updated:** 2026-06-26
+**Last reviewed:** 2026-06-26
 **Status:** Active
 **Related:** COR-1103, COR-1402, COR-1200
 **Disposition:** inherit-only
@@ -56,7 +56,7 @@ Run:
 af plan --root . --task "<description>" --todo --graph
 ```
 
-The default `--graph-format=both` emits ASCII + Mermaid together. Use `--graph-format=ascii` or `--graph-format=mermaid` to pick one. Use `--json` when a programmatic consumer is downstream.
+The default `--graph-format=both` emits ASCII + Mermaid together. Use `--graph-format=ascii` or `--graph-format=mermaid` to pick one. Use `--json` when a programmatic consumer is downstream. The plan output includes a COR-1402 active-process section with copyable declarations for each phase.
 
 ### 4. Review provenance
 
@@ -73,7 +73,7 @@ Copy the flat TODO into the session's working surface: issue / Discussion Tracke
 
 ### 6. Execute
 
-Execute step by step. At each phase transition the executor (agent or human running the plan) declares the active SOP per COR-1402 and honours any `Workflow loops` `max N` bound rendered in the plan. (A `Workflow loops` entry is SOP metadata declaring a bounded retry — e.g. review loop "max 3". In the ASCII/Mermaid output it appears as a dashed back-edge; in the flat TODO it appears as `🔁 back to N.M (max K)` on the loop's `from` step. Stop the loop when `max K` is reached; escalate per the SOP's own rules.)
+Execute step by step. Open every reply with the matching active-process declaration from the plan's COR-1402 section — re-selecting it at each phase transition — then honour any `Workflow loops` `max N` bound rendered in the plan. (A `Workflow loops` entry is SOP metadata declaring a bounded retry — e.g. review loop "max 3". In the ASCII/Mermaid output it appears as a dashed back-edge; in the flat TODO it appears as `🔁 back to N.M (max K)` on the loop's `from` step. Stop the loop when `max K` is reached; escalate per the SOP's own rules.)
 
 ### 7. Close and compare
 
@@ -97,12 +97,20 @@ Expected output (abbreviated — header + flat TODO first):
 # Composed from: COR-1103(always) → COR-1402(always) → COR-1500(auto)
                 → COR-1602(auto) → COR-1608(auto) → COR-1610(auto)
 
+# Active Process — COR-1402
+
+- 📋 COR-1103 Session Routing ▶ Phase 1
+- 📋 COR-1402 Declare Active Process ▶ Phase 2
+- 📋 COR-1500 TDD Development Workflow ▶ Phase 3
+
 # Flat TODO — Follow each item in order
 - [ ] 1.1 [COR-1103] (session routing)
 - [ ] 2.1 [COR-1402] Declare active SOP
 - [ ] 3.1 [COR-1500] (TDD)
   ...
 ```
+
+> Note: the generated active-process lines intentionally use the compact `▶ Phase N` form (the phase's SOP title already precedes the `▶`), rather than COR-1402's full canonical `<PLN-ACID> Phase N <Name>` form — there is no persisted PLN document in a composed plan to reference.
 
 Then the fenced Mermaid block (for GitHub / Obsidian rendering):
 
@@ -169,3 +177,4 @@ Now exits 0 with `COR-1500(explicit)` in the `Composed from:` header.
 | Date       | Change          | By              |
 |------------|-----------------|-----------------|
 | 2026-04-18 | Initial version (per CHG-FXA-2207). | Frank + Claude |
+| 2026-06-26 | Require plan execution to emit the COR-1402 active-process declaration on every reply, re-selecting it at phase transitions | Claude Code |

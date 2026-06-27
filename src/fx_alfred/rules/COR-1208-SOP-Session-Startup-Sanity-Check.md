@@ -66,7 +66,7 @@ The startup ritual is also Anthropic's empirical finding: *"Established consiste
 
    The agent does NOT proceed past this step until anomalies are resolved or explicitly accepted. Resolution is recorded in the active session's Discussion Tracker entry per COR-1201.
 
-6. **Declare the active process.** Only after anomalies are resolved or accepted, declare the next SOP per COR-1402 (typically COR-1103 routing leading to a task-specific SOP). The declaration line should briefly note the sanity-check outcome: *"Tree clean, tests green, no tracker blockers — declaring COR-1103."*
+6. **Declare the active process.** Only after anomalies are resolved or accepted, declare the next SOP per COR-1402 (typically COR-1103 routing leading to a task-specific SOP). The declaration line should briefly note the sanity-check outcome: *"Tree clean, tests green, no tracker blockers — declaring COR-1103."* This sanity-check report is the COR-1208-mandated opening that precedes the session's first COR-1402 line, per COR-1402's chat-surface exception.
 
 ---
 

@@ -81,7 +81,7 @@ Commit ────────────► af validate → Session End
 
 • COR-1208: First action of every active session — `pwd` + `git status --short --branch` + `git log --oneline -5` + project smoke test + load tracker + surface anomalies (stop until operator acknowledges). Wraps the COR-1201 tracker load as its step 4.
 • COR-1201: Discussion Tracker mechanism — search for today's file, read max DN, auto-increment on new topics. Invoked from COR-1208 step 4; can also be invoked standalone for tracker-only operations.
-• COR-1402: Declare 📋 active SOP before work and on every transition
+• COR-1402: Declare 📋 active SOP as the first line of every reply (re-state on every transition)
 • COR-1103: Route the task before reading detailed SOPs (skip if caller already provides explicit SOP — but still offer COR-1203 alignment for PRPs and non-trivial code changes when the mandatory threshold is met)
 • af plan: Before every response — decide if task needs a checklist. For a manual, targeted checklist from specific SOPs: `af plan <SOP_IDs>`.
 • COR-1202 (Compose Session Plan): for the full session-workflow plan — use when the user says "show me the plan" / "compose session plan" / "follow COR-1202", or when the task spans multiple SOPs and you want auto-composition (ASCII + Mermaid + flat TODO) rather than hand-picking SOP IDs.
@@ -136,7 +136,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 • PRP approval              → COR-1602 strict (both reviewers >= 9)
 • New SOP/doc created       → Review via COR-1600 (Direct Review) at minimum
 • Before any multi-agent work → COR-1606 (select review or implementation workflow)
-• Compound task (A AND B)   → Split into sub-routes, COR-1402 each transition
+• Compound task (A AND B)   → Split into sub-routes, COR-1402 every reply
 • Confidence < 90%          → Ask one clarifying question before proceeding
 • Background agents running → Proactively report progress on every user message (check output file sizes, show line counts)
 • Review scoring rubric    → COR-1608 (PRP) / COR-1609 (CHG) / COR-1610 (Code) + COR-1611 (calibration)
@@ -158,7 +158,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 Essential rules from COR SOPs. Read these at session start; only read the full SOP when executing that specific workflow.
 
 ```
-COR-1402: Always declare 📋 active SOP before work and when switching
+COR-1402: Always declare 📋 active SOP as the first line of every reply (and when switching)
 COR-1102: New capability/design → PRP; no implementation until COR-1602 strict approval
 COR-1606: Before any multi-agent work → select workflow (COR-1600–1605) based on task characteristics
 COR-1101: Existing system/config change → CHG with What, Why, Impact, Plan; Standard changes are pre-approved (no review)
@@ -179,7 +179,7 @@ COR-1616: Reviewed delivery slice → contract first (PRP/CHG/PLN), plan review 
 COR-1503: Diagnose bug/perf regression → build feedback loop → reproduce → hypothesise (3-5 ranked) → instrument (one variable/round) → fix → regression-test (hand off to COR-1500)
 COR-1203: Pre-task alignment → before PRP/non-trivial code, offer 7-step Socratic interview; challenge against glossary (COR-1204 CTX), sharpen terms, stop when crisp or user-declined; record one-line outcome
 COR-1801: Pattern promotion → evaluate PRJ pattern contract and evidence before creating or amending PKG/COR documents
-Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 each step)
+Reading an SOP: af read → What + Why → When to Use → When NOT → Prerequisites → Pitfalls → Steps (COR-1402 every reply)
 ```
 
 ---
@@ -259,3 +259,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-05-06 | Add COR-1614 routing entries for approved multi-phase continuous execution contracts. | Codex |
 | 2026-05-07 | Add COR-1616 routing entries (OVERLAY + Golden Rule) for Contract-First Delivery Workflow promoted from BAB-1503 per issue #106. | Claude Code |
 | 2026-06-19 | Add COR-1508 routing entries (OVERLAYS line + Golden Rule) for the Minimal Code Ladder write-time gate, adapted from the Ponytail ruleset. | Claude Code |
+| 2026-06-26 | Align COR-1402 declaration cadence in cheat-sheet / Golden Rules to first-line-of-every-reply. | Claude Code |

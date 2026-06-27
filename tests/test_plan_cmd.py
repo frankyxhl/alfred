@@ -23,14 +23,22 @@ from fx_alfred.core.workflow import BranchSignature, WorkflowSignature
 pytestmark = pytest.mark.cli
 
 
-def _create_sop_with_steps(rules_dir: Path, prefix: str, acid: str, title: str) -> Path:
+def _create_sop_with_steps(
+    rules_dir: Path,
+    prefix: str,
+    acid: str,
+    title: str,
+    *,
+    task_tags: str | None = None,
+) -> Path:
     """Helper to create an SOP document with Steps section."""
     filename = f"{prefix}-{acid}-SOP-{title}.md"
+    task_tags_line = f"**Task tags:** {task_tags}\n" if task_tags else ""
     content = f"""# {prefix}-{acid}: {title.replace("-", " ")}
 
 **Applies to:** Test
 **Status:** Active
----
+{task_tags_line}---
 ## What Is It?
 A test SOP for plan command testing.
 ## Steps
@@ -95,6 +103,66 @@ def test_plan_multiple_sops(sample_project, monkeypatch):
     assert "Phase 2" in result.output
 
 
+def test_plan_todo_outputs_active_process_declarations(sample_project, monkeypatch):
+    """--todo emits COR-1402 declarations for each composed phase."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5001", "--todo"], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert "# Active Process — COR-1402" in result.output
+    assert "- 📋 TST-5001 Test Workflow ▶ Phase 1" in result.output
+    assert "# Flat TODO — Follow each item in order" in result.output
+
+
+def test_plan_todo_active_process_multiphase_text_ordering(sample_project, monkeypatch):
+    """--todo with two SOPs emits both COR-1402 declarations with correct phase suffixes and ordering."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+    _create_sop_with_steps(rules_dir, "TST", "5002", "Second-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-5001", "TST-5002", "--todo"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    phase1_line = "- 📋 TST-5001 Test Workflow ▶ Phase 1"
+    phase2_line = "- 📋 TST-5002 Second Workflow ▶ Phase 2"
+    assert phase1_line in result.output
+    assert phase2_line in result.output
+    assert result.output.index(phase1_line) < result.output.index(phase2_line)
+
+
+def test_plan_todo_json_outputs_active_process_declarations(
+    sample_project, monkeypatch
+):
+    """--todo --json includes structured COR-1402 declarations."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-5001", "--todo", "--json"], catch_exceptions=False
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["active_process"] == [
+        {
+            "phase": 1,
+            "sop": "TST-5001",
+            "title": "Test Workflow",
+            "declaration": "📋 TST-5001 Test Workflow ▶ Phase 1",
+        }
+    ]
+
+
 def test_plan_skips_non_sop(sample_project, monkeypatch):
     """Non-SOP documents trigger a warning about not being SOP."""
     # sample_project has ALF-2201-PRP-AF-CLI-Tool.md (PRP type)
@@ -137,6 +205,18 @@ def test_setup_outputs_prompts(sample_project, monkeypatch):
     assert result.exit_code == 0
     assert "af plan" in result.output
     assert "af guide" in result.output
+
+
+def test_setup_cor1402_reflects_hardened_rule(sample_project, monkeypatch):
+    """af setup COR-1402 guidance must say 'first line of every reply' and
+    include the no-formal-SOP canonical form (PR #242 Codex finding)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["setup"], catch_exceptions=False)
+    assert result.exit_code == 0
+    output_lower = result.output.lower()
+    assert "first line of every reply" in output_lower
+    assert "📋 COR-1402 Declare Active Process → no formal task SOP" in result.output
 
 
 def _create_skill_ref(
@@ -320,6 +400,20 @@ def test_plan_llm_mode_has_rules(sample_project, monkeypatch):
     result = runner.invoke(cli, ["plan", "TST-5001"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "## RULES" in result.output
+
+
+def test_plan_llm_rules_mentions_every_reply_first_line(sample_project, monkeypatch):
+    """RULES block instructs agents to declare COR-1402 as first line of EVERY reply."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5001"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "first line of EVERY reply" in result.output
+    assert "📋 COR-1402 Declare Active Process → no formal task SOP" in result.output
+    assert "flag the gap" in result.output
 
 
 def test_plan_human_mode_no_rules(sample_project, monkeypatch):
@@ -1629,6 +1723,57 @@ def test_task_header_shows_provenance(sample_project, monkeypatch):
     assert "Composed from:" in result.output
     assert "(always)" in result.output
     assert "(auto)" in result.output
+
+
+def test_release_task_routes_to_pypi_sop_but_changelog_task_does_not(
+    sample_project, monkeypatch
+):
+    """`publish docs` / `update changelog` do not match the `release, pypi` tags.
+
+    Note: this only proves the dropped `publish` tag and the unrelated
+    `changelog` term no longer route. The remaining `release` tag is still
+    broad under the matcher's union semantics (e.g. `release notes` would
+    match); narrowing it cleanly requires a matcher enhancement, not a tag
+    edit — see FXA-2102 Task-tags note.
+    """
+    rules_dir = sample_project / "rules"
+    _create_sop_with_task_tags(
+        rules_dir, "FXA", "2102", "Release-To-PyPI", "[release, pypi]"
+    )
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+
+    release_result = runner.invoke(
+        cli,
+        ["plan", "--task", "release fx-alfred to pypi", "--json"],
+        catch_exceptions=False,
+    )
+    assert release_result.exit_code == 0
+    release_data = json.loads(release_result.output)
+    assert "FXA-2102" in release_data["composed_from"]["auto"]
+
+    changelog_result = runner.invoke(
+        cli, ["plan", "--task", "update changelog"], catch_exceptions=False
+    )
+    assert changelog_result.exit_code == 2
+    assert "matched 0 tagged SOPs" in changelog_result.output
+    assert "FXA-2102" not in changelog_result.output
+
+    publish_docs_result = runner.invoke(
+        cli, ["plan", "--task", "publish docs"], catch_exceptions=False
+    )
+    assert publish_docs_result.exit_code == 2
+    assert "FXA-2102" not in publish_docs_result.output
+
+
+def test_release_sop_task_tags_are_release_specific():
+    """FXA-2102 avoids generic maintenance tags that misroute tasks."""
+    rule_path = Path(__file__).parents[1] / "rules" / "FXA-2102-SOP-Release-To-PyPI.md"
+    parsed = parse_metadata(rule_path.read_text(encoding="utf-8"))
+    field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
+
+    assert field_map["Task tags"] == "release, pypi"
 
 
 def test_task_json_composed_from_structure(sample_project, monkeypatch):
