@@ -46,7 +46,7 @@ Zoom-out costs ~30 seconds of model time. Fixing the consequences of skipping it
 
 ## Steps
 
-1. **State the unfamiliarity explicitly.** Open with: *"I don't know this area well. Zooming out before diving in."* The declaration is for the operator's record per COR-1402.
+1. **State the unfamiliarity explicitly.** Open with: *"I don't know this area well. Zooming out before diving in."* The declaration is for the operator's record per COR-1402. Per COR-1402's chat-surface exception, this unfamiliarity statement is the mandated opening; the COR-1402 active-process line immediately follows it.
 
 2. **Load the project glossary.** If a CTX document exists per COR-1204-REF, read it before mapping. The glossary supplies the vocabulary the map will use. If no CTX exists, note *"no glossary loaded — using inferred vocabulary"* in the map header.
 

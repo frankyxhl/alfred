@@ -32,6 +32,8 @@ Make COR-1402 declarations a generated, visible output of Alfred plans so agents
 - Wire the project `CLAUDE.md` Workflow section to require the first-line declaration.
 - Align bundled active-instruction surfaces that cited the old COR-1402 cadence (af plan's LLM RULES block, COR-1616 Step 1, COR-1202 execute step, the skill bundle, af setup, COR-1103 cheat-sheet and Golden Rules, INIT.md bootstrap) to the first-line/every-reply rule — all shipped active-instruction surfaces that teach the cadence — packaged rules (incl. INIT.md), CLI output, and the repo skill bundle — are covered; historical PRP/CHG records and review-packs are intentionally left as-is.
 
+- Reconcile the first-line mandate with SOPs that mandate a different opening (COR-1208 sanity-check, COR-1207 unfamiliarity statement) via a generic exception in COR-1402, cross-referenced from those SOPs. A repo sweep confirms no other SOP currently mandates a competing reply-opening. The restating surfaces (skill bundle, `CLAUDE.md`, `af setup`/`af guide`/plan RULES, INIT.md) intentionally defer to COR-1402 as the authority for this exception rather than duplicating it — they say "first line of every reply, per COR-1402", and the exception lives in the canonical SOP they point to.
+
 Out of scope:
 
 - Enforcing declarations in external chat surfaces.
@@ -64,3 +66,4 @@ Out of scope:
 | 2026-06-26 | Extend scope: align af plan RULES block + COR-1616/COR-1202 + skill bundle + af setup to every-reply cadence | Claude Code |
 | 2026-06-26 | Add COR-1103 cheat-sheet/Golden-Rules alignment + exhaustiveness note                                        | Claude Code |
 | 2026-06-26 | Add INIT.md bootstrap to aligned-surfaces list (Codex finding)                                               | Claude Code |
+| 2026-06-26 | Add startup/zoom-out reconciliation exception.                                                               | Claude Code |
