@@ -2,7 +2,7 @@
 
 Drop-in instructions that teach an AI coding agent to use the **`af` CLI**
 (Alfred — Agent Runbook) as its workflow runbook: route with `af guide`, plan
-with `af plan`, declare the active SOP, and review before committing.
+with `af plan`, declare the active SOP on every reply, and review before committing.
 
 This bundle is **CLI-dynamic** — it assumes `af` is installed and contains
 **instructions only, no scripts**. The agent calls `af` through its own shell.

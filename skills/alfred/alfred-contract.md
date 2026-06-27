@@ -37,8 +37,10 @@ printed steps in order and do not skip any.
 ## 4. Execute
 
 - Work through the checklist one step at a time.
-- At each phase transition, declare the active SOP — state its ACID, the plan
-  ACID if any, and the current phase/step — per COR-1402.
+- Open every reply with a COR-1402 active-process line as its first line — state
+  the active SOP's ACID, the plan ACID if any, and the current phase/step. Re-state
+  it on every turn; when no task SOP applies use
+  `📋 COR-1402 Declare Active Process → no formal task SOP`.
 - Do not commit code before completing the review steps the plan lists.
 
 ## 5. Session end
