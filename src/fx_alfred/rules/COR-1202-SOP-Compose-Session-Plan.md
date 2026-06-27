@@ -73,7 +73,7 @@ Copy the flat TODO into the session's working surface: issue / Discussion Tracke
 
 ### 6. Execute
 
-Execute step by step. Before starting the task and at each phase transition, the executor (agent or human running the plan) emits the matching active-process declaration from the plan's COR-1402 section, then honours any `Workflow loops` `max N` bound rendered in the plan. (A `Workflow loops` entry is SOP metadata declaring a bounded retry — e.g. review loop "max 3". In the ASCII/Mermaid output it appears as a dashed back-edge; in the flat TODO it appears as `🔁 back to N.M (max K)` on the loop's `from` step. Stop the loop when `max K` is reached; escalate per the SOP's own rules.)
+Execute step by step. Open every reply with the matching active-process declaration from the plan's COR-1402 section — re-selecting it at each phase transition — then honour any `Workflow loops` `max N` bound rendered in the plan. (A `Workflow loops` entry is SOP metadata declaring a bounded retry — e.g. review loop "max 3". In the ASCII/Mermaid output it appears as a dashed back-edge; in the flat TODO it appears as `🔁 back to N.M (max K)` on the loop's `from` step. Stop the loop when `max K` is reached; escalate per the SOP's own rules.)
 
 ### 7. Close and compare
 
@@ -177,4 +177,4 @@ Now exits 0 with `COR-1500(explicit)` in the `Composed from:` header.
 | Date       | Change          | By              |
 |------------|-----------------|-----------------|
 | 2026-04-18 | Initial version (per CHG-FXA-2207). | Frank + Claude |
-| 2026-06-26 | Require plan execution to emit COR-1402 active-process declarations at task start and phase transitions | Claude Code |
+| 2026-06-26 | Require plan execution to emit the COR-1402 active-process declaration on every reply, re-selecting it at phase transitions | Claude Code |

@@ -402,6 +402,20 @@ def test_plan_llm_mode_has_rules(sample_project, monkeypatch):
     assert "## RULES" in result.output
 
 
+def test_plan_llm_rules_mentions_every_reply_first_line(sample_project, monkeypatch):
+    """RULES block instructs agents to declare COR-1402 as first line of EVERY reply."""
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5001"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "first line of EVERY reply" in result.output
+    assert "📋 COR-1402 Declare Active Process → no formal task SOP" in result.output
+    assert "flag the gap" in result.output
+
+
 def test_plan_human_mode_no_rules(sample_project, monkeypatch):
     """--human mode does NOT include ## RULES section."""
     rules_dir = sample_project / "rules"

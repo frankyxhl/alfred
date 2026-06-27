@@ -87,7 +87,7 @@ The declaration must include all applicable dimensions:
 
 ### 4. When the task is complete, confirm which SOPs were used
 
-If the task produced a checklist or release/PR handoff, include whether the COR-1402 declaration was emitted and updated at phase transitions.
+If the task produced a checklist or release/PR handoff, include whether the COR-1402 declaration opened every reply and was updated at phase transitions.
 
 ---
 

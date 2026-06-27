@@ -147,7 +147,7 @@ def _emit_active_process_text(phase_info: list[_PhaseInfo]) -> None:
 _LLM_RULES = """\
 ## RULES
 - Complete each checkbox before moving to the next phase
-- Declare active SOP per COR-1402: before starting, at every phase transition, flag if none exist, and confirm at completion
+- Declare the COR-1402 active-process line as the first line of EVERY reply — re-state it each turn (continuation, clarification, quick answers); use `📋 COR-1402 Declare Active Process → no formal task SOP` when no task SOP applies, and flag the gap (suggest creating an SOP); confirm SOPs used at completion
 - ⚠️ marks hard stops — do not proceed until condition is met
 - If stuck, ask one clarifying question before proceeding
 """

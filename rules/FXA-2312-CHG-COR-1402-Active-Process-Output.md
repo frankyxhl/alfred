@@ -30,6 +30,7 @@ Make COR-1402 declarations a generated, visible output of Alfred plans so agents
 - Harden `COR-1402` so the active-process declaration must be the first line of every chat/conversational reply, not only plan-driven phases.
 - Add an `af guide` closing reminder so the routing output itself nudges agents to open every reply with a COR-1402 line.
 - Wire the project `CLAUDE.md` Workflow section to require the first-line declaration.
+- Align bundled active-instruction surfaces that cited the old COR-1402 cadence (af plan's LLM RULES block, COR-1616 Step 1, COR-1202 execute step, the skill bundle, af setup, COR-1103 cheat-sheet and Golden Rules) to the first-line/every-reply rule — all bundled active-instruction surfaces that teach the cadence are covered; historical PRP/CHG records and review-packs are intentionally left as-is.
 
 Out of scope:
 
@@ -56,7 +57,9 @@ Out of scope:
 
 ## Change History
 
-| Date       | Change                                                                                 | By          |
-|------------|----------------------------------------------------------------------------------------|-------------|
-| 2026-06-26 | Initial CHG for generated COR-1402 output                                              | Claude Code |
-| 2026-06-26 | Extend scope: chat-surface first-line mandate + `af guide` reminder + CLAUDE.md wiring | Claude Code |
+| Date       | Change                                                                                                       | By          |
+|------------|--------------------------------------------------------------------------------------------------------------|-------------|
+| 2026-06-26 | Initial CHG for generated COR-1402 output                                                                    | Claude Code |
+| 2026-06-26 | Extend scope: chat-surface first-line mandate + `af guide` reminder + CLAUDE.md wiring                       | Claude Code |
+| 2026-06-26 | Extend scope: align af plan RULES block + COR-1616/COR-1202 + skill bundle + af setup to every-reply cadence | Claude Code |
+| 2026-06-26 | Add COR-1103 cheat-sheet/Golden-Rules alignment + exhaustiveness note                                        | Claude Code |
