@@ -1728,10 +1728,17 @@ def test_task_header_shows_provenance(sample_project, monkeypatch):
 def test_release_task_routes_to_pypi_sop_but_changelog_task_does_not(
     sample_project, monkeypatch
 ):
-    """Release tags stay specific enough to avoid routine changelog routing."""
+    """`publish docs` / `update changelog` do not match the `release, pypi` tags.
+
+    Note: this only proves the dropped `publish` tag and the unrelated
+    `changelog` term no longer route. The remaining `release` tag is still
+    broad under the matcher's union semantics (e.g. `release notes` would
+    match); narrowing it cleanly requires a matcher enhancement, not a tag
+    edit — see FXA-2102 Task-tags note.
+    """
     rules_dir = sample_project / "rules"
     _create_sop_with_task_tags(
-        rules_dir, "FXA", "2102", "Release-To-PyPI", "[release, pypi, publish]"
+        rules_dir, "FXA", "2102", "Release-To-PyPI", "[release, pypi]"
     )
 
     monkeypatch.chdir(sample_project)
@@ -1753,6 +1760,12 @@ def test_release_task_routes_to_pypi_sop_but_changelog_task_does_not(
     assert "matched 0 tagged SOPs" in changelog_result.output
     assert "FXA-2102" not in changelog_result.output
 
+    publish_docs_result = runner.invoke(
+        cli, ["plan", "--task", "publish docs"], catch_exceptions=False
+    )
+    assert publish_docs_result.exit_code == 2
+    assert "FXA-2102" not in publish_docs_result.output
+
 
 def test_release_sop_task_tags_are_release_specific():
     """FXA-2102 avoids generic maintenance tags that misroute tasks."""
@@ -1760,7 +1773,7 @@ def test_release_sop_task_tags_are_release_specific():
     parsed = parse_metadata(rule_path.read_text(encoding="utf-8"))
     field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
 
-    assert field_map["Task tags"] == "release, pypi, publish"
+    assert field_map["Task tags"] == "release, pypi"
 
 
 def test_task_json_composed_from_structure(sample_project, monkeypatch):
