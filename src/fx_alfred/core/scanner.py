@@ -148,7 +148,7 @@ def _validate_layers(docs: list[Document]) -> None:
         raise LayerValidationError(errors)
 
 
-def scan_documents(project_root: Path) -> list[Document]:
+def scan_documents(project_root: Path, validate_layers: bool = True) -> list[Document]:
     """Scan all layers for documents.
 
     Layers (in order): PKG (bundled), USR (~/.alfred/), PRJ (rules/ or
@@ -221,7 +221,8 @@ def scan_documents(project_root: Path) -> list[Document]:
         docs.extend(_scan_path_dir(rules_path, source="prj"))
 
     # Validate layer invariants
-    _validate_layers(docs)
+    if validate_layers:
+        _validate_layers(docs)
 
     # Sort: PKG first, then USR, then PRJ; each group sorted by ACID
     docs.sort(key=lambda d: (source_sort_key(d.source), d.acid))
