@@ -83,6 +83,20 @@ def load_projects(projects_json_path: Path | None = None) -> dict[str, str]:
     return result
 
 
+def project_layer_dir(root: Path, projects_data: dict[str, str] | None = None) -> Path:
+    """Return the directory where project-layer documents should be written.
+
+    If *root* is registered in projects.json, returns ``~/.alfred/<NAME>``.
+    Otherwise returns ``<root>/rules`` (the legacy default).
+    """
+    name = resolve_subproject(
+        root, projects_data if projects_data is not None else load_projects()
+    )
+    if name is not None:
+        return Path.home() / ".alfred" / name
+    return root / "rules"
+
+
 def resolve_subproject(root: Path, mapping: dict[str, str] | None = None) -> str | None:
     """Return the subproject NAME for *root*, or ``None`` if not registered.
 
