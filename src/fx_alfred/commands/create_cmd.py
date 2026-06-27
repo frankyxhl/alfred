@@ -15,6 +15,7 @@ from fx_alfred.commands._helpers import (
 )
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.normalize import slugify
+from fx_alfred.core.projects import project_layer_dir
 from fx_alfred.core.schema import (
     DocType,
     REQUIRED_METADATA,
@@ -90,7 +91,7 @@ def _resolve_write_base(
         raise click.ClickException("--subdir is only valid with --layer user")
 
     if layer == "project":
-        return root / "rules"
+        return project_layer_dir(root)
 
     # User layer
     if subdir is None or subdir == ".":

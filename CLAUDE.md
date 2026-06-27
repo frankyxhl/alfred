@@ -85,6 +85,7 @@ src/fx_alfred/
 │   ├── parser.py          # parse_metadata(), render_document(), extract_section(), fence-state iterator
 │   ├── phases.py          # PhaseDict/StepDict typed shapes
 │   ├── preferences.py     # ~/.alfred preferences store (star bookmarks)
+│   ├── projects.py        # projects.json loader + resolve_subproject() (FXA-2314)
 │   ├── routing.py         # routing-document detection (shared by guide + export)
 │   ├── scanner.py         # scan_documents(), find_document(), layer validation
 │   ├── schema.py          # DocType/DocRole enums, ALLOWED_STATUSES, REQUIRED_METADATA/SECTIONS

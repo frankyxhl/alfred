@@ -1,3 +1,4 @@
+import json
 import pytest
 
 
@@ -278,3 +279,148 @@ def test_index_handles_mixed_statuses(tmp_path):
     assert "| 2101 | PRP | Doc 2101 | Rejected |" in content
     assert "| 2102 | SOP | Doc 2102 | Draft |" in content
     assert "| 2103 | SOP | Doc 2103 | Deprecated |" in content
+
+
+# ── FXA-2314: index inherits projects.json redirect via scan_documents ────────
+
+
+def test_index_mapped_context_includes_subproject_docs(tmp_path):
+    """af index in a mapped context indexes the subproject (PRJ) docs, not local rules/."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir(exist_ok=True)
+    (nrv_dir / "NRV-2500-SOP-Workflow-Routing-PRJ.md").write_text(
+        "# SOP-2500: Workflow Routing PRJ\n"
+        "\n"
+        "**Applies to:** NRV\n"
+        "**Status:** Active\n"
+        "\n"
+        "---\n"
+        "\n"
+        "NRV routing content.\n"
+    )
+
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["index", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0, result.output
+    # index_cmd writes to ~/.alfred/<NAME>/ for a mapped root (write path is
+    # symmetric with the read redirect); the subproject docs are indexed there.
+    index_file = Path.home() / ".alfred" / "NRV" / "NRV-0000-REF-Document-Index.md"
+    assert index_file.exists(), (
+        "af index must generate an NRV prefix index that includes the subproject docs"
+    )
+    content = index_file.read_text()
+    assert "2500" in content, "NRV-2500 must appear in the generated index"
+
+
+# ── FXA-2314: index write-path redirect for mapped context (fix) ──────────────
+
+
+def test_index_mapped_root_writes_index_to_subdir(tmp_path):
+    """In a mapped context, af index writes the index to ~/.alfred/<NAME>/, not <repo>/rules/.
+
+    Expected behavior after the fix: when --root points to a repo registered in
+    projects.json, the generated index file is written into ~/.alfred/<NAME>/ so
+    that reads and writes are symmetric.
+    """
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir()
+    # Two NRV-prefixed docs so there is a PRJ layer to index
+    (nrv_dir / "NRV-2100-SOP-First-Doc.md").write_text(
+        "# SOP-2100: First Doc\n"
+        "\n"
+        "**Applies to:** NRV\n"
+        "**Status:** Active\n"
+        "\n"
+        "---\n"
+        "\n"
+        "NRV first-doc content.\n",
+        encoding="utf-8",
+    )
+    (nrv_dir / "NRV-2101-REF-Second-Doc.md").write_text(
+        "# REF-2101: Second Doc\n"
+        "\n"
+        "**Applies to:** NRV\n"
+        "**Status:** Active\n"
+        "\n"
+        "---\n"
+        "\n"
+        "NRV second-doc content.\n",
+        encoding="utf-8",
+    )
+
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["index", "--root", str(ext_repo)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    # Index must land in ~/.alfred/NRV/, not in <repo>/rules/
+    expected = nrv_dir / "NRV-0000-REF-Document-Index.md"
+    assert expected.exists(), (
+        f"Expected index at {expected} (in ~/.alfred/NRV/), "
+        f"but it was not created there. Output: {result.output}"
+    )
+    # <repo>/rules/ must NOT be created at all
+    assert not (ext_repo / "rules").exists(), (
+        "<repo>/rules/ must not be created when root is a mapped context"
+    )
+    content = expected.read_text()
+    assert "2100" in content
+    assert "2101" in content
+
+
+def test_index_unmapped_root_still_writes_to_rules(tmp_path):
+    """Regression guard: an unmapped root still writes the index to <root>/rules/."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    # No projects.json — this root is not mapped
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+    rules_dir = ext_repo / "rules"
+    rules_dir.mkdir()
+    (rules_dir / "TST-2100-SOP-Something.md").write_text(
+        "# SOP-2100: Something\n"
+        "\n"
+        "**Applies to:** TST\n"
+        "**Status:** Active\n"
+        "\n"
+        "---\n"
+        "\n"
+        "Content.\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["index", "--root", str(ext_repo)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules_dir / "TST-0000-REF-Document-Index.md").exists()

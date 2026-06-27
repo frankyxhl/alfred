@@ -225,3 +225,114 @@ def test_list_json_empty_result(sample_project, monkeypatch):
     assert result.exit_code == 0
     assert result.output == "[]\n"
     assert json.loads(result.output) == []
+
+
+# ── FXA-2314: USR sub-project layer via projects.json mapping ─────────────────
+
+
+def _setup_mapped_list_context(tmp_path):
+    """Build a fixture with one USR doc, one subproject doc, and a mapping.
+
+    Returns (alfred_dir, ext_repo, other_project).
+    """
+    import json as _json  # local import to avoid shadowing module-level
+
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    # Genuine USR-layer doc (NOT in any subproject dir)
+    (alfred / "ALF-2207-SOP-Workflow-Routing-USR.md").write_text(
+        "# USR doc", encoding="utf-8"
+    )
+
+    # Subproject dir
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir(exist_ok=True)
+    (nrv_dir / "NRV-2500-SOP-Workflow-Routing-PRJ.md").write_text(
+        "# Subproject doc", encoding="utf-8"
+    )
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir(exist_ok=True)
+
+    other_project = tmp_path / "other_project"
+    other_project.mkdir(exist_ok=True)
+
+    (alfred / "projects.json").write_text(
+        _json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+    return alfred, ext_repo, other_project
+
+
+def test_list_subproject_docs_labelled_prj_in_mapped_context(tmp_path):
+    """Subproject docs appear with source='prj' in a mapped context (--json)."""
+    import json as _json
+
+    _, ext_repo, _ = _setup_mapped_list_context(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["list", "--json", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    data = _json.loads(result.output)
+    nrv_doc = next(
+        (d for d in data if d["prefix"] == "NRV" and d["acid"] == "2500"), None
+    )
+    assert nrv_doc is not None, "NRV-2500 must appear in list output for mapped context"
+    assert nrv_doc["source"] == "prj", (
+        f"Expected source='prj' for NRV-2500 in mapped context, got '{nrv_doc['source']}'"
+    )
+
+
+def test_list_source_usr_excludes_subproject_docs(tmp_path):
+    """--source usr must NOT include subproject docs in a mapped context."""
+    _, ext_repo, _ = _setup_mapped_list_context(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["list", "--source", "usr", "--root", str(ext_repo)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "NRV-2500" not in result.output, (
+        "NRV-2500 is a subproject (PRJ) doc in mapped context — must NOT appear under --source usr"
+    )
+
+
+def test_list_unmapped_context_hides_subproject_docs(tmp_path):
+    """From an unmapped context, registered subproject docs are absent (global USR exclusion)."""
+    import json as _json
+
+    _, _, other_project = _setup_mapped_list_context(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["list", "--json", "--root", str(other_project)], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    data = _json.loads(result.output)
+    nrv_docs = [d for d in data if d.get("prefix") == "NRV"]
+    assert len(nrv_docs) == 0, (
+        "NRV subproject docs must NOT appear in an unmapped context "
+        "(global USR exclusion keeps them isolated)"
+    )
+
+
+def test_list_redirected_prj_doc_directory_in_json(tmp_path):
+    """Redirected PRJ doc has directory=='NRV' (not '.alfred') in --json output."""
+    import json as _json
+
+    _, ext_repo, _ = _setup_mapped_list_context(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["list", "--json", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    data = _json.loads(result.output)
+    nrv_doc = next(
+        (d for d in data if d["prefix"] == "NRV" and d["acid"] == "2500"), None
+    )
+    assert nrv_doc is not None, "NRV-2500 must appear in list --json output"
+    assert nrv_doc["directory"] == "NRV", (
+        f"Expected directory='NRV' for redirected PRJ doc, got '{nrv_doc.get('directory')}'"
+    )

@@ -3,6 +3,7 @@ from pathlib import Path
 import click
 
 from fx_alfred.core.document import FILENAME_PATTERN
+from fx_alfred.core.projects import load_projects
 
 
 def discover_root(start: Path) -> Path:
@@ -17,8 +18,23 @@ def discover_root(start: Path) -> Path:
     e.g. when running from inside ``src/fx_alfred/``). The fallback
     preserves the pre-CHG-2300 behavior (cwd) for invocations outside any
     Alfred project.
+
+    FXA-2314: if a candidate (or one of its ancestors) is a key in
+    ``~/.alfred/projects.json``, it also qualifies as a root.  Both the
+    candidate and every mapping key are compared after ``Path.resolve()``
+    so that symlinked paths match correctly.  When both a ``rules/``-bearing
+    ancestor and a mapped ancestor qualify at different depths, the deepest
+    (nearest) match wins — the same rule that already governs ``rules/``
+    ancestors applies uniformly.
     """
     usr_alfred = Path.home() / ".alfred"
+
+    # Load the projects mapping once; pre-compute resolved keys for O(1) lookup.
+    mapping = load_projects()
+    resolved_keys: dict[str, str] = {
+        str(Path(k).resolve()): v for k, v in mapping.items()
+    }
+
     for candidate in (start, *start.parents):
         if candidate == usr_alfred:
             # The USR layer home can never be a PRJ root: discovering it
@@ -26,6 +42,12 @@ def discover_root(start: Path) -> Path:
             # and PRJ (rules/) scans → duplicate-ID LayerValidationError
             # (FXA-2300 R1 glm finding).
             continue
+
+        # FXA-2314: mapping-aware recognition — deepest registered ancestor wins.
+        if str(candidate.resolve()) in resolved_keys:
+            return candidate
+
+        # Existing logic: qualify on a rules/ dir with non-COR Alfred docs.
         rules_dir = candidate / "rules"
         if not rules_dir.is_dir():
             continue

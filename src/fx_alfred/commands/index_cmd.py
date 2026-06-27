@@ -6,6 +6,7 @@ import click
 from fx_alfred.commands._helpers import scan_or_fail
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.document import Document
+from fx_alfred.core.projects import project_layer_dir
 
 
 def _build_index(title: str, docs: list[Document], prefix: str) -> str:
@@ -57,7 +58,7 @@ def index_cmd(ctx: click.Context):
 
     prj_docs.sort(key=lambda d: d.prefix)
     root = get_root(ctx)
-    rules_dir = root / "rules"
+    rules_dir = project_layer_dir(root)
     rules_dir.mkdir(parents=True, exist_ok=True)
 
     for prefix, group in groupby(prj_docs, key=lambda d: d.prefix):

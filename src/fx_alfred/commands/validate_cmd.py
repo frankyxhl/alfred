@@ -1,7 +1,6 @@
 """Validate command for af CLI -- validates all documents."""
 
 import re
-from importlib import resources
 from pathlib import Path
 
 import click
@@ -26,8 +25,6 @@ from fx_alfred.core.document import Document
 from fx_alfred.core.parser import H1_PATTERN, MalformedDocumentError, parse_metadata
 from fx_alfred.core.scanner import (
     LayerValidationError,
-    _scan_path_dir,
-    _scan_pkg_dir,
     scan_documents,
 )
 from fx_alfred.core.steps import (
@@ -47,22 +44,6 @@ _BASE_REQUIRED_FIELDS = {"Applies to", "Last updated", "Last reviewed"}
 
 # Required Change History columns
 REQUIRED_HISTORY_COLUMNS = ["Date", "Change", "By"]
-
-
-def _scan_all_layers(root: Path):
-    """Scan all layers without raising on layer violations.
-
-    Returns the document list even when layer invariants are broken,
-    so that validate can report them as issues instead of aborting.
-    """
-    docs = []
-    pkg_rules = resources.files("fx_alfred").joinpath("rules")
-    docs.extend(_scan_pkg_dir(pkg_rules))
-    user_alfred = Path.home() / ".alfred"
-    docs.extend(_scan_path_dir(user_alfred, source="usr", recursive=True))
-    rules_path = root / "rules"
-    docs.extend(_scan_path_dir(rules_path, source="prj"))
-    return docs
 
 
 def _load_corpus_and_targets(
@@ -87,7 +68,7 @@ def _load_corpus_and_targets(
     except LayerValidationError:
         # Layer violations found -- re-scan without validation so we can
         # report them as per-document issues instead of aborting.
-        all_docs = _scan_all_layers(root)
+        all_docs = scan_documents(root, validate_layers=False)
 
     # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
     docs_by_id: dict[tuple[str, str], Document] = {

@@ -1,5 +1,6 @@
 """Tests for af validate command."""
 
+import json
 import pytest
 
 from click.testing import CliRunner
@@ -2642,3 +2643,120 @@ def test_validate_single_doc_json_output(tmp_path):
     payload = json_mod.loads(result.output)
     doc_ids = [r["doc_id"] for r in payload["results"]]
     assert doc_ids == ["SOP-1000"]
+
+
+# ── FXA-2314: validate inherits projects.json redirect via scan_documents ─────
+
+
+def test_validate_mapped_context_scans_subproject_docs(tmp_path):
+    """af validate in a mapped context validates the subproject (PRJ) docs."""
+    from pathlib import Path
+
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir(exist_ok=True)
+    _write_valid_document(
+        nrv_dir / "NRV-2500-SOP-Workflow-Routing-PRJ.md",
+        "NRV",
+        "2500",
+        "SOP",
+        "Workflow Routing PRJ",
+    )
+
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--root", str(ext_repo)], catch_exceptions=False
+    )
+    assert result.exit_code == 0, result.output
+    assert "0 issues found" in result.output, (
+        "af validate must scan the subproject docs via projects.json redirect "
+        "and find NRV-2500 valid"
+    )
+
+
+def test_validate_fallback_scan_respects_mapped_layer_in_error_path(tmp_path):
+    """FXA-2314 P2 (RED): _scan_all_layers fallback must classify subproject
+    docs as 'prj', not 'usr', and exclude the registered subdir from USR.
+
+    Bug: when scan_documents raises LayerValidationError, _load_corpus_and_targets
+    falls back to _scan_all_layers, which scans ~/.alfred/ recursively as 'usr'
+    (no exclude_subdirs) and uses root/rules/ as 'prj' (ignores mapping).
+    So NRV docs come back with source='usr' instead of source='prj'.
+
+    Setup:
+    - ~/.alfred/projects.json maps ext_repo → "NRV"
+    - ~/.alfred/NRV/NRV-2500-SOP-*.md: valid subproject doc
+    - ALF-9901 duplicate in ~/.alfred/ (usr) AND ~/.alfred/NRV/ (prj) forces
+      scan_documents to raise LayerValidationError, exercising the fallback.
+
+    Target behavior (post-fix): NRV-2500 has source='prj'; no NRV doc has
+    source='usr'.  Currently FAILS because _scan_all_layers is not mapping-aware.
+    """
+    from pathlib import Path
+    from fx_alfred.commands.validate_cmd import _load_corpus_and_targets
+    from fx_alfred.core.scanner import scan_documents, LayerValidationError
+
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    # Subproject dir with a valid NRV doc (the one that must come back as 'prj').
+    nrv_dir = alfred / "NRV"
+    nrv_dir.mkdir(exist_ok=True)
+    _write_valid_document(
+        nrv_dir / "NRV-2500-SOP-Workflow-Routing-PRJ.md",
+        "NRV",
+        "2500",
+        "SOP",
+        "Workflow Routing PRJ",
+    )
+
+    # Register ext_repo → "NRV" in projects.json.
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "NRV"}}),
+        encoding="utf-8",
+    )
+
+    # Introduce ALF-9901 in both USR top-level and the NRV subproject dir.
+    # scan_documents sees it in usr AND prj → LayerValidationError (duplicate).
+    _write_valid_document(
+        alfred / "ALF-9901-SOP-DupDoc.md", "ALF", "9901", "SOP", "DupDoc"
+    )
+    _write_valid_document(
+        nrv_dir / "ALF-9901-SOP-DupDoc-NRV.md", "ALF", "9901", "SOP", "DupDoc NRV"
+    )
+
+    # Verify the trigger fires: scan_documents must raise so the fallback is reached.
+    with pytest.raises(LayerValidationError, match="Duplicate ALF-9901"):
+        scan_documents(ext_repo)
+
+    # Exercise the exact code path af validate uses.
+    all_docs, _, _, _ = _load_corpus_and_targets(ext_repo, ())
+
+    # TARGET BEHAVIOR (currently FAILS — _scan_all_layers returns source='usr'):
+    # The NRV-2500 subproject doc must be classified as 'prj'.
+    nrv_docs = [d for d in all_docs if d.prefix == "NRV" and d.acid == "2500"]
+    assert len(nrv_docs) == 1
+    assert nrv_docs[0].source == "prj", (
+        f"NRV-2500 must be 'prj' (subproject layer) in the fallback scan, "
+        f"but _scan_all_layers returned source={nrv_docs[0].source!r}"
+    )
+
+    # The registered NRV subdir must be excluded from the USR scan.
+    usr_nrv = [d for d in all_docs if d.prefix == "NRV" and d.source == "usr"]
+    assert usr_nrv == [], (
+        f"No NRV doc should appear as 'usr' when NRV is a registered subproject, "
+        f"but found: {usr_nrv}"
+    )

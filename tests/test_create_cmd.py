@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1019,3 +1020,124 @@ def test_cli_mode_acid_none_raises_click_exception(tmp_path, monkeypatch):
         )
         assert result.exit_code != 0
         assert "CLI mode" in result.output
+
+
+# ── FXA-2314: write-path redirect for mapped context (fix) ────────────────────
+
+
+def test_create_mapped_root_project_layer_writes_to_subdir(tmp_path):
+    """In a mapped context, create writes the new doc to ~/.alfred/<NAME>/, not <repo>/rules/.
+
+    Expected behavior after the fix: when --root points to a repo registered in
+    projects.json, project-layer writes are redirected to ~/.alfred/<NAME>/ so
+    that reads and writes are symmetric.
+    """
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    subdir = alfred / "MYP"
+    subdir.mkdir()
+
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "MYP"}}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "chg",
+            "--root",
+            str(ext_repo),
+            "--prefix",
+            "MYP",
+            "--acid",
+            "2100",
+            "--title",
+            "My Change",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    # File must land in ~/.alfred/MYP/, not in <repo>/rules/
+    expected = subdir / "MYP-2100-CHG-My-Change.md"
+    assert expected.exists(), (
+        f"Expected new doc at {expected} (in ~/.alfred/MYP/), "
+        f"but it was not created there. Output: {result.output}"
+    )
+    # <repo>/rules/ must NOT be created at all
+    assert not (ext_repo / "rules").exists(), (
+        "<repo>/rules/ must not be created when root is a mapped context"
+    )
+
+
+def test_create_unmapped_root_still_writes_to_rules(tmp_path):
+    """Regression guard: an unmapped root still writes to <root>/rules/."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    # No projects.json — this root is not mapped
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "chg",
+            "--root",
+            str(ext_repo),
+            "--prefix",
+            "TST",
+            "--acid",
+            "2100",
+            "--title",
+            "My Change",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (ext_repo / "rules" / "TST-2100-CHG-My-Change.md").exists()
+
+
+def test_create_layer_user_subdir_unaffected_by_mapping(tmp_path):
+    """Regression guard: --layer user --subdir <NAME> still writes to ~/.alfred/<NAME>/ regardless of mapping."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+
+    ext_repo = tmp_path / "ext_repo"
+    ext_repo.mkdir()
+
+    # Register ext_repo as MYP — this mapping must NOT interfere with --layer user --subdir MYP
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(ext_repo.resolve()): "MYP"}}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "MYP",
+            "--acid",
+            "3000",
+            "--title",
+            "User Subdir Doc",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (alfred / "MYP" / "MYP-3000-SOP-User-Subdir-Doc.md").exists()
