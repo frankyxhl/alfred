@@ -83,9 +83,7 @@ def load_projects(projects_json_path: Path | None = None) -> dict[str, str]:
     return result
 
 
-def resolve_subproject(
-    root: Path, mapping: dict[str, str] | None = None
-) -> str | None:
+def resolve_subproject(root: Path, mapping: dict[str, str] | None = None) -> str | None:
     """Return the subproject NAME for *root*, or ``None`` if not registered.
 
     Both *root* and every key in *mapping* are normalised with

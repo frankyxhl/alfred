@@ -239,9 +239,9 @@ def test_scan_mapped_root_loads_subproject_as_prj(tmp_path):
     docs = scan_documents(ext_repo)
     prj_docs = [d for d in docs if d.source == "prj"]
 
-    assert any(
-        d.prefix == "NRV" and d.acid == "2500" for d in prj_docs
-    ), "NRV-2500 must appear as source='prj' in a mapped context"
+    assert any(d.prefix == "NRV" and d.acid == "2500" for d in prj_docs), (
+        "NRV-2500 must appear as source='prj' in a mapped context"
+    )
 
 
 def test_scan_mapped_root_excludes_subdir_from_usr(tmp_path):
@@ -262,9 +262,9 @@ def test_scan_mapped_root_excludes_subdir_from_usr(tmp_path):
     docs = scan_documents(ext_repo)
     usr_docs = [d for d in docs if d.source == "usr"]
 
-    assert not any(
-        d.prefix == "NRV" for d in usr_docs
-    ), "NRV-* docs must NOT appear in USR layer when NRV is a registered subproject"
+    assert not any(d.prefix == "NRV" for d in usr_docs), (
+        "NRV-* docs must NOT appear in USR layer when NRV is a registered subproject"
+    )
 
 
 def test_scan_mapped_root_no_layer_validation_error(tmp_path):
@@ -306,9 +306,9 @@ def test_scan_nested_doc_in_subproject_found_as_prj(tmp_path):
     docs = scan_documents(ext_repo)
     prj_docs = [d for d in docs if d.source == "prj"]
 
-    assert any(
-        d.prefix == "NRV" and d.acid == "2600" for d in prj_docs
-    ), "Doc nested inside ~/.alfred/NRV/sub_category/ must be found as PRJ"
+    assert any(d.prefix == "NRV" and d.acid == "2600" for d in prj_docs), (
+        "Doc nested inside ~/.alfred/NRV/sub_category/ must be found as PRJ"
+    )
 
 
 # ── Mapping-wins / shadow: local rules/ is shadowed when mapping fires ────────
@@ -336,9 +336,9 @@ def test_scan_mapping_wins_subproject_loads_as_prj(tmp_path):
     docs = scan_documents(ext_repo)
     prj_docs = [d for d in docs if d.source == "prj"]
 
-    assert any(
-        d.prefix == "NRV" and d.acid == "2500" for d in prj_docs
-    ), "NRV subproject docs must appear as PRJ even when local rules/ exists"
+    assert any(d.prefix == "NRV" and d.acid == "2500" for d in prj_docs), (
+        "NRV subproject docs must appear as PRJ even when local rules/ exists"
+    )
 
 
 def test_scan_mapping_wins_local_rules_shadowed(tmp_path):
@@ -360,9 +360,9 @@ def test_scan_mapping_wins_local_rules_shadowed(tmp_path):
 
     docs = scan_documents(ext_repo)
 
-    assert not any(
-        d.acid == "9001" and d.source == "prj" for d in docs
-    ), "ALF-9001 from local rules/ must NOT appear in PRJ when mapping wins (shadow)"
+    assert not any(d.acid == "9001" and d.source == "prj" for d in docs), (
+        "ALF-9001 from local rules/ must NOT appear in PRJ when mapping wins (shadow)"
+    )
 
 
 def test_scan_mapping_wins_no_layer_validation_error(tmp_path):
@@ -434,9 +434,9 @@ def test_scan_symlink_path_matches_after_resolve(tmp_path):
     docs = scan_documents(link_repo)
     prj_docs = [d for d in docs if d.source == "prj"]
 
-    assert any(
-        d.prefix == "NRV" and d.acid == "2500" for d in prj_docs
-    ), "Symlinked repo path must resolve to the registered key and load subproject as PRJ"
+    assert any(d.prefix == "NRV" and d.acid == "2500" for d in prj_docs), (
+        "Symlinked repo path must resolve to the registered key and load subproject as PRJ"
+    )
 
 
 # ── Missing target dir: ~/.alfred/<NAME>/ doesn't exist ──────────────────────

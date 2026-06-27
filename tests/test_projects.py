@@ -5,6 +5,7 @@ collected by pytest even before the module exists.  In the RED phase every
 test fails with ImportError; after implementation they exercise the real
 behaviour.
 """
+
 from __future__ import annotations
 
 import json
@@ -67,7 +68,9 @@ def test_malformed_json_returns_empty_and_warns(capsys):
     load_projects = _load_projects()
     alfred = Path.home() / ".alfred"
     alfred.mkdir(parents=True, exist_ok=True)
-    (alfred / "projects.json").write_text("{this is not: valid json{{{", encoding="utf-8")
+    (alfred / "projects.json").write_text(
+        "{this is not: valid json{{{", encoding="utf-8"
+    )
     result = load_projects()
     assert result == {}
     captured = capsys.readouterr()
@@ -137,7 +140,9 @@ def test_value_with_path_separator_rejected(capsys):
     result = load_projects()
     assert result == {}
     captured = capsys.readouterr()
-    assert captured.err or captured.out, "Expected a warning for value with path separator"
+    assert captured.err or captured.out, (
+        "Expected a warning for value with path separator"
+    )
 
 
 def test_value_dot_rejected(capsys):
@@ -189,9 +194,9 @@ def test_mixed_valid_and_invalid_entries(capsys):
     alfred.mkdir(parents=True, exist_ok=True)
     data = {
         "projects": {
-            "/abs/good": "NRV",       # valid
-            "relative/bad": "ALF",    # relative key → excluded + warned
-            "/abs/dot": ".",           # bad value → excluded + warned
+            "/abs/good": "NRV",  # valid
+            "relative/bad": "ALF",  # relative key → excluded + warned
+            "/abs/dot": ".",  # bad value → excluded + warned
         }
     }
     (alfred / "projects.json").write_text(json.dumps(data), encoding="utf-8")
