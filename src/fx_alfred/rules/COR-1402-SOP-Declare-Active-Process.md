@@ -98,5 +98,5 @@ If the task produced a checklist or release/PR handoff, include whether the COR-
 | 2026-03-15 | Initial version | Claude Code |
 | 2026-03-16 | Added plan-driven declaration format (SOP + PLN + Phase) based on field usage | Claude Code |
 | 2026-03-20 | Added When to Use/When NOT to Use sections, reordered Why section per FXA-2223 | Claude Code |
-| 2026-06-26 | Require active-process content for every user-visible task, including no-formal-SOP cases | Moth |
+| 2026-06-26 | Require active-process content for every user-visible task, including no-formal-SOP cases | Claude Code |
 | 2026-06-26 | Mandate active-process line as first line of every chat reply (chat-surface hardening) | Claude Code |

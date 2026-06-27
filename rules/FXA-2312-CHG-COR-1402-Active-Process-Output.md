@@ -37,6 +37,7 @@ Out of scope:
 - Creating a new runtime hook or bot.
 - Releasing a new package version.
 
+
 ## Acceptance Criteria
 
 - [x] `af plan <SOP> --todo` prints an `Active Process — COR-1402` section before the flat TODO.
@@ -47,6 +48,7 @@ Out of scope:
 - [x] `COR-1402` mandates the active-process line as the first line of every chat reply.
 - [x] `af guide` text output ends with a COR-1402 active-process reminder.
 
+
 ## Validation
 
 - `uv run pytest tests/test_plan_cmd.py -q`
@@ -54,7 +56,7 @@ Out of scope:
 
 ## Change History
 
-| Date       | Change                                      | By   |
-|------------|---------------------------------------------|------|
-| 2026-06-26 | Initial CHG for generated COR-1402 output   | Moth |
+| Date       | Change                                                                                 | By          |
+|------------|----------------------------------------------------------------------------------------|-------------|
+| 2026-06-26 | Initial CHG for generated COR-1402 output                                              | Claude Code |
 | 2026-06-26 | Extend scope: chat-surface first-line mandate + `af guide` reminder + CLAUDE.md wiring | Claude Code |

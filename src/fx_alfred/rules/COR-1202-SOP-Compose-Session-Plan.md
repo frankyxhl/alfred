@@ -177,4 +177,4 @@ Now exits 0 with `COR-1500(explicit)` in the `Composed from:` header.
 | Date       | Change          | By              |
 |------------|-----------------|-----------------|
 | 2026-04-18 | Initial version (per CHG-FXA-2207). | Frank + Claude |
-| 2026-06-26 | Require plan execution to emit COR-1402 active-process declarations at task start and phase transitions | Moth |
+| 2026-06-26 | Require plan execution to emit COR-1402 active-process declarations at task start and phase transitions | Claude Code |
