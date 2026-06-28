@@ -11,6 +11,7 @@ from fx_alfred.context import get_root, root_option
 from fx_alfred.core.schema import (
     ALLOWED_DISPOSITIONS,
     ALLOWED_STATUSES,
+    CONTROLLED_TAGS,
     COR_REFERENCE_PATTERN,
     DISPOSITION,
     DISPOSITION_MANDATORY_BIND,
@@ -22,7 +23,12 @@ from fx_alfred.core.schema import (
     DocType,
 )
 from fx_alfred.core.document import Document
-from fx_alfred.core.parser import H1_PATTERN, MalformedDocumentError, parse_metadata
+from fx_alfred.core.parser import (
+    H1_PATTERN,
+    MalformedDocumentError,
+    parse_metadata,
+    parse_tags,
+)
 from fx_alfred.core.scanner import (
     LayerValidationError,
     scan_documents,
@@ -246,6 +252,33 @@ def _validate_governance_fields(
     return issues
 
 
+def _validate_tags_vocab(
+    doc: Document,
+    tag_field,
+    warn_untagged_sops: bool,
+) -> tuple[list[str], list[str]]:
+    """Return (ov_warnings, untagged_warnings) for the doc's Tags field.
+
+    ov_warnings: one entry per distinct out-of-vocab tag (deduped via dict.fromkeys).
+    untagged_warnings: one entry if this is a SOP with no Tags field and
+        warn_untagged_sops is True.
+    Layer-scoping of PRJ/USR-only tags (release, commit) is intentionally not
+    enforced here; tracked separately.
+    """
+    ov_warnings: list[str] = []
+    if tag_field is not None:
+        for tag in dict.fromkeys(parse_tags(tag_field.value)):
+            if tag not in CONTROLLED_TAGS:
+                ov_warnings.append(
+                    f"out-of-vocabulary tag '{tag}' "
+                    "(not in FXA-2315 controlled vocabulary)"
+                )
+    untagged_warnings: list[str] = []
+    if warn_untagged_sops and doc.type_code == "SOP" and tag_field is None:
+        untagged_warnings.append("SOP has no Tags field")
+    return ov_warnings, untagged_warnings
+
+
 _EPILOG = """\
 Examples:
 
@@ -270,8 +303,32 @@ Exit code 0 if clean, 1 if issues found. Warnings never affect the exit code.
 @root_option
 @click.argument("doc_ids", nargs=-1, required=False)
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.option(
+    "--tag-warnings",
+    "tag_warnings",
+    type=click.Choice(["off", "summary", "detail"]),
+    default="summary",
+    show_default=True,
+    help=(
+        "Out-of-vocabulary tag warning verbosity (FXA-2315): "
+        "off=silent, summary=one aggregate line, detail=one line per (doc, tag)."
+    ),
+)
+@click.option(
+    "--warn-untagged-sops",
+    "warn_untagged_sops",
+    is_flag=True,
+    default=False,
+    help="Warn when SOP documents have no Tags field (FXA-2315).",
+)
 @click.pass_context
-def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool):
+def validate_cmd(
+    ctx: click.Context,
+    doc_ids: tuple[str, ...],
+    output_json: bool,
+    tag_warnings: str,
+    warn_untagged_sops: bool,
+):
     """Validate documents for structural correctness.
 
     With no arguments, validates all documents. With one or more
@@ -288,6 +345,10 @@ def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool
     # they surface degraded validation (e.g. unknown TYPE codes) that was
     # previously silent.
     warnings_by_doc: dict[str, list[str]] = {}
+
+    # FXA-2315 out-of-vocab summary counters (used when tag_warnings="summary").
+    ov_instance_count: int = 0
+    ov_doc_count: int = 0
 
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
@@ -407,6 +468,15 @@ def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool
                 lowered = [t.lower() for t in raw_parts if t]
                 if len(lowered) != len(set(lowered)):
                     issues.append("Tags field contains duplicate tags")
+            ov_warns, untagged_warns = _validate_tags_vocab(
+                doc, tag_field, warn_untagged_sops
+            )
+            if tag_warnings == "detail":
+                warnings.extend(ov_warns)
+            if tag_warnings in ("summary", "detail") and ov_warns:
+                ov_instance_count += len(ov_warns)
+                ov_doc_count += 1
+            warnings.extend(untagged_warns)
             issues.extend(_validate_governance_fields(doc, parsed, cor_dispositions))
 
             # Validate Change History table header
@@ -539,8 +609,21 @@ def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool
         if warnings:
             warnings_by_doc[doc_id] = warnings
 
+    # FXA-2315 summary: one aggregate line when tag_warnings="summary".
+    corpus_warnings: list[str] = []
+    if tag_warnings == "summary" and ov_instance_count > 0:
+        inst_word = "instance" if ov_instance_count == 1 else "instances"
+        doc_word = "document" if ov_doc_count == 1 else "documents"
+        corpus_warnings.append(
+            f"{ov_instance_count} out-of-vocabulary tag {inst_word} "
+            f"across {ov_doc_count} {doc_word} "
+            f"(see FXA-2315; use --tag-warnings=detail for specifics)"
+        )
+
     total_issues = sum(len(i) for i in issues_by_doc.values())
-    total_warnings = sum(len(w) for w in warnings_by_doc.values())
+    total_warnings = sum(len(w) for w in warnings_by_doc.values()) + len(
+        corpus_warnings
+    )
 
     # Build results for JSON output
     if output_json:
@@ -559,6 +642,7 @@ def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool
         result = {
             "schema_version": SCHEMA_VERSION,
             "results": results,
+            "corpus_warnings": corpus_warnings,
         }
         emit_json(result)
     else:
@@ -577,6 +661,9 @@ def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool
                 click.echo(f"  - {issue}")
             for warning in doc_warnings:
                 click.echo(f"  ~ {warning}")
+
+        for cw in corpus_warnings:
+            click.echo(f"~ {cw}")
 
         warnings_suffix = (
             f", {total_warnings} warning{'' if total_warnings == 1 else 's'}"

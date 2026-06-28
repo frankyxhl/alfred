@@ -2684,6 +2684,250 @@ def test_validate_mapped_context_scans_subproject_docs(tmp_path):
     )
 
 
+# ── FXA-2315: Controlled tag vocabulary checks ────────────────────────────
+
+
+def test_validate_in_vocab_tags_no_out_of_vocab_warning(tmp_path):
+    """Doc with in-vocabulary Tags produces no out-of-vocab warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7001-SOP-Tagged.md",
+        "SOP",
+        "7001",
+        "**Tags:** routing, plan\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "out-of-vocabulary" not in result.output
+
+
+def test_validate_out_of_vocab_tag_emits_warning_exit_0(tmp_path):
+    """Default (summary) mode emits one aggregate line, not per-tag detail; exit 0."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7002-SOP-BadTag.md",
+        "SOP",
+        "7002",
+        "**Tags:** bogus-tag\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    # Summary line present, FXA-2315 cited.
+    assert "1 out-of-vocabulary tag instance" in result.output
+    assert "FXA-2315" in result.output
+    assert "1 warning" in result.output
+    # Per-tag detail NOT printed in default (summary) mode.
+    assert "out-of-vocabulary tag 'bogus-tag'" not in result.output
+
+
+def test_validate_strict_tags_sop_without_tags_emits_warning(tmp_path):
+    """--warn-untagged-sops: SOP missing Tags field emits a warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(rules_dir / "SOP-7003-SOP-NoTags.md", "SOP", "7003")
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--warn-untagged-sops", "--root", str(tmp_path)]
+    )
+    assert result.exit_code == 0
+    assert "SOP has no Tags field" in result.output
+    assert "1 warning" in result.output
+
+
+def test_validate_no_strict_tags_sop_without_tags_no_warning(tmp_path):
+    """Without --strict-tags, SOP missing Tags field produces no warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(rules_dir / "SOP-7004-SOP-NoTags.md", "SOP", "7004")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "no Tags" not in result.output
+    assert "warning" not in result.output.lower()
+
+
+def test_validate_strict_tags_non_sop_without_tags_no_warning(tmp_path):
+    """--warn-untagged-sops does not warn on non-SOP docs missing Tags."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "PRP-7005-PRP-NoTags.md",
+        "PRP",
+        "7005",
+        "PRP",
+        "No Tags",
+        status="Draft",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--warn-untagged-sops", "--root", str(tmp_path)]
+    )
+    assert result.exit_code == 0
+    assert "no Tags" not in result.output
+    assert "warning" not in result.output.lower()
+
+
+def test_validate_mixed_case_in_vocab_tag_accepted(tmp_path):
+    """Mixed-case in-vocab tags (e.g. 'Routing, Plan') produce no out-of-vocab warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7010-SOP-MixedCase.md",
+        "SOP",
+        "7010",
+        "**Tags:** Routing, Plan\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "out-of-vocabulary" not in result.output
+
+
+def test_validate_multiple_out_of_vocab_tags_summary_count(tmp_path):
+    """Summary line reports correct N instances across M docs."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    # Two docs, each with one distinct out-of-vocab tag.
+    _write_sop_doc(
+        rules_dir / "SOP-7011-SOP-BadTag1.md",
+        "SOP",
+        "7011",
+        "**Tags:** bogus-one\n",
+    )
+    _write_sop_doc(
+        rules_dir / "SOP-7012-SOP-BadTag2.md",
+        "SOP",
+        "7012",
+        "**Tags:** bogus-two\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "2 out-of-vocabulary tag instances across 2 documents" in result.output
+    assert "FXA-2315" in result.output
+    # Per-tag detail suppressed in summary mode.
+    assert "bogus-one" not in result.output
+    assert "bogus-two" not in result.output
+
+
+def test_validate_tag_warnings_off(tmp_path):
+    """--tag-warnings=off silences all out-of-vocab output."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7013-SOP-BadTag.md",
+        "SOP",
+        "7013",
+        "**Tags:** bogus-tag\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--tag-warnings=off", "--root", str(tmp_path)]
+    )
+    assert result.exit_code == 0
+    assert "out-of-vocabulary" not in result.output
+    assert "warning" not in result.output.lower()
+
+
+def test_validate_tag_warnings_detail(tmp_path):
+    """--tag-warnings=detail emits one warning per out-of-vocab tag per doc."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7014-SOP-BadTag.md",
+        "SOP",
+        "7014",
+        "**Tags:** bogus-tag\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--tag-warnings=detail", "--root", str(tmp_path)]
+    )
+    assert result.exit_code == 0
+    # Per-tag detail present in detail mode.
+    assert "out-of-vocabulary tag 'bogus-tag'" in result.output
+    assert "FXA-2315" in result.output
+    assert "1 warning" in result.output
+
+
+def test_validate_warn_untagged_sops_sop_with_tags_no_warning(tmp_path):
+    """--warn-untagged-sops + a SOP that HAS tags → no untagged warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7015-SOP-Tagged.md",
+        "SOP",
+        "7015",
+        "**Tags:** routing\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--warn-untagged-sops", "--root", str(tmp_path)]
+    )
+    assert result.exit_code == 0
+    assert "no Tags" not in result.output
+    assert "warning" not in result.output.lower()
+
+
+def test_validate_json_out_of_vocab_warnings_shape(tmp_path):
+    """--tag-warnings=detail --json: out-of-vocab warnings appear in per-doc warnings list."""
+    import json as json_mod
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7016-SOP-BadTag.md",
+        "SOP",
+        "7016",
+        "**Tags:** bogus-tag\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["validate", "--tag-warnings=detail", "--root", str(tmp_path), "--json"],
+    )
+    assert result.exit_code == 0
+    payload = json_mod.loads(result.output)
+    by_id = {r["doc_id"]: r for r in payload["results"]}
+    entry = by_id["SOP-7016"]
+    assert entry["valid"] is True
+    assert any("bogus-tag" in w for w in entry["warnings"])
+
+
+def test_validate_duplicate_out_of_vocab_deduped(tmp_path):
+    """Tags: bogus, bogus → only one out-of-vocab instance counted/emitted.
+
+    Note: duplicate Tags are also a structural issue (exit code 1), but this
+    test focuses on the out-of-vocab deduplication — the warning for 'bogus'
+    must appear exactly once, not twice.
+    """
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7017-SOP-DupBadTag.md",
+        "SOP",
+        "7017",
+        "**Tags:** bogus, bogus\n",
+    )
+    runner = CliRunner()
+    # Duplicate tags is a structural ISSUE (exit code 1), but the out-of-vocab
+    # warning for 'bogus' must appear only once (deduped).
+    result = runner.invoke(
+        cli, ["validate", "--tag-warnings=detail", "--root", str(tmp_path)]
+    )
+    assert result.exit_code == 1  # structural issue: duplicate tags
+    assert result.output.count("out-of-vocabulary tag 'bogus'") == 1
+
+    # In summary mode, dedup means 1 instance counted (not 2).
+    result2 = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result2.exit_code == 1  # structural issue: duplicate tags
+    assert "1 out-of-vocabulary tag instance" in result2.output
+
+
 def test_validate_fallback_scan_respects_mapped_layer_in_error_path(tmp_path):
     """FXA-2314 P2 (RED): _scan_all_layers fallback must classify subproject
     docs as 'prj', not 'usr', and exclude the registered subdir from USR.
