@@ -175,9 +175,9 @@ af list --type PRP --root /Users/frank/Projects/alfred
 - **First time:** `af setup` (suggested prompts for agent config)
 - **Workflow branches:** SOPs can declare `Workflow branches:` metadata to express branching task flows (e.g., "do EITHER A or B"). `af plan --graph` renders these as ASCII/Mermaid branch diagrams. Branch targets use step indices; sub-steps use `{phase}.{step}{letter}` notation (e.g., `3.1a`).
 - **Routing:** COR-1103 (PKG) → ALF-2207 (USR) → FXA-2125 (PRJ)
-- All code changes go through `/trinity` dispatch (GLM = Worker, Codex/Gemini = Reviewer)
+- All code changes: implement via a single subagent (the `coder` agent), then review via the trinity panel — GLM + DeepSeek + MiniMax (3 independent reviewers). See FXA-2100.
 - TDD mandatory: COR-1500 (Red-Green-Refactor)
-- Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (both >= 9.0 to pass)
+- Code review: COR-1602 + COR-1608/1609/1610 rubrics + COR-1611 calibration (all three reviewers >= 9.0 to pass; Leader may arbitrate severity per COR-1621)
 - PR review loop: use COR-1615 to match GitHub App reviews to the current head, COR-1612 to process actionable comments, and COR-1623 for operator-specified PR/thread verification. For repo-level scan/watch requests, use FXA-1623 to discover candidate PRs and delegate thread decisions back to COR-1623.
 - Release: FXA-2102 SOP + FXA-2136 README check (GitHub Actions → PyPI)
 - Documents: always `af create`, never manual files
