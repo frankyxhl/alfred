@@ -67,6 +67,7 @@ def _edit_tags(
             mf for mf in parsed.metadata_fields if mf.key != "Tags"
         ]
     else:
+        new_tags = sorted(set(new_tags))
         tags_value = ", ".join(new_tags)
         if tag_field is None:
             inferred_style = (

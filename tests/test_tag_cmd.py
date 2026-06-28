@@ -137,6 +137,39 @@ def write_project(tmp_path):
         encoding="utf-8",
     )
 
+    # ALF-6005: REF doc with unsorted tags — used by sort/rm tests.
+    # xtag-zoo > xtag-mango > xtag-apple alphabetically, so all three orderings
+    # are wrong; sorted canonical form is xtag-apple, xtag-mango, xtag-zoo.
+    (rules / "ALF-6005-REF-Sortable.md").write_text(
+        "# REF-6005: Sortable\n\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2026-06-28\n"
+        "**Last reviewed:** 2026-06-28\n"
+        "**Status:** Active\n"
+        "**Tags:** xtag-zoo, xtag-mango, xtag-apple\n\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "A sortable test reference document.\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By |\n"
+        "|------|--------|----|",
+        encoding="utf-8",
+    )
+
+    # ALF-6007: REF doc with unsorted tags — used by no-op/set-unchanged test.
+    # xtag-zoo > xtag-apple alphabetically; unsorted in file intentionally to
+    # test that re-adding an already-present tag on an unsorted doc stays no-op.
+    (rules / "ALF-6007-REF-Unsorted-Present.md").write_text(
+        "# REF-6007: Unsorted Present\n\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2026-06-28\n"
+        "**Last reviewed:** 2026-06-28\n"
+        "**Status:** Active\n"
+        "**Tags:** xtag-zoo, xtag-apple\n\n"
+        "---\n",
+        encoding="utf-8",
+    )
+
     return tmp_path
 
 
@@ -909,3 +942,133 @@ def test_tag_add_genuinely_new_tag_still_writes(write_project):
     assert after != before, "File must be rewritten when a genuinely new tag is added"
     assert "xtag-b" in after
     assert f"**Last updated:** {date.today().isoformat()}" in after
+
+
+# ── Fix 7: tag add/rm writes sorted (fmt-canonical) Tags field ───────────────
+
+
+def test_tag_add_result_is_sorted_and_fmt_clean(write_project):
+    """af tag add writes tags in sorted order; af fmt --check exits 0 after.
+
+    ALF-6001 has Tags: xtag-existing.  Adding xtag-alpha ('a' < 'e') must
+    produce Tags: xtag-alpha, xtag-existing — NOT the insertion-order
+    'xtag-existing, xtag-alpha' that the unfixed code writes.
+    af fmt --check must exit 0 (canonical == written).
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "xtag-alpha", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (write_project / "rules" / "ALF-6001-REF-Write-Test.md").read_text(
+        encoding="utf-8"
+    )
+    tag_line = next(
+        (ln for ln in content.splitlines() if ln.startswith("**Tags:**")), None
+    )
+    assert tag_line == "**Tags:** xtag-alpha, xtag-existing", (
+        f"Expected sorted tags; got: {tag_line!r}"
+    )
+    fmt_result = runner.invoke(
+        cli,
+        ["fmt", "ALF-6001", "--check", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert fmt_result.exit_code == 0, (
+        f"af fmt --check reported changes after tag add:\n{fmt_result.output}"
+    )
+
+
+def test_tag_add_new_field_multiple_tags_written_sorted(write_project):
+    """af tag add creating a new Tags field writes multiple tags sorted.
+
+    ALF-6002 has no Tags field.  Adding 'xtag-zoo,xtag-alpha' (z before a
+    as provided) must write Tags: xtag-alpha, xtag-zoo — sorted, not
+    input-order.
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "tag",
+            "add",
+            "ALF-6002",
+            "xtag-zoo,xtag-alpha",
+            "--root",
+            str(write_project),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (write_project / "rules" / "ALF-6002-REF-No-Tags.md").read_text(
+        encoding="utf-8"
+    )
+    tag_line = next(
+        (ln for ln in content.splitlines() if ln.startswith("**Tags:**")), None
+    )
+    assert tag_line is not None, "Tags field not written"
+    assert tag_line == "**Tags:** xtag-alpha, xtag-zoo", (
+        f"Expected sorted tags in new field; got: {tag_line!r}"
+    )
+
+
+def test_tag_rm_result_is_sorted_and_fmt_clean(write_project):
+    """af tag rm leaving multiple tags writes them sorted; af fmt --check exits 0.
+
+    ALF-6005 has Tags: xtag-zoo, xtag-mango, xtag-apple (unsorted in file).
+    Removing xtag-zoo yields ['xtag-mango', 'xtag-apple'] in insertion order
+    — currently written unsorted.  After fix: xtag-apple, xtag-mango.
+    af fmt --check must exit 0.
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "rm", "ALF-6005", "xtag-zoo", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (write_project / "rules" / "ALF-6005-REF-Sortable.md").read_text(
+        encoding="utf-8"
+    )
+    tag_line = next(
+        (ln for ln in content.splitlines() if ln.startswith("**Tags:**")), None
+    )
+    assert tag_line == "**Tags:** xtag-apple, xtag-mango", (
+        f"Expected sorted remaining tags; got: {tag_line!r}"
+    )
+    fmt_result = runner.invoke(
+        cli,
+        ["fmt", "ALF-6005", "--check", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert fmt_result.exit_code == 0, (
+        f"af fmt --check reported changes after tag rm:\n{fmt_result.output}"
+    )
+
+
+def test_tag_add_noop_set_unchanged_with_unsorted_existing(write_project):
+    """af tag add of an already-present tag on an unsorted doc is a no-op.
+
+    Design decision: the no-op gate is 'no change to the tag SET', not
+    'no change to the rendered string'.  ALF-6007 has Tags: xtag-zoo,
+    xtag-apple (unsorted).  Re-adding xtag-apple (already present) must
+    leave the file byte-for-byte unchanged — the sort must NOT trigger a
+    rewrite just to reorder an already-correct set.
+    """
+    runner = CliRunner()
+    file_path = write_project / "rules" / "ALF-6007-REF-Unsorted-Present.md"
+    before = file_path.read_text(encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6007", "xtag-apple", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "unchanged" in result.output
+    after = file_path.read_text(encoding="utf-8")
+    assert after == before, (
+        "File must be byte-for-byte unchanged when tag set is unchanged "
+        "(even if existing order is unsorted)"
+    )
