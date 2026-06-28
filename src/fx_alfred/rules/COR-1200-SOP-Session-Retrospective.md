@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-10
 **Last reviewed:** 2026-05-10
 **Status:** Active
+**Tags:** session, review
 **Last executed:** —
 **Disposition:** optional-overlay
 

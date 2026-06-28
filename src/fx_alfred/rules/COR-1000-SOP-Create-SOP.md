@@ -4,6 +4,7 @@
 **Last updated:** 2026-03-14
 **Last reviewed:** 2026-03-14
 **Status:** Active
+**Tags:** sop-authoring, document
 **Disposition:** inherit-only
 
 ---

@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-15
 **Last reviewed:** 2026-05-15
 **Status:** Active
+**Tags:** pr, review
 **Related:** COR-1617 (§Phase 8 Iterate — composable sub-procedure for bot thread verification), COR-1615 (GitHub App PR Review Bot Loop)
 **Disposition:** inherit-only
 

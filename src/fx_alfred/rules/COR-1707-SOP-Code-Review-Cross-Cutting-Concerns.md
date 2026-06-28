@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-06
 **Last reviewed:** 2026-05-06
 **Status:** Active
+**Tags:** review, scoring
 **Related:** COR-1705 (REF — Classification System), COR-1706, COR-1602, COR-1610
 **Task tags:** [review, code-review, security, privacy, performance, testing, observability]
 **Disposition:** inherit-only

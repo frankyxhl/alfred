@@ -25,6 +25,7 @@ af where IDENTIFIER [--json]               # print absolute file path of a docum
 af fmt [DOC_IDS...] [--write] [--check]     # format documents to canonical style
 af search PATTERN [--json]                  # case-insensitive content search
 af validate [--root DIR] [--json]           # structural checks; warns on unknown TYPE codes
+af tag [NAME] [--json]                      # list all tags with counts, or docs for a given tag
 af status [--json]                          # document counts by source/type/prefix
 af index                                    # regenerate PRJ layer index
 af changelog                                # show version changelog
@@ -68,6 +69,7 @@ src/fx_alfred/
 │   ├── skill_cmd.py    # skill document discovery/read
 │   ├── star_cmd.py     # star/starred/unstar bookmarks
 │   ├── status_cmd.py   # summary counts + --json
+│   ├── tag_cmd.py      # af tag — list all tags with counts or docs for a given tag
 │   ├── update_cmd.py   # metadata/history/rename updates; --spec FILE
 │   ├── validate_cmd.py # metadata + status + SOP section validation; unknown-TYPE warnings
 │   └── where_cmd.py    # find absolute file path of a document (--json)

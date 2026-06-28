@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-17
 **Last reviewed:** 2026-05-17
 **Status:** Active
+**Tags:** loop
 **Related:** COR-1617 (umbrella), COR-1622 (parameter schema — `<consent-signal>`, `<repo-trusted-reactor-list>`, `<intake-quality-mode>`, `<intake-quality-label>`, `<intake-quality-applier-set>`, `<repo>`)
 **Disposition:** optional-overlay
 

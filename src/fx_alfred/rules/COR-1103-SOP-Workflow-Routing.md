@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-19
 **Last reviewed:** 2026-05-05
 **Status:** Active
+**Tags:** routing, plan
 **Related:** COR-1607 (deprecated, replaced by this document), COR-1614, COR-1616
 **Workflow input:** proposal:draft
 **Workflow output:** task:routed

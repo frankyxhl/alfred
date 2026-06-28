@@ -4,6 +4,7 @@
 **Last updated:** 2026-03-19
 **Last reviewed:** 2026-03-19
 **Status:** Active
+**Tags:** proposal
 **Workflow input:** proposal:none
 **Workflow output:** proposal:draft
 **Disposition:** inherit-only

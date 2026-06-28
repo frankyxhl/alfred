@@ -1,8 +1,7 @@
 import click
 
-from fx_alfred.commands._helpers import emit_json, scan_or_fail
+from fx_alfred.commands._helpers import emit_json, format_doc_row, scan_or_fail
 from fx_alfred.context import root_option
-from fx_alfred.core.source import SOURCE_LABELS
 
 
 _EPILOG = """\
@@ -81,7 +80,4 @@ def list_cmd(
         emit_json(output)
     else:
         for doc in docs:
-            label = SOURCE_LABELS.get(doc.source, "???")
-            click.echo(
-                f"{label:<3}  {doc.prefix}-{doc.acid}  {doc.type_code:<3}  {doc.title}"
-            )
+            click.echo(format_doc_row(doc))

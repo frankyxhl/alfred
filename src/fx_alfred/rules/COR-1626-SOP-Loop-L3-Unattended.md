@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-19
 **Last reviewed:** 2026-06-19
 **Status:** Draft
+**Tags:** loop
 **Related:** COR-1624 (Loop — L1 Report-Only), COR-1625 (Loop — L2 Assisted + Gated, the rung below), COR-1617 (Multi-Agent Workflow Loop — the loop mechanism), COR-1620 (Self-Pacing Loop Primitives — pacing), COR-1622 (Multi-Agent Loop Project Configuration — general loop config; the L3 safety envelope is declared in the loop's own config/registry, not in COR-1622's schema), COR-1600 / COR-1602 (review-loop / multi-model panel — the L2 human gate; *not used per-action at L3*, retained for ladder symmetry and for the scheduled audit review)
 **Disposition:** inherit-only
 

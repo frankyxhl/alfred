@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-07
 **Last reviewed:** 2026-05-07
 **Status:** Active
+**Tags:** session, plan
 **Related:** COR-1204-REF (CTX Format — glossary supplies the map's vocabulary), COR-1203 (Pre-Task Alignment — zoom-out is the disambiguation move when alignment surfaces unfamiliar code), COR-1402 (Declare Active Process — zoom-out is invoked by declaration)
 **Inspired by:** mattpocock/skills `engineering/zoom-out` (Round 5 of skills-absorption initiative; prior rounds shipped COR-1613, COR-1503, COR-1203, COR-1204-REF, and the `/caveman` command)
 **Disposition:** inherit-only

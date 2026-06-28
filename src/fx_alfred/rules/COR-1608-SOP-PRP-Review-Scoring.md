@@ -4,6 +4,7 @@
 **Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-20
 **Status:** Active
+**Tags:** review, scoring, proposal
 **Task tags:** [review, prp-review, prp, scoring]
 **Disposition:** inherit-only
 

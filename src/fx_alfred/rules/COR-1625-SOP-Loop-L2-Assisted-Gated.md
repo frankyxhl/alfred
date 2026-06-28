@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-19
 **Last reviewed:** 2026-06-19
 **Status:** Active
+**Tags:** loop
 **Related:** COR-1624 (Loop — L1 Report-Only, the rung below), COR-1626 (Loop — L3 Unattended, the rung above), COR-1617 (Multi-Agent Workflow Loop — the loop mechanism), COR-1620 (Self-Pacing Loop Primitives — pacing), COR-1600 / COR-1602 (review-loop / multi-model panel — the human-approval gate this level uses), COR-1608 / COR-1609 / COR-1610 (scoring rubrics when the gate is a review)
 **Disposition:** inherit-only
 
