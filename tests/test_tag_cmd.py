@@ -838,3 +838,52 @@ def test_tag_add_in_vocab_no_warning(write_project):
     )
     assert result.exit_code == 0
     assert result.stderr == ""
+
+
+# ── Fix 6: add is a true no-op when all requested tags already present ────────
+
+
+def test_tag_add_noop_when_all_tags_already_present_file_unchanged(write_project):
+    """af tag add <tag-already-present> exits 0, prints 'unchanged', does NOT rewrite file.
+
+    ALF-6004 has Last updated: 2025-01-01 and tag xtag-a.  Without the fix,
+    mutate() returns the unchanged list and _edit_tags bumps Last updated to today
+    — spurious write.  With the fix, mutate returns None and _edit_tags skips
+    write entirely, so Last updated stays 2025-01-01 and file is byte-for-byte
+    unchanged.
+    """
+    runner = CliRunner()
+    file_path = write_project / "rules" / "ALF-6004-REF-Date-Test.md"
+    before = file_path.read_text(encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6004", "xtag-a", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "unchanged" in result.output
+    after = file_path.read_text(encoding="utf-8")
+    assert after == before, (
+        "File must be byte-for-byte unchanged when all requested tags already exist"
+    )
+
+
+def test_tag_add_genuinely_new_tag_still_writes(write_project):
+    """af tag add with a new tag still writes the file and bumps Last updated.
+
+    Confirms the no-op guard does not suppress real writes: ALF-6004 has only
+    xtag-a; adding xtag-b must write the file and update Last updated.
+    """
+    runner = CliRunner()
+    file_path = write_project / "rules" / "ALF-6004-REF-Date-Test.md"
+    before = file_path.read_text(encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6004", "xtag-b", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    after = file_path.read_text(encoding="utf-8")
+    assert after != before, "File must be rewritten when a genuinely new tag is added"
+    assert "xtag-b" in after
+    assert f"**Last updated:** {date.today().isoformat()}" in after

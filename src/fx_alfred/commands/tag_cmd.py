@@ -217,8 +217,12 @@ def add_cmd(ctx: click.Context, identifier: str, tags: tuple[str, ...]) -> None:
                 err=True,
             )
 
-    def mutate(existing: list[str]) -> list[str]:
-        return list(dict.fromkeys(existing + new_tags))
+    def mutate(existing: list[str]) -> list[str] | None:
+        merged = list(dict.fromkeys(existing + new_tags))
+        if merged == existing:
+            click.echo(f"{identifier} tags unchanged")
+            return None
+        return merged
 
     result = _edit_tags(ctx, identifier, mutate)
     if result is not None:
