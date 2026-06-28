@@ -286,6 +286,7 @@ def normalize_table_alignment(parsed: ParsedDocument) -> bool:
             row.change = cells[1].ljust(widths[1]) if widths[1] > 0 else cells[1]
         if num_cols > 2:
             row.by = cells[2].ljust(widths[2]) if widths[2] > 0 else cells[2]
+        row.dirty = True
     return True
 
 

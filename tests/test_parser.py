@@ -8,6 +8,7 @@ from fx_alfred.core.parser import (
     extract_section,
     iter_lines_with_fence_state,
     parse_metadata,
+    render_document,
 )
 
 
@@ -229,3 +230,55 @@ def test_fence_state_short_run_is_not_a_fence():
     # Runs of 1-2 backticks (inline code) do not open a fence.
     states = _states("``\nx\n`code`\ny")
     assert [f for _, f in states] == [False, False, False, False]
+
+
+# --- HistoryRow raw_line preservation (P2 bug fix) ---
+
+
+def test_parse_metadata_stores_raw_line_on_history_rows():
+    """parse_metadata stores the original line text in HistoryRow.raw_line.
+
+    This is the data required for render_document to emit verbatim lines
+    instead of re-rendering from stripped cell values.
+    """
+    content = (
+        "# REF-9001: Test\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date       | Change                    | By          |\n"
+        "|------------|---------------------------|-------------|\n"
+        "| 2026-01-01 | Initial version           | Alice       |\n"
+    )
+    parsed = parse_metadata(content)
+    assert len(parsed.history_rows) == 1
+    assert parsed.history_rows[0].raw_line == (
+        "| 2026-01-01 | Initial version           | Alice       |"
+    )
+
+
+def test_render_document_preserves_aligned_history_rows_verbatim():
+    """render_document must round-trip aligned history table rows byte-for-byte.
+
+    Regression: rows were always re-rendered from stripped cell values, so
+    padding added by af fmt --write was silently discarded on the next write
+    (af tag add / af update), leaving the doc fmt-dirty.
+    """
+    content = (
+        "# SOP-9001: History Round-Trip\n\n"
+        "**Applies to:** Test\n"
+        "**Last updated:** 2026-01-01\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date       | Change                    | By          |\n"
+        "|------------|---------------------------|-------------|\n"
+        "| 2026-01-01 | Initial version           | Alice       |\n"
+        "| 2026-06-28 | A much longer description | Charlie Bob |\n"
+    )
+    parsed = parse_metadata(content)
+    rendered = render_document(parsed)
+    assert rendered == content, (
+        "render_document must emit aligned history rows verbatim via raw_line"
+    )

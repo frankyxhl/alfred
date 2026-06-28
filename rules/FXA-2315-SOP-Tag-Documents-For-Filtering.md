@@ -63,15 +63,21 @@ curating every entry.
    favouring one lifecycle tag + one or two domain tags. `routing` for routers,
    `scoring` for review rubrics, `loop` for autonomous loops, etc.
 
-2. **PRJ / USR documents — apply via `af update`:**
+2. **PRJ / USR documents — apply via `af tag add`:**
+   ```bash
+   af tag add <PREFIX-ACID> routing plan --root <project-root>
+   ```
+   Comma-separated values and multiple positional args are both accepted.
+   `af tag add` is idempotent (re-adding an existing tag is a no-op). Use
+   `af tag rm <PREFIX-ACID> <tag>` to remove a tag; removing the last tag drops
+   the `Tags:` field entirely.
+
+   Alternatively, use `af update --spec` to set the full `Tags:` value in one
+   operation (useful when bulk-setting tags from a YAML spec):
    ```bash
    printf 'metadata:\n  Tags: "%s"\n' "routing, plan" > /tmp/tags.yaml
    af update <PREFIX-ACID> --spec /tmp/tags.yaml --root <project-root> -y
    ```
-   `--spec` appends the `Tags:` field in canonical order (CLI `--field` cannot
-   add a field that does not yet exist). `af update` re-renders the document to
-   canonical style — this bumps `Last updated` and may re-align tables; that is
-   expected and acceptable for a single-document edit.
 
 3. **PKG / COR documents — PR only:** do **not** use `af update` (it refuses).
    Edit the `**Status:**` line's successor in `src/fx_alfred/rules/<COR-file>.md`

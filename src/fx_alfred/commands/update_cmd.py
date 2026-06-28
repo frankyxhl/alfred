@@ -12,6 +12,7 @@ import click
 import yaml
 
 from fx_alfred.commands._helpers import (
+    PKG_READONLY_MSG,
     atomic_write,
     find_or_fail,
     invoke_index_update,
@@ -165,9 +166,7 @@ def update_cmd(
 
     # PKG layer is read-only
     if doc.source == "pkg":
-        raise click.ClickException(
-            "Cannot update PKG layer documents. They are read-only."
-        )
+        raise click.ClickException(PKG_READONLY_MSG)
 
     # Resolve file path
     resource = doc.resolve_resource()

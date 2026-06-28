@@ -33,6 +33,10 @@ class HistoryRow:
     date: str
     change: str
     by: str
+    raw_line: str = ""  # original source line for verbatim round-trip
+    dirty: bool = (
+        False  # True when cells have been modified (forces re-render from values)
+    )
 
 
 @dataclass
@@ -222,6 +226,7 @@ def parse_metadata(content: str) -> ParsedDocument:
                     date=cells[0] if cells else "",
                     change=cells[1] if len(cells) > 1 else "",
                     by=cells[2] if len(cells) > 2 else "",
+                    raw_line=line,
                 )
             )
         else:
@@ -280,7 +285,10 @@ def render_document(parsed: ParsedDocument) -> str:
     if parsed.history_header:
         lines.append(parsed.history_header)
         for row in parsed.history_rows:
-            lines.append(f"| {row.date} | {row.change} | {row.by} |")
+            if not row.dirty and row.raw_line:
+                lines.append(row.raw_line)
+            else:
+                lines.append(f"| {row.date} | {row.change} | {row.by} |")
         if parsed.trailing:
             lines.append(parsed.trailing)
 
