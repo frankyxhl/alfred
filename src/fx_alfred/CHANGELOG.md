@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Breaking Changes
+
+- **`af tag` group refactor (#252)** — `af tag` is now a command group. The old
+  `af tag` (list all tags) becomes `af tag ls`; the old `af tag <name>` (filter
+  docs) becomes `af tag show <name>`. New write subcommands: `af tag add <ID>
+  <tag>...` adds one or more tags (comma-separated or multiple args); `af tag rm
+  <ID> <tag>...` removes tags (removing absent tags is idempotent; removing the
+  last tag drops the `Tags:` field). PKG/COR documents are refused on add/rm with
+  the same read-only guard as `af update`.
+
 ## v1.22.0 (2026-06-28)
 
 Feature release: USR sub-project layer via `~/.alfred/projects.json` (FXA-2314)
