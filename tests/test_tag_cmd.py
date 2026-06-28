@@ -1,6 +1,7 @@
 """Tests for `af tag` command group (tag_cmd.py)."""
 
 import json
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -57,6 +58,8 @@ def write_project(tmp_path):
       ALF-6001-REF  tags: xtag-existing   (single tag; fully valid for af validate)
       ALF-6002-REF  (no Tags field)
       ALF-6003-REF  tags: xtag-a, xtag-b  (multiple tags for rm-one tests)
+      ALF-6004-REF  tags: xtag-a           (old Last updated: 2025-01-01; for bump tests)
+      ALF-6006-REF  (no Tags; has Custom-Field unknown opt; fully valid; for canonical-pos tests)
     """
     rules = tmp_path / "rules"
     rules.mkdir()
@@ -98,6 +101,39 @@ def write_project(tmp_path):
         "**Status:** Active\n"
         "**Tags:** xtag-a, xtag-b\n\n"
         "---\n",
+        encoding="utf-8",
+    )
+
+    # ALF-6004: REF doc with old Last-updated date — used by fix-4 (bump) tests.
+    # Date is 2025-01-01 (clearly in the past) so bumping to today is detectable.
+    (rules / "ALF-6004-REF-Date-Test.md").write_text(
+        "# REF-6004: Date Test\n\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2025-01-01\n"
+        "**Last reviewed:** 2025-01-01\n"
+        "**Status:** Active\n"
+        "**Tags:** xtag-a\n\n"
+        "---\n",
+        encoding="utf-8",
+    )
+
+    # ALF-6006: fully valid REF doc with an unknown optional field but NO Tags field.
+    # Custom-Field is unknown (not in KNOWN_OPTIONAL_ORDER), so sort_metadata puts
+    # Tags (a known optional) BEFORE Custom-Field.  Append-at-end (current buggy
+    # behaviour) puts Tags AFTER Custom-Field — giving a clear RED signal for fix-2.
+    (rules / "ALF-6006-REF-Full-No-Tags.md").write_text(
+        "# REF-6006: Full No Tags\n\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2025-01-01\n"
+        "**Last reviewed:** 2025-01-01\n"
+        "**Status:** Active\n"
+        "**Custom-Field:** custom value\n\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "A test reference document for canonical-position tests.\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By |\n"
+        "|------|--------|----|",
         encoding="utf-8",
     )
 
@@ -600,3 +636,205 @@ def test_tag_rm_pkg_doc_refused(tmp_path):
     )
     assert result.exit_code != 0
     assert "Cannot update PKG layer documents" in result.output
+
+
+# ── Fix 1: empty/comma-only tag arg guard ─────────────────────────────────────
+
+
+def test_tag_add_empty_string_no_write(write_project):
+    """af tag add <ID> '' emits 'No valid tags provided.' and does not write."""
+    runner = CliRunner()
+    file_path = write_project / "rules" / "ALF-6001-REF-Write-Test.md"
+    before = file_path.read_text(encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "No valid tags provided." in result.output
+    assert file_path.read_text(encoding="utf-8") == before
+
+
+def test_tag_add_comma_only_no_write(write_project):
+    """af tag add <ID> ',' emits 'No valid tags provided.' and does not write."""
+    runner = CliRunner()
+    file_path = write_project / "rules" / "ALF-6001-REF-Write-Test.md"
+    before = file_path.read_text(encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", ",", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "No valid tags provided." in result.output
+    assert file_path.read_text(encoding="utf-8") == before
+
+
+def test_tag_add_empty_on_no_tags_doc_no_corrupt(write_project):
+    """af tag add on a doc with no Tags field and empty arg must not write a malformed field.
+
+    Without the guard, the code appends an empty Tags field (**Tags:** ) and
+    af validate then reports 'Tags field contains empty tag values'.  After the
+    fix the file is unchanged and the message 'No valid tags provided.' is printed.
+    """
+    runner = CliRunner()
+    file_path = write_project / "rules" / "ALF-6002-REF-No-Tags.md"
+    before = file_path.read_text(encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6002", "", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "No valid tags provided." in result.output
+    assert file_path.read_text(encoding="utf-8") == before
+    assert "**Tags:**" not in file_path.read_text(encoding="utf-8")
+
+
+def test_tag_rm_empty_string_no_write(write_project):
+    """af tag rm <ID> '' emits 'No valid tags provided.' and does not write."""
+    runner = CliRunner()
+    file_path = write_project / "rules" / "ALF-6001-REF-Write-Test.md"
+    before = file_path.read_text(encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["tag", "rm", "ALF-6001", "", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "No valid tags provided." in result.output
+    assert file_path.read_text(encoding="utf-8") == before
+
+
+# ── Fix 2: new Tags field in canonical metadata position ─────────────────────
+
+
+def test_tag_add_new_field_canonical_position(write_project):
+    """After tag add on a doc with no Tags field, Tags lands in canonical position.
+
+    ALF-6006 has a Custom-Field (unknown optional) after Status.  sort_metadata
+    places Tags (a known optional) BEFORE unknown fields, so Tags must appear
+    before Custom-Field.  The current append-at-end puts it AFTER, giving a
+    clear RED.  After fix, af fmt --check must also exit 0 (no reorder needed).
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6006", "maintain", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (write_project / "rules" / "ALF-6006-REF-Full-No-Tags.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**Tags:** maintain" in content
+
+    lines = content.splitlines()
+    tags_idx = next(
+        (i for i, ln in enumerate(lines) if ln.startswith("**Tags:**")), None
+    )
+    custom_idx = next(
+        (i for i, ln in enumerate(lines) if ln.startswith("**Custom-Field:**")), None
+    )
+    assert tags_idx is not None, "Tags field not found in output"
+    assert custom_idx is not None, "Custom-Field not found in output"
+    assert tags_idx < custom_idx, (
+        "Tags must appear before unknown Custom-Field in canonical order"
+    )
+
+    fmt_result = runner.invoke(
+        cli,
+        ["fmt", "ALF-6006", "--check", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert fmt_result.exit_code == 0, (
+        f"af fmt --check found reorder pending:\n{fmt_result.output}"
+    )
+
+
+# ── Fix 3: PKG_READONLY_MSG constant importable from _helpers ────────────────
+
+
+def test_pkg_readonly_msg_constant():
+    """PKG_READONLY_MSG is importable from _helpers with the exact expected text."""
+    from fx_alfred.commands._helpers import PKG_READONLY_MSG
+
+    assert PKG_READONLY_MSG == "Cannot update PKG layer documents. They are read-only."
+
+
+# ── Fix 4: Last updated bumped on successful add/rm ──────────────────────────
+
+
+def test_tag_add_bumps_last_updated(write_project):
+    """After af tag add, Last updated is set to today's date.
+
+    ALF-6004 has Last updated: 2025-01-01.  After add, it must become today.
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6004", "xtag-b", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (write_project / "rules" / "ALF-6004-REF-Date-Test.md").read_text(
+        encoding="utf-8"
+    )
+    assert f"**Last updated:** {date.today().isoformat()}" in content
+    assert "**Last updated:** 2025-01-01" not in content
+
+
+def test_tag_rm_bumps_last_updated(write_project):
+    """After af tag rm, Last updated is set to today's date.
+
+    ALF-6004 has Last updated: 2025-01-01.  After rm, it must become today.
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "rm", "ALF-6004", "xtag-a", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (write_project / "rules" / "ALF-6004-REF-Date-Test.md").read_text(
+        encoding="utf-8"
+    )
+    assert f"**Last updated:** {date.today().isoformat()}" in content
+    assert "**Last updated:** 2025-01-01" not in content
+
+
+# ── Fix 5: out-of-vocabulary tag warning on add ───────────────────────────────
+
+
+def test_tag_add_out_of_vocab_warns_stderr(write_project):
+    """Adding an OOV tag emits a warning to stderr but still writes (advisory-only).
+
+    'bogus-tag-zzz' is not in CONTROLLED_TAGS so a warning must appear on stderr.
+    The tag must also be written to the doc and the exit code must be 0.
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "bogus-tag-zzz", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "bogus-tag-zzz" in result.stderr
+    assert "warning" in result.stderr.lower()
+    content = (write_project / "rules" / "ALF-6001-REF-Write-Test.md").read_text(
+        encoding="utf-8"
+    )
+    assert "bogus-tag-zzz" in content
+
+
+def test_tag_add_in_vocab_no_warning(write_project):
+    """Adding a tag in CONTROLLED_TAGS produces no stderr warning."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "maintain", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert result.stderr == ""

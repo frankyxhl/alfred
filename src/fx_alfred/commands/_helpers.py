@@ -26,6 +26,9 @@ from fx_alfred.core.source import SOURCE_LABELS
 # plan_cmd versions its payload shape independently.
 SCHEMA_VERSION = "1"
 
+# Shared read-only guard message — used by update_cmd, tag_cmd (add/rm).
+PKG_READONLY_MSG = "Cannot update PKG layer documents. They are read-only."
+
 
 class ExitCodeError(click.ClickException):
     """ClickException with a caller-specified exit code.

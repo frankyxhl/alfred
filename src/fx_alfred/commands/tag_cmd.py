@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from collections import Counter
+from datetime import date
 from pathlib import Path
+from typing import Callable
 
 import click
 
 from fx_alfred.commands._helpers import (
+    PKG_READONLY_MSG,
     atomic_write,
     emit_json,
     find_or_fail,
@@ -15,6 +18,8 @@ from fx_alfred.commands._helpers import (
     scan_or_fail,
 )
 from fx_alfred.context import root_option
+from fx_alfred.core.document import Document
+from fx_alfred.core.normalize import sort_metadata
 from fx_alfred.core.parser import (
     MalformedDocumentError,
     MetadataField,
@@ -22,6 +27,90 @@ from fx_alfred.core.parser import (
     parse_tags,
     render_document,
 )
+from fx_alfred.core.schema import CONTROLLED_TAGS, DocType
+
+
+def _edit_tags(
+    ctx: click.Context,
+    identifier: str,
+    mutate: Callable[[list[str]], list[str] | None],
+) -> tuple[Document, list[str]] | None:
+    """Load doc → PKG guard → parse → mutate(existing_tags) → bump Last updated → write.
+
+    Returns (doc, new_tags) on success, or None when mutate signals nothing to do.
+    An empty new_tags list means the Tags field was dropped entirely.
+    """
+    docs = scan_or_fail(ctx)
+    doc = find_or_fail(docs, identifier)
+
+    if doc.source == "pkg":
+        raise click.ClickException(PKG_READONLY_MSG)
+
+    resource = doc.resolve_resource()
+    file_path = Path(str(resource))
+    content = file_path.read_text(encoding="utf-8")
+
+    try:
+        parsed = parse_metadata(content)
+    except MalformedDocumentError as e:
+        raise click.ClickException(str(e)) from e
+
+    tag_field = next((mf for mf in parsed.metadata_fields if mf.key == "Tags"), None)
+    existing_tags = parse_tags(tag_field.value) if tag_field is not None else []
+
+    new_tags = mutate(existing_tags)
+    if new_tags is None:
+        return None
+
+    if not new_tags:
+        parsed.metadata_fields = [
+            mf for mf in parsed.metadata_fields if mf.key != "Tags"
+        ]
+    else:
+        tags_value = ", ".join(new_tags)
+        if tag_field is None:
+            inferred_style = (
+                parsed.metadata_fields[0].prefix_style
+                if parsed.metadata_fields
+                else "bold"
+            )
+            parsed.metadata_fields.append(
+                MetadataField(
+                    key="Tags",
+                    value=tags_value,
+                    prefix_style=inferred_style,
+                    raw_line="",
+                    dirty=True,
+                )
+            )
+            try:
+                doc_type = DocType(doc.type_code)
+            except ValueError:
+                doc_type = None
+            if doc_type is not None:
+                current_keys = [mf.key for mf in parsed.metadata_fields]
+                canonical_keys = sort_metadata(current_keys, doc_type)
+                ordered: list[MetadataField] = []
+                remaining = list(parsed.metadata_fields)
+                for key in canonical_keys:
+                    for i, mf in enumerate(remaining):
+                        if mf.key == key:
+                            ordered.append(remaining.pop(i))
+                            break
+                ordered.extend(remaining)
+                parsed.metadata_fields = ordered
+        else:
+            tag_field.value = tags_value
+            tag_field.dirty = True
+
+    for mf in parsed.metadata_fields:
+        if mf.key == "Last updated":
+            mf.value = date.today().isoformat()
+            mf.dirty = True
+            break
+
+    atomic_write(file_path, render_document(parsed))
+    return doc, new_tags
 
 
 @click.group("tag")
@@ -113,60 +202,28 @@ def add_cmd(ctx: click.Context, identifier: str, tags: tuple[str, ...]) -> None:
     mix: `af tag add FXA-2315 routing,plan session`
     PKG/COR documents are read-only; submit a PR to change their tags.
     """
-    docs = scan_or_fail(ctx)
-    doc = find_or_fail(docs, identifier)
-
-    if doc.source == "pkg":
-        raise click.ClickException(
-            "Cannot update PKG layer documents. They are read-only."
-        )
-
-    # Flatten comma-separated args to a deduplicated ordered list
     new_tags: list[str] = []
     for tag_arg in tags:
         new_tags.extend(parse_tags(tag_arg))
 
-    resource = doc.resolve_resource()
-    file_path = Path(str(resource))
-    content = file_path.read_text(encoding="utf-8")
+    if not new_tags:
+        click.echo("No valid tags provided.")
+        return
 
-    try:
-        parsed = parse_metadata(content)
-    except MalformedDocumentError as e:
-        raise click.ClickException(str(e)) from e
-
-    tag_field = next((mf for mf in parsed.metadata_fields if mf.key == "Tags"), None)
-    existing_tags = parse_tags(tag_field.value) if tag_field is not None else []
-
-    # Union: preserve existing order, append new (deduped)
-    seen: set[str] = set(existing_tags)
-    merged = list(existing_tags)
     for t in new_tags:
-        if t not in seen:
-            merged.append(t)
-            seen.add(t)
-
-    tags_value = ", ".join(merged)
-
-    if tag_field is None:
-        inferred_style = (
-            parsed.metadata_fields[0].prefix_style if parsed.metadata_fields else "bold"
-        )
-        parsed.metadata_fields.append(
-            MetadataField(
-                key="Tags",
-                value=tags_value,
-                prefix_style=inferred_style,
-                raw_line="",
-                dirty=True,
+        if t not in CONTROLLED_TAGS:
+            click.echo(
+                f"warning: '{t}' is not in the FXA-2315 controlled vocabulary",
+                err=True,
             )
-        )
-    else:
-        tag_field.value = tags_value
-        tag_field.dirty = True
 
-    atomic_write(file_path, render_document(parsed))
-    click.echo(f"{doc.prefix}-{doc.acid} tags: {tags_value}")
+    def mutate(existing: list[str]) -> list[str]:
+        return list(dict.fromkeys(existing + new_tags))
+
+    result = _edit_tags(ctx, identifier, mutate)
+    if result is not None:
+        doc, final_tags = result
+        click.echo(f"{doc.prefix}-{doc.acid} tags: {', '.join(final_tags)}")
 
 
 @tag_cmd.command("rm")
@@ -182,55 +239,24 @@ def rm_cmd(ctx: click.Context, identifier: str, tags: tuple[str, ...]) -> None:
     tag drops the Tags: field entirely.
     PKG/COR documents are read-only; submit a PR to change their tags.
     """
-    docs = scan_or_fail(ctx)
-    doc = find_or_fail(docs, identifier)
-
-    if doc.source == "pkg":
-        raise click.ClickException(
-            "Cannot update PKG layer documents. They are read-only."
-        )
-
-    # Flatten comma-separated args
     tags_to_remove: set[str] = set()
     for tag_arg in tags:
         tags_to_remove.update(parse_tags(tag_arg))
 
-    resource = doc.resolve_resource()
-    file_path = Path(str(resource))
-    content = file_path.read_text(encoding="utf-8")
-
-    try:
-        parsed = parse_metadata(content)
-    except MalformedDocumentError as e:
-        raise click.ClickException(str(e)) from e
-
-    tag_field = next((mf for mf in parsed.metadata_fields if mf.key == "Tags"), None)
-
-    if tag_field is None:
-        click.echo(f"No Tags field on {doc.prefix}-{doc.acid}; nothing to remove.")
+    if not tags_to_remove:
+        click.echo("No valid tags provided.")
         return
 
-    existing_tags = parse_tags(tag_field.value)
-    existing_set = set(existing_tags)
-    absent = sorted(tags_to_remove - existing_set)
+    def mutate(existing: list[str]) -> list[str] | None:
+        existing_set = set(existing)
+        for t in sorted(tags_to_remove - existing_set):
+            click.echo(f"Tag '{t}' not present on {identifier}; skipping.")
+        if not (tags_to_remove & existing_set):
+            return None
+        return [t for t in existing if t not in tags_to_remove]
 
-    for t in absent:
-        click.echo(f"Tag '{t}' not present on {doc.prefix}-{doc.acid}; skipping.")
-
-    actually_removed = tags_to_remove & existing_set
-    if not actually_removed:
-        return
-
-    kept = [t for t in existing_tags if t not in tags_to_remove]
-
-    if kept:
-        tag_field.value = ", ".join(kept)
-        tag_field.dirty = True
-    else:
-        parsed.metadata_fields = [
-            mf for mf in parsed.metadata_fields if mf.key != "Tags"
-        ]
-
-    atomic_write(file_path, render_document(parsed))
-    remaining = ", ".join(kept) if kept else "(none — field removed)"
-    click.echo(f"{doc.prefix}-{doc.acid} tags: {remaining}")
+    result = _edit_tags(ctx, identifier, mutate)
+    if result is not None:
+        doc, remaining = result
+        display = ", ".join(remaining) if remaining else "(none — field removed)"
+        click.echo(f"{doc.prefix}-{doc.acid} tags: {display}")
