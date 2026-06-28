@@ -11,6 +11,7 @@ from fx_alfred.context import get_root, root_option
 from fx_alfred.core.schema import (
     ALLOWED_DISPOSITIONS,
     ALLOWED_STATUSES,
+    CONTROLLED_TAGS,
     COR_REFERENCE_PATTERN,
     DISPOSITION,
     DISPOSITION_MANDATORY_BIND,
@@ -246,6 +247,29 @@ def _validate_governance_fields(
     return issues
 
 
+def _validate_tags_vocab(
+    doc: Document,
+    tag_field,
+    strict_tags: bool,
+) -> list[str]:
+    """Return FXA-2315 vocabulary warnings for a document's Tags field.
+
+    Never returns issues — only warnings (non-fatal, exit-code neutral).
+    """
+    result: list[str] = []
+    if tag_field is not None:
+        lowered = [t.strip().lower() for t in tag_field.value.split(",") if t.strip()]
+        for tag in lowered:
+            if tag not in CONTROLLED_TAGS:
+                result.append(
+                    f"out-of-vocabulary tag '{tag}' "
+                    "(not in FXA-2315 controlled vocabulary)"
+                )
+    if strict_tags and doc.type_code == "SOP" and tag_field is None:
+        result.append("SOP has no Tags field")
+    return result
+
+
 _EPILOG = """\
 Examples:
 
@@ -270,8 +294,20 @@ Exit code 0 if clean, 1 if issues found. Warnings never affect the exit code.
 @root_option
 @click.argument("doc_ids", nargs=-1, required=False)
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+@click.option(
+    "--strict-tags",
+    "strict_tags",
+    is_flag=True,
+    default=False,
+    help="Warn when SOP documents have no Tags field (FXA-2315).",
+)
 @click.pass_context
-def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool):
+def validate_cmd(
+    ctx: click.Context,
+    doc_ids: tuple[str, ...],
+    output_json: bool,
+    strict_tags: bool,
+):
     """Validate documents for structural correctness.
 
     With no arguments, validates all documents. With one or more
@@ -407,6 +443,7 @@ def validate_cmd(ctx: click.Context, doc_ids: tuple[str, ...], output_json: bool
                 lowered = [t.lower() for t in raw_parts if t]
                 if len(lowered) != len(set(lowered)):
                     issues.append("Tags field contains duplicate tags")
+            warnings.extend(_validate_tags_vocab(doc, tag_field, strict_tags))
             issues.extend(_validate_governance_fields(doc, parsed, cor_dispositions))
 
             # Validate Change History table header

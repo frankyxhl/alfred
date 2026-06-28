@@ -2684,6 +2684,86 @@ def test_validate_mapped_context_scans_subproject_docs(tmp_path):
     )
 
 
+# ── FXA-2315: Controlled tag vocabulary checks ────────────────────────────
+
+
+def test_validate_in_vocab_tags_no_out_of_vocab_warning(tmp_path):
+    """Doc with in-vocabulary Tags produces no out-of-vocab warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7001-SOP-Tagged.md",
+        "SOP",
+        "7001",
+        "**Tags:** routing, plan\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "out-of-vocabulary" not in result.output
+
+
+def test_validate_out_of_vocab_tag_emits_warning_exit_0(tmp_path):
+    """Doc with an unrecognised tag emits an out-of-vocab warning; exit code stays 0."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-7002-SOP-BadTag.md",
+        "SOP",
+        "7002",
+        "**Tags:** bogus-tag\n",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "out-of-vocabulary tag 'bogus-tag'" in result.output
+    assert "FXA-2315" in result.output
+    assert "1 warning" in result.output
+
+
+def test_validate_strict_tags_sop_without_tags_emits_warning(tmp_path):
+    """--strict-tags: SOP missing Tags field emits a warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(rules_dir / "SOP-7003-SOP-NoTags.md", "SOP", "7003")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--strict-tags", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "SOP has no Tags field" in result.output
+    assert "1 warning" in result.output
+
+
+def test_validate_no_strict_tags_sop_without_tags_no_warning(tmp_path):
+    """Without --strict-tags, SOP missing Tags field produces no warning."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(rules_dir / "SOP-7004-SOP-NoTags.md", "SOP", "7004")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "no Tags" not in result.output
+    assert "warning" not in result.output.lower()
+
+
+def test_validate_strict_tags_non_sop_without_tags_no_warning(tmp_path):
+    """--strict-tags does not warn on non-SOP docs missing Tags."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "PRP-7005-PRP-NoTags.md",
+        "PRP",
+        "7005",
+        "PRP",
+        "No Tags",
+        status="Draft",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--strict-tags", "--root", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "no Tags" not in result.output
+    assert "warning" not in result.output.lower()
+
+
 def test_validate_fallback_scan_respects_mapped_layer_in_error_path(tmp_path):
     """FXA-2314 P2 (RED): _scan_all_layers fallback must classify subproject
     docs as 'prj', not 'usr', and exclude the registered subdir from USR.

@@ -130,3 +130,39 @@ REQUIRED_SECTIONS: dict[DocType, list[str]] = {
 # Routing document identification (supplements filename pattern in guide_cmd).
 ROUTING_ROLE_METADATA_KEY = "Document role"
 ROUTING_ROLE_VALUE = "routing"
+
+# FXA-2315: Controlled tag vocabulary — single source of truth.
+# Kept in sync with the table in rules/FXA-2315-SOP-Tag-Documents-For-Filtering.md
+# via tests/test_tag_vocab_drift.py.  Extend only by amending FXA-2315 first.
+CONTROLLED_TAGS: frozenset[str] = frozenset(
+    {
+        # lifecycle
+        "routing",
+        "plan",
+        "session",
+        "implement",
+        "review",
+        "ship",
+        "maintain",
+        # domain
+        "document",
+        "proposal",
+        "change-request",
+        "decision-record",
+        "sop-authoring",
+        "interaction",
+        "tdd",
+        "git",
+        "issue",
+        "diagnosis",
+        "workflow",
+        "pr",
+        "loop",
+        "scoring",
+        "project",
+        "evolution",
+        # PRJ/USR-only domain
+        "release",
+        "commit",
+    }
+)
