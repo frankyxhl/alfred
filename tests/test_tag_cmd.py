@@ -346,6 +346,28 @@ def test_tag_root_after_subcommand(tagged_project):
     assert "xtag-alpha" in result.output
 
 
+def test_tag_root_at_group_level_ls(tagged_project):
+    """af tag --root <path> ls works (root at group level — P2 regression)."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["tag", "--root", str(tagged_project), "ls"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "xtag-common" in result.output
+
+
+def test_tag_root_at_group_level_add(write_project):
+    """af tag --root <path> add <id> <tag> works (root at group level — P2 regression)."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "--root", str(write_project), "add", "ALF-6001", "xtag-new"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "ALF-6001 tags:" in result.output
+
+
 def test_tag_ls_with_root_monkeypatched(tagged_project, monkeypatch):
     """af tag ls picks up documents from the specified root."""
     monkeypatch.chdir(tagged_project)

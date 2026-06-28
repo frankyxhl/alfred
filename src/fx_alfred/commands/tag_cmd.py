@@ -114,6 +114,7 @@ def _edit_tags(
 
 
 @click.group("tag")
+@root_option
 def tag_cmd() -> None:
     """Manage document tags.
 
