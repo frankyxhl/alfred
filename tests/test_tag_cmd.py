@@ -1048,6 +1048,97 @@ def test_tag_rm_result_is_sorted_and_fmt_clean(write_project):
     )
 
 
+def test_tag_add_leaves_aligned_history_table_unchanged(tmp_path):
+    """af tag add on a doc with an aligned history table must not churn the table.
+
+    Regression: render_document re-rendered rows from stripped cell values, losing
+    alignment padding that af fmt --write had produced.  After this fix, rows must
+    be emitted verbatim (raw_line round-trip), so a fmt-clean doc stays fmt-clean.
+    """
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    doc_path = rules / "ALF-9001-SOP-History-Roundtrip.md"
+    original = (
+        "# SOP-9001: History Roundtrip\n\n"
+        "**Applies to:** Test\n"
+        "**Last updated:** 2025-01-01\n"
+        "**Last reviewed:** 2025-01-01\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date       | Change                    | By          |\n"
+        "|------------|---------------------------|-------------|\n"
+        "| 2025-01-01 | Initial version           | Alice       |\n"
+        "| 2025-06-28 | A much longer description | Charlie Bob |\n"
+    )
+    doc_path.write_text(original, encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-9001", "xtag-new", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    after = doc_path.read_text(encoding="utf-8")
+
+    def _history_lines(text: str) -> list[str]:
+        lines = text.splitlines()
+        idx = next((i for i, ln in enumerate(lines) if ln == "## Change History"), None)
+        return lines[idx:] if idx is not None else []
+
+    assert _history_lines(after) == _history_lines(original), (
+        "History table must be byte-for-byte unchanged after af tag add\n"
+        f"Before: {_history_lines(original)}\nAfter:  {_history_lines(after)}"
+    )
+    assert "**Tags:** xtag-new" in after
+
+
+def test_tag_rm_leaves_aligned_history_table_unchanged(tmp_path):
+    """af tag rm on a doc with an aligned history table must not churn the table."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    doc_path = rules / "ALF-9002-SOP-Rm-History.md"
+    original = (
+        "# SOP-9002: Rm History\n\n"
+        "**Applies to:** Test\n"
+        "**Last updated:** 2025-01-01\n"
+        "**Last reviewed:** 2025-01-01\n"
+        "**Status:** Active\n"
+        "**Tags:** xtag-a, xtag-b\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date       | Change                    | By          |\n"
+        "|------------|---------------------------|-------------|\n"
+        "| 2025-01-01 | Initial version           | Alice       |\n"
+        "| 2025-06-28 | A much longer description | Charlie Bob |\n"
+    )
+    doc_path.write_text(original, encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "rm", "ALF-9002", "xtag-b", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    after = doc_path.read_text(encoding="utf-8")
+
+    def _history_lines(text: str) -> list[str]:
+        lines = text.splitlines()
+        idx = next((i for i, ln in enumerate(lines) if ln == "## Change History"), None)
+        return lines[idx:] if idx is not None else []
+
+    assert _history_lines(after) == _history_lines(original), (
+        "History table must be byte-for-byte unchanged after af tag rm\n"
+        f"Before: {_history_lines(original)}\nAfter:  {_history_lines(after)}"
+    )
+    assert "xtag-a" in after
+    assert "xtag-b" not in after
+
+
 def test_tag_add_noop_set_unchanged_with_unsorted_existing(write_project):
     """af tag add of an already-present tag on an unsorted doc is a no-op.
 
