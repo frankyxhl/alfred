@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-17
 **Last reviewed:** 2026-05-17
 **Status:** Active
+**Tags:** tdd, implement
 **Task tags:** [implement, feature, tdd, code, code-change, fix]
 **Last executed:** —
 **Workflow input:** task:routed

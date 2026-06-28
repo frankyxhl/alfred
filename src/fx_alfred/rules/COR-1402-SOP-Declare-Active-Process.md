@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-26
 **Last reviewed:** 2026-06-26
 **Status:** Active
+**Tags:** session, routing
 **Always included:** true
 **Disposition:** inherit-only
 

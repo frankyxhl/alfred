@@ -4,6 +4,7 @@
 **Last updated:** 2026-03-20
 **Last reviewed:** 2026-03-20
 **Status:** Deprecated
+**Tags:** workflow, routing
 **Related:** COR-1103 (replacement)
 **Disposition:** inherit-only
 

@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-21
 **Last reviewed:** 2026-06-21
 **Status:** Draft
+**Tags:** loop, review
 **Related:** COR-1624, COR-1625, COR-1626, COR-1617, COR-1620, COR-1602, COR-1609
 **Task tags:** []
 **Autonomy:** L1 report-only

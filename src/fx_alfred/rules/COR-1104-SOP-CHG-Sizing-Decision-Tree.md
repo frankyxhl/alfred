@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-09
 **Last reviewed:** 2026-05-09
 **Status:** Active
+**Tags:** change-request, plan
 **Related:** COR-1101 (Submit Change Request), COR-1102 (Create Proposal), COR-1617 (Multi-Agent Workflow Loop)
 **Disposition:** inherit-only
 

@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-19
 **Last reviewed:** 2026-06-19
 **Status:** Active
+**Tags:** loop
 **Related:** COR-1617 (Multi-Agent Workflow Loop — the loop mechanism this level governs), COR-1620 (Self-Pacing Loop Primitives — how an L1 loop is paced), COR-1600 / COR-1602 (general review gates an L2 loop's human-approval step uses)
 **Disposition:** inherit-only
 

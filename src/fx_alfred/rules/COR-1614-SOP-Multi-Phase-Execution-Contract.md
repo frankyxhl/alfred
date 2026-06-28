@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-06
 **Last reviewed:** 2026-05-06
 **Status:** Active
+**Tags:** workflow
 **Related:** COR-1103, COR-1202, COR-1500, COR-1602, COR-1612, COR-1615, COR-1801
 **Task tags:** [multi-phase, execution-contract, phased-work, continuous-delivery, pr-slices, operator-defaults]
 **Authored from:** BAB-2218-CHG-M3-Phase-7-12-Execution-Contract

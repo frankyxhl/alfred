@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-17
 **Last reviewed:** 2026-05-17
 **Status:** Active
+**Tags:** workflow
 **Related:** COR-1617 (umbrella), COR-1622 (parameter schema — `<worker-agent>`, `<worker-min-loc>`)
 **Disposition:** optional-overlay
 

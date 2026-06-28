@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-07
 **Last reviewed:** 2026-03-17
 **Status:** Active
+**Tags:** ship
 **Task tags:** release, pypi
 
 ---

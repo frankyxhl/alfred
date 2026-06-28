@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-06
 **Last reviewed:** 2026-05-05
 **Status:** Active
+**Tags:** review
 **Depends on:** COR-1402 (Declare Active Process), COR-0002 (Document Format Contract)
 **Related:** COR-1606 (Workflow Selection), COR-1602 (Multi-Model Parallel Review), COR-1600/1601 (Review Loops), COR-1608/1609/1610 (Scoring Rubrics), COR-1611 (Reviewer Calibration), COR-1612 (Respond To PR Review Comments), COR-1615 (GitHub App PR Review Bot Loop)
 **Authored from:** FXA-2262 PRP (3-of-4 reviewer PASS, chair-cast deciding vote via mechanism #13)

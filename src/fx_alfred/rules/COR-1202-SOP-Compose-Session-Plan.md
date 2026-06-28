@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-26
 **Last reviewed:** 2026-06-26
 **Status:** Active
+**Tags:** session, plan
 **Related:** COR-1103, COR-1402, COR-1200
 **Disposition:** inherit-only
 

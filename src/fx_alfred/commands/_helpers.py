@@ -19,6 +19,7 @@ from fx_alfred.core.scanner import (
     scan_documents,
 )
 from fx_alfred.core.schema import ALLOWED_STATUSES, DocType
+from fx_alfred.core.source import SOURCE_LABELS
 
 # Commands-layer JSON envelope version (CHG-2301). Schema families owned
 # by core keep their own constants (core.skills / core.agent_helpers);
@@ -47,6 +48,12 @@ def emit_json(data: Any) -> None:
     (enforced by tests/test_architecture.py).
     """
     click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def format_doc_row(doc: Document) -> str:
+    """Format a document as a single-line list row (same as `af list` output)."""
+    label = SOURCE_LABELS.get(doc.source, "???")
+    return f"{label:<3}  {doc.prefix}-{doc.acid}  {doc.type_code:<3}  {doc.title}"
 
 
 def scan_or_fail(ctx: click.Context) -> list[Document]:

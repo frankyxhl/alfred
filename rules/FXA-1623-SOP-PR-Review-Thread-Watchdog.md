@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-15
 **Last reviewed:** 2026-05-15
 **Status:** Active
+**Tags:** pr, review, loop
 **Related:** COR-1615, COR-1612, COR-1623
 **Inherits from:** COR-1623
 

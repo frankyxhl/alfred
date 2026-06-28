@@ -4,6 +4,7 @@
 **Last updated:** 2026-05-15
 **Last reviewed:** 2026-05-15
 **Status:** Draft
+**Tags:** pr, review
 **Related:** COR-1602 (Multi Model Parallel Review), COR-1615 (GitHub App PR Review Bot Loop)
 **Disposition:** inherit-only
 

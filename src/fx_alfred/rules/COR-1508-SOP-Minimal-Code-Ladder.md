@@ -4,6 +4,7 @@
 **Last updated:** 2026-06-19
 **Last reviewed:** 2026-06-19
 **Status:** Active
+**Tags:** implement
 **Related:** COR-1500 (TDD Development Workflow), COR-1800 (Evolution Philosophy), COR-1610 (Code Review Scoring), COR-1400 (Atomic SOP Principle)
 **Disposition:** optional-overlay
 **Workflow input:** task:routed

@@ -4,6 +4,7 @@
 **Last updated:** 2026-04-29
 **Last reviewed:** 2026-04-29
 **Status:** Active
+**Tags:** change-request, implement
 **Depends on:** FXA-2227 (CHG; presentation-layer implementation, partially shipped)
 **Related:** FXA-2102 (release SOP), FXA-2136 (README check), CHG-2226 (data layer, complete)
 
