@@ -21,7 +21,8 @@
 
 Alfred is a CLI-based agent runbook (`af`) that manages SOPs, workflows, and structured documents across three layers (PKG, USR, PRJ). It provides:
 
-- **NEW in v1.22.0** — `~/.alfred/projects.json` sub-project layer: map any external repo root to a `~/.alfred/<NAME>/` subdir and it becomes that repo's PRJ layer — project-scoped routing for third-party repos that cannot host `rules/`, with automatic cwd resolution and no `--root` needed (FXA-2314). Also: an append-only activity usage ledger (`af log` / `af log-archive` / `af log-validate`); COR-1402 active-process declaration lines embedded in every `af plan` phase; per-doc `af validate <DOC_IDS>` targeting; and `af index` now shows document Status as a dedicated column.
+- **NEW in v1.23.0** — Document tagging: tag any document with a controlled vocabulary and filter the corpus with `af list --tag <tag>`. `af tag ls` lists the vocabulary, `af tag show <tag>` lists matching docs, and `af tag add/rm <ID> <tag>...` write tags directly (#247, #248, FXA-2315). Personal workflow markers (`todo`, `wip`, `later`, …) can be self-served without a code PR via `af tag vocab add/rm/ls`, which manages a per-user `custom_tags` list in `~/.alfred/preferences.yaml` that unions with the system vocabulary — so they stop warning in both `af tag add` and `af validate` (#256, #257, FXA-2317). `af validate` gains a tag-vocabulary check with `--tag-warnings={off,summary,detail}` and `--warn-untagged-sops` (#251, #254).
+- **v1.22.0** — `~/.alfred/projects.json` sub-project layer: map any external repo root to a `~/.alfred/<NAME>/` subdir and it becomes that repo's PRJ layer — project-scoped routing for third-party repos that cannot host `rules/`, with automatic cwd resolution and no `--root` needed (FXA-2314). Also: an append-only activity usage ledger (`af log` / `af log-archive` / `af log-validate`); COR-1402 active-process declaration lines embedded in every `af plan` phase; per-doc `af validate <DOC_IDS>` targeting; and `af index` now shows document Status as a dedicated column.
 - **v1.21.0** — `af issue lint` now enforces the [COR-1501](src/fx_alfred/rules/COR-1501-SOP-Create-GitHub-Issue.md) blueprint structure, not just TBD-phrases: it validates an issue body against the repo's own `.github/ISSUE_TEMPLATE/blueprint.md` (required sections derived from that template, `(optional)` headings exempt) and flags `missing-section` / `no-acceptance-criteria` violations with a COR-1501 pointer. The template is found by walking up from the invoking repo, bounded at the `.git` boundary; the check is skipped when the repo has no such template. Also: a cross-platform [agent-skill bundle](skills/alfred/README.md) (`skills/alfred/` — one contract, native carriers for Claude Code / Codex / Copilot / droid / opencode), multi-target localization bindings, and the [COR-1508 Minimal Code Ladder](src/fx_alfred/rules/COR-1508-SOP-Minimal-Code-Ladder.md) write-time gate.
 - **v1.20.0** — `af export` — single-file runbook for zero-install consumption: flattens the layer-merged corpus (PKG + USR + PRJ) into one self-contained Markdown stream with a no-CLI preamble, routing documents first, and collision-safe delimiters; recipients (humans or AI agents) need nothing installed. Repeatable `--source`/`--type` filters (`--source pkg --source prj` shares project + bundled docs without the personal USR layer), `--include README.md` attaches project files, `--list` audits the exact set before sharing, `--source pkg` is the public-only safe path, deterministic output for clean vendoring diffs.
 - **v1.19.0** — Project-root auto-discovery: every command now resolves the nearest ancestor directory whose `rules/` contains Alfred documents, so `af` works from any project subdirectory without `--root` (explicit `--root` still wins). `af plan` no longer silently drops steps: section extraction and step rendering are now fence-aware (bash comments and numbered lines inside code blocks are body content, not boundaries or steps) — 10 bundled/user SOPs were affected. `af validate` warns on unknown document TYPE codes instead of silently skipping type-specific checks (`--json` gains an additive `warnings` field). All `--json` output is now uniformly indented UTF-8 (CJK content renders as written instead of `\uXXXX` escapes). CI now tests Python 3.10/3.12/3.14 with pyright and format gates.
@@ -410,13 +411,16 @@ af agent run SCRIPT_PATH [--json]
 af skill list [--task TEXT] [--layer PKG|USR|PRJ|all] [--json]
 af skill read ID_OR_NAME [--json]
 af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
+af tag ls [--json] | af tag show TAG [--json]
+af tag add IDENTIFIER TAG... | af tag rm IDENTIFIER TAG...
+af tag vocab ls | af tag vocab add TAG... | af tag vocab rm TAG...
 af read IDENTIFIER [--json]
 af create TYPE --prefix P --acid N|--area N --title T [--layer project|user] [--subdir DIR] [--spec FILE] [--dry-run]
 af update IDENTIFIER [--status STATUS] [--field KEY VALUE] [--history TEXT] [--by NAME] [--title TITLE] [-y|--yes] [--dry-run] [--spec FILE]
 af fmt [DOC_IDS...] [--write] [--check]
 af where IDENTIFIER [--json]
 af search PATTERN [--json]
-af validate [--root DIR] [--json]
+af validate [--root DIR] [--tag-warnings off|summary|detail] [--warn-untagged-sops] [--json]
 af setup
 af status [--json]
 af index

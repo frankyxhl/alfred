@@ -2,15 +2,61 @@
 
 ## Unreleased
 
+## v1.23.0 (2026-06-29)
+
+Document tagging release: a full `af tag` toolchain for filtering the corpus by
+a controlled vocabulary, an `af validate` vocab check, and — new this release —
+a user-extensible personal tag layer so workflow markers like `todo`/`wip` can
+be added without a code PR.
+
 ### Breaking Changes
 
-- **`af tag` group refactor (#252)** — `af tag` is now a command group. The old
-  `af tag` (list all tags) becomes `af tag ls`; the old `af tag <name>` (filter
-  docs) becomes `af tag show <name>`. New write subcommands: `af tag add <ID>
-  <tag>...` adds one or more tags (comma-separated or multiple args); `af tag rm
-  <ID> <tag>...` removes tags (removing absent tags is idempotent; removing the
-  last tag drops the `Tags:` field). PKG/COR documents are refused on add/rm with
-  the same read-only guard as `af update`.
+- **`af tag` group refactor (#252, #255)** — `af tag` is now a command group. The
+  old `af tag` (list all tags) becomes `af tag ls`; the old `af tag <name>`
+  (filter docs) becomes `af tag show <name>`. New write subcommands: `af tag add
+  <ID> <tag>...` adds one or more tags (comma-separated or multiple args); `af
+  tag rm <ID> <tag>...` removes tags (removing absent tags is idempotent;
+  removing the last tag drops the `Tags:` field). PKG/COR documents are refused
+  on add/rm with the same read-only guard as `af update`.
+
+### New Features
+
+- **Document tagging via `af tag` (#247, #248, FXA-2315)** — a `Tags:` metadata
+  field (distinct from `Task tags:`) lets documents be filtered with `af list
+  --tag <tag>`. Tags draw from a flat controlled vocabulary (lifecycle + domain
+  dimensions) defined in `CONTROLLED_TAGS` and mirrored in FXA-2315; `af tag ls`
+  lists the vocabulary with counts and `af tag show <tag>` lists the documents
+  carrying a tag.
+- **User-extensible custom tags (#256, #257, FXA-2317)** — `af tag vocab add/rm/ls`
+  manages a per-user `custom_tags` list in `~/.alfred/preferences.yaml`. The
+  vocabulary check unions `CONTROLLED_TAGS` with these custom tags, so personal
+  workflow markers (`todo`, `wip`, `later`, …) stop warning in both `af tag add`
+  and `af validate` — no code PR required. The new FXA-2317 "Add A Tag On Request"
+  SOP documents the personal-vs-system routing rule.
+- **`af validate` tag-vocabulary check (#251, #254)** — `af validate` now flags
+  out-of-vocabulary tags. New `--tag-warnings={off,summary,detail}` (default
+  `summary`, a single aggregate line) and `--warn-untagged-sops` controls keep
+  the output quiet by default while surfacing drift on demand.
+
+### Bug Fixes
+
+- **Malformed `preferences.yaml` no longer crashes (#257)** — a hand-edited
+  `custom_tags` of the wrong shape (e.g. a scalar instead of a list) is now
+  converted to a clean `ClickException` with a recovery hint at the command
+  boundary instead of escaping as a traceback, across `af validate` and `af tag
+  add`/`af tag vocab`. `af validate --tag-warnings off` skips the vocabulary load
+  entirely.
+
+### Docs
+
+- **FXA-2100 corrected (#249, #250)** — the Leader-Mediated Development workflow
+  now documents the actual process: one implementation subagent plus three
+  independent reviewers (GLM + DeepSeek + MiniMax).
+
+### Stats
+
+- 1374 tests, all passing
+- 1 breaking change (`af tag` group refactor)
 
 ## v1.22.0 (2026-06-28)
 
