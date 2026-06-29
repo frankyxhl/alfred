@@ -72,7 +72,7 @@ src/fx_alfred/
 │   ├── skill_cmd.py    # skill document discovery/read
 │   ├── star_cmd.py     # star/starred/unstar bookmarks
 │   ├── status_cmd.py   # summary counts + --json
-│   ├── tag_cmd.py      # af tag ls/show/add/rm — tag management (list, filter, write)
+│   ├── tag_cmd.py      # af tag ls/show/add/rm/vocab — tag management (list, filter, write, custom vocab)
 │   ├── update_cmd.py   # metadata/history/rename updates; --spec FILE
 │   ├── validate_cmd.py # metadata + status + SOP section validation; unknown-TYPE warnings
 │   └── where_cmd.py    # find absolute file path of a document (--json)
@@ -89,7 +89,7 @@ src/fx_alfred/
 │   ├── normalize.py       # slugify(), sort_metadata(), normalize_date(), strip_trailing_whitespace()
 │   ├── parser.py          # parse_metadata(), render_document(), extract_section(), fence-state iterator
 │   ├── phases.py          # PhaseDict/StepDict typed shapes
-│   ├── preferences.py     # ~/.alfred preferences store (star bookmarks)
+│   ├── preferences.py     # ~/.alfred preferences store (star bookmarks + custom_tags)
 │   ├── projects.py        # projects.json loader + resolve_subproject() (FXA-2314)
 │   ├── routing.py         # routing-document detection (shared by guide + export)
 │   ├── scanner.py         # scan_documents(), find_document(), layer validation
@@ -97,6 +97,7 @@ src/fx_alfred/
 │   ├── skills.py          # skill document discovery
 │   ├── source.py          # Source type, SOURCE_LABELS, SOURCE_ORDER
 │   ├── steps.py           # shared step parsing (flush-left + fence-aware + heading-form preference)
+│   ├── vocab.py           # allowed_tags() — union of CONTROLLED_TAGS + user custom_tags (FXA-256)
 │   └── workflow.py        # Workflow signature/loops/branches parsing + validation
 ├── rules/              # PKG layer (bundled COR-* documents, read-only)
 └── templates/          # Document templates for af create (5W1H SOP template)

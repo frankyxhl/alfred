@@ -15,7 +15,7 @@ from typing import Any
 import yaml
 
 
-_HEADER_COMMENT = "# Managed by `af star`; safe to edit by hand.\n"
+_HEADER_COMMENT = "# Managed by `af star` and `af tag vocab`; safe to edit by hand.\n"
 
 
 class PreferencesError(ValueError):
@@ -116,6 +116,79 @@ def add_starred_doc(canonical_id: str) -> tuple[bool, list[str]]:
     data["starred_docs"] = new_list
     _atomic_write(preferences_path(), _serialise(data))
     return True, new_list
+
+
+def load_custom_tags() -> list[str]:
+    """Return the user's custom_tags list (sorted, deduplicated).
+
+    Returns [] when the file is missing or the custom_tags key is absent.
+    Raises PreferencesError when the key exists but is not a list.
+    """
+    data = load_preferences()
+    if "custom_tags" not in data:
+        return []
+    value = data["custom_tags"]
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise PreferencesError(
+            f"{preferences_path()}: 'custom_tags' must be a list, got "
+            f"{type(value).__name__}"
+        )
+    return sorted({str(v).strip().lower() for v in value if str(v).strip()})
+
+
+def add_custom_tags(tags: list[str]) -> list[str]:
+    """Add tags to custom_tags. Returns the new full sorted list.
+
+    Tags are normalized: stripped + lowercased. Deduped. Sorted.
+    Idempotent: already-present tags are silently ignored.
+    Preserves other top-level keys (e.g. starred_docs).
+    Raises PreferencesError on malformed existing custom_tags shape.
+    """
+    normalized = [t.strip().lower() for t in tags if t.strip()]
+    data = load_preferences()
+    existing_raw = data.get("custom_tags")
+    if existing_raw is None:
+        existing: list[str] = []
+    elif isinstance(existing_raw, list):
+        existing = [str(v).strip().lower() for v in existing_raw if str(v).strip()]
+    else:
+        raise PreferencesError(
+            f"{preferences_path()}: 'custom_tags' must be a list, got "
+            f"{type(existing_raw).__name__}"
+        )
+    new_list = sorted(set(existing) | set(normalized))
+    if new_list == existing:
+        return new_list
+    data["custom_tags"] = new_list
+    _atomic_write(preferences_path(), _serialise(data))
+    return new_list
+
+
+def remove_custom_tags(tags: list[str]) -> list[str]:
+    """Remove tags from custom_tags. Returns the new full sorted list.
+
+    Idempotent: tags not present are silently ignored.
+    Preserves other top-level keys (e.g. starred_docs).
+    Returns [] when the file is missing or custom_tags key is absent.
+    Raises PreferencesError on malformed existing custom_tags shape.
+    """
+    to_remove = {t.strip().lower() for t in tags if t.strip()}
+    data = load_preferences()
+    existing_raw = data.get("custom_tags")
+    if existing_raw is None:
+        return []
+    if not isinstance(existing_raw, list):
+        raise PreferencesError(
+            f"{preferences_path()}: 'custom_tags' must be a list, got "
+            f"{type(existing_raw).__name__}"
+        )
+    existing = [str(v).strip().lower() for v in existing_raw if str(v).strip()]
+    new_list = sorted(v for v in existing if v not in to_remove)
+    data["custom_tags"] = new_list
+    _atomic_write(preferences_path(), _serialise(data))
+    return new_list
 
 
 def remove_starred_doc(canonical_id: str) -> tuple[bool, list[str]]:
