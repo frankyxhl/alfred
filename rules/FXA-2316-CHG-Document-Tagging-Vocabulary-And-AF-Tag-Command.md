@@ -1,9 +1,9 @@
 # CHG-2316: Document Tagging Vocabulary And AF Tag Command
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-28
+**Last updated:** 2026-06-29
 **Last reviewed:** 2026-06-28
-**Status:** Proposed
+**Status:** Completed
 **Tags:** change-request
 **Date:** 2026-06-28
 **Requested by:** Frank Xu (@ryosaeba1985)
@@ -104,3 +104,4 @@ tag set and gives tag discovery a first-class command.
 | Date | Change | By |
 |------|--------|----|
 | 2026-06-28 | Initial version | — |
+| 2026-06-29 | Shipped in v1.23.0 (af tag + tagging vocabulary, FXA-2315) | Claude Code |
