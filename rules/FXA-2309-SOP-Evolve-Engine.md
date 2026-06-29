@@ -1,10 +1,10 @@
 # SOP-2309: Evolve Engine
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-29
 **Last reviewed:** 2026-06-21
 **Status:** Active
-**Tags:** evolution
+**Tags:** evolution, maintain
 
 ---
 

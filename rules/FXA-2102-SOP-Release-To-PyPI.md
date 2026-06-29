@@ -1,10 +1,10 @@
 # SOP-2102: Release To PyPI
 
 **Applies to:** FXA project
-**Last updated:** 2026-05-07
+**Last updated:** 2026-06-29
 **Last reviewed:** 2026-03-17
 **Status:** Active
-**Tags:** ship
+**Tags:** release, ship
 **Task tags:** release, pypi
 
 ---

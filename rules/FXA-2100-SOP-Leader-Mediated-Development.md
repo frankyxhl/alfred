@@ -1,10 +1,10 @@
 # SOP-2100: Leader Mediated Development
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-28
+**Last updated:** 2026-06-29
 **Last reviewed:** 2026-03-17
 **Status:** Active
-**Tags:** workflow, implement
+**Tags:** implement, review, workflow
 
 ---
 

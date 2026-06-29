@@ -21,6 +21,8 @@ A reference index of all documents in the COR system.
 | 1000 | SOP | Create SOP |
 | 1001 | SOP | Create Document |
 | 1002 | SOP | Read Document |
+| 1003 | SOP | Tag Document |
+| 1004 | SOP | Create Routing Document |
 | 1100 | SOP | Create Decision Record |
 | 1101 | SOP | Submit Change Request |
 | 1102 | SOP | Create Proposal |
@@ -116,3 +118,4 @@ A reference index of all documents in the COR system.
 | 2026-06-19 | Added COR-1624 (Loop — L1 Report-Only) — first rung of the Loop autonomy ladder (L1/L2/L3), adapted from loop-engineering's phased-rollout model. | Claude Code |
 | 2026-06-19 | Added COR-1625 (Loop — L2 Assisted + Gated) and COR-1626 (Loop — L3 Unattended, Status: Draft) — completing the Loop autonomy ladder. | Claude Code |
 | 2026-06-26 | Added COR-1627 (Loop PDCA Run Audit) — report-only PDCA retrospective for L1/L2 runs. | Claude Code |
+| 2026-06-29 | Added COR-1003 (Tag Document) — COR-level tagging mechanism + process (optional-overlay); also backfilled the missing COR-1004 (Create Routing Document) index row. | Claude Code |

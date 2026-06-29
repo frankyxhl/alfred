@@ -5,6 +5,7 @@
 **Last reviewed:** 2026-06-28
 **Status:** Active
 **Tags:** document, maintain
+**Overlays:** COR-1003
 
 ---
 
@@ -14,6 +15,12 @@ Procedure for assigning the **`Tags:`** metadata field to documents so they
 can be filtered with `af list --tag <tag>`. Tags are a flat, controlled
 vocabulary drawn from two dimensions — lifecycle stage and functional domain.
 Each document carries 1–3 tags.
+
+This is the **FXA project's instance of COR-1003 (Tag Document)** — COR-1003
+defines the general mechanism and process; this SOP pins the FXA controlled
+vocabulary below. FXA-2317 (add a tag on request) and FXA-2318 (corpus backfill)
+are the project-level runbooks for COR-1003's vocabulary-extension and backfill
+sub-flows.
 
 `Tags:` is read by `Document.tags` and consumed by `af list --tag`
 (case-insensitive exact match). It is **distinct from `Task tags:`**, which
@@ -106,14 +113,16 @@ curating every entry.
 - `COR-1103 Workflow Routing` → `routing, plan`
 - `COR-1500 TDD Development Workflow` → `tdd, implement`
 - `COR-1608 PRP Review Scoring` → `review, scoring, proposal`
-- `FXA-2102 Release To PyPI` → `ship`
-- `FXA-2148 Evolve SOP` → `evolution`
+- `FXA-2102 Release To PyPI` → `release, ship`
+- `FXA-2148 Evolve SOP` → `evolution, loop`
 
 ---
 
 ## Change History
 
-| Date       | Change                                                                        | By          |
-|------------|-------------------------------------------------------------------------------|-------------|
-| 2026-06-28 | Initial version                                                               | —           |
-| 2026-06-29 | Add user-level custom_tags soft-extension note; cross-link SOP-2317 (FXA-256) | Claude Code |
+| Date       | Change                                                                                  | By          |
+|------------|-----------------------------------------------------------------------------------------|-------------|
+| 2026-06-28 | Initial version                                                                         | —           |
+| 2026-06-29 | Add user-level custom_tags soft-extension note; cross-link SOP-2317 (FXA-256)           | Claude Code |
+| 2026-06-29 | Note FXA-2315 as the FXA instance of COR-1003 (Tag Document)                            | Claude Code |
+| 2026-06-29 | Add **Overlays:** COR-1003 binding (FXA-2315 overlays COR-1003 with the FXA vocabulary) | Claude Code |
