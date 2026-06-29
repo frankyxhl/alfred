@@ -1416,3 +1416,121 @@ def test_tag_vocab_ls_and_rm_empty_phrasing_consistent(write_project):
         cli, ["tag", "vocab", "rm", "nonexistent"], catch_exceptions=False
     )
     assert ls_result.output.strip() == rm_result.output.strip()
+
+
+# ── FXA-2315 / feat-256: malformed preferences.yaml → clean ClickException ────
+
+
+@pytest.fixture
+def malformed_prefs():
+    """Write a malformed preferences.yaml (custom_tags: scalar string) to the isolated HOME.
+
+    The isolate_home autouse fixture already patches Path.home() for every test,
+    so Path.home() / ".alfred" / "preferences.yaml" resolves to a safe temp path.
+    """
+    from pathlib import Path
+
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text("custom_tags: todo\n", encoding="utf-8")
+
+
+def test_tag_add_malformed_prefs_yields_click_exception(write_project, malformed_prefs):
+    """af tag add with malformed custom_tags (scalar) must exit non-zero as a clean
+    ClickException — PreferencesError must never escape uncaught to the caller.
+    """
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "maintain", "--root", str(write_project)],
+    )
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_vocab_ls_malformed_prefs_yields_click_exception(malformed_prefs):
+    """af tag vocab ls with malformed custom_tags must exit non-zero as a clean ClickException."""
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["tag", "vocab", "ls"])
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_vocab_add_malformed_prefs_yields_click_exception(malformed_prefs):
+    """af tag vocab add with malformed custom_tags must exit non-zero as a clean ClickException."""
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["tag", "vocab", "add", "newtag"])
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_vocab_rm_malformed_prefs_yields_click_exception(malformed_prefs):
+    """af tag vocab rm with malformed custom_tags must exit non-zero as a clean ClickException."""
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["tag", "vocab", "rm", "sometag"])
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_add_valid_custom_tags_list_works(write_project):
+    """With a VALID custom_tags list in preferences, af tag add completes normally."""
+    from pathlib import Path
+
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text(
+        "custom_tags:\n  - my-tag\n", encoding="utf-8"
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "maintain", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+
+def test_tag_vocab_commands_valid_prefs_still_work():
+    """With a VALID custom_tags list, vocab ls/add/rm all complete normally."""
+    from pathlib import Path
+
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text(
+        "custom_tags:\n  - my-tag\n", encoding="utf-8"
+    )
+    runner = CliRunner()
+
+    ls_result = runner.invoke(cli, ["tag", "vocab", "ls"], catch_exceptions=False)
+    assert ls_result.exit_code == 0
+    assert "my-tag" in ls_result.output
+
+    add_result = runner.invoke(
+        cli, ["tag", "vocab", "add", "extra-tag"], catch_exceptions=False
+    )
+    assert add_result.exit_code == 0
+
+    rm_result = runner.invoke(
+        cli, ["tag", "vocab", "rm", "extra-tag"], catch_exceptions=False
+    )
+    assert rm_result.exit_code == 0

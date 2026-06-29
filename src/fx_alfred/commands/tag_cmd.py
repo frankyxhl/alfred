@@ -219,7 +219,10 @@ def add_cmd(ctx: click.Context, identifier: str, tags: tuple[str, ...]) -> None:
         click.echo("No valid tags provided.")
         return
 
-    vocab = allowed_tags()
+    try:
+        vocab = allowed_tags()
+    except PreferencesError as exc:
+        raise click.ClickException(str(exc)) from exc
     for t in new_tags:
         if t not in vocab:
             click.echo(
