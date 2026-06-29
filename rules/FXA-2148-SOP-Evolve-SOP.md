@@ -1,10 +1,10 @@
 # SOP-2148: Evolve-SOP
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-29
 **Last reviewed:** 2026-06-21
 **Status:** Active
-**Tags:** evolution
+**Tags:** evolution, loop
 **Workflow loops:** [{id: review-retry, from: 10, to: 9, max_iterations: 3, condition: "CI not green or unresolved comments"}]
 **Task tags:** [evolve, sop, refactor-sop, improve-sop]
 

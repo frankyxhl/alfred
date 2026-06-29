@@ -1,10 +1,10 @@
 # SOP-2127: Commit Alfred Ops
 
 **Applies to:** FXA project
-**Last updated:** 2026-03-20
+**Last updated:** 2026-06-29
 **Last reviewed:** 2026-03-20
 **Status:** Deprecated
-**Tags:** git, ship
+**Tags:** commit, git
 
 ---
 

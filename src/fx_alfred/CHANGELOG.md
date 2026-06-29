@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### New Features
+
+- **COR-1003 (Tag Document) — COR-level tagging SOP.** Promotes the document-tagging
+  mechanism and process to the bundled PKG layer so `af guide` routes it in every
+  project, not just this repo. `Disposition: optional-overlay`; a project pins its
+  own controlled vocabulary via a PRJ SOP that declares `**Overlays:** COR-1003`
+  (FXA-2315 is the FXA instance). The `af validate` Overlays/Disposition binding
+  check enforces the pairing. Also backfilled the missing COR-1004 index row.
+
 ## v1.23.0 (2026-06-29)
 
 Document tagging release: a full `af tag` toolchain for filtering the corpus by
