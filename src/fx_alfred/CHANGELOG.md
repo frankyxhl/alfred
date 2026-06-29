@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v1.24.0 (2026-06-29)
+
+Tagging governance reaches the bundled layer: the document-tagging mechanism and
+process is now a COR-level SOP available in every project, not just this repo.
+
 ### New Features
 
 - **COR-1003 (Tag Document) — COR-level tagging SOP.** Promotes the document-tagging
@@ -12,6 +17,11 @@
   The `af validate` Overlays/Disposition binding check enforces the pairing.
   COR-1103's intent router now routes tag/retag requests to COR-1003. Also
   backfilled the missing COR-1004 index row.
+
+### Stats
+
+- 1374 tests, all passing
+- 0 breaking changes
 
 ## v1.23.0 (2026-06-29)
 
