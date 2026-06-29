@@ -3004,3 +3004,94 @@ def test_validate_fallback_scan_respects_mapped_layer_in_error_path(tmp_path):
         f"No NRV doc should appear as 'usr' when NRV is a registered subproject, "
         f"but found: {usr_nrv}"
     )
+
+
+# ── FXA-2315/feat-256: malformed preferences regression (perf-hoist fix) ──
+
+
+def test_validate_malformed_prefs_tag_warnings_default_click_exception(tmp_path):
+    """Malformed custom_tags (string, not list) with default --tag-warnings (summary)
+    must produce a clean ClickException message and non-zero exit — NOT an uncaught
+    PreferencesError traceback.
+    """
+    from pathlib import Path
+    from fx_alfred.core.preferences import PreferencesError
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(rules_dir / "SOP-8001-SOP-PrefsTest.md", "SOP", "8001")
+
+    # Write a malformed preferences.yaml: custom_tags must be a list, not a string.
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text("custom_tags: todo\n", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    # Click converts ClickException → SystemExit; a raw PreferencesError must never
+    # escape to the caller (i.e., result.exception must not be a PreferencesError).
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError must be caught and converted to ClickException, "
+        f"but got uncaught domain exception: {result.exception!r}"
+    )
+    # Must exit non-zero (ClickException triggers exit 1).
+    assert result.exit_code != 0
+    # Error message must mention the file path and that custom_tags must be a list.
+    assert "preferences.yaml" in result.output
+    assert "list" in result.output
+
+
+def test_validate_malformed_prefs_tag_warnings_off_succeeds(tmp_path):
+    """--tag-warnings=off with malformed custom_tags (string) must succeed (exit 0)
+    because the vocab is never loaded when tag-warnings is off.
+    This is the key regression assertion from the perf-hoist PR.
+    """
+    from pathlib import Path
+    from fx_alfred.core.preferences import PreferencesError
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(rules_dir / "SOP-8002-SOP-PrefsTest.md", "SOP", "8002")
+
+    # Same malformed preferences file.
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text("custom_tags: todo\n", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["validate", "--tag-warnings=off", "--root", str(tmp_path)]
+    )
+
+    assert not isinstance(result.exception, PreferencesError), (
+        f"No PreferencesError expected when tag-warnings=off (vocab not loaded), "
+        f"but got: {result.exception!r}"
+    )
+    assert result.exit_code == 0, result.output
+
+
+def test_validate_valid_custom_tags_list_accepted_as_vocab(tmp_path):
+    """Valid custom_tags list in preferences lets a matching tag pass vocab check."""
+    from pathlib import Path
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_sop_doc(
+        rules_dir / "SOP-8003-SOP-PrefsTest.md",
+        "SOP",
+        "8003",
+        "**Tags:** my-custom-tag\n",
+    )
+
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text(
+        "custom_tags:\n- my-custom-tag\n", encoding="utf-8"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    assert "out-of-vocabulary" not in result.output

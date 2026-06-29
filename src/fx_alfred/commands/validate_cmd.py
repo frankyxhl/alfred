@@ -22,6 +22,7 @@ from fx_alfred.core.schema import (
     DocType,
 )
 from fx_alfred.core.document import Document
+from fx_alfred.core.preferences import PreferencesError
 from fx_alfred.core.vocab import allowed_tags
 from fx_alfred.core.parser import (
     H1_PATTERN,
@@ -350,7 +351,19 @@ def validate_cmd(
 
     # FXA-2315: compute once per invocation so we don't re-read
     # ~/.alfred/preferences.yaml on every document iteration.
-    vocab: set[str] = allowed_tags()
+    # Guard: skip the IO entirely when tag-warnings=off (vocab is unused).
+    # Convert PreferencesError at the command boundary (core/ raises domain
+    # exceptions; commands/ converts them to ClickException).
+    if tag_warnings == "off":
+        vocab: set[str] = set()
+    else:
+        try:
+            vocab = allowed_tags()
+        except PreferencesError as exc:
+            raise click.ClickException(
+                f"Cannot load tag vocabulary: {exc}\n"
+                "Ensure 'custom_tags' in preferences.yaml is a list, not a scalar."
+            ) from exc
 
     # FXA-2315 out-of-vocab summary counters (used when tag_warnings="summary").
     ov_instance_count: int = 0
