@@ -51,7 +51,7 @@ the user can just name a tag and trust the agent to place it correctly.
 - **Applying an already-allowed tag to a document.** That is plain
   [[FXA-2315]] §Steps (`af tag add <DOC> <tag>`) — no vocabulary change needed.
 - **Backfilling many documents with existing-vocabulary tags.** Use the
-  AI-assisted backfill flow (issue #253 / its SOP), not this one.
+  AI-assisted backfill flow in [[FXA-2318]], not this one.
 - **The `Task tags:` field** — governed by COR-1202 / `af plan --task`, never
   this SOP.
 
@@ -100,3 +100,4 @@ the user can just name a tag and trust the agent to place it correctly.
 | Date       | Change                                                        | By          |
 |------------|---------------------------------------------------------------|-------------|
 | 2026-06-29 | Initial version — operational runbook for FXA-256 custom_tags | Claude Code |
+| 2026-06-29 | Update #253 backfill cross-ref to [[FXA-2318]]                | Claude Code |
