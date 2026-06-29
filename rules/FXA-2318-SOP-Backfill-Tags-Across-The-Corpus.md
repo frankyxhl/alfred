@@ -90,11 +90,18 @@ every entry.
 
 5. **Write** the approved tags:
    ```bash
+   # Untagged / under-tagged document — add the approved tags
    af tag add <PREFIX-ACID> <tag> [<tag> ...] --root <project-root>
+
+   # REPLACING an out-of-vocabulary tag — remove the bad one, then add the fix
+   af tag rm  <PREFIX-ACID> <bad-tag>  --root <project-root>
+   af tag add <PREFIX-ACID> <good-tag> --root <project-root>
    ```
-   Or set the full `Tags:` value in one operation with `af update --spec`. PKG/COR
-   documents are read-only — prepare those as a PR per [[FXA-2315]], never a direct
-   write.
+   `af tag add` only **appends** — it does not drop the existing value. For an
+   out-of-vocabulary correction you must `af tag rm` the bad tag (otherwise Step 6
+   keeps reporting the same warning). Alternatively, `af update --spec` sets the
+   full `Tags:` value in one operation (replace, not merge). PKG/COR documents are
+   read-only — prepare those as a PR per [[FXA-2315]], never a direct write.
 
 6. **Re-confirm coverage.** Re-run the Step 1 finders; both must come back empty:
    ```bash
