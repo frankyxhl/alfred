@@ -97,6 +97,7 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
    ├── Promote PRJ pattern to PKG → COR-1801, then CHG/PRP as required
    ├── New SOP               → COR-1000
    ├── New reference doc     → COR-1001
+   ├── Tag / retag / make filterable → COR-1003
    └── Update existing doc   → COR-1300
 
 2. Something broken/failing/unexpected?
