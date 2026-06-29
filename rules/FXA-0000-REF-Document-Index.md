@@ -226,8 +226,9 @@
 | 2313 | REF | Case Study Loop Governance Of The PR Review Fix Loop | Active |
 | 2314 | CHG | USR Sub Project Layer Via Projects JSON Mapping | Approved |
 | 2315 | SOP | Tag Documents For Filtering | Active |
-| 2316 | CHG | Document Tagging Vocabulary And AF Tag Command | Proposed |
+| 2316 | CHG | Document Tagging Vocabulary And AF Tag Command | Completed |
 | 2317 | SOP | Add A Tag On Request | Active |
+| 2318 | SOP | Backfill Tags Across The Corpus | Active |
 
 ---
 
