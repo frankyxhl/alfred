@@ -11,7 +11,6 @@ from fx_alfred.context import get_root, root_option
 from fx_alfred.core.schema import (
     ALLOWED_DISPOSITIONS,
     ALLOWED_STATUSES,
-    CONTROLLED_TAGS,
     COR_REFERENCE_PATTERN,
     DISPOSITION,
     DISPOSITION_MANDATORY_BIND,
@@ -23,6 +22,8 @@ from fx_alfred.core.schema import (
     DocType,
 )
 from fx_alfred.core.document import Document
+from fx_alfred.core.preferences import PreferencesError
+from fx_alfred.core.vocab import allowed_tags
 from fx_alfred.core.parser import (
     H1_PATTERN,
     MalformedDocumentError,
@@ -256,6 +257,7 @@ def _validate_tags_vocab(
     doc: Document,
     tag_field,
     warn_untagged_sops: bool,
+    vocab: set[str],
 ) -> tuple[list[str], list[str]]:
     """Return (ov_warnings, untagged_warnings) for the doc's Tags field.
 
@@ -268,10 +270,11 @@ def _validate_tags_vocab(
     ov_warnings: list[str] = []
     if tag_field is not None:
         for tag in dict.fromkeys(parse_tags(tag_field.value)):
-            if tag not in CONTROLLED_TAGS:
+            if tag not in vocab:
                 ov_warnings.append(
                     f"out-of-vocabulary tag '{tag}' "
-                    "(not in FXA-2315 controlled vocabulary)"
+                    "(not in FXA-2315 controlled vocabulary; "
+                    f"add it with 'af tag vocab add {tag}' if it's a personal tag)"
                 )
     untagged_warnings: list[str] = []
     if warn_untagged_sops and doc.type_code == "SOP" and tag_field is None:
@@ -345,6 +348,22 @@ def validate_cmd(
     # they surface degraded validation (e.g. unknown TYPE codes) that was
     # previously silent.
     warnings_by_doc: dict[str, list[str]] = {}
+
+    # FXA-2315: compute once per invocation so we don't re-read
+    # ~/.alfred/preferences.yaml on every document iteration.
+    # Guard: skip the IO entirely when tag-warnings=off (vocab is unused).
+    # Convert PreferencesError at the command boundary (core/ raises domain
+    # exceptions; commands/ converts them to ClickException).
+    if tag_warnings == "off":
+        vocab: set[str] = set()
+    else:
+        try:
+            vocab = allowed_tags()
+        except PreferencesError as exc:
+            raise click.ClickException(
+                f"Cannot load tag vocabulary: {exc}\n"
+                "Ensure 'custom_tags' in preferences.yaml is a list, not a scalar."
+            ) from exc
 
     # FXA-2315 out-of-vocab summary counters (used when tag_warnings="summary").
     ov_instance_count: int = 0
@@ -469,7 +488,7 @@ def validate_cmd(
                 if len(lowered) != len(set(lowered)):
                     issues.append("Tags field contains duplicate tags")
             ov_warns, untagged_warns = _validate_tags_vocab(
-                doc, tag_field, warn_untagged_sops
+                doc, tag_field, warn_untagged_sops, vocab
             )
             if tag_warnings == "detail":
                 warnings.extend(ov_warns)

@@ -1,7 +1,7 @@
 # SOP-2315: Tag Documents For Filtering
 
 **Applies to:** FXA project (and any PRJ/USR document with a Status field)
-**Last updated:** 2026-06-28
+**Last updated:** 2026-06-29
 **Last reviewed:** 2026-06-28
 **Status:** Active
 **Tags:** document, maintain
@@ -27,6 +27,15 @@ feeds `af plan --task` SOP auto-composition — do not conflate the two.
 | Domain | `document` `proposal` `change-request` `decision-record` `sop-authoring` `interaction` `tdd` `git` `issue` `diagnosis` `workflow` `pr` `loop` `scoring` `project` `evolution` |
 
 PRJ/USR-only domain tags may also be used where they apply: `release`, `commit`.
+
+**User-level soft extension.** The table above is the *shared* vocabulary —
+extending it edits package source and goes through a PR. Personal/workflow
+markers (`todo`, `wip`, `later`, …) instead live per-user in
+`~/.alfred/preferences.yaml` under `custom_tags`, managed with
+`af tag vocab add/rm/ls` (no PR). The vocab check unions `CONTROLLED_TAGS` with
+the user's `custom_tags`, so a registered personal tag stops warning in both
+`af tag add` and `af validate`. See SOP-2317 for the full "add a tag on request"
+runbook and the personal-vs-system routing rule.
 
 
 ## Why
@@ -100,11 +109,11 @@ curating every entry.
 - `FXA-2102 Release To PyPI` → `ship`
 - `FXA-2148 Evolve SOP` → `evolution`
 
-
 ---
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-06-28 | Initial version | — |
+| Date       | Change                                                                        | By          |
+|------------|-------------------------------------------------------------------------------|-------------|
+| 2026-06-28 | Initial version                                                               | —           |
+| 2026-06-29 | Add user-level custom_tags soft-extension note; cross-link SOP-2317 (FXA-256) | Claude Code |

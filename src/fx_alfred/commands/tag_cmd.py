@@ -27,7 +27,14 @@ from fx_alfred.core.parser import (
     parse_tags,
     render_document,
 )
-from fx_alfred.core.schema import CONTROLLED_TAGS, DocType
+from fx_alfred.core.preferences import (
+    PreferencesError,
+    add_custom_tags,
+    load_custom_tags,
+    remove_custom_tags,
+)
+from fx_alfred.core.schema import DocType
+from fx_alfred.core.vocab import allowed_tags
 
 
 def _edit_tags(
@@ -212,10 +219,15 @@ def add_cmd(ctx: click.Context, identifier: str, tags: tuple[str, ...]) -> None:
         click.echo("No valid tags provided.")
         return
 
+    try:
+        vocab = allowed_tags()
+    except PreferencesError as exc:
+        raise click.ClickException(str(exc)) from exc
     for t in new_tags:
-        if t not in CONTROLLED_TAGS:
+        if t not in vocab:
             click.echo(
-                f"warning: '{t}' is not in the FXA-2315 controlled vocabulary",
+                f"warning: '{t}' is not in the FXA-2315 controlled vocabulary "
+                f"(add it with 'af tag vocab add {t}' if it's a personal tag)",
                 err=True,
             )
 
@@ -266,3 +278,88 @@ def rm_cmd(ctx: click.Context, identifier: str, tags: tuple[str, ...]) -> None:
         doc, remaining = result
         display = ", ".join(remaining) if remaining else "(none — field removed)"
         click.echo(f"{doc.prefix}-{doc.acid} tags: {display}")
+
+
+# ── af tag vocab: manage user-level custom tag vocabulary ─────────────────────
+
+
+@tag_cmd.group("vocab")
+def vocab_cmd() -> None:
+    """Manage user-level custom tag vocabulary (~/.alfred/preferences.yaml).
+
+    Subcommands:
+      ls   — list current custom tags
+      add  — add one or more custom tags to the vocabulary
+      rm   — remove one or more custom tags from the vocabulary
+
+    Custom tags union with the built-in FXA-2315 controlled vocabulary so
+    that `af tag add` and `af validate` no longer warn about them.
+    Custom tags are user-global (independent of --root / project).
+    """
+
+
+@vocab_cmd.command("ls")
+def vocab_ls_cmd() -> None:
+    """List user-defined custom tags (one per line)."""
+    try:
+        tags = load_custom_tags()
+    except PreferencesError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if not tags:
+        click.echo("No custom tags defined.")
+        return
+
+    for tag in tags:
+        click.echo(tag)
+
+
+@vocab_cmd.command("add")
+@click.argument("tags", nargs=-1, required=True)
+def vocab_add_cmd(tags: tuple[str, ...]) -> None:
+    """Add TAGS to the user custom vocabulary.
+
+    TAGS may be multiple positional arguments, comma-separated values, or a
+    mix: `af tag vocab add my-tag foo,bar`
+    """
+    parsed: list[str] = []
+    for tag_arg in tags:
+        parsed.extend(parse_tags(tag_arg))
+
+    if not parsed:
+        click.echo("No valid tags provided.")
+        return
+
+    try:
+        result = add_custom_tags(parsed)
+    except PreferencesError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.echo(f"custom tags: {', '.join(result)}")
+
+
+@vocab_cmd.command("rm")
+@click.argument("tags", nargs=-1, required=True)
+def vocab_rm_cmd(tags: tuple[str, ...]) -> None:
+    """Remove TAGS from the user custom vocabulary.
+
+    TAGS may be multiple positional arguments, comma-separated values, or a
+    mix. Removing a tag not in the vocabulary is a no-op (exit 0).
+    """
+    parsed: list[str] = []
+    for tag_arg in tags:
+        parsed.extend(parse_tags(tag_arg))
+
+    if not parsed:
+        click.echo("No valid tags provided.")
+        return
+
+    try:
+        result = remove_custom_tags(parsed)
+    except PreferencesError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if result:
+        click.echo(f"custom tags: {', '.join(result)}")
+    else:
+        click.echo("No custom tags defined.")

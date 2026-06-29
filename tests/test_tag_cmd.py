@@ -1163,3 +1163,374 @@ def test_tag_add_noop_set_unchanged_with_unsorted_existing(write_project):
         "File must be byte-for-byte unchanged when tag set is unchanged "
         "(even if existing order is unsorted)"
     )
+
+
+# ── af tag vocab: manage user custom tag vocabulary ───────────────────────────
+
+
+def test_tag_vocab_ls_empty_when_no_custom_tags(write_project):
+    """af tag vocab ls prints a friendly message when no custom tags are defined."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "ls"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    # Either empty output or a "No custom tags" message — not an error.
+    assert "Error" not in result.output
+
+
+def test_tag_vocab_add_single_tag(write_project):
+    """af tag vocab add my-tag adds it and echoes the resulting list."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "add", "my-tag"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "my-tag" in result.output
+
+
+def test_tag_vocab_add_multiple_positional(write_project):
+    """af tag vocab add foo bar adds both tags."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "add", "foo", "bar"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "foo" in result.output
+    assert "bar" in result.output
+
+
+def test_tag_vocab_add_comma_separated(write_project):
+    """af tag vocab add 'foo,bar' handles comma-separated tags."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "add", "foo,bar"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "foo" in result.output
+    assert "bar" in result.output
+
+
+def test_tag_vocab_add_idempotent(write_project):
+    """af tag vocab add the same tag twice exits 0 both times."""
+    runner = CliRunner()
+    runner.invoke(cli, ["tag", "vocab", "add", "my-tag"], catch_exceptions=False)
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "add", "my-tag"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+
+def test_tag_vocab_ls_shows_added_tags(write_project):
+    """af tag vocab ls shows previously added custom tags."""
+    runner = CliRunner()
+    runner.invoke(cli, ["tag", "vocab", "add", "alpha", "beta"], catch_exceptions=False)
+    result = runner.invoke(cli, ["tag", "vocab", "ls"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "alpha" in result.output
+    assert "beta" in result.output
+
+
+def test_tag_vocab_rm_removes_tag(write_project):
+    """af tag vocab rm removes a previously added tag."""
+    runner = CliRunner()
+    runner.invoke(cli, ["tag", "vocab", "add", "foo", "bar"], catch_exceptions=False)
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "rm", "foo"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "foo" not in result.output or "bar" in result.output
+
+    ls_result = runner.invoke(cli, ["tag", "vocab", "ls"], catch_exceptions=False)
+    assert "foo" not in ls_result.output
+    assert "bar" in ls_result.output
+
+
+def test_tag_vocab_rm_absent_tag_is_friendly(write_project):
+    """af tag vocab rm on a tag not in vocab exits 0 with no crash."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "rm", "nonexistent-tag"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+
+def test_tag_vocab_does_not_take_root(write_project):
+    """af tag vocab commands do NOT require --root (vocab is user-global)."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "vocab", "add", "my-tag"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+
+# ── Union behavior: custom tags suppress OOV warnings ─────────────────────────
+
+
+def test_tag_add_custom_vocab_tag_no_warning(write_project):
+    """After vocab add 'my-custom-tag', af tag add emits NO out-of-vocab warning."""
+    from fx_alfred.core.preferences import add_custom_tags
+
+    add_custom_tags(["my-custom-tag"])
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "my-custom-tag", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "warning" not in result.stderr.lower()
+    assert "my-custom-tag" not in result.stderr
+
+
+def test_tag_add_unknown_tag_still_warns_when_not_in_vocab(write_project):
+    """Without vocab add, an unknown tag still emits the OOV warning."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "tag",
+            "add",
+            "ALF-6001",
+            "totally-unknown-tag-xyz",
+            "--root",
+            str(write_project),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert "warning" in result.stderr.lower()
+
+
+def test_validate_does_not_flag_custom_tag(write_project):
+    """af validate does NOT emit out-of-vocab warning for a custom tag."""
+    from fx_alfred.core.preferences import add_custom_tags
+
+    add_custom_tags(["my-custom-tag"])
+
+    # Write a doc with the custom tag
+    (write_project / "rules" / "ALF-7001-REF-Custom-Tag.md").write_text(
+        "# REF-7001: Custom Tag\n\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2026-06-29\n"
+        "**Last reviewed:** 2026-06-29\n"
+        "**Status:** Active\n"
+        "**Tags:** my-custom-tag\n\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "A test doc with a user-defined custom tag.\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By |\n"
+        "|------|--------|----|",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "validate",
+            "ALF-7001",
+            "--root",
+            str(write_project),
+            "--tag-warnings",
+            "detail",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, f"validate failed:\n{result.output}"
+    assert "my-custom-tag" not in result.output
+    assert "out-of-vocabulary" not in result.output
+
+
+def test_validate_flags_unknown_tag_not_in_vocab(write_project):
+    """af validate DOES emit OOV warning for a tag that is neither controlled nor custom."""
+    (write_project / "rules" / "ALF-7002-REF-Unknown-Tag.md").write_text(
+        "# REF-7002: Unknown Tag\n\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2026-06-29\n"
+        "**Last reviewed:** 2026-06-29\n"
+        "**Status:** Active\n"
+        "**Tags:** totally-unknown-zzz\n\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "A test doc with an unknown tag.\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By |\n"
+        "|------|--------|----|",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "validate",
+            "ALF-7002",
+            "--root",
+            str(write_project),
+            "--tag-warnings",
+            "detail",
+        ],
+        catch_exceptions=False,
+    )
+    # The validate command should still warn about truly unknown tags
+    assert (
+        "totally-unknown-zzz" in result.output or "out-of-vocabulary" in result.output
+    )
+
+
+def test_tag_vocab_rm_last_tag_shows_friendly_message(write_project):
+    """After removing the last custom tag, rm shows 'No custom tags defined.'."""
+    runner = CliRunner()
+    runner.invoke(cli, ["tag", "vocab", "add", "foo"], catch_exceptions=False)
+    result = runner.invoke(cli, ["tag", "vocab", "rm", "foo"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "No custom tags defined." in result.output
+
+
+def test_tag_vocab_ls_and_rm_empty_phrasing_consistent(write_project):
+    """vocab ls and vocab rm use identical wording when the list is empty."""
+    runner = CliRunner()
+    runner.invoke(cli, ["tag", "vocab", "add", "bar"], catch_exceptions=False)
+    runner.invoke(cli, ["tag", "vocab", "rm", "bar"], catch_exceptions=False)
+
+    ls_result = runner.invoke(cli, ["tag", "vocab", "ls"], catch_exceptions=False)
+    rm_result = runner.invoke(
+        cli, ["tag", "vocab", "rm", "nonexistent"], catch_exceptions=False
+    )
+    assert ls_result.output.strip() == rm_result.output.strip()
+
+
+# ── FXA-2315 / feat-256: malformed preferences.yaml → clean ClickException ────
+
+
+@pytest.fixture
+def malformed_prefs():
+    """Write a malformed preferences.yaml (custom_tags: scalar string) to the isolated HOME.
+
+    The isolate_home autouse fixture already patches Path.home() for every test,
+    so Path.home() / ".alfred" / "preferences.yaml" resolves to a safe temp path.
+    """
+    from pathlib import Path
+
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text("custom_tags: todo\n", encoding="utf-8")
+
+
+def test_tag_add_malformed_prefs_yields_click_exception(write_project, malformed_prefs):
+    """af tag add with malformed custom_tags (scalar) must exit non-zero as a clean
+    ClickException — PreferencesError must never escape uncaught to the caller.
+    """
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "maintain", "--root", str(write_project)],
+    )
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_vocab_ls_malformed_prefs_yields_click_exception(malformed_prefs):
+    """af tag vocab ls with malformed custom_tags must exit non-zero as a clean ClickException."""
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["tag", "vocab", "ls"])
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_vocab_add_malformed_prefs_yields_click_exception(malformed_prefs):
+    """af tag vocab add with malformed custom_tags must exit non-zero as a clean ClickException."""
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["tag", "vocab", "add", "newtag"])
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_vocab_rm_malformed_prefs_yields_click_exception(malformed_prefs):
+    """af tag vocab rm with malformed custom_tags must exit non-zero as a clean ClickException."""
+    from fx_alfred.core.preferences import PreferencesError
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["tag", "vocab", "rm", "sometag"])
+    assert not isinstance(result.exception, PreferencesError), (
+        f"PreferencesError escaped uncaught: {result.exception!r}"
+    )
+    assert result.exit_code != 0
+    assert "list" in result.output
+
+
+def test_tag_add_valid_custom_tags_list_works(write_project):
+    """With a VALID custom_tags list in preferences, af tag add completes normally."""
+    from pathlib import Path
+
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text(
+        "custom_tags:\n  - my-tag\n", encoding="utf-8"
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-6001", "maintain", "--root", str(write_project)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+
+def test_tag_vocab_commands_valid_prefs_still_work():
+    """With a VALID custom_tags list, vocab ls/add/rm all complete normally."""
+    from pathlib import Path
+
+    prefs_dir = Path.home() / ".alfred"
+    prefs_dir.mkdir(parents=True, exist_ok=True)
+    (prefs_dir / "preferences.yaml").write_text(
+        "custom_tags:\n  - my-tag\n", encoding="utf-8"
+    )
+    runner = CliRunner()
+
+    ls_result = runner.invoke(cli, ["tag", "vocab", "ls"], catch_exceptions=False)
+    assert ls_result.exit_code == 0
+    assert "my-tag" in ls_result.output
+
+    add_result = runner.invoke(
+        cli, ["tag", "vocab", "add", "extra-tag"], catch_exceptions=False
+    )
+    assert add_result.exit_code == 0
+
+    rm_result = runner.invoke(
+        cli, ["tag", "vocab", "rm", "extra-tag"], catch_exceptions=False
+    )
+    assert rm_result.exit_code == 0
