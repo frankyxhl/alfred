@@ -1,5 +1,6 @@
 """Validate command for af CLI -- validates all documents."""
 
+from collections import Counter
 from dataclasses import dataclass
 import re
 from pathlib import Path
@@ -352,6 +353,7 @@ def _emit_validation_output(
     # `-` issue lines then `~` warning lines beneath it (CHG-2296; R1
     # panel convergent advisory). Iterate in scan order so issue-only
     # corpora print identically to the pre-CHG-2296 output.
+    doc_id_counts: Counter[str] = Counter(f"{doc.prefix}-{doc.acid}" for doc in docs)
     for doc in docs:
         doc_id = f"{doc.prefix}-{doc.acid}"
         doc_path = _doc_path(doc, root)
@@ -359,7 +361,10 @@ def _emit_validation_output(
         doc_warnings = warnings_by_path.get(doc_path, [])
         if not doc_issues and not doc_warnings:
             continue
-        click.echo(f"{doc_id}:")
+        heading = doc_id
+        if doc_id_counts[doc_id] > 1:
+            heading = f"{doc_id} ({doc.filename})"
+        click.echo(f"{heading}:")
         for issue in doc_issues:
             click.echo(f"  - {issue}")
         for warning in doc_warnings:
