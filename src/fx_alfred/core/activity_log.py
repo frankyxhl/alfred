@@ -511,6 +511,15 @@ def _jsonl_files(directory: Path) -> list[Path]:
 
 
 def _merge_jsonl_payloads(existing: bytes, loose: bytes) -> bytes:
+    """Union two JSONL payloads: existing rows first, deduped by raw line bytes.
+
+    Identity is byte-level (``splitlines()`` content), so a restored
+    byte-identical file merges to an unchanged member and CRLF/LF variants
+    of one row count as the same row.  Caveat: ``ts`` is second-resolution
+    and ``session_id`` may be env-pinned, so two genuinely distinct events
+    emitted in the same second with identical fields collide into one row —
+    accepted byte-dedupe semantics per issue #264.
+    """
     rows: list[bytes] = []
     seen: set[bytes] = set()
     for payload in (existing, loose):
