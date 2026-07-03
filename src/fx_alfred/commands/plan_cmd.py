@@ -52,6 +52,7 @@ from fx_alfred.core.steps import _STEP_HEADINGS  # noqa: E402, F401
 _PhaseInfo = tuple[
     str, Document, ParsedDocument, "WorkflowSignature | None", list[LoopSignature]
 ]
+_SkippedInfo = dict[str, str]
 
 
 def _gather_all_sops(
@@ -624,21 +625,23 @@ def _collect_phase_info(
     docs: list[Document],
     sop_ids: tuple[str, ...],
     output_json: bool,
-) -> list[_PhaseInfo]:
+) -> tuple[list[_PhaseInfo], list[_SkippedInfo]]:
     """First pass: parse each SOP and collect workflow metadata.
 
     Non-SOP and malformed documents are skipped with a warning (text
     modes only — JSON output stays parseable).
     """
     phase_info: list[_PhaseInfo] = []
+    skipped: list[_SkippedInfo] = []
     for sop_id in sop_ids:
         doc = find_or_fail(docs, sop_id)
+        doc_id = f"{doc.prefix}-{doc.acid}"
 
         if doc.type_code != "SOP":
+            reason = f"{doc.type_code}, not SOP"
+            skipped.append({"id": doc_id, "reason": reason})
             if not output_json:
-                click.echo(
-                    f"Warning: {doc.prefix}-{doc.acid} is {doc.type_code}, not SOP. Skipping."
-                )
+                click.echo(f"Warning: {doc_id} is {doc.type_code}, not SOP. Skipping.")
             continue
 
         try:
@@ -648,14 +651,19 @@ def _collect_phase_info(
             loops = parse_workflow_loops(parsed)
             _enforce_branches_gate(doc, parsed)
         except MalformedDocumentError as e:
+            reason = f"{doc.type_code} malformed: {e}"
+            skipped.append({"id": doc_id, "reason": reason})
             if not output_json:
-                click.echo(
-                    f"Warning: {doc.prefix}-{doc.acid} (malformed: {e}). Skipping."
-                )
+                click.echo(f"Warning: {doc_id} (malformed: {e}). Skipping.")
             continue
 
         phase_info.append((sop_id, doc, parsed, sig, loops))
-    return phase_info
+    return phase_info, skipped
+
+
+def _format_all_skipped_error(skipped: list[_SkippedInfo]) -> str:
+    skipped_text = ", ".join(f"{item['id']} ({item['reason']})" for item in skipped)
+    return f"No valid SOP documents requested; skipped: {skipped_text}"
 
 
 def _validate_composition(phase_info: list[_PhaseInfo]) -> list[WorkflowEdge]:
@@ -780,6 +788,7 @@ def _emit_json_output(
     graph_layout: str,
     with_skills: bool,
     recommended_skills: list[dict] | None,
+    skipped: list[_SkippedInfo] | None = None,
 ) -> None:
     """JSON output mode (--json, optionally with --todo / --graph)."""
     phases_json: list[dict] = []
@@ -875,6 +884,9 @@ def _emit_json_output(
 
     if with_skills:
         result["recommended_skills"] = recommended_skills or []
+
+    if skipped:
+        result["skipped"] = skipped
 
     emit_json(result)
 
@@ -1010,6 +1022,7 @@ def plan_cmd(
 
     # Handle --task flag for auto-composition
     composed_from_provenance: dict[str, list[str]] | None = None
+    explicit_sop_ids = sop_ids
     if task_description is not None:
         sop_ids, composed_from_provenance = _resolve_sop_ids(
             docs, sop_ids, task_description
@@ -1021,7 +1034,26 @@ def plan_cmd(
     if output_json and human:
         raise click.UsageError("--json and --human are mutually exclusive")
 
-    phase_info = _collect_phase_info(docs, sop_ids, output_json)
+    phase_info, skipped = _collect_phase_info(docs, sop_ids, output_json)
+    if not phase_info and skipped and explicit_sop_ids:
+        if output_json:
+            _emit_json_output(
+                sop_ids,
+                phase_info,
+                [],
+                False,
+                composed_from_provenance,
+                output_todo,
+                output_graph,
+                graph_format,
+                graph_layout,
+                with_skills,
+                recommended_skills,
+                skipped,
+            )
+            ctx.exit(1)
+        raise click.ClickException(_format_all_skipped_error(skipped))
+
     edges = _validate_composition(phase_info)
     _validate_cross_sop_loops(phase_info)
     composition_valid = all(e.compatible for e in edges) if edges else True
@@ -1062,6 +1094,7 @@ def plan_cmd(
             graph_layout,
             with_skills,
             recommended_skills,
+            skipped,
         )
         return
 
