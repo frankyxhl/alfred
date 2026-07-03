@@ -56,7 +56,7 @@ def search_cmd(ctx: click.Context, pattern: str, output_json: bool):
                     {
                         "doc_id": f"{doc.prefix}-{doc.acid}",
                         "title": doc.title,
-                        "source": label,
+                        "source": doc.source,
                         "snippet": snippet,
                     }
                 )

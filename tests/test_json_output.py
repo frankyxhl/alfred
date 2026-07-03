@@ -334,7 +334,7 @@ def test_search_json_finds_cor_1103(sample_project, monkeypatch):
 
     cor_1103 = next((r for r in data["results"] if r["doc_id"] == "COR-1103"), None)
     assert cor_1103 is not None
-    assert cor_1103["source"] == "PKG"
+    assert cor_1103["source"] == "pkg"
     assert "snippet" in cor_1103
     assert len(cor_1103["snippet"]) > 0
 
