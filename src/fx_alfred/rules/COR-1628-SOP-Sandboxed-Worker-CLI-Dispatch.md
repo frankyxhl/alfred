@@ -48,7 +48,8 @@ Six rules, each traced to an observed failure:
 Reference invocation (codex; flags verified on codex-cli 0.142.x — re-verify against your installed version):
 
 ```bash
-codex exec --skip-git-repo-check --sandbox workspace-write -C <repo> \
+codex exec --skip-git-repo-check --sandbox workspace-write \
+  --ask-for-approval never -C <repo> \
   -m <model> -c model_reasoning_effort=<medium|high> \
   "$(cat brief.md)" </dev/null > worker-log.txt 2>&1 &
 ```
@@ -118,6 +119,7 @@ Per COR-1619 §Verification, specialized:
 |---------|-------|-----|
 | CLI silent, "reading additional input from stdin" | inherited non-tty stdin | `</dev/null` (Invocation rule 1) |
 | Run killed at shell timeout mid-task | foreground execution cap | background + log file (rule 2) |
+| Background run stalls silently; log ends at a command the model wants to run | approval policy `on-request`/`untrusted` pauses for a confirmation no UI can deliver | pin `--ask-for-approval never` in the invocation |
 | Worker wastes minutes on ConnectionRefused, retrying external services | repo instructions mandate networked steps | Sandbox Scope Clause in brief + repo section (rule 5) |
 | Worker report claims green but diff touches undeclared files | brief lacked out-of-scope block | seven-block template; reject at scope check |
 | Report unusable (no RED evidence, no file list) | brief lacked report format | Constraints block mandates report shape |

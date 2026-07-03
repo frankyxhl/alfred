@@ -18,7 +18,7 @@ Time to instantiate a new repo: about ten minutes with `af create`.
 
 ## How to Use
 
-1. `af create REF --prefix <PRJ-PREFIX> --area workflow --title "Multi-Agent Loop Configuration" --layer project`
+1. `af create REF --prefix <PRJ-PREFIX> --acid <NNNN> --title "Multi-Agent Loop Configuration" --layer project` (`--acid` takes the full 4-digit ID; the alternative `--area` flag wants a 2-digit area code, not a label)
 2. Paste the template below into the created document; replace every `⟨…⟩` placeholder.
 3. Delete the option comments you did not take.
 4. `af validate --root .` and reference the doc's ACID from your project's routing doc.
