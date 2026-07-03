@@ -267,9 +267,10 @@ def update_cmd(
 
     # Combined for apply step — CLI wins over spec (spec is the base, CLI overrides)
     field_updates: dict[str, str] = {**spec_field_updates, **cli_field_updates}
+    status_changed = "Status" in field_updates
 
     # Validate effective Status against ALLOWED_STATUSES for the doc type.
-    if "Status" in field_updates and doc_type_enum:
+    if status_changed and doc_type_enum:
         validate_spec_status(doc_type_enum, field_updates["Status"])
 
     # Validate that CLI-requested fields exist (spec may add new ones)
@@ -422,15 +423,17 @@ def update_cmd(
 
     # ── Step 7: Post-write — rename file and auto-index ─────────────────────
 
-    if (
+    renamed = (
         new_title is not None
         and new_file_path is not None
         and new_file_path != file_path
-    ):
+    )
+    if renamed:
+        assert new_file_path is not None
         file_path.rename(new_file_path)
         click.echo(f"Renamed {file_path.name} -> {new_file_path.name}")
-
-        if doc.source == "prj":
-            invoke_index_update(ctx)
     else:
         click.echo(f"Updated {file_path.name}")
+
+    if doc.source == "prj" and (renamed or status_changed):
+        invoke_index_update(ctx)
