@@ -1060,3 +1060,26 @@ def test_archive_and_append_succeed_when_fcntl_unavailable(tmp_path, monkeypatch
     summaries = {r[2]["summary"] for r in records}
     assert "old" in summaries
     assert "portable-append" in summaries
+
+
+def test_iter_records_treats_vanished_shadow_file_as_unshadowed(tmp_path):
+    """PR #290 R3: a shadow loose file removed mid-iteration must not raise.
+
+    A concurrent archiver can unlink the loose file between the directory
+    listing and zip iteration; its rows are already folded into the member,
+    so the member is read unshadowed instead of raising FileNotFoundError.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    row = json.dumps(activity_log.compose_record(summary="archived")) + "\n"
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", row)
+    vanished = log_dir / "2026-06-20.jsonl"  # never created on disk
+
+    records = list(
+        activity_log._iter_zip_records(
+            log_dir / "archive.zip", shadowed={"2026-06-20.jsonl": vanished}
+        )
+    )
+
+    assert [rec[2]["summary"] for rec in records] == ["archived"]

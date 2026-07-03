@@ -540,9 +540,7 @@ def _merge_jsonl_payloads(existing: bytes, loose: bytes) -> bytes:
 def _shadow_line_counts(loose_path: Path) -> Counter[bytes]:
     """Count the loose file's non-blank raw lines (terminator-stripped)."""
 
-    return Counter(
-        row for row in loose_path.read_bytes().splitlines() if row.strip()
-    )
+    return Counter(row for row in loose_path.read_bytes().splitlines() if row.strip())
 
 
 def _iter_member_lines(
@@ -575,7 +573,16 @@ def _iter_zip_members(
         if not member.endswith(".jsonl") or member in seen:
             continue
         seen.add(member)
-        yield member, _shadow_line_counts(shadow[member]) if member in shadow else None
+        suppress: Counter[bytes] | None = None
+        if member in shadow:
+            try:
+                suppress = _shadow_line_counts(shadow[member])
+            except OSError:
+                # Shadow file vanished mid-iteration (e.g. a concurrent
+                # archiver's unlink); its rows are already merged into the
+                # member, so read the member unshadowed.
+                suppress = None
+        yield member, suppress
 
 
 def _iter_zip_records(
@@ -643,7 +650,8 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
         archive = path / "archive.zip"
         if archive.exists():
             yield from _iter_zip_records(
-                archive, shadowed={file_path.name: file_path for file_path in loose_files}
+                archive,
+                shadowed={file_path.name: file_path for file_path in loose_files},
             )
         return
     if path.suffix == ".zip":
@@ -689,7 +697,8 @@ def _iter_records_best_effort(
         archive = path / "archive.zip"
         if archive.exists():
             yield from _iter_zip_records_best_effort(
-                archive, shadowed={file_path.name: file_path for file_path in loose_files}
+                archive,
+                shadowed={file_path.name: file_path for file_path in loose_files},
             )
         return
     if path.suffix == ".zip":
