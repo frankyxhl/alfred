@@ -537,10 +537,10 @@ def _merge_jsonl_payloads(existing: bytes, loose: bytes) -> bytes:
     return b"\n".join(rows) + b"\n"
 
 
-def _shadow_line_counts(loose_path: Path) -> Counter[bytes]:
-    """Count the loose file's non-blank raw lines (terminator-stripped)."""
+def _shadow_line_counts(payload: bytes) -> Counter[bytes]:
+    """Count non-blank raw lines (terminator-stripped)."""
 
-    return Counter(row for row in loose_path.read_bytes().splitlines() if row.strip())
+    return Counter(row for row in payload.splitlines() if row.strip())
 
 
 def _iter_member_lines(
@@ -564,7 +564,7 @@ def _iter_member_lines(
 
 
 def _iter_zip_members(
-    zf: zipfile.ZipFile, shadow: dict[str, Path]
+    zf: zipfile.ZipFile, shadow: dict[str, Counter[bytes]]
 ) -> Iterator[tuple[str, Counter[bytes] | None]]:
     """Yield each ``.jsonl`` member once, with its shadow-suppression counts."""
 
@@ -573,26 +573,31 @@ def _iter_zip_members(
         if not member.endswith(".jsonl") or member in seen:
             continue
         seen.add(member)
-        suppress: Counter[bytes] | None = None
-        if member in shadow:
-            try:
-                suppress = _shadow_line_counts(shadow[member])
-            except OSError:
-                # Shadow file vanished mid-iteration (e.g. a concurrent
-                # archiver's unlink); its rows are already merged into the
-                # member, so read the member unshadowed.
-                suppress = None
-        yield member, suppress
+        yield member, shadow.get(member)
 
 
 def _iter_zip_records(
-    path: Path, *, shadowed: dict[str, Path] | None = None
+    path: Path, *, shadowed: dict[str, Counter[bytes]] | None = None
 ) -> Iterator[tuple[str, int, dict[str, Any]]]:
     with zipfile.ZipFile(path) as zf:
         for member, suppress in _iter_zip_members(zf, shadowed or {}):
             source = f"{path}::{member}"
             for lineno, raw in _iter_member_lines(zf, member, suppress):
                 yield (source, lineno, _parse_jsonl_record(source, lineno, raw))
+
+
+def _iter_jsonl_payload_records(
+    source: str, payload: bytes, *, best_effort: bool = False
+) -> Iterator[tuple[str, int, dict[str, Any]]]:
+    for lineno, raw in enumerate(payload.splitlines(keepends=True), start=1):
+        if not raw.strip():
+            continue
+        try:
+            yield (source, lineno, _parse_jsonl_record(source, lineno, raw))
+        except ActivityLogLineError:
+            if best_effort:
+                continue
+            raise
 
 
 def _parse_jsonl_record(source: str, lineno: int, raw: bytes) -> dict[str, Any]:
@@ -645,14 +650,14 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
         return
     if path.is_dir():
         loose_files = _jsonl_files(path)
+        shadowed: dict[str, Counter[bytes]] = {}
         for file_path in loose_files:
-            yield from iter_records(file_path)
+            payload = file_path.read_bytes()
+            shadowed[file_path.name] = _shadow_line_counts(payload)
+            yield from _iter_jsonl_payload_records(str(file_path), payload)
         archive = path / "archive.zip"
         if archive.exists():
-            yield from _iter_zip_records(
-                archive,
-                shadowed={file_path.name: file_path for file_path in loose_files},
-            )
+            yield from _iter_zip_records(archive, shadowed=shadowed)
         return
     if path.suffix == ".zip":
         yield from _iter_zip_records(path)
@@ -668,7 +673,7 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
 
 
 def _iter_zip_records_best_effort(
-    path: Path, *, shadowed: dict[str, Path] | None = None
+    path: Path, *, shadowed: dict[str, Counter[bytes]] | None = None
 ) -> Iterator[tuple[str, int, dict[str, Any]]]:
     try:
         with zipfile.ZipFile(path) as zf:
@@ -692,14 +697,19 @@ def _iter_records_best_effort(
         return
     if path.is_dir():
         loose_files = _jsonl_files(path)
+        shadowed: dict[str, Counter[bytes]] = {}
         for file_path in loose_files:
-            yield from _iter_records_best_effort(file_path)
+            try:
+                payload = file_path.read_bytes()
+            except OSError:
+                continue
+            shadowed[file_path.name] = _shadow_line_counts(payload)
+            yield from _iter_jsonl_payload_records(
+                str(file_path), payload, best_effort=True
+            )
         archive = path / "archive.zip"
         if archive.exists():
-            yield from _iter_zip_records_best_effort(
-                archive,
-                shadowed={file_path.name: file_path for file_path in loose_files},
-            )
+            yield from _iter_zip_records_best_effort(archive, shadowed=shadowed)
         return
     if path.suffix == ".zip":
         yield from _iter_zip_records_best_effort(path)
