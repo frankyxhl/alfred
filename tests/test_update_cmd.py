@@ -1409,3 +1409,115 @@ def test_update_preserves_file_permissions(tmp_path, monkeypatch):
     assert "**Status:** Active" in content
     mode = doc_path.stat().st_mode
     assert (mode & 0o777) == 0o664, f"Expected 0o664, got {oct(mode & 0o777)}"
+
+
+# ── Fix: Status change triggers reindex (FXA-270) ────────────────────────────
+
+
+def _prebuild_index(runner: CliRunner) -> None:
+    """Pre-build the PRJ index so we can verify it gets updated."""
+    result = runner.invoke(cli, ["index"], catch_exceptions=False)
+    assert result.exit_code == 0, f"af index failed: {result.output}"
+
+
+def test_update_status_triggers_reindex(tmp_path, monkeypatch):
+    """af update --status Active reindexes: index row shows new status.
+
+    Currently RED — the index still shows the stale status after a
+    plain --status update because only the rename path triggers
+    invoke_index_update.
+    """
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+
+    # Pre-build the index (initial Status: Draft)
+    _prebuild_index(runner)
+
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "Active"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    index_path = project / "rules" / "TST-0000-REF-Document-Index.md"
+    index_content = index_path.read_text()
+    assert "| 2100 | SOP | Test Document | Active |" in index_content
+
+
+def test_update_spec_status_triggers_reindex(tmp_path, monkeypatch):
+    """--spec file patching metadata Status triggers reindex.
+
+    The spec path merges spec_field_updates into field_updates;
+    when 'Status' is in that merged dict, the index must refresh.
+    """
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+
+    # Pre-build the index (initial Status: Draft)
+    _prebuild_index(runner)
+
+    spec = tmp_path / "patch.yaml"
+    spec.write_text("metadata:\n  Status: Active\n")
+
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--spec", str(spec)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    index_path = project / "rules" / "TST-0000-REF-Document-Index.md"
+    index_content = index_path.read_text()
+    assert "| 2100 | SOP | Test Document | Active |" in index_content
+
+
+def test_update_field_status_triggers_reindex(tmp_path, monkeypatch):
+    """--field Status triggers reindex.
+
+    The --field option populates cli_field_updates under 'Status';
+    the merged field_updates dict should trigger the same reindex
+    path as --status.
+    """
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+
+    # Pre-build the index (initial Status: Draft)
+    _prebuild_index(runner)
+
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--field", "Status", "Active"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    index_path = project / "rules" / "TST-0000-REF-Document-Index.md"
+    index_content = index_path.read_text()
+    assert "| 2100 | SOP | Test Document | Active |" in index_content
+
+
+def test_update_dry_run_status_does_not_reindex(tmp_path, monkeypatch):
+    """--dry-run --status Active never reindexes (byte-compare before/after)."""
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+
+    # Pre-build the index
+    _prebuild_index(runner)
+
+    index_path = project / "rules" / "TST-0000-REF-Document-Index.md"
+    before = index_path.read_bytes()
+
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "Active", "--dry-run"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    after = index_path.read_bytes()
+    assert before == after, "dry-run must not modify the index file"
