@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import threading
 from zipfile import ZipFile
 
 import pytest
@@ -244,7 +246,10 @@ def test_archive_directory_locks_log_dir_fd(tmp_path, monkeypatch):
     result = activity_log.archive_directory(log_dir, today="2026-06-21")
 
     assert result.archived_files == ["2026-06-20.jsonl"]
-    assert locked_inodes == [log_dir.stat().st_ino]
+    # Dir fd first (archiver-vs-archiver), then .append.lock (appender
+    # mutual exclusion, issue #263).
+    append_lock = activity_log._append_lock_path(log_dir)
+    assert locked_inodes == [log_dir.stat().st_ino, append_lock.stat().st_ino]
     assert not (log_dir / ".archive.lock").exists()
 
 
@@ -605,3 +610,223 @@ def test_collect_evolve_signals_reports_usage_gaps_and_never_used(sample_project
     assert signals["usage_counts"]["TST-6101"] == 1
     assert "TST-6102" in signals["never_used_sops"]
     assert signals["plan_task_gaps"][0]["task_text"] == "missing flow"
+
+
+# ---------------------------------------------------------------------------
+# FXA-263: unify append/archive locking — contention + no-lost-record tests
+# ---------------------------------------------------------------------------
+
+
+def test_archive_directory_acquires_append_lock_for_mutual_exclusion(
+    tmp_path, monkeypatch
+):
+    """Prove archiver acquires .append.lock — RED on current code.
+
+    An external thread holds an exclusive flock on .append.lock.
+    The archiver must attempt to acquire it and block.  On current
+    (unfixed) code the archiver never touches .append.lock, so the
+    ``archiver_blocked`` Event is never set and the test fails.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        encoding="utf-8",
+    )
+
+    # Open the append-lock file ourselves so we can detect when the
+    # archiver tries to flock it (by matching inode).
+    append_lock_path = activity_log._append_lock_path(log_dir)
+    append_lock_fd = os.open(str(append_lock_path), os.O_RDWR | os.O_CREAT, 0o644)
+    append_lock_ino = os.fstat(append_lock_fd).st_ino
+
+    archiver_blocked = threading.Event()
+    archiver_done = threading.Event()
+    archiver_running = threading.Event()
+    result_container: list = []
+
+    original_flock = activity_log.fcntl.flock
+
+    def instrumented_flock(fd, operation):
+        # Only flag the archiver's own call — not the external holder's.
+        if archiver_running.is_set() and (operation & activity_log.fcntl.LOCK_EX):
+            try:
+                if os.fstat(fd).st_ino == append_lock_ino:
+                    archiver_blocked.set()
+            except OSError:
+                pass
+        return original_flock(fd, operation)
+
+    monkeypatch.setattr(activity_log.fcntl, "flock", instrumented_flock)
+
+    # Hold an exclusive flock on .append.lock from a separate thread.
+    external_lock_held = threading.Event()
+    release_lock = threading.Event()
+
+    def hold_lock():
+        activity_log._flock(append_lock_fd, activity_log._lock_ex())
+        external_lock_held.set()
+        release_lock.wait(timeout=5)
+        activity_log._flock(append_lock_fd, activity_log.fcntl.LOCK_UN)
+
+    holder = threading.Thread(target=hold_lock, daemon=True)
+    holder.start()
+    assert external_lock_held.wait(timeout=2), "external lock holder did not start"
+
+    # Run archive_directory in a background thread.
+    def do_archive():
+        archiver_running.set()
+        result_container.append(
+            activity_log.archive_directory(log_dir, today="2026-06-21")
+        )
+        archiver_done.set()
+
+    archiver = threading.Thread(target=do_archive)
+    archiver.start()
+
+    # The archiver must block on .append.lock — on current code it
+    # never touches that file, so this wait times out → RED.
+    blocked = archiver_blocked.wait(timeout=2)
+    assert blocked, (
+        "archiver should attempt to acquire .append.lock — "
+        "on unfixed code it never touches it"
+    )
+    assert not archiver_done.is_set(), (
+        "archiver should not complete while append lock is held externally"
+    )
+
+    # Release the external lock; archiver should now proceed.
+    release_lock.set()
+    assert archiver_done.wait(timeout=2), "archiver did not complete after unlock"
+    result = result_container[0]
+    assert result.archived_files == ["2026-06-20.jsonl"]
+
+    os.close(append_lock_fd)
+    holder.join(timeout=2)
+    archiver.join(timeout=2)
+
+
+def test_append_during_archive_is_not_lost(tmp_path, monkeypatch):
+    """A record appended during archival must survive somewhere.
+
+    On current (unfixed) code the archiver and appender use disjoint
+    lock domains.  An append that lands between ``os.replace`` and the
+    ``unlink`` loop is written to the loose file and then deleted —
+    the record is lost.  This test injects a concurrent append at
+    exactly that point and asserts the record is found in either the
+    archive or a loose file afterward.
+
+    On the fixed code the archiver holds ``.append.lock`` across its
+    critical section, so the appender blocks until the archiver
+    releases, then writes a fresh loose file.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    # Closed-day file with one pre-existing record.
+    closed_file = log_dir / "2026-06-20.jsonl"
+    closed_file.write_text(
+        json.dumps(activity_log.compose_record(summary="existing")) + "\n",
+        encoding="utf-8",
+    )
+
+    # Make append_record target the same closed-day file being archived.
+    monkeypatch.setattr(activity_log, "_today_utc", lambda: "2026-06-20")
+
+    go_appender = threading.Event()
+    appender_done = threading.Event()
+    appender_path: list[str] = []
+
+    # Instrument os.replace so the appender is triggered AFTER the
+    # real atomic replace but BEFORE the archiver's unlink loop.
+    original_replace = activity_log.os.replace
+
+    def instrumented_replace(src, dst):
+        original_replace(src, dst)
+        go_appender.set()
+        # Wait for the appender to finish (or block on the lock,
+        # which on fixed code means this times out).
+        appender_done.wait(timeout=2)
+
+    monkeypatch.setattr(activity_log.os, "replace", instrumented_replace)
+
+    def run_appender():
+        go_appender.wait(timeout=2)
+        path = activity_log.append_record(
+            activity_log.compose_record(summary="concurrent-append"),
+            log_dir=log_dir,
+        )
+        appender_path.append(str(path))
+        appender_done.set()
+
+    appender = threading.Thread(target=run_appender, daemon=True)
+    appender.start()
+
+    # Run the archiver in the main thread.
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+    assert result.archived_files == ["2026-06-20.jsonl"]
+
+    appender.join(timeout=2)
+
+    # The concurrent record must be discoverable somewhere.
+    found = False
+
+    # Check any loose file that still exists.
+    for candidate in sorted(log_dir.glob("*.jsonl")):
+        for _src, _lineno, rec in activity_log.iter_records(candidate):
+            if rec.get("summary") == "concurrent-append":
+                found = True
+                break
+        if found:
+            break
+
+    # Check archive.zip members.
+    if not found:
+        archive = log_dir / "archive.zip"
+        if archive.exists():
+            for _src, _lineno, rec in activity_log.iter_records(archive):
+                if rec.get("summary") == "concurrent-append":
+                    found = True
+                    break
+
+    assert found, (
+        "concurrent-append record must exist in archive.zip or a loose file — "
+        "on unfixed code it was written to the loose file before the unlink "
+        "and is now lost"
+    )
+
+
+def test_archive_and_append_succeed_when_fcntl_unavailable(tmp_path, monkeypatch):
+    """Guard: both archive and append succeed on fcntl-None platforms.
+
+    This is expected to pass on both current and fixed code — the fix
+    does not change the no-op locking behaviour when fcntl is absent.
+    """
+    monkeypatch.setattr(activity_log, "fcntl", None)
+
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    closed_file = log_dir / "2026-06-20.jsonl"
+    closed_file.write_text(
+        json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        encoding="utf-8",
+    )
+
+    # Archive must succeed.
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+    assert result.archived_files == ["2026-06-20.jsonl"]
+    assert not closed_file.exists()
+
+    # Append must succeed (targets today's file — let it write normally).
+    path = activity_log.append_record(
+        activity_log.compose_record(summary="portable-append"),
+        log_dir=log_dir,
+    )
+    assert path.exists()
+
+    # Verify both records are readable.
+    records = list(activity_log.iter_records(log_dir))
+    summaries = {r[2]["summary"] for r in records}
+    assert "old" in summaries
+    assert "portable-append" in summaries
