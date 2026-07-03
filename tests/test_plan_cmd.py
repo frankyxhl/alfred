@@ -3034,6 +3034,75 @@ def test_plan_task_mixed_bundled_valid_and_prj_malformed_succeeds(tmp_path):
     )
 
 
+def test_plan_task_always_included_malformed_sop_gate(tmp_path):
+    """--task with an Always-included SOP whose tag matches the query and
+    whose Workflow loops are malformed must exit non-zero with
+    composition_valid false.
+
+    When a --task query matches an SOP that is BOTH Always included: true
+    AND tagged, resolve_sops_from_task records it under provenance
+    "always", not "auto" (the if/elif chain gives always priority).
+    _requested_phase_ids builds the requested set from auto ∪ explicit,
+    so this SOP is missed. If it is also malformed and skipped by
+    _collect_phase_info, the all-requested gate must still fire: exit
+    code non-zero, composition_valid false, and the malformed doc
+    appears in the skipped list.
+
+    Uses a unique Task tag (zzalwaysquux) so no bundled PKG SOP matches
+    the query; the only matched doc is the always+tagged+malformed PRJ one.
+    """
+    import json
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+
+    # SOP with Always included: true AND a unique Task tag AND
+    # malformed Workflow loops (from: not-an-int) so _collect_phase_info
+    # skips it. Because the tag matches --task, resolve_sops_from_task
+    # adds it to candidates; but the if/elif provenance chain puts it in
+    # "always", not "auto". The gate must still fire when this sole
+    # requested SOP proves malformed.
+    (rules / "TST-9003-SOP-Always-Malformed-Task.md").write_text(
+        "# TST-9003: Always+Malformed Task SOP\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n"
+        "**Always included:** true\n"
+        "**Task tags:** [zzalwaysquux]\n"
+        '**Workflow loops:** [{id: bad, from: not-an-int, to: 1, max_iterations: 3, condition: "test"}]\n'
+        "\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "An always-included SOP with a unique tag and malformed loops.\n\n"
+        "## Steps\n\n"
+        "1. First step\n"
+        "2. Second step\n"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--task", "zzalwaysquux", "--json", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for always+tagged malformed SOP "
+        f"via --task, got {result.exit_code}"
+    )
+
+    data = json.loads(result.output)
+    assert data["composition_valid"] is False, (
+        f"Expected composition_valid=False, got {data['composition_valid']}"
+    )
+    assert "skipped" in data
+    assert any(s["id"] == "TST-9003" for s in data["skipped"]), (
+        f"Expected TST-9003 in skipped list, got {data.get('skipped', [])}"
+    )
+    assert any("malformed" in s["reason"] for s in data["skipped"]), (
+        f"Expected malformed reason in skipped, got {data['skipped']}"
+    )
+
+
 def test_plan_all_sop_unchanged(sample_project, monkeypatch):
     """Normal all-SOP plan is unaffected by the empty-gate — regression test.
 
