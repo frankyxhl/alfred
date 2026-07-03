@@ -1095,3 +1095,82 @@ def test_validate_loops_still_checks_max_iterations_for_cross_sop():
     errors = validate_loops(parsed, [cross])
     assert len(errors) == 1
     assert "max_iterations" in errors[0].msg
+
+
+# ---------------------------------------------------------------------------
+# FXA-267: _parse_step_indices delegates to extract_steps_section so all
+# recognised step headings (Steps, Rule, Rules, Concepts) work for loop
+# validation.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("heading", ["Rule", "Rules", "Concepts"])
+def test_rule_heading_rejects_nonexistent_loop_target(heading: str) -> None:
+    """An SOP with steps under any recognised non-Steps heading and a loop
+    targeting nonexistent steps must be rejected — ``_parse_step_indices``
+    delegates to ``extract_steps_section`` so headings other than ``## Steps``
+    that the planner accepts (Rule, Rules, Concepts) are recognised for step
+    membership checks.
+
+    Before FXA-267, ``_parse_step_indices`` hardcoded ``extract_section(..., "Steps")``,
+    returned ``None`` for non-Steps headings, and ``validate_loops`` silently skipped
+    the membership check. A loop with ``from=100, to=99`` (both nonexistent, but
+    directionally valid as a back-edge) would validate clean because no
+    membership check ran.
+
+    After FXA-267, the loop must be rejected with an error naming the
+    nonexistent step.
+    """
+    body = f"""---
+
+## {heading}
+
+1. First
+2. Second
+3. Third
+"""
+    parsed = _make_parsed([], body=body)
+    loop = LoopSignature(
+        id="rule-nonexistent",
+        from_step=100,
+        to_step=99,
+        max_iterations=1,
+        condition="x",
+    )
+    errors = validate_loops(parsed, [loop])
+    assert any("does not reference an existing step" in e.msg for e in errors), (
+        f"Expected rejection of nonexistent step, got: {errors}"
+    )
+
+
+def test_parse_step_indices_none_on_unrecognized_heading_preserves_silent_skip() -> (
+    None
+):
+    """When the body has NO recognised steps heading (none of Steps, Rule,
+    Rules, Concepts), ``_parse_step_indices`` returns ``None`` and loop
+    validation silently skips existence checks. This is the contract:
+    SOPs without a steps-like section should not be rejected — the silent
+    skip is intentional, not a bug.
+
+    Pin this behaviour explicitly so the FXA-267 fix (delegating to
+    ``extract_steps_section``) does not accidentally change it.
+    """
+    from fx_alfred.core.workflow import _parse_step_indices
+
+    # "## Other Section" is not in _STEP_HEADINGS — must not count as steps.
+    body = """---
+
+## Introduction
+
+Some introductory text.
+
+## Other Section
+
+1. Not a step — wrong heading
+2. Also not a step
+3. Ditto
+"""
+    parsed = _make_parsed([], body=body)
+    assert _parse_step_indices(parsed) is None, (
+        "A heading not in _STEP_HEADINGS must not produce step indices"
+    )

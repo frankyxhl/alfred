@@ -22,6 +22,7 @@ from fx_alfred.core.schema import (
     WORKFLOW_LOOPS,
     WORKFLOW_BRANCHES,
 )
+from fx_alfred.core.steps import extract_steps_section
 
 # Token format per the CHG-2204 contract.
 _TOKEN_RE = re.compile(r"^[a-z0-9][a-z0-9:_/-]*$")
@@ -396,17 +397,17 @@ def validate_branches(
        presence of *any* branch declaration is a hard error directing
        authors to wait for CHG-2227. ``_gate_open_for_test`` bypasses this
        gate for tests that need to exercise the structural rules below.
-    2. **`from` exists** — must reference an existing integer step in
-       ``## Steps``.
+    2. **`from` exists** — must reference an existing integer step under
+       the recognised steps heading.
     3. **`to.parent == from + 1`** — every sibling's parent integer must
        equal ``from + 1`` (the convention is that branches fork from step
        N to siblings ``(N+1)a``, ``(N+1)b``, ...).
-    4. **Sub-step exists** — every ``to.id`` (e.g. ``3a``) must appear in
-       ``## Steps`` as an actual sub-step line.
-    5. **Siblings contiguous** — sibling lines must appear consecutively in
-       ``## Steps`` (no integer step interleaved between them).
-    6. **No orphan sub-steps** — every sub-step letter present in ``## Steps``
-       must appear in some ``branches.to`` declaration.
+    4. **Sub-step exists** — every ``to.id`` (e.g. ``3a``) must appear under
+       the recognised steps heading as an actual sub-step line.
+    5. **Siblings contiguous** — sibling lines must appear consecutively under
+       the recognised steps heading (no integer step interleaved between them).
+    6. **No orphan sub-steps** — every sub-step letter present under the
+       recognised steps heading must appear in some ``branches.to`` declaration.
     """
     errors: list[BranchError] = []
 
@@ -429,10 +430,9 @@ def validate_branches(
 
     # Pull the actual ## Steps lines (in document order) for sub-step
     # presence and contiguity checks.
-    from fx_alfred.core.parser import extract_section as _extract_section
     from fx_alfred.core.parser import iter_lines_with_fence_state
 
-    section = _extract_section(parsed.body, "Steps") if parsed.body else None
+    section = extract_steps_section(parsed.body) if parsed.body else None
     sub_steps_in_order: list[tuple[int, str]] = []  # [(parent, branch), ...]
     plain_step_positions: dict[int, int] = {}  # int_index -> first occurrence
     if section is not None:
@@ -694,9 +694,10 @@ def parse_workflow_loops(parsed: ParsedDocument) -> list[LoopSignature]:
 def _parse_step_indices(parsed: ParsedDocument) -> frozenset[int] | None:
     """Parse the set of step indices observed in the SOP's Steps section.
 
-    Returns ``None`` if no ``Steps`` heading is present; otherwise a frozenset
-    of the step indices parsed from top-level numbered Markdown lines (e.g.
-    ``1. First``, ``### 1. First``, or ``3a. Sub-step``).
+    Returns ``None`` if no recognised steps heading is present (any of
+    Steps/Rule/Rules/Concepts per :mod:`fx_alfred.core.steps`); otherwise a
+    frozenset of the step indices parsed from top-level numbered Markdown lines
+    (e.g. ``1. First``, ``### 1. First``, or ``3a. Sub-step``).
 
     Delegates to :func:`fx_alfred.core.steps.parse_top_level_step_indices`,
     which is fence-aware: numbered lines inside ```` ``` ```` / ``~~~``
@@ -706,10 +707,9 @@ def _parse_step_indices(parsed: ParsedDocument) -> frozenset[int] | None:
     parent step 3 into existence checks for `Workflow loops.from/to: 3`
     (Codex PR #68 R3 inline review).
     """
-    from fx_alfred.core.parser import extract_section
     from fx_alfred.core.steps import parse_top_level_step_indices
 
-    section = extract_section(parsed.body, "Steps")
+    section = extract_steps_section(parsed.body)
     if section is None:
         return None
     return parse_top_level_step_indices(section)
