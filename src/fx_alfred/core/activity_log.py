@@ -545,37 +545,47 @@ def _shadow_line_counts(loose_path: Path) -> Counter[bytes]:
     )
 
 
+def _iter_member_lines(
+    zf: zipfile.ZipFile, member: str, suppress: Counter[bytes] | None
+) -> Iterator[tuple[int, bytes]]:
+    """Yield ``(lineno, raw)`` member rows, skipping blanks and shadowed rows.
+
+    ``suppress`` counts rows a same-named loose file already yielded; each
+    match consumes one occurrence so only rows the loose copy lacks remain
+    (merge-then-failed-unlink or restore-before-re-archive states).
+    """
+
+    with zf.open(member) as fh:
+        for lineno, raw in enumerate(fh, start=1):
+            if not raw.strip():
+                continue
+            if suppress is not None and suppress[raw.rstrip(b"\r\n")] > 0:
+                suppress[raw.rstrip(b"\r\n")] -= 1
+                continue
+            yield lineno, raw
+
+
+def _iter_zip_members(
+    zf: zipfile.ZipFile, shadow: dict[str, Path]
+) -> Iterator[tuple[str, Counter[bytes] | None]]:
+    """Yield each ``.jsonl`` member once, with its shadow-suppression counts."""
+
+    seen: set[str] = set()
+    for member in sorted(zf.namelist()):
+        if not member.endswith(".jsonl") or member in seen:
+            continue
+        seen.add(member)
+        yield member, _shadow_line_counts(shadow[member]) if member in shadow else None
+
+
 def _iter_zip_records(
     path: Path, *, shadowed: dict[str, Path] | None = None
 ) -> Iterator[tuple[str, int, dict[str, Any]]]:
-    shadow = shadowed or {}
-    seen: set[str] = set()
     with zipfile.ZipFile(path) as zf:
-        for member in sorted(zf.namelist()):
-            if not member.endswith(".jsonl") or member in seen:
-                continue
-            seen.add(member)
-            # A same-named loose file already yielded its rows; suppress
-            # those and yield only member rows the loose copy lacks
-            # (merge-then-failed-unlink or restore-before-re-archive).
-            suppress = (
-                _shadow_line_counts(shadow[member]) if member in shadow else None
-            )
-            with zf.open(member) as fh:
-                for lineno, raw in enumerate(fh, start=1):
-                    if not raw.strip():
-                        continue
-                    if suppress is not None:
-                        key = raw.rstrip(b"\r\n")
-                        if suppress[key] > 0:
-                            suppress[key] -= 1
-                            continue
-                    record = _parse_jsonl_record(f"{path}::{member}", lineno, raw)
-                    yield (
-                        f"{path}::{member}",
-                        lineno,
-                        record,
-                    )
+        for member, suppress in _iter_zip_members(zf, shadowed or {}):
+            source = f"{path}::{member}"
+            for lineno, raw in _iter_member_lines(zf, member, suppress):
+                yield (source, lineno, _parse_jsonl_record(source, lineno, raw))
 
 
 def _parse_jsonl_record(source: str, lineno: int, raw: bytes) -> dict[str, Any]:
@@ -652,38 +662,15 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
 def _iter_zip_records_best_effort(
     path: Path, *, shadowed: dict[str, Path] | None = None
 ) -> Iterator[tuple[str, int, dict[str, Any]]]:
-    shadow = shadowed or {}
-    seen: set[str] = set()
     try:
         with zipfile.ZipFile(path) as zf:
-            for member in sorted(zf.namelist()):
-                if not member.endswith(".jsonl") or member in seen:
-                    continue
-                seen.add(member)
-                suppress: Counter[bytes] | None = None
-                if member in shadow:
+            for member, suppress in _iter_zip_members(zf, shadowed or {}):
+                source = f"{path}::{member}"
+                for lineno, raw in _iter_member_lines(zf, member, suppress):
                     try:
-                        suppress = _shadow_line_counts(shadow[member])
-                    except OSError:
-                        suppress = None
-                with zf.open(member) as fh:
-                    for lineno, raw in enumerate(fh, start=1):
-                        if not raw.strip():
-                            continue
-                        if suppress is not None:
-                            key = raw.rstrip(b"\r\n")
-                            if suppress[key] > 0:
-                                suppress[key] -= 1
-                                continue
-                        source = f"{path}::{member}"
-                        try:
-                            yield (
-                                source,
-                                lineno,
-                                _parse_jsonl_record(source, lineno, raw),
-                            )
-                        except ActivityLogLineError:
-                            continue
+                        yield (source, lineno, _parse_jsonl_record(source, lineno, raw))
+                    except ActivityLogLineError:
+                        continue
     except (OSError, zipfile.BadZipFile):
         return
 
