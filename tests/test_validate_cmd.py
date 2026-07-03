@@ -3534,3 +3534,65 @@ def test_validate_duplicate_recursive_usr_same_basename(tmp_path):
         for d in (sub1, sub2):
             if d.exists():
                 d.rmdir()
+
+
+def test_validate_duplicate_comma_in_filename_preserves_labels(tmp_path):
+    """Two colliding docs where one filename contains a comma: each file receives
+    exactly one duplicate issue with both complete filenames intact.  The comma
+    inside the filename must not cause the source-label join/split round-trip to
+    truncate the label at the comma."""
+    import json as json_mod
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # Doc 1: filename contains a comma (slugify leaves commas in filenames)
+    doc1_path = rules_dir / "TST-7600-SOP-Foo,-Bar.md"
+    _write_valid_document(doc1_path, "TST", "7600", "SOP", "Foo, Bar")
+
+    # Doc 2: plain filename, same PREFIX-ACID
+    doc2_path = rules_dir / "TST-7600-SOP-Other.md"
+    _write_valid_document(doc2_path, "TST", "7600", "SOP", "Other")
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path), "--json"])
+
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for duplicate docs, "
+        f"got {result.exit_code}\n{result.output}"
+    )
+
+    payload = json_mod.loads(result.output)
+    results = payload["results"]
+
+    # Find the two colliding entries by their distinct paths
+    entry_foobar = next((r for r in results if "Foo,-Bar" in r.get("path", "")), None)
+    entry_other = next((r for r in results if "Other" in r.get("path", "")), None)
+    assert entry_foobar is not None, (
+        f"Missing entry for Foo,-Bar doc in results: {[r.get('path') for r in results]}"
+    )
+    assert entry_other is not None, (
+        f"Missing entry for Other doc in results: {[r.get('path') for r in results]}"
+    )
+
+    # Each colliding file must carry EXACTLY ONE duplicate issue.
+    dup_foobar = [e for e in entry_foobar["errors"] if "Duplicate" in e]
+    dup_other = [e for e in entry_other["errors"] if "Duplicate" in e]
+
+    assert len(dup_foobar) == 1, (
+        f"Expected 1 duplicate error for Foo,-Bar doc, "
+        f"got {len(dup_foobar)}: {dup_foobar}"
+    )
+    assert len(dup_other) == 1, (
+        f"Expected 1 duplicate error for Other doc, got {len(dup_other)}: {dup_other}"
+    )
+
+    # The duplicate issue text must contain BOTH complete filenames intact.
+    # The comma inside the filename must not be treated as a separator.
+    issue_text = dup_foobar[0]
+    assert "Foo,-Bar" in issue_text, (
+        f"Comma-containing filename truncated in issue text: {issue_text!r}"
+    )
+    assert "Other" in issue_text, (
+        f"Other filename missing from issue text: {issue_text!r}"
+    )
