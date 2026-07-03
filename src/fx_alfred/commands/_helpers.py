@@ -3,6 +3,7 @@
 import importlib
 import json
 import os
+import stat
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -113,10 +114,19 @@ def atomic_write(path: Path, content: str) -> None:
     Raises:
         OSError: If file operations fail (propagated after cleanup).
     """
+    if path.exists():
+        mode = stat.S_IMODE(path.stat().st_mode)
+    else:
+        # Read the process umask via the standard round-trip; this CLI is single-threaded.
+        current_umask = os.umask(0)
+        os.umask(current_umask)
+        mode = 0o666 & ~current_umask
+
     fd, tmp_path_str = tempfile.mkstemp(dir=str(path.parent), suffix=".md.tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
+        os.chmod(tmp_path_str, mode)
         os.replace(tmp_path_str, str(path))
     except Exception:
         # Clean up temp file on any failure

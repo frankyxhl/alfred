@@ -8,6 +8,7 @@ click.ClickException at the CLI boundary.
 from __future__ import annotations
 
 import os
+import stat
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -54,12 +55,21 @@ def load_preferences() -> dict[str, Any]:
 def _atomic_write(path: Path, content: str) -> None:
     """Write content to path via tempfile + os.replace (no .tmp leftover)."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        mode = stat.S_IMODE(path.stat().st_mode)
+    else:
+        # Read the process umask via the standard round-trip; this CLI is single-threaded.
+        current_umask = os.umask(0)
+        os.umask(current_umask)
+        mode = 0o666 & ~current_umask
+
     fd, tmp_path = tempfile.mkstemp(
         prefix=".preferences.", suffix=".tmp", dir=str(path.parent)
     )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
+        os.chmod(tmp_path, mode)
         os.replace(tmp_path, path)
     except Exception:
         if os.path.exists(tmp_path):
