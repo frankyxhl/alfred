@@ -472,7 +472,7 @@ def test_update_dry_run_no_write(tmp_path, monkeypatch):
 
 
 def test_update_dry_run_shows_diff(tmp_path, monkeypatch):
-    """Dry run shows what would change."""
+    """Dry run shows unified diff with ---/+++ headers and @@ hunk markers."""
     project = _make_project(tmp_path)
     monkeypatch.chdir(project)
     runner = CliRunner()
@@ -482,8 +482,165 @@ def test_update_dry_run_shows_diff(tmp_path, monkeypatch):
         catch_exceptions=False,
     )
     assert result.exit_code == 0
-    assert "- **Status:** Draft" in result.output
-    assert "+ **Status:** Active" in result.output
+    output = result.output
+    # Unified diff markers
+    assert "--- " in output
+    assert "+++ " in output
+    assert "@@" in output
+    # Changed lines appear with unified-diff prefixes (no space after -/+)
+    assert "-**Status:** Draft" in output
+    assert "+**Status:** Active" in output
+
+
+def test_update_dry_run_spec_shrink_shows_deletions(tmp_path, monkeypatch):
+    """--spec replacing a long section with a short one shows deleted lines.
+
+    The old hand-rolled zip-diff only handled the grew-longer case
+    (len(new) > len(old)); shrinking updates never showed removed
+    trailing lines.  Unified diff fixes this.
+    """
+    long_doc = """\
+# TST-2100: Test Document
+
+**Applies to:** All projects
+**Status:** Draft
+**Last updated:** 2026-01-01
+
+---
+
+## What Is It?
+
+Line alpha.
+Line beta.
+Line gamma.
+Line delta.
+Line epsilon.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+"""
+    project = _make_project(tmp_path, long_doc)
+    monkeypatch.chdir(project)
+
+    spec = tmp_path / "shrink.yaml"
+    spec.write_text('sections:\n  "What Is It?": "Short replacement."\n')
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--spec", str(spec), "--dry-run"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    output = result.output
+
+    # Unified diff markers
+    assert "--- " in output
+    assert "+++ " in output
+    assert "@@" in output
+
+    # Deleted lines from the old longer section MUST appear
+    assert "-Line alpha." in output
+    assert "-Line beta." in output
+    assert "-Line gamma." in output
+    # New short content appears
+    assert "+Short replacement." in output
+
+
+def test_update_dry_run_spec_insertion_no_cascade(tmp_path, monkeypatch):
+    """--spec inserting a line mid-document does not cascade false -/+ pairs.
+
+    The old zip(old_lines, new_lines) misaligns every subsequent pair
+    after an insertion point, producing bogus -/+ for every line that
+    follows.  Unified diff only shows genuinely changed lines.
+    """
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+
+    # Add a new metadata field that gets inserted before the --- separator
+    spec = tmp_path / "insert.yaml"
+    spec.write_text('metadata:\n  "Reviewed by": "Alice"\n')
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--spec", str(spec), "--dry-run"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    output = result.output
+
+    # Unified diff markers
+    assert "--- " in output
+    assert "+++ " in output
+    assert "@@" in output
+
+    # Count deletion-prefixed lines (excluding the "--- " from-file header).
+    # In unified diff, adding one metadata field + auto-touching Last updated
+    # should produce very few deletions.  The old zip-diff would cascade and
+    # show dozens of bogus -/+ pairs for every line after the insertion.
+    lines = output.split("\n")
+    delete_count = sum(
+        1 for line in lines if line.startswith("-") and not line.startswith("---")
+    )
+    assert delete_count <= 2, (
+        f"Expected ≤2 deletions, got {delete_count} (cascade bug).\nOutput:\n{output}"
+    )
+
+    # The new field appears
+    assert "+**Reviewed by:** Alice" in output
+
+
+@pytest.mark.parametrize(
+    "args,old_marker,new_marker",
+    [
+        (
+            ["update", "TST-2100", "--status", "Active", "--dry-run"],
+            "-**Status:** Draft",
+            "+**Status:** Active",
+        ),
+        (
+            [
+                "update",
+                "TST-2100",
+                "--history",
+                "New entry",
+                "--by",
+                "Tester",
+                "--dry-run",
+            ],
+            None,  # no specific deletion expected
+            "+|",  # the appended history row
+        ),
+    ],
+)
+def test_update_dry_run_unified_format(
+    tmp_path, monkeypatch, args, old_marker, new_marker
+):
+    """Dry-run through --status / --history produces unified diff format.
+
+    Both paths share the same dry-run branch in update_cmd.
+    """
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+    result = runner.invoke(cli, args, catch_exceptions=False)
+    assert result.exit_code == 0
+    output = result.output
+
+    # Unified diff markers
+    assert "--- " in output
+    assert "+++ " in output
+    assert "@@" in output
+
+    if old_marker is not None:
+        assert old_marker in output
+    assert new_marker in output
 
 
 def test_update_dry_run_rename(tmp_path, monkeypatch):
