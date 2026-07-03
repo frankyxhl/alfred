@@ -1134,6 +1134,66 @@ def test_archive_and_append_succeed_when_fcntl_unavailable(tmp_path, monkeypatch
     assert "portable-append" in summaries
 
 
+# ---------------------------------------------------------------------------
+# FXA-273: fchmod guard for non-POSIX platforms
+# ---------------------------------------------------------------------------
+
+
+def test_archive_directory_succeeds_when_fchmod_unavailable(tmp_path, monkeypatch):
+    """Regression guard: archive_directory succeeds when os.fchmod is absent.
+
+    On platforms where os.fchmod does not exist (e.g., Windows), the
+    implementation falls back to path-based os.chmod after the fd is
+    closed. This test simulates the missing attribute and verifies the
+    archive is produced correctly with all member content intact.
+    """
+    monkeypatch.delattr(os, "fchmod", raising=False)
+
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="archived-record")) + "\n",
+        encoding="utf-8",
+    )
+
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert result.archived_files == ["2026-06-20.jsonl"]
+    assert not old_file.exists()
+
+    # Archive must be readable via iter_records with member content intact.
+    archive = log_dir / "archive.zip"
+    records = list(activity_log.iter_records(archive))
+    assert len(records) == 1
+    _source, _lineno, record = records[0]
+    assert record["summary"] == "archived-record"
+
+
+def test_archive_without_fchmod_writes_readable_archive(tmp_path, monkeypatch):
+    """Regression guard: archive created without os.fchmod has readable permissions.
+
+    When the fchmod fallback path is used, the resulting archive.zip
+    must still be owner-readable via the path-based os.chmod call.
+    """
+    monkeypatch.delattr(os, "fchmod", raising=False)
+
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="permission-test")) + "\n",
+        encoding="utf-8",
+    )
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    archive = log_dir / "archive.zip"
+    mode = archive.stat().st_mode
+    # Readable by owner at minimum.
+    assert (mode & 0o400) != 0, f"archive not owner-readable: {mode:o}"
+
+
 def test_iter_records_best_effort_treats_shadow_vanished_before_read_as_unshadowed(
     tmp_path, monkeypatch
 ):

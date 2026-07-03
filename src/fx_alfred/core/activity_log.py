@@ -780,8 +780,12 @@ def archive_directory(
         fd, tmp_name = tempfile.mkstemp(
             prefix=f"archive.zip.tmp.{os.getpid()}.", dir=log_dir
         )
-        os.fchmod(fd, 0o644)
+        has_fchmod = hasattr(os, "fchmod")
+        if has_fchmod:
+            os.fchmod(fd, 0o644)
         os.close(fd)
+        if not has_fchmod:
+            os.chmod(tmp_name, 0o644)
         tmp_path = Path(tmp_name)
         try:
             with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
