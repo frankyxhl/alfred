@@ -322,3 +322,41 @@ def test_branch_validation_fenced_sibling_does_not_count_as_declared() -> None:
     branches = parse_workflow_branches(parsed)
     errors = validate_branches(parsed, branches)
     assert any("3b" in e.msg for e in errors)
+
+
+# ---------------------------------------------------------------------------
+# FXA-267: validate_branches delegates to extract_steps_section so all
+# recognised step headings (Steps, Rule, Rules, Concepts) work.
+# ---------------------------------------------------------------------------
+
+
+def test_branches_respects_rule_heading() -> None:
+    """An SOP with steps under ``## Rule`` and valid ``Workflow branches``
+    metadata must pass validation cleanly — ``validate_branches`` delegates
+    to ``extract_steps_section`` so headings other than ``## Steps`` that the
+    planner accepts (Rule, Rules, Concepts) are recognised.
+
+    Before FXA-267, ``validate_branches`` hardcoded ``extract_section(..., "Steps")``
+    and produced a spurious "does not reference an existing step" error.
+    """
+    body = (
+        "# SOP-9999: Test\n"
+        "\n"
+        "**Status:** Active\n"
+        "**Workflow branches:** [{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]\n"
+        "\n"
+        "---\n"
+        "\n"
+        "## Rule\n"
+        "\n"
+        "1. Setup\n2. Decision\n3a. Pass\n3b. Fail\n4. After\n"
+        "## Change History\n"
+        "\n"
+        "| Date | Change | By |\n"
+        "|------|--------|----|\n"
+        "| 2026-04-27 | Initial | Test |\n"
+    )
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    errors = validate_branches(parsed, branches)
+    assert errors == []
