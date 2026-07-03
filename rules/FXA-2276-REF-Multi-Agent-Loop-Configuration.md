@@ -1,7 +1,7 @@
 # REF-2276: Multi-Agent Loop Configuration
 
 **Applies to:** FXA project (alfred — `frankyxhl/alfred`)
-**Last updated:** 2026-07-03
+**Last updated:** 2026-07-04
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Related:** COR-1617 (umbrella SOP being instantiated), COR-1622 (parameter schema), FXA-2277 (CHG that landed alongside this doc)
@@ -91,6 +91,20 @@ PR #117 promoted trinity's TRN-1008 into the COR-1617 PKG cluster. Alfred is the
 | `<max-r-count>` | `10` | default |
 | `<max-r-count-extension>` | `3` | default — hard stop at R13 |
 | `<convergence-severity>` | `advisory` | default — advisory-only findings → converge (Case A); P0/P1/P2 open → self-authorized extension (Case B) until hard stop at R13 |
+
+---
+
+## R-round fixes for timing findings
+
+Alfred-local rule for COR-1617 §Phase 8 iteration rounds (motivating case: PR #290, where R3's patch of the flagged line created the R4 defect, R4's rewrite created R5's, and the converged fix was a state matrix that was drawable at R2 — three avoidable rounds).
+
+When a review finding (bot, panel, or human) involves a **race or timing window** — any behavior that depends on the interleaving of two or more actors (processes, threads, reader vs. writer, archiver vs. appender) — the fix round MUST:
+
+1. **Enumerate the full state matrix before implementing**: every participating actor × every timing window (e.g. reader mode × mutation-before/after-read). The matrix is written out explicitly, not held in the orchestrator's head.
+2. **Fix all quadrants in that single round.** Patching only the reported cell and pushing is the anti-pattern this rule exists to prevent; adjacent cells are presumed defective until shown otherwise.
+3. **Land one regression test per quadrant** in the same round.
+
+Dispatch binding: when the round is implemented via the COR-1628 sandboxed worker lane, the enumerated matrix goes **into the task brief** (Design guardrails block) so the worker implements against the full space, and the orchestrator's scope check verifies per-quadrant tests exist before commit.
 
 ---
 
@@ -198,3 +212,4 @@ These project-specific deviations are intentional and not gaps in the SOP:
 | 2026-05-17 | issue #166 R5 (PR #180 codex bot P2): post-§Invocation-table sentence still referenced the OLD COR-1617 User-driven phrase list (`"pick next issue" / "do <PREFIX>-<NNNN>" / "auto-pick"`) that's now split across two trigger rows. Stale reference re-classified non-naming loop starts as User-driven, contradicting the table above. Fix: sentence now maps the three FXA-2276 phrases to their correct COR-1617 row — `for #N` → row 1 (User-driven); bare + `once` → row 2 (Loop-start).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Claude Opus 4.7   |
 | 2026-06-26 | FXA-2311: instantiate COR-1622 PR readiness gate parameters and strengthen Phase 10 handoff wording around current-head state, GitHub-side checks, review-thread sweep, merge-state, review-decision, and Frank's human gate.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Codex             |
 | 2026-07-03 | Switched <worker-agent> to codex exec (COR-1628 lane); GLM to review panel; Phase 5 marked adopted; escaped literal pipes in the 2026-05-09 R2 history row (codex #286 P2)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Claude Code       |
+| 2026-07-04 | Issue #292: added §R-round fixes for timing findings — race/timing findings require full state-matrix enumeration (actor × timing window) before implementing, all quadrants fixed in one round, one regression test per quadrant, matrix embedded in the COR-1628 task brief. Motivating case: PR #290 R2–R5 chain (FXA-2321 retrospective F1, composite 8.85).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Claude Code       |
