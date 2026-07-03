@@ -1140,13 +1140,12 @@ def test_archive_and_append_succeed_when_fcntl_unavailable(tmp_path, monkeypatch
 
 
 def test_archive_directory_succeeds_when_fchmod_unavailable(tmp_path, monkeypatch):
-    """archive_directory succeeds on platforms where os.fchmod is absent.
+    """Regression guard: archive_directory succeeds when os.fchmod is absent.
 
-    On Windows os.fchmod does not exist. The unconditional call at
-    activity_log.py:783 raises AttributeError. The fix guards with
-    hasattr and falls back to path-based os.chmod after the fd is closed.
-
-    Currently RED — monkeypatch.delattr triggers the AttributeError.
+    On platforms where os.fchmod does not exist (e.g., Windows), the
+    implementation falls back to path-based os.chmod after the fd is
+    closed. This test simulates the missing attribute and verifies the
+    archive is produced correctly with all member content intact.
     """
     monkeypatch.delattr(os, "fchmod", raising=False)
 
@@ -1172,14 +1171,10 @@ def test_archive_directory_succeeds_when_fchmod_unavailable(tmp_path, monkeypatc
 
 
 def test_archive_without_fchmod_writes_readable_archive(tmp_path, monkeypatch):
-    """Archive created without os.fchmod has readable permissions.
+    """Regression guard: archive created without os.fchmod has readable permissions.
 
     When the fchmod fallback path is used, the resulting archive.zip
-    must still be owner-readable (and ideally group+other readable,
-    subject to umask).
-
-    Currently RED — the unconditional os.fchmod raises AttributeError
-    before reaching the permission assertion.
+    must still be owner-readable via the path-based os.chmod call.
     """
     monkeypatch.delattr(os, "fchmod", raising=False)
 
@@ -1196,9 +1191,7 @@ def test_archive_without_fchmod_writes_readable_archive(tmp_path, monkeypatch):
     archive = log_dir / "archive.zip"
     mode = archive.stat().st_mode
     # Readable by owner at minimum.
-    assert mode & 0o400, f"archive not owner-readable: {mode:o}"
-    # At least some read bits set (group/other, subject to umask).
-    assert mode & 0o444 != 0, f"archive has no read bits: {mode:o}"
+    assert (mode & 0o400) != 0, f"archive not owner-readable: {mode:o}"
 
 
 def test_iter_records_best_effort_treats_shadow_vanished_before_read_as_unshadowed(
