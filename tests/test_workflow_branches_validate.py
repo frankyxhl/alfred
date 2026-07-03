@@ -144,6 +144,20 @@ def test_branches_to_parent_must_match_from_plus_one() -> None:
     assert any("from + 1" in e.msg or "must be 3" in e.msg for e in errors)
 
 
+def test_branches_parent_mismatch_message_renders_substep_id_cleanly() -> None:
+    """Parent-mismatch error renders `3a`, not `3'a'`."""
+    body = _doc(
+        "[{from: 3, to: [{id: 3a, label: x}]}]",
+        "1. A\n2. B\n3. C\n3a. wrong parent\n",
+    )
+    parsed = parse_metadata(body)
+    branches = parse_workflow_branches(parsed)
+    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    message = "\n".join(e.msg for e in errors)
+    assert "id 3a parent" in message
+    assert "3'a'" not in message
+
+
 def test_branches_substep_id_malformed_raises_at_parse() -> None:
     """`3aa` rejected at PARSE time (regex \\d+[a-z], not \\d+[a-z]+)."""
     body = _doc(

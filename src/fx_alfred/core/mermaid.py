@@ -180,6 +180,9 @@ def render_mermaid(phases: list[PhaseDict]) -> str:
             from_nid = f"{_node_id(phase_idx, lp.from_step)}{_suffix_for(lp.from_step)}"
             to_nid = f"{_node_id(phase_idx, lp.to_step)}{_suffix_for(lp.to_step)}"
             cond = _sanitize_condition(lp.condition)
-            lines.append(f"  {from_nid} -. {cond} .-> {to_nid}")
+            if cond:
+                lines.append(f"  {from_nid} -. {cond} .-> {to_nid}")
+            else:
+                lines.append(f"  {from_nid} -.-> {to_nid}")
 
     return "\n".join(lines)
