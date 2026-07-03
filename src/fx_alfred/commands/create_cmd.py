@@ -14,6 +14,7 @@ from fx_alfred.commands._helpers import (
     validate_spec_status,
 )
 from fx_alfred.context import get_root, root_option
+from fx_alfred.core.document import FILENAME_PATTERN
 from fx_alfred.core.normalize import slugify
 from fx_alfred.core.projects import project_layer_dir
 from fx_alfred.core.schema import (
@@ -42,6 +43,15 @@ def validate_acid(ctx, param, value):
     if not re.match(r"^\d{4}$", value):
         raise click.BadParameter("must be exactly 4 digits (e.g., 2100)")
     return value
+
+
+def _validate_generated_filename(filename: str, title: str) -> str:
+    if not FILENAME_PATTERN.match(filename):
+        raise click.ClickException(
+            f"Title {title!r} generated invalid filename {filename!r}. "
+            "Choose a title with at least one alphanumeric character so the slug is not empty."
+        )
+    return filename
 
 
 def _next_acid_in_area(docs: list, prefix: str, area: str) -> str:
@@ -139,6 +149,112 @@ def _validate_spec_required_sections(
             raise click.ClickException(
                 f"Required section '{section}' missing for {doc_type.value}"
             )
+
+
+def _resolve_spec_fields(
+    spec: dict[str, Any],
+    prefix: str | None,
+    acid: str | None,
+    area: str | None,
+    title: str | None,
+) -> tuple[DocType, str, str | None, str | None, str, dict[str, Any], dict[str, Any]]:
+    """Extract, override with CLI args, and validate spec fields for --spec mode."""
+    if not isinstance(spec, dict):
+        raise click.ClickException("Spec file must contain a YAML mapping")
+
+    # Extract and validate type
+    type_str = spec.get("type")
+    if type_str is None:
+        raise click.ClickException("Spec file missing 'type' field")
+    doc_type_enum = _validate_spec_doc_type(type_str)
+
+    # Extract prefix, acid, title from spec if not given via CLI
+    spec_prefix = spec.get("prefix")
+    spec_acid = spec.get("acid")
+    spec_title = spec.get("title")
+    spec_area = spec.get("area")
+
+    # CLI args override spec
+    final_prefix = prefix if prefix is not None else spec_prefix
+    final_acid = acid if acid is not None else spec_acid
+    final_title = title if title is not None else spec_title
+    final_area = area if area is not None else spec_area
+
+    # Enforce acid/area mutual exclusivity from spec
+    if spec_acid is not None and spec_area is not None:
+        raise click.ClickException("Spec cannot contain both 'acid' and 'area'")
+
+    # Enforce acid/area mutual exclusivity across all sources (CLI + spec)
+    if final_acid is not None and final_area is not None:
+        raise click.ClickException("Cannot specify both acid and area")
+
+    # Validate required fields
+    if final_prefix is None:
+        raise click.ClickException("Prefix required (via --prefix or spec file)")
+    if final_title is None:
+        raise click.ClickException("Title required (via --title or spec file)")
+    if final_acid is None and final_area is None:
+        raise click.ClickException(
+            "ACID or area required (via --acid/--area or spec file)"
+        )
+
+    # Validate prefix format (reuse callback logic)
+    if not re.match(r"^[A-Z]{3}$", final_prefix):
+        raise click.ClickException("Prefix must be exactly 3 uppercase letters")
+    if final_prefix == "COR":
+        raise click.ClickException("COR prefix is reserved for PKG layer")
+
+    # Validate ACID format if provided
+    if final_acid is not None:
+        if not re.match(r"^\d{4}$", str(final_acid)):
+            raise click.ClickException("ACID must be exactly 4 digits")
+        final_acid = str(final_acid)
+        if final_acid == "0000":
+            raise click.ClickException(
+                "ACID 0000 is reserved for generated index files"
+            )
+
+    # Validate area format if provided
+    if final_area is not None:
+        if not re.match(r"^\d{2}$", str(final_area)):
+            raise click.ClickException("Area must be exactly 2 digits")
+
+    # Extract and validate metadata
+    spec_metadata = spec.get("metadata", {})
+    spec_sections = spec.get("sections", {})
+
+    if not isinstance(spec_metadata, dict):
+        raise click.ClickException(
+            "Spec 'metadata' must be a mapping (key: value pairs)"
+        )
+    if not isinstance(spec_sections, dict):
+        raise click.ClickException(
+            "Spec 'sections' must be a mapping (key: value pairs)"
+        )
+
+    # Auto-fill Last updated if not provided (before validation)
+    if "Last updated" not in spec_metadata:
+        spec_metadata["Last updated"] = date.today().isoformat()
+
+    # Validate required metadata
+    _validate_spec_required_metadata(doc_type_enum, spec_metadata)
+
+    # Validate required sections
+    _validate_spec_required_sections(doc_type_enum, spec_sections)
+
+    # Validate status if provided
+    if "Status" in spec_metadata:
+        validate_spec_status(doc_type_enum, spec_metadata["Status"])
+
+    return (
+        doc_type_enum,
+        final_prefix,
+        final_acid,
+        final_area,
+        final_title,
+        spec_metadata,
+        spec_sections,
+    )
 
 
 def _generate_spec_document(
@@ -282,92 +398,15 @@ def create_cmd(
         except yaml.YAMLError as e:
             raise click.ClickException(f"Invalid YAML in spec file: {e}")
 
-        if not isinstance(spec, dict):
-            raise click.ClickException("Spec file must contain a YAML mapping")
-
-        # Extract and validate type
-        type_str = spec.get("type")
-        if type_str is None:
-            raise click.ClickException("Spec file missing 'type' field")
-        doc_type_enum = _validate_spec_doc_type(type_str)
-
-        # Extract prefix, acid, title from spec if not given via CLI
-        spec_prefix = spec.get("prefix")
-        spec_acid = spec.get("acid")
-        spec_title = spec.get("title")
-        spec_area = spec.get("area")
-
-        # CLI args override spec
-        final_prefix = prefix if prefix is not None else spec_prefix
-        final_acid = acid if acid is not None else spec_acid
-        final_title = title if title is not None else spec_title
-        final_area = area if area is not None else spec_area
-
-        # Enforce acid/area mutual exclusivity from spec
-        if spec_acid is not None and spec_area is not None:
-            raise click.ClickException("Spec cannot contain both 'acid' and 'area'")
-
-        # Enforce acid/area mutual exclusivity across all sources (CLI + spec)
-        if final_acid is not None and final_area is not None:
-            raise click.ClickException("Cannot specify both acid and area")
-
-        # Validate required fields
-        if final_prefix is None:
-            raise click.ClickException("Prefix required (via --prefix or spec file)")
-        if final_title is None:
-            raise click.ClickException("Title required (via --title or spec file)")
-        if final_acid is None and final_area is None:
-            raise click.ClickException(
-                "ACID or area required (via --acid/--area or spec file)"
-            )
-
-        # Validate prefix format (reuse callback logic)
-        if not re.match(r"^[A-Z]{3}$", final_prefix):
-            raise click.ClickException("Prefix must be exactly 3 uppercase letters")
-        if final_prefix == "COR":
-            raise click.ClickException("COR prefix is reserved for PKG layer")
-
-        # Validate ACID format if provided
-        if final_acid is not None:
-            if not re.match(r"^\d{4}$", str(final_acid)):
-                raise click.ClickException("ACID must be exactly 4 digits")
-            final_acid = str(final_acid)
-            if final_acid == "0000":
-                raise click.ClickException(
-                    "ACID 0000 is reserved for generated index files"
-                )
-
-        # Validate area format if provided
-        if final_area is not None:
-            if not re.match(r"^\d{2}$", str(final_area)):
-                raise click.ClickException("Area must be exactly 2 digits")
-
-        # Extract and validate metadata
-        spec_metadata = spec.get("metadata", {})
-        spec_sections = spec.get("sections", {})
-
-        if not isinstance(spec_metadata, dict):
-            raise click.ClickException(
-                "Spec 'metadata' must be a mapping (key: value pairs)"
-            )
-        if not isinstance(spec_sections, dict):
-            raise click.ClickException(
-                "Spec 'sections' must be a mapping (key: value pairs)"
-            )
-
-        # Auto-fill Last updated if not provided (before validation)
-        if "Last updated" not in spec_metadata:
-            spec_metadata["Last updated"] = date.today().isoformat()
-
-        # Validate required metadata
-        _validate_spec_required_metadata(doc_type_enum, spec_metadata)
-
-        # Validate required sections
-        _validate_spec_required_sections(doc_type_enum, spec_sections)
-
-        # Validate status if provided
-        if "Status" in spec_metadata:
-            validate_spec_status(doc_type_enum, spec_metadata["Status"])
+        (
+            doc_type_enum,
+            final_prefix,
+            final_acid,
+            final_area,
+            final_title,
+            spec_metadata,
+            spec_sections,
+        ) = _resolve_spec_fields(spec, prefix, acid, area, title)
 
         # Resolve write base
         write_base = _resolve_write_base(ctx, layer, subdir)
@@ -404,7 +443,10 @@ def create_cmd(
             spec_sections,
         )
 
-        filename = f"{final_prefix}-{final_acid}-{doc_type_enum.value}-{slugify(final_title)}.md"
+        filename = _validate_generated_filename(
+            f"{final_prefix}-{final_acid}-{doc_type_enum.value}-{slugify(final_title)}.md",
+            final_title,
+        )
         output_path = write_base / filename
 
         if dry_run:
@@ -465,7 +507,9 @@ def create_cmd(
                 f"{doc.filename}. "
                 "Try --area to auto-assign the next available ACID."
             )
-    filename = f"{prefix}-{acid}-{doc_type_lower.upper()}-{slugify(title)}.md"
+    filename = _validate_generated_filename(
+        f"{prefix}-{acid}-{doc_type_lower.upper()}-{slugify(title)}.md", title
+    )
     output_path = write_base / filename
 
     template_file = resources.files("fx_alfred.templates").joinpath(
