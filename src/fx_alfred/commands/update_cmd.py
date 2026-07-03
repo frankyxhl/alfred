@@ -301,8 +301,6 @@ def update_cmd(
             raise click.ClickException(
                 "Title must not contain path separators (/ or \\)"
             )
-
-        # Build new filename
         new_filename = (
             f"{doc.prefix}-{doc.acid}-{doc.type_code}-{slugify(new_title)}.md"
         )
@@ -313,7 +311,9 @@ def update_cmd(
             )
 
         new_file_path = file_path.parent / new_filename
-        if new_file_path.exists() and new_file_path != file_path:
+        if new_file_path.exists() and not (
+            file_path.exists() and file_path.samefile(new_file_path)
+        ):
             raise click.ClickException(f"Target path already exists: {new_file_path}")
 
         # Interactive confirmation (skip for dry-run)
