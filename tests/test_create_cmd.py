@@ -1245,6 +1245,45 @@ def test_create_rejects_title_dashes_and_spaces(tmp_path, monkeypatch):
     assert not bad_path.exists(), f"File was created at {bad_path} but should not exist"
 
 
+def test_create_rejects_whitespace_only_title(tmp_path):
+    """Title '   ' slugifies to "" via the early-return branch in slugify().
+
+    slugify("   ") → strip() → empty string → return "" immediately (line 12-13).
+    This is a distinct code path from "???" (unsafe chars stripped) and "- - -"
+    (hyphens collapsed after whitespace replacement), so it deserves its own
+    coverage pin.
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--root",
+            str(tmp_path),
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "9995",
+            "--title",
+            "   ",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for whitespace-only title, got 0. "
+        f"Output: {result.output}"
+    )
+    # Error message must be actionable
+    combined = result.output.lower()
+    assert any(
+        word in combined for word in ("slug", "filename", "title", "empty", "invalid")
+    ), f"Error should mention the title or slug issue. Output: {result.output}"
+    # No file should exist on disk
+    bad_path = tmp_path / "rules" / "TST-9995-SOP-.md"
+    assert not bad_path.exists(), f"File was created at {bad_path} but should not exist"
+
+
 def test_create_allows_title_with_unsafe_chars_that_slugify_nonempty(
     tmp_path, monkeypatch
 ):
@@ -1266,3 +1305,103 @@ def test_create_allows_title_with_unsafe_chars_that_slugify_nonempty(
     )
     expected = tmp_path / "rules" / "TST-9997-SOP-ab.md"
     assert expected.exists(), f"Expected file at {expected} but it does not exist"
+
+
+def test_create_dry_run_rejects_title_that_slugifies_to_empty(tmp_path, monkeypatch):
+    """Guard-before-dry-run: title '???' slugifies to empty — reject before echoing content.
+
+    The filename validation fires before the dry-run block, so we expect:
+    - non-zero exit
+    - actionable error referencing the title or slug
+    - no file written to disk
+    - no dry-run content echoed ("Dry run", "Created", document body absent)
+    """
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "9996",
+            "--title",
+            "???",
+            "--dry-run",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for empty-slug title with --dry-run, got 0. "
+        f"Output: {result.output}"
+    )
+    # Error message must mention the offending title or slug
+    assert "???" in result.output or "slug" in result.output.lower(), (
+        f"Error should mention the title or slug issue. Output: {result.output}"
+    )
+    # No file should exist on disk (validation fires before filesystem IO)
+    bad_path = tmp_path / "rules" / "TST-9996-SOP-.md"
+    assert not bad_path.exists(), f"File was created at {bad_path} but should not exist"
+    # Dry-run content MUST NOT be echoed — the guard fires before it
+    assert "Dry run" not in result.output, (
+        f"Dry-run content was echoed despite failed validation. Output: {result.output}"
+    )
+    assert "Created" not in result.output, (
+        f"'Created' appeared in output despite failed validation. Output: {result.output}"
+    )
+
+
+def test_create_spec_dry_run_rejects_title_that_slugifies_to_empty(
+    tmp_path, monkeypatch
+):
+    """Guard-before-dry-run spec path: title '???' slugifies to empty — reject before echo.
+
+    Same contract as the non-spec dry-run test but via --spec with --dry-run flag.
+    """
+    monkeypatch.chdir(tmp_path)
+
+    spec_file = tmp_path / "spec.yaml"
+    spec_file.write_text(
+        "type: SOP\n"
+        "prefix: TST\n"
+        "acid: '9996'\n"
+        "title: '???'\n"
+        "metadata:\n"
+        "  Applies to: test\n"
+        "  Last updated: '2026-01-01'\n"
+        "  Last reviewed: '2026-01-01'\n"
+        "  Status: Active\n"
+        "sections:\n"
+        "  What Is It?: Test\n"
+        "  Why: Test\n"
+        "  When to Use: Test\n"
+        "  When NOT to Use: Test\n"
+        "  Steps: Test\n"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "--spec", str(spec_file), "--dry-run"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for spec with empty-slug title + --dry-run, got 0. "
+        f"Output: {result.output}"
+    )
+    # Error message must mention the offending title or slug
+    assert "???" in result.output or "slug" in result.output.lower(), (
+        f"Error should mention the title or slug issue. Output: {result.output}"
+    )
+    # No file should exist on disk
+    bad_path = tmp_path / "rules" / "TST-9996-SOP-.md"
+    assert not bad_path.exists(), f"File was created at {bad_path} but should not exist"
+    # Dry-run content MUST NOT be echoed
+    assert "Dry run" not in result.output, (
+        f"Dry-run content was echoed despite failed validation. Output: {result.output}"
+    )
+    assert "Created" not in result.output, (
+        f"'Created' appeared in output despite failed validation. Output: {result.output}"
+    )
