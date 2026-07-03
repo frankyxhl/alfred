@@ -493,7 +493,7 @@ def validate_branches(
                     BranchError(
                         msg=(
                             f"Workflow branches[{i}].to[{j}]: id "
-                            f"{tgt.parent}{tgt.branch!r} parent must be "
+                            f"{tgt.parent}{tgt.branch} parent must be "
                             f"{sig.from_step + 1} (from + 1), got {tgt.parent}"
                         ),
                         branch_idx=i,

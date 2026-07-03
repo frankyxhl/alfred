@@ -173,6 +173,27 @@ class TestLoopBackEdge:
         assert "-." in result
         assert ".->" in result
 
+    def test_loop_empty_sanitized_condition_uses_plain_dotted_arrow(self):
+        """Condition that sanitizes empty emits an unlabeled dotted arrow."""
+        loop = LoopSignature(
+            id="retry",
+            from_step=2,
+            to_step=1,
+            max_iterations=3,
+            condition="**",
+        )
+        phases = [
+            _make_phase(
+                "COR-1602",
+                _steps("Dispatch", "Check"),
+                loops=[loop],
+            ),
+        ]
+        result = render_mermaid(phases)
+
+        assert "S1_2 -.-> S1_1" in result
+        assert "-.  .->" not in result
+
 
 # ---------------------------------------------------------------------------
 # Test 4: Gate step — diamond shape
