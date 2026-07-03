@@ -35,6 +35,7 @@ from fx_alfred.core.scanner import (
     LayerValidationError,
     scan_documents,
 )
+from fx_alfred.core.source import SOURCE_ORDER
 from fx_alfred.core.steps import (
     extract_steps_section,
     parse_top_level_step_indices,
@@ -52,6 +53,10 @@ _BASE_REQUIRED_FIELDS = {"Applies to", "Last updated", "Last reviewed"}
 
 # Required Change History columns
 REQUIRED_HISTORY_COLUMNS = ["Date", "Change", "By"]
+
+_SOURCE_LABEL_SPLIT_PATTERN = re.compile(
+    rf",\s(?=(?:{'|'.join(re.escape(source) for source in SOURCE_ORDER)}):)"
+)
 
 
 @dataclass
@@ -119,7 +124,10 @@ def _duplicate_issues_from_layer_errors(errors: list[str]) -> dict[str, list[str
         )
         if not match:
             continue
-        sources = [source.strip() for source in match.group("sources").split(",")]
+        sources = [
+            source.strip()
+            for source in _SOURCE_LABEL_SPLIT_PATTERN.split(match.group("sources"))
+        ]
         issue = f"Duplicate {match.group('doc_id')} found in: {', '.join(sources)}"
         for source in dict.fromkeys(sources):
             duplicate_issues.setdefault(source, []).append(issue)
