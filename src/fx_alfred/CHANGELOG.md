@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+## v1.25.0 (2026-07-03)
+
+The sandboxed-worker development lane ships to every project: dispatch a
+sandboxed one-shot CLI worker (reference: `codex exec`) with a hardened
+contract, and instantiate the whole multi-agent loop for a new repo in
+minutes. Plus three data-integrity fixes in the document parser/formatter.
+
+### New Features
+
+- **COR-1628 (Sandboxed Worker CLI Dispatch)** — PKG-layer dispatch contract for
+  implementation workers running as external sandboxed one-shot CLIs: six-rule
+  invocation contract (stdin, background, approval pinning, effort scaling),
+  seven-block task-brief template, sandbox scope clause (with recommended
+  CLAUDE.md section), orchestrator verification checklist, and a failure-mode
+  table where every row traces to an observed failure (#284, FXA-2320).
+- **COR-1629 (Loop Config Starter Template)** — copy-paste blank COR-1622
+  instantiation form (all 30 keys, defaults marked) with the COR-1628 worker
+  lane and COR-1507 two-worker TDD options pre-wired; a new repo adopts the
+  COR-1617 loop in about ten minutes (#284, FXA-2320).
+
+### Bug Fixes
+
+- **`af fmt --write` no longer erases Change History cells beyond the third
+  column.** `HistoryRow` now carries the complete parsed cell list
+  (`cells` / `effective_cells`); alignment pads ragged rows instead of
+  truncating wide ones (#260, #281, FXA-2319).
+- **Metadata-block comments and blank lines survive every write command.**
+  `parse_metadata` stores unrecognized lines (`MetadataField.leading_lines`,
+  `trailing_metadata_lines`) and `render_document` re-emits them, so
+  `af update` / `af tag` / `af fmt --write` round-trip byte-identically;
+  leading lines travel with their field through metadata reorder (#261, #283).
+- **Branch-validation messages render sub-step IDs cleanly (`3a`, not `3'a'`),
+  and a loop condition that sanitizes to empty emits valid Mermaid (`-.->`)**
+  instead of the invalid empty-label form (#278, #282).
+
+### Stats
+
+- 1392 tests (18 new), all passing
+- 0 breaking changes
+
 ## v1.24.0 (2026-06-29)
 
 Tagging governance reaches the bundled layer: the document-tagging mechanism and
