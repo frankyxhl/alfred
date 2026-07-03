@@ -40,7 +40,7 @@ Six rules, each traced to an observed failure:
 
 1. **Close stdin.** Append `</dev/null`. With inherited non-tty stdin the CLI blocks on "reading additional input" forever.
 2. **Always run in the background** with output redirected to a log file. Foreground shells cap execution time below real task duration; the log file keeps the worker transcript out of the orchestrator's context. Read only the log tail.
-3. **Pin the working directory** with the CLI's project-dir flag (`-C <repo>` for codex) and grant write access only to the working tree (`--sandbox workspace-write`).
+3. **Pin the working directory** with the CLI's project-dir flag (`-C <local-repo-dir>` for codex; this is the local checkout path — NOT COR-1622's `<repo>`, which is the GitHub `owner/name`) and grant write access only to the working tree (`--sandbox workspace-write`).
 4. **Scale reasoning effort to task class**: `medium` for mechanical fixes with named lines; `high` for anything with a design decision (this SOP deliberately normalizes to these two tiers even where the CLI offers more). Brief quality dominates the effort knob — invest in the brief first.
 5. **Declare the sandbox scope in the brief** (see §Sandbox Scope Clause). Repo instruction files are written for networked orchestrators; a sandboxed worker following them stalls on unreachable services.
 6. **The orchestrator owns everything outside the working tree**: commit, push, PR, CI polling, review dispatch, identity checks. The brief says "do NOT commit" and the worker leaves changes uncommitted.
@@ -49,7 +49,7 @@ Reference invocation (codex; flags verified on codex-cli 0.142.x — re-verify a
 
 ```bash
 codex exec --skip-git-repo-check --sandbox workspace-write \
-  --ask-for-approval never -C <repo> \
+  --ask-for-approval never -C <local-repo-dir> \
   -m <model> -c model_reasoning_effort=<medium|high> \
   "$(cat brief.md)" </dev/null > worker-log.txt 2>&1 &
 ```
