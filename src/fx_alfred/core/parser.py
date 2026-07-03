@@ -173,11 +173,12 @@ def parse_metadata(content: str) -> ParsedDocument:
     # Everything from first --- onward is body + change history
     rest_lines = lines[sep_index:]
     rest_text = "\n".join(rest_lines)
+    annotated = list(iter_lines_with_fence_state(rest_text))
 
     # Try to find "## Change History" section
     history_section_idx = None
-    for i, line in enumerate(rest_lines):
-        if line.strip() == "## Change History":
+    for i, (line, fenced) in enumerate(annotated):
+        if not fenced and line.strip() == "## Change History":
             history_section_idx = i
             break
 
@@ -207,7 +208,8 @@ def parse_metadata(content: str) -> ParsedDocument:
     table_header_end = None
     for i in range(1, len(history_lines)):
         stripped = history_lines[i].strip()
-        if stripped.startswith("|") and "---" in stripped:
+        fenced = annotated[history_section_idx + i][1]
+        if not fenced and stripped.startswith("|") and "---" in stripped:
             table_header_end = i
             break
 

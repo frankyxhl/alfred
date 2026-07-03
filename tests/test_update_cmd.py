@@ -295,6 +295,54 @@ def test_update_history_pipe_escaping(tmp_path, monkeypatch):
     assert "X\\|Y" in content
 
 
+def test_update_history_ignores_fenced_change_history_example(tmp_path, monkeypatch):
+    """Append history to the real table, not a fenced example table."""
+    project = _make_project(
+        tmp_path,
+        """# TST-2100: Test Document
+
+**Applies to:** All projects
+**Status:** Draft
+**Last updated:** 2026-01-01
+
+---
+
+## What Is It?
+
+Example:
+
+```markdown
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 1999-01-01 | Fenced example | Nobody |
+```
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+""",
+    )
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--history", "Real change", "--by", "Frank"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2100-SOP-Test-Document.md").read_text()
+    assert content.rfind("## Change History") < content.rfind("Real change")
+    assert content.count("| 1999-01-01 | Fenced example | Nobody |") == 1
+
+
 # ── PRJ layer: rename ───────────────────────────────────────────────────────
 
 
