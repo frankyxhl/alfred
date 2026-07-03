@@ -348,6 +348,63 @@ Example:
 # ── PRJ layer: rename ───────────────────────────────────────────────────────
 
 
+def test_update_rename_case_only_title(tmp_path, monkeypatch):
+    """Case-only title rename succeeds on case-insensitive and case-sensitive filesystems.
+
+    On case-insensitive filesystems (macOS APFS), a rename that changes
+    only letter case (e.g., ``Four Col`` to ``FOUR COL``) must not falsely
+    trigger the collision guard.  The guard uses ``os.path.samefile()`` to
+    distinguish the same file (same inode) from a genuine collision at a
+    different inode.
+    """
+    # Detect filesystem case-sensitivity (diagnostic only — no skip)
+    probe = tmp_path / "case_probe.tmp"
+    probe.write_text("x")
+    fs_case_insensitive = (tmp_path / "CASE_PROBE.tmp").exists()
+
+    doc_content = """\
+# TST-2100: Four Col
+
+**Applies to:** All projects
+**Status:** Draft
+**Last updated:** 2026-01-01
+
+---
+
+## What Is It?
+
+A test document body.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+"""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-2100-SOP-Four-Col.md").write_text(doc_content)
+
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--title", "FOUR COL", "-y"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, (
+        f"Case-only rename failed (FS case-insensitive={fs_case_insensitive}):\n"
+        f"{result.output}"
+    )
+    new_path = rules / "TST-2100-SOP-FOUR-COL.md"
+    assert new_path.exists()
+    content = new_path.read_text()
+    assert "# TST-2100: FOUR COL" in content
+
+
 def test_update_rename_with_yes(tmp_path, monkeypatch):
     """Rename document with -y flag (no confirmation prompt)."""
     project = _make_project(tmp_path)
