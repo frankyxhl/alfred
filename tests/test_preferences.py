@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import yaml
 import pytest
 
@@ -221,3 +223,30 @@ def test_add_custom_tags_no_write_when_all_already_present():
     result = add_custom_tags(["foo"])
     assert result == ["foo"]
     assert prefs.stat().st_mtime_ns == mtime_before
+
+
+# ── Permission preservation (FXA-274) ───────────────────────────────────────
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="permission bits not portable on Windows"
+)
+def test_atomic_write_preserves_file_mode():
+    """_atomic_write preserves the existing preferences file's permission mode (FXA-274).
+
+    Regression: tempfile.mkstemp creates with mode 0o600; os.replace keeps that
+    mode, so a preferences.yaml with mode 0o640 (group-readable) is silently
+    narrowed to owner-only after any write operation.
+    """
+    prefs_path = preferences_path()
+    prefs_path.parent.mkdir(parents=True, exist_ok=True)
+    prefs_path.write_text("starred_docs:\n- COR-1001\n", encoding="utf-8")
+    prefs_path.chmod(0o640)
+    assert (prefs_path.stat().st_mode & 0o777) == 0o640  # precondition
+
+    add_custom_tags(["test-tag"])
+
+    mode = prefs_path.stat().st_mode
+    assert (mode & 0o777) == 0o640, f"Expected 0o640, got {oct(mode & 0o777)}"
+    # Verify content was actually written (the write path did execute)
+    assert "test-tag" in prefs_path.read_text()

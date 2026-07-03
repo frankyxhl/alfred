@@ -1,3 +1,5 @@
+import os
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -222,6 +224,59 @@ def test_atomic_write_preserves_existing(tmp_path):
 
     # Original file should be unchanged
     assert file_path.read_text() == original_content
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="permission bits not portable on Windows"
+)
+def test_atomic_write_preserves_permissions(tmp_path):
+    """atomic_write preserves the target file's permission bits (FXA-274).
+
+    Regression: tempfile.mkstemp creates with mode 0o600; os.replace
+    keeps that mode, so the target's original permissions were silently
+    narrowed to owner-only.
+    """
+    from fx_alfred.commands._helpers import atomic_write
+
+    file_path = tmp_path / "test.md"
+    original_content = "# Original\n"
+    new_content = "# New Content\n"
+
+    file_path.write_text(original_content)
+    file_path.chmod(0o664)
+    assert (file_path.stat().st_mode & 0o777) == 0o664  # precondition
+
+    atomic_write(file_path, new_content)
+
+    assert file_path.read_text() == new_content
+    mode = file_path.stat().st_mode
+    assert (mode & 0o777) == 0o664, f"Expected 0o664, got {oct(mode & 0o777)}"
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="permission bits not portable on Windows"
+)
+def test_atomic_write_new_file_respects_umask(tmp_path):
+    """atomic_write creates new files with umask-respecting permissions (FXA-274).
+
+    Current behaviour (mkstemp default 0o600) ignores the process umask.
+    Fix uses 0o666 & ~umask so group/other read is controlled by umask.
+    """
+    from fx_alfred.commands._helpers import atomic_write
+
+    file_path = tmp_path / "new.md"
+    content = "# New File\n"
+
+    old_umask = os.umask(0o022)
+    try:
+        atomic_write(file_path, content)
+        mode = file_path.stat().st_mode
+        expected = 0o666 & ~0o022  # 0o644
+        assert (mode & 0o777) == expected, (
+            f"Expected {oct(expected)}, got {oct(mode & 0o777)}"
+        )
+    finally:
+        os.umask(old_umask)
 
 
 # ── invoke_index_update tests (FXA-2166) ───────────────────────────────────

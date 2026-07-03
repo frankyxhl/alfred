@@ -1,5 +1,7 @@
 """Tests for af update command (PRP-2104)."""
 
+import sys
+
 import pytest
 
 
@@ -1218,3 +1220,35 @@ def test_update_rename_real_type_code_format(tmp_path, monkeypatch):
     content = new_path.read_text()
     # H1 should preserve the type_code format from the original document
     assert "# SOP-2100: Renamed Document" in content
+
+
+# ── Permission preservation (FXA-274) ───────────────────────────────────────
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="permission bits not portable on Windows"
+)
+def test_update_preserves_file_permissions(tmp_path, monkeypatch):
+    """af update preserves the document file's permission bits (FXA-274).
+
+    Regression: atomic_write uses tempfile.mkstemp (mode 0o600); os.replace
+    keeps that mode, silently narrowing a 0o664/0o644 doc to owner-only.
+    """
+    project = _make_project(tmp_path)
+    doc_path = project / "rules" / "TST-2100-SOP-Test-Document.md"
+    doc_path.chmod(0o664)
+    assert (doc_path.stat().st_mode & 0o777) == 0o664  # precondition
+
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "Active"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    content = doc_path.read_text()
+    assert "**Status:** Active" in content
+    mode = doc_path.stat().st_mode
+    assert (mode & 0o777) == 0o664, f"Expected 0o664, got {oct(mode & 0o777)}"
