@@ -219,51 +219,57 @@ def normalize_table_alignment(parsed: ParsedDocument) -> bool:
         cells = [c.strip() for c in re.split(r"(?<!\\)\|", inner)]
         return cells
 
+    def pad_cells(cells: list[str], num_cols: int) -> list[str]:
+        padded = list(cells)
+        while len(padded) < num_cols:
+            padded.append("")
+        return padded
+
+    def align_cells(cells: list[str], widths: list[int]) -> list[str]:
+        return [
+            cell.ljust(width) if width > 0 else cell
+            for cell, width in zip(cells, widths)
+        ]
+
     def render_row(cells: list[str], widths: list[int]) -> str:
-        padded = [c.ljust(w) if w > 0 else c for c, w in zip(cells, widths)]
+        padded = align_cells(cells, widths)
         return "| " + " | ".join(padded) + " |"
 
     def render_sep(widths: list[int]) -> str:
         return "|" + "|".join("-" * (w + 2) for w in widths) + "|"
 
     header_cells = parse_row(header_line)
-    num_cols = len(header_cells)
+    row_cells = [list(row.effective_cells) for row in parsed.history_rows]
+    num_cols = max(
+        len(header_cells),
+        max((len(cells) for cells in row_cells), default=0),
+    )
 
     # Collect all row DATA values (not the padded header text)
     # For header, we use the cell values without padding
-    # For data rows, we use the HistoryRow values
-    all_row_data: list[list[str]] = [header_cells]
-    for row in parsed.history_rows:
-        row_cells = [row.date, row.change, row.by]
-        # Pad to num_cols
-        while len(row_cells) < num_cols:
-            row_cells.append("")
-        all_row_data.append(row_cells[:num_cols])
+    # For data rows, we use the full effective HistoryRow cell list.
+    padded_header_cells = pad_cells(header_cells, num_cols)
+    padded_row_cells = [pad_cells(cells, num_cols) for cells in row_cells]
+    all_row_data: list[list[str]] = [padded_header_cells, *padded_row_cells]
 
     # Compute max width for each column based on DATA values
     widths = [0] * num_cols
     for row in all_row_data:
         for i, cell in enumerate(row):
-            if i < len(widths):
-                widths[i] = max(widths[i], len(cell))
+            widths[i] = max(widths[i], len(cell))
 
     # Compute new rendered strings
-    new_header_str = render_row(header_cells, widths)
+    new_header_str = render_row(padded_header_cells, widths)
     new_sep_str = render_sep(widths)
-    new_rows = []
-    for row in parsed.history_rows:
-        row_cells = [row.date.strip(), row.change.strip(), row.by.strip()]
-        while len(row_cells) < num_cols:
-            row_cells.append("")
-        new_rows.append(render_row(row_cells[:num_cols], widths))
+    new_rows = [render_row(cells, widths) for cells in padded_row_cells]
 
     # Get original rendered rows for comparison
     original_rows = []
     for row in parsed.history_rows:
-        row_cells = [row.date, row.change, row.by]
-        while len(row_cells) < num_cols:
-            row_cells.append("")
-        original_rows.append("| " + " | ".join(c for c in row_cells[:num_cols]) + " |")
+        if not row.dirty and row.raw_line:
+            original_rows.append(row.raw_line.strip())
+        else:
+            original_rows.append("| " + " | ".join(row.effective_cells) + " |")
 
     if (
         header_line == new_header_str
@@ -275,17 +281,12 @@ def normalize_table_alignment(parsed: ParsedDocument) -> bool:
 
     # Apply changes
     parsed.history_header = f"{heading_line}\n\n{new_header_str}\n{new_sep_str}"
-    for row in parsed.history_rows:
-        cells = [row.date.strip(), row.change.strip(), row.by.strip()]
-        while len(cells) < num_cols:
-            cells.append("")
-        cells = cells[:num_cols]
-        if num_cols > 0:
-            row.date = cells[0].ljust(widths[0]) if widths[0] > 0 else cells[0]
-        if num_cols > 1:
-            row.change = cells[1].ljust(widths[1]) if widths[1] > 0 else cells[1]
-        if num_cols > 2:
-            row.by = cells[2].ljust(widths[2]) if widths[2] > 0 else cells[2]
+    for row, cells in zip(parsed.history_rows, padded_row_cells):
+        aligned_cells = align_cells(cells, widths)
+        row.cells = aligned_cells
+        row.date = aligned_cells[0] if num_cols > 0 else ""
+        row.change = aligned_cells[1] if num_cols > 1 else ""
+        row.by = aligned_cells[2] if num_cols > 2 else ""
         row.dirty = True
     return True
 

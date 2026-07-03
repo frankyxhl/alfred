@@ -833,6 +833,47 @@ def test_update_history_escaped_pipe_preserved(tmp_path, monkeypatch):
     assert f"| {date.today().isoformat()} | new entry |" in content
 
 
+SAMPLE_DOC_WIDE_HISTORY = """\
+# SOP-2100: Test Document
+
+**Applies to:** All projects
+**Status:** Draft
+**Last updated:** 2026-01-01
+
+---
+
+## What Is It?
+
+A test document body.
+
+---
+
+## Change History
+
+| Date | Change | By | Reviewer | Evidence |
+|------|--------|----|----------|----------|
+| 2026-01-01 | Initial version | Author | GLM | PR #260 |
+"""
+
+
+def test_update_history_append_preserves_existing_wide_rows(tmp_path, monkeypatch):
+    """Appending history must not collapse existing rows to the first three cells."""
+    from datetime import date
+
+    project = _make_project(tmp_path, SAMPLE_DOC_WIDE_HISTORY)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--history", "Follow-up entry", "--by", "Frank"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2100-SOP-Test-Document.md").read_text()
+    assert "| 2026-01-01 | Initial version | Author | GLM | PR #260 |" in content
+    assert f"| {date.today().isoformat()} | Follow-up entry | Frank |" in content
+
+
 # ── Fix 2: Parse/render round-trip fidelity ─────────────────────────────────
 
 

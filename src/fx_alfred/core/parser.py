@@ -28,7 +28,13 @@ class MetadataField:
 
 @dataclass
 class HistoryRow:
-    """A single row in the Change History table."""
+    """A single row in the Change History table.
+
+    ``cells`` stores the complete parsed row. When empty, renderers fall
+    back to the compatibility date/change/by fields so older construction
+    sites still produce a canonical three-column row. Dirty rows render from
+    the full effective cell list.
+    """
 
     date: str
     change: str
@@ -37,6 +43,12 @@ class HistoryRow:
     dirty: bool = (
         False  # True when cells have been modified (forces re-render from values)
     )
+    cells: list[str] = field(default_factory=list)
+
+    @property
+    def effective_cells(self) -> list[str]:
+        """Return the cells to render or align for this row."""
+        return self.cells if self.cells else [self.date, self.change, self.by]
 
 
 @dataclass
@@ -226,6 +238,7 @@ def parse_metadata(content: str) -> ParsedDocument:
                     date=cells[0] if cells else "",
                     change=cells[1] if len(cells) > 1 else "",
                     by=cells[2] if len(cells) > 2 else "",
+                    cells=cells,
                     raw_line=line,
                 )
             )
@@ -288,7 +301,7 @@ def render_document(parsed: ParsedDocument) -> str:
             if not row.dirty and row.raw_line:
                 lines.append(row.raw_line)
             else:
-                lines.append(f"| {row.date} | {row.change} | {row.by} |")
+                lines.append("| " + " | ".join(row.effective_cells) + " |")
         if parsed.trailing:
             lines.append(parsed.trailing)
 
