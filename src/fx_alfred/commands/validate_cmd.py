@@ -316,23 +316,11 @@ def _emit_validation_output(
     """Emit validation findings in JSON or text form."""
     if output_json:
         results = []
-        hide_clean_pkg = any(
-            issue.startswith("Duplicate ")
-            for issues in issues_by_path.values()
-            for issue in issues
-        )
         for doc in docs:
             doc_id = f"{doc.prefix}-{doc.acid}"
             doc_path = _doc_path(doc, root)
             doc_errors = issues_by_path.get(doc_path, [])
             doc_warnings = warnings_by_path.get(doc_path, [])
-            if (
-                hide_clean_pkg
-                and doc.source == "pkg"
-                and not doc_errors
-                and not doc_warnings
-            ):
-                continue
             results.append(
                 {
                     "doc_id": doc_id,

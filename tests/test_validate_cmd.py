@@ -3264,23 +3264,125 @@ def test_validate_duplicate_json_has_path_field_and_distinct_entries(tmp_path):
     payload = json.loads(result.output)
     results = payload["results"]
 
-    # Two distinct entries (one per file), NOT one entry shadowing the other
-    assert len(results) == 2, (
-        f"Expected 2 result entries (one per file), got {len(results)}: {results}"
+    # Both duplicate-doc entries MUST be present (each with a "path" field,
+    # distinct paths, and the duplicate issue in errors).  Do NOT constrain
+    # the total result count — JSON now emits an entry for every scanned
+    # document (including PKG layer), so the count depends on the corpus.
+    first = next((r for r in results if "First-Doc" in r.get("path", "")), None)
+    second = next((r for r in results if "Second-Doc" in r.get("path", "")), None)
+    assert first is not None, (
+        f"First-Doc entry missing from results (got {len(results)} entries)"
+    )
+    assert second is not None, (
+        f"Second-Doc entry missing from results (got {len(results)} entries)"
     )
 
-    # Each entry must carry a "path" field
-    for entry in results:
-        assert "path" in entry, f"Result entry missing 'path' field: {entry}"
+    # Each carries a "path" field (verified by the lookup above via .get("path")).
+    assert "path" in first
+    assert "path" in second
 
-    # Paths must differ (they are different files)
-    paths = [r["path"] for r in results]
-    assert paths[0] != paths[1], f"Both entries have same path: {paths[0]}"
+    # Paths must be distinct (different files).
+    assert first["path"] != second["path"], (
+        f"Both duplicate entries have same path: {first['path']}"
+    )
 
-    # Paths should contain identifiable filename components
-    path_strs = " ".join(paths)
-    assert "First-Doc" in path_strs or "First" in path_strs
-    assert "Second-Doc" in path_strs or "Second" in path_strs
+    # Each entry's errors must include the duplicate issue.
+    assert any("Duplicate SOP-2100" in e for e in first["errors"]), (
+        f"First-Doc errors missing duplicate issue: {first['errors']}"
+    )
+    assert any("Duplicate SOP-2100" in e for e in second["errors"]), (
+        f"Second-Doc errors missing duplicate issue: {second['errors']}"
+    )
+
+
+def test_validate_duplicate_issues_from_layer_errors_round_trip(tmp_path):
+    """_duplicate_issues_from_layer_errors correctly parses the real scanner
+    LayerValidationError message format.  A format change in scanner.py
+    (~line 145) breaks THIS test loudly instead of silently dropping
+    duplicate reporting.
+
+    Covers two cases:
+    1. Synthetic: construct a known error string matching the scanner's
+       ``f"Duplicate {key} found in: {', '.join(sources)}"`` format and
+       assert the parser produces the expected mapping.
+    2. Parity: generate a REAL LayerValidationError by scanning a temp
+       root with actual duplicate docs, then feed its .errors through the
+       parser — result must be non-empty.
+    """
+    from fx_alfred.commands.validate_cmd import _duplicate_issues_from_layer_errors
+    from fx_alfred.core.scanner import LayerValidationError, scan_documents
+
+    # -- Case 1: synthetic, mirroring scanner.py ~line 145 format --
+    errors = [
+        "Duplicate TST-8898 found in: prj:TST-8898-SOP-A.md, prj:TST-8898-SOP-B.md"
+    ]
+    result = _duplicate_issues_from_layer_errors(errors)
+
+    expected_issue = (
+        "Duplicate TST-8898 found in: prj:TST-8898-SOP-A.md, prj:TST-8898-SOP-B.md"
+    )
+    assert len(result) == 2, f"Expected 2 source keys, got {len(result)}: {result}"
+    assert result["prj:TST-8898-SOP-A.md"] == [expected_issue]
+    assert result["prj:TST-8898-SOP-B.md"] == [expected_issue]
+
+    # -- Case 2: parity — real LayerValidationError from scan_documents --
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(rules_dir / "TST-8899-SOP-A.md", "TST", "8899", "SOP", "A")
+    _write_valid_document(rules_dir / "TST-8899-SOP-B.md", "TST", "8899", "SOP", "B")
+
+    try:
+        scan_documents(tmp_path)
+        pytest.fail(
+            "scan_documents should have raised LayerValidationError for "
+            "duplicate TST-8899"
+        )
+    except LayerValidationError as exc:
+        real_result = _duplicate_issues_from_layer_errors(exc.errors)
+        assert len(real_result) > 0, (
+            f"Real LayerValidationError.errors should produce non-empty "
+            f"result; errors={exc.errors}"
+        )
+        # At least one source key should reference a TST-8899 doc.
+        assert any("TST-8899" in k for k in real_result), (
+            f"Real result keys should include TST-8899 source labels: "
+            f"{list(real_result.keys())}"
+        )
+
+
+def test_validate_explicit_id_with_duplicates_ambiguous_error(tmp_path):
+    """``af validate TST-2100`` with two TST-2100 docs raises
+    AmbiguousDocumentError (via ClickException).  Pins the CURRENT
+    observed behavior so future changes to explicit-ID duplicate handling
+    are deliberate.
+
+    Observed behavior (2026-07-04, FXA-266 branch):
+    - Exit code 1 (ClickException propagated as SystemExit).
+    - Error message: "Ambiguous ACID TST-2100. Multiple matches: TST-2100,
+      TST-2100. Use PREFIX-ACID to be precise."
+    - The duplicate docs share prefix+acid, so both matches display the
+      same ID — the current AmbiguousDocumentError only renders PREFIX-ACID,
+      not filenames.
+
+    If this test breaks, the change to explicit-ID-vs-duplicates handling
+    was intentional — update this docstring and the assertion below.
+    """
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_valid_document(rules_dir / "TST-2100-SOP-A.md", "TST", "2100", "SOP", "A")
+    _write_valid_document(rules_dir / "TST-2100-SOP-B.md", "TST", "2100", "SOP", "B")
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "TST-2100", "--root", str(tmp_path)])
+
+    # Pinning CURRENT observed behavior:
+    assert result.exit_code != 0
+    assert "Ambiguous" in result.output
+    assert "TST-2100" in result.output
+    assert "PREFIX-ACID" in result.output
+    # Confirm it's the ClickException path, not a usage error.
+    assert "unexpected extra argument" not in result.output
 
 
 def test_validate_duplicate_cross_layer_reported(tmp_path):
