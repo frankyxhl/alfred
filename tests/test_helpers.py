@@ -279,6 +279,32 @@ def test_atomic_write_new_file_respects_umask(tmp_path):
         os.umask(old_umask)
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="permission bits not portable on Windows"
+)
+def test_atomic_write_new_file_respects_umask_077(tmp_path):
+    """atomic_write creates new files with umask-respecting permissions (FXA-274).
+
+    Tests a tighter umask (0o077 → expected mode 0o600) to pin the
+    resolve_write_mode new-file branch with a different umask value.
+    """
+    from fx_alfred.commands._helpers import atomic_write
+
+    file_path = tmp_path / "new_restricted.md"
+    content = "# Restricted File\n"
+
+    old_umask = os.umask(0o077)
+    try:
+        atomic_write(file_path, content)
+        mode = file_path.stat().st_mode
+        expected = 0o666 & ~0o077  # 0o600
+        assert (mode & 0o777) == expected, (
+            f"Expected {oct(expected)}, got {oct(mode & 0o777)}"
+        )
+    finally:
+        os.umask(old_umask)
+
+
 # ── invoke_index_update tests (FXA-2166) ───────────────────────────────────
 
 

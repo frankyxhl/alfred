@@ -3,7 +3,6 @@
 import importlib
 import json
 import os
-import stat
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -12,6 +11,7 @@ import click
 
 from fx_alfred.context import get_root
 from fx_alfred.core.document import Document
+from fx_alfred.core.fsmode import resolve_write_mode
 from fx_alfred.core.scanner import (
     AmbiguousDocumentError,
     DocumentNotFoundError,
@@ -114,13 +114,7 @@ def atomic_write(path: Path, content: str) -> None:
     Raises:
         OSError: If file operations fail (propagated after cleanup).
     """
-    if path.exists():
-        mode = stat.S_IMODE(path.stat().st_mode)
-    else:
-        # Read the process umask via the standard round-trip; this CLI is single-threaded.
-        current_umask = os.umask(0)
-        os.umask(current_umask)
-        mode = 0o666 & ~current_umask
+    mode = resolve_write_mode(path)
 
     fd, tmp_path_str = tempfile.mkstemp(dir=str(path.parent), suffix=".md.tmp")
     try:

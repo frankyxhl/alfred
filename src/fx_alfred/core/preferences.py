@@ -8,12 +8,13 @@ click.ClickException at the CLI boundary.
 from __future__ import annotations
 
 import os
-import stat
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from fx_alfred.core.fsmode import resolve_write_mode
 
 
 _HEADER_COMMENT = "# Managed by `af star` and `af tag vocab`; safe to edit by hand.\n"
@@ -55,13 +56,7 @@ def load_preferences() -> dict[str, Any]:
 def _atomic_write(path: Path, content: str) -> None:
     """Write content to path via tempfile + os.replace (no .tmp leftover)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        mode = stat.S_IMODE(path.stat().st_mode)
-    else:
-        # Read the process umask via the standard round-trip; this CLI is single-threaded.
-        current_umask = os.umask(0)
-        os.umask(current_umask)
-        mode = 0o666 & ~current_umask
+    mode = resolve_write_mode(path)
 
     fd, tmp_path = tempfile.mkstemp(
         prefix=".preferences.", suffix=".tmp", dir=str(path.parent)

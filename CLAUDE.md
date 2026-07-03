@@ -85,6 +85,7 @@ src/fx_alfred/
 │   ├── compose.py         # af plan --task auto-composition; raises CompositionError
 │   ├── dag_graph.py       # nested phase-box DAG renderer
 │   ├── document.py        # Document dataclass, FILENAME_PATTERN
+│   ├── fsmode.py          # resolve_write_mode() — shared atomic-write mode resolution (FXA-274)
 │   ├── mermaid.py         # Mermaid diagram renderer
 │   ├── normalize.py       # slugify(), sort_metadata(), normalize_date(), strip_trailing_whitespace()
 │   ├── parser.py          # parse_metadata(), render_document(), extract_section(), fence-state iterator
