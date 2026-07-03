@@ -3095,3 +3095,244 @@ def test_validate_valid_custom_tags_list_accepted_as_vocab(tmp_path):
 
     assert result.exit_code == 0, result.output
     assert "out-of-vocabulary" not in result.output
+
+
+# ── FXA-266: duplicate PREFIX-ACID validation ────────────────────────────────
+#
+# Bug: _load_corpus_and_targets catches LayerValidationError and re-scans
+# with validate_layers=False, so duplicates are silently swallowed.  Moreover,
+# issues_by_doc is keyed by doc_id (PREFIX-ACID), so two same-ID files collide:
+# one file's issues shadow the other's, printed line count disagrees with the
+# summary, and JSON output produces only one entry for both files.
+#
+# Tests 1-3 cover same-layer duplicates (both in PRJ rules/).
+# Test 4 covers cross-layer duplicates (PRJ + USR via ~/.alfred/).
+# Guard (clean corpus → exit 0, no duplicates) is already covered by
+# test_validate_valid_documents_exit_0 (two docs with distinct PREFIX-ACID).
+
+
+def test_validate_duplicate_exits_nonzero_and_names_both_files(tmp_path):
+    """Two docs sharing SOP-2100 in same layer → exit non-zero, duplicate issue
+    names BOTH file paths (substring assertions on both filenames)."""
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_valid_document(
+        rules_dir / "SOP-2100-SOP-First-Doc.md",
+        "SOP",
+        "2100",
+        "SOP",
+        "First Doc",
+    )
+    _write_valid_document(
+        rules_dir / "SOP-2100-SOP-Second-Doc.md",
+        "SOP",
+        "2100",
+        "SOP",
+        "Second Doc",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for duplicate docs, "
+        f"got {result.exit_code}\n{result.output}"
+    )
+    assert "SOP-2100" in result.output
+    assert "duplicate" in result.output.lower()
+    # Both filenames must appear (substring assertions)
+    assert "SOP-2100-SOP-First-Doc.md" in result.output
+    assert "SOP-2100-SOP-Second-Doc.md" in result.output
+
+
+def test_validate_duplicate_issue_count_matches_printed_lines(tmp_path):
+    """Duplicate docs where one has an extra issue: each file's issues
+    attributed to its own path only; number of printed '- ' issue lines
+    equals the summary count (parse 'N issues found')."""
+    import re
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # First doc: valid SOP
+    _write_valid_document(
+        rules_dir / "SOP-2100-SOP-First-Doc.md",
+        "SOP",
+        "2100",
+        "SOP",
+        "First Doc",
+    )
+
+    # Second doc: same prefix+acid, BUT missing "Last reviewed" metadata
+    content_missing = """# SOP-2100: Second Doc
+
+**Applies to:** All projects
+**Last updated:** 2026-03-14
+**Status:** Active
+
+---
+
+## What Is It?
+
+Missing Last reviewed.
+
+## Why
+
+Test.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-14 | Initial version | Frank |
+"""
+    (rules_dir / "SOP-2100-SOP-Second-Doc.md").write_text(content_missing)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0
+
+    # Each duplicate file gets a duplicate issue; the second file also has a
+    # "Missing required metadata field: 'Last reviewed'" issue.
+    # Total: 3 issue lines printed (2 duplicate + 1 missing-field).
+    match = re.search(r"(\d+) issues found", result.output)
+    assert match is not None, f"Summary line not found in:\n{result.output}"
+    reported_count = int(match.group(1))
+
+    issue_lines = [
+        line for line in result.output.split("\n") if line.startswith("  - ")
+    ]
+    assert len(issue_lines) == reported_count, (
+        f"Printed {len(issue_lines)} issue line(s) but summary says "
+        f"{reported_count}\nOutput:\n{result.output}"
+    )
+
+    # The second doc's own issue is present (not shadowed by the first doc)
+    assert "Missing required metadata field: 'Last reviewed'" in result.output
+
+    # Both filenames appear somewhere in the output
+    assert "SOP-2100-SOP-First-Doc.md" in result.output
+    assert "SOP-2100-SOP-Second-Doc.md" in result.output
+
+
+def test_validate_duplicate_json_has_path_field_and_distinct_entries(tmp_path):
+    """JSON mode: duplicate docs produce distinct entries with a 'path' field
+    disambiguating them."""
+    import json
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    _write_valid_document(
+        rules_dir / "SOP-2100-SOP-First-Doc.md",
+        "SOP",
+        "2100",
+        "SOP",
+        "First Doc",
+    )
+    _write_valid_document(
+        rules_dir / "SOP-2100-SOP-Second-Doc.md",
+        "SOP",
+        "2100",
+        "SOP",
+        "Second Doc",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path), "--json"])
+
+    # Duplicate issues → exit non-zero
+    assert result.exit_code != 0
+
+    payload = json.loads(result.output)
+    results = payload["results"]
+
+    # Two distinct entries (one per file), NOT one entry shadowing the other
+    assert len(results) == 2, (
+        f"Expected 2 result entries (one per file), got {len(results)}: {results}"
+    )
+
+    # Each entry must carry a "path" field
+    for entry in results:
+        assert "path" in entry, f"Result entry missing 'path' field: {entry}"
+
+    # Paths must differ (they are different files)
+    paths = [r["path"] for r in results]
+    assert paths[0] != paths[1], f"Both entries have same path: {paths[0]}"
+
+    # Paths should contain identifiable filename components
+    path_strs = " ".join(paths)
+    assert "First-Doc" in path_strs or "First" in path_strs
+    assert "Second-Doc" in path_strs or "Second" in path_strs
+
+
+def test_validate_duplicate_cross_layer_reported(tmp_path):
+    """Cross-layer duplicate (PRJ + USR with same PREFIX-ACID) → flagged as
+    duplicate, exit non-zero.
+
+    RED guard: currently _load_corpus_and_targets catches LayerValidationError,
+    re-scans without validation, and the duplicate is never surfaced per-doc.
+    This test pins the expected behaviour after the fix.
+    """
+    from pathlib import Path
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # PRJ layer doc
+    _write_valid_document(
+        rules_dir / "SOP-2669-SOP-PRJ-Doc.md",
+        "SOP",
+        "2669",
+        "SOP",
+        "PRJ Doc",
+    )
+
+    # USR layer doc — same prefix+acid, different filename
+    alfred_dir = Path.home() / ".alfred"
+    alfred_dir.mkdir(parents=True, exist_ok=True)
+    usr_doc_path = alfred_dir / "SOP-2669-SOP-USR-Doc.md"
+
+    try:
+        _write_valid_document(
+            usr_doc_path,
+            "SOP",
+            "2669",
+            "SOP",
+            "USR Doc",
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+        # Cross-layer duplicates must be reported
+        assert result.exit_code != 0, (
+            f"Expected non-zero exit for cross-layer duplicate, "
+            f"got {result.exit_code}\n{result.output}"
+        )
+        assert "SOP-2669" in result.output
+        assert "duplicate" in result.output.lower()
+
+        # Both source:filename references should appear
+        assert "PRJ-Doc" in result.output
+        assert "USR-Doc" in result.output
+    finally:
+        if usr_doc_path.exists():
+            usr_doc_path.unlink()
