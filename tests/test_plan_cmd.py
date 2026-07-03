@@ -2914,6 +2914,60 @@ def test_plan_malformed_only_gate(tmp_path):
     assert "malformed" in skipped["reason"].lower()
 
 
+def test_plan_task_malformed_sop_all_skipped_gate(tmp_path):
+    """--task with matching but malformed SOP exits non-zero, composition_valid false.
+
+    When --task auto-composition resolves SOPs that _collect_phase_info
+    then skips (e.g. malformed), the all-skipped gate must fire regardless
+    of ID origin (auto-composed vs explicit). Currently RED: explicit_sop_ids
+    is empty for pure --task invocations, so the gate at L1039 is bypassed
+    and the command exits 0 with a valid-looking empty plan.
+    """
+    import json
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+
+    # SOP with Task tags that match the query AND malformed Workflow loops
+    # so _collect_phase_info skips it (parse_workflow_loops raises
+    # MalformedDocumentError on "from: not-an-int").
+    (rules / "TST-9001-SOP-Malformed-Task.md").write_text(
+        "# TST-9001: Malformed Task SOP\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n"
+        "**Task tags:** [implement, feature]\n"
+        '**Workflow loops:** [{id: bad, from: not-an-int, to: 1, max_iterations: 3, condition: "test"}]\n'
+        "\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "A test SOP that matches --task query but has malformed loops.\n\n"
+        "## Steps\n\n"
+        "1. First step\n"
+        "2. Second step\n"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--task", "implement feature", "--json", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for all-skipped via --task, got {result.exit_code}"
+    )
+
+    data = json.loads(result.output)
+    assert data["composition_valid"] is False, (
+        f"Expected composition_valid=False, got {data['composition_valid']}"
+    )
+    assert "skipped" in data
+    assert len(data["skipped"]) >= 1
+    assert any("malformed" in s["reason"] for s in data["skipped"]), (
+        f"Expected malformed reason in skipped, got {data['skipped']}"
+    )
+
+
 def test_plan_all_sop_unchanged(sample_project, monkeypatch):
     """Normal all-SOP plan is unaffected by the empty-gate — regression test.
 
