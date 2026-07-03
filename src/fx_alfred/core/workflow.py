@@ -22,6 +22,7 @@ from fx_alfred.core.schema import (
     WORKFLOW_LOOPS,
     WORKFLOW_BRANCHES,
 )
+from fx_alfred.core.steps import extract_steps_section
 
 # Token format per the CHG-2204 contract.
 _TOKEN_RE = re.compile(r"^[a-z0-9][a-z0-9:_/-]*$")
@@ -429,10 +430,9 @@ def validate_branches(
 
     # Pull the actual ## Steps lines (in document order) for sub-step
     # presence and contiguity checks.
-    from fx_alfred.core.parser import extract_section as _extract_section
     from fx_alfred.core.parser import iter_lines_with_fence_state
 
-    section = _extract_section(parsed.body, "Steps") if parsed.body else None
+    section = extract_steps_section(parsed.body) if parsed.body else None
     sub_steps_in_order: list[tuple[int, str]] = []  # [(parent, branch), ...]
     plain_step_positions: dict[int, int] = {}  # int_index -> first occurrence
     if section is not None:
@@ -706,10 +706,9 @@ def _parse_step_indices(parsed: ParsedDocument) -> frozenset[int] | None:
     parent step 3 into existence checks for `Workflow loops.from/to: 3`
     (Codex PR #68 R3 inline review).
     """
-    from fx_alfred.core.parser import extract_section
     from fx_alfred.core.steps import parse_top_level_step_indices
 
-    section = extract_section(parsed.body, "Steps")
+    section = extract_steps_section(parsed.body)
     if section is None:
         return None
     return parse_top_level_step_indices(section)
