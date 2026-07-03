@@ -52,6 +52,14 @@ def _get_doc_type(doc_type_code: str) -> DocType | None:
         return None
 
 
+def _is_same_file(file_path: Path, new_file_path: Path) -> bool:
+    try:
+        # samefile checks same inode; keeps case-only renames on case-insensitive FS.
+        return file_path.exists() and new_file_path.samefile(file_path)
+    except OSError:
+        return False
+
+
 def _replace_section_in_body(
     body: str, section_name: str, new_content: str
 ) -> tuple[str, bool]:
@@ -311,9 +319,8 @@ def update_cmd(
             )
 
         new_file_path = file_path.parent / new_filename
-        if new_file_path.exists() and not (
-            file_path.exists() and file_path.samefile(new_file_path)
-        ):
+        is_same = _is_same_file(file_path, new_file_path)
+        if new_file_path.exists() and not is_same:
             raise click.ClickException(f"Target path already exists: {new_file_path}")
 
         # Interactive confirmation (skip for dry-run)

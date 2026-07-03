@@ -465,6 +465,52 @@ def test_update_rename_conflict(tmp_path, monkeypatch):
     assert "already exists" in result.output
 
 
+def test_update_rename_file_collision(tmp_path, monkeypatch):
+    """Rename fails when target path already exists as a file (different inode).
+
+    The existing ``test_update_rename_conflict`` blocks with a directory.
+    This test verifies the collision guard also catches a genuine
+    file-vs-file collision — two different inodes at the same path.
+    The scanner is monkeypatched to return only the source document so
+    the colliding target file does not cause ambiguity during resolution.
+    """
+    from fx_alfred.core.scanner import scan_documents
+
+    project = _make_project(tmp_path)
+    rules = project / "rules"
+
+    # Resolve doc A before creating the colliding file
+    monkeypatch.chdir(project)
+    docs = scan_documents(project)
+    doc_a = [d for d in docs if d.prefix == "TST" and d.acid == "2100"][0]
+
+    # Create a genuine file (not a directory) at the rename target path
+    target = rules / "TST-2100-SOP-Beta-Doc.md"
+    target.write_text("colliding file content")
+
+    # Monkeypatch the scanner so the colliding file is invisible to doc resolution
+    monkeypatch.setattr(
+        "fx_alfred.commands.update_cmd.scan_or_fail",
+        lambda ctx: [doc_a],
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--title", "Beta Doc", "-y"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert "Target path already exists" in result.output
+    # Source file still exists with original content
+    source = rules / "TST-2100-SOP-Test-Document.md"
+    assert source.exists()
+    assert "TST-2100: Test Document" in source.read_text()
+    # Colliding file untouched
+    assert target.read_text() == "colliding file content"
+
+
 def test_update_rename_bad_title_path_separator(tmp_path, monkeypatch):
     """Rename rejects titles with path separators."""
     project = _make_project(tmp_path)
