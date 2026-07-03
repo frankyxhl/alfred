@@ -2915,32 +2915,31 @@ def test_plan_malformed_only_gate(tmp_path):
 
 
 def test_plan_task_malformed_sop_all_skipped_gate(tmp_path):
-    """--task with matching but malformed SOP exits non-zero, composition_valid false.
+    """--task with uniquely tagged malformed SOP exits non-zero, composition_valid false.
 
-    When --task auto-composition resolves SOPs that _collect_phase_info
-    then skips (e.g. malformed), the all-skipped gate must fire regardless
-    of ID origin (auto-composed vs explicit). Currently RED: explicit_sop_ids
-    is empty for pure --task invocations, so the gate at L1039 is bypassed
-    and the command exits 0 with a valid-looking empty plan.
+    Uses a unique Task tag vocabulary (zzquuxonly) that matches no bundled SOP,
+    so auto-composition resolves ONLY the malformed PRJ doc (plus always-SOPs,
+    which the all-requested gate excludes). This ensures the gate fires: when
+    every requested non-always SOP was skipped, the command exits non-zero.
     """
     import json
 
     rules = tmp_path / "rules"
     rules.mkdir()
 
-    # SOP with Task tags that match the query AND malformed Workflow loops
-    # so _collect_phase_info skips it (parse_workflow_loops raises
-    # MalformedDocumentError on "from: not-an-int").
+    # SOP with UNIQUE Task tag (zzquuxonly — matches no bundled SOP) AND
+    # malformed Workflow loops so _collect_phase_info skips it
+    # (parse_workflow_loops raises MalformedDocumentError on "from: not-an-int").
     (rules / "TST-9001-SOP-Malformed-Task.md").write_text(
         "# TST-9001: Malformed Task SOP\n\n"
         "**Applies to:** Test\n"
         "**Status:** Active\n"
-        "**Task tags:** [implement, feature]\n"
+        "**Task tags:** [zzquuxonly]\n"
         '**Workflow loops:** [{id: bad, from: not-an-int, to: 1, max_iterations: 3, condition: "test"}]\n'
         "\n"
         "---\n\n"
         "## What Is It?\n\n"
-        "A test SOP that matches --task query but has malformed loops.\n\n"
+        "A test SOP with a unique tag that matches only itself, not any bundled SOP.\n\n"
         "## Steps\n\n"
         "1. First step\n"
         "2. Second step\n"
@@ -2949,7 +2948,7 @@ def test_plan_task_malformed_sop_all_skipped_gate(tmp_path):
     runner = CliRunner()
     result = runner.invoke(
         cli,
-        ["plan", "--task", "implement feature", "--json", "--root", str(tmp_path)],
+        ["plan", "--task", "zzquuxonly", "--json", "--root", str(tmp_path)],
         catch_exceptions=False,
     )
 

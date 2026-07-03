@@ -679,7 +679,6 @@ def _requested_phase_ids(
 
 
 def _all_requested_phases_skipped(
-    docs: list[Document],
     phase_info: list[_PhaseInfo],
     skipped: list[_SkippedInfo],
     composed_from_provenance: dict[str, list[str]] | None,
@@ -694,20 +693,11 @@ def _all_requested_phases_skipped(
     if composed_from_provenance is None:
         return not phase_info
 
-    if not requested_ids or not (requested_ids & skipped_ids):
-        return False
-
-    local_requested_ids = {
-        f"{doc.prefix}-{doc.acid}"
-        for doc in docs
-        if doc.source == "prj" and f"{doc.prefix}-{doc.acid}" in requested_ids
-    }
-    if local_requested_ids:
-        return not (local_requested_ids & valid_ids) and bool(
-            local_requested_ids & skipped_ids
-        )
-
-    return not (requested_ids & valid_ids)
+    return (
+        bool(requested_ids)
+        and not (requested_ids & valid_ids)
+        and bool(requested_ids & skipped_ids)
+    )
 
 
 def _validate_composition(phase_info: list[_PhaseInfo]) -> list[WorkflowEdge]:
@@ -1079,9 +1069,7 @@ def plan_cmd(
         raise click.UsageError("--json and --human are mutually exclusive")
 
     phase_info, skipped = _collect_phase_info(docs, sop_ids, output_json)
-    if _all_requested_phases_skipped(
-        docs, phase_info, skipped, composed_from_provenance
-    ):
+    if _all_requested_phases_skipped(phase_info, skipped, composed_from_provenance):
         if output_json:
             _emit_json_output(
                 sop_ids,
