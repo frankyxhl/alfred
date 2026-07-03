@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import re
 import sys
 from datetime import date
@@ -402,17 +403,16 @@ def update_cmd(
 
     if dry_run:
         click.echo("Dry run — no changes written.\n")
-        # Show diff-like output
-        old_lines = content.split("\n")
-        new_lines = new_content.split("\n")
-        for i, (old, new) in enumerate(zip(old_lines, new_lines)):
-            if old != new:
-                click.echo(f"- {old}")
-                click.echo(f"+ {new}")
-        # Show extra lines
-        if len(new_lines) > len(old_lines):
-            for line in new_lines[len(old_lines) :]:
-                click.echo(f"+ {line}")
+        diff_lines = list(
+            difflib.unified_diff(
+                content.splitlines(keepends=True),
+                new_content.splitlines(keepends=True),
+                fromfile=f"{doc.filename}",
+                tofile=f"{doc.filename}",
+            )
+        )
+        for line in diff_lines:
+            click.echo(line, nl=False)
         if new_title and new_filename:
             click.echo(f"\nRename: {file_path.name} -> {new_filename}")
         return
