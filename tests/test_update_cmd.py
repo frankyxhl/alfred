@@ -348,6 +348,71 @@ Example:
 # ── PRJ layer: rename ───────────────────────────────────────────────────────
 
 
+def test_update_rename_case_only_title(tmp_path, monkeypatch):
+    """Case-only title rename succeeds on case-insensitive and case-sensitive filesystems.
+
+    On case-insensitive filesystems (macOS APFS), a rename that changes
+    only letter case (e.g., ``Four Col`` to ``FOUR COL``) must not falsely
+    trigger the collision guard.  The guard uses ``os.path.samefile()`` to
+    distinguish the same file (same inode) from a genuine collision at a
+    different inode.
+    """
+    # Detect filesystem case-sensitivity (diagnostic only — no skip)
+    probe = tmp_path / "case_probe.tmp"
+    probe.write_text("x")
+    fs_case_insensitive = (tmp_path / "CASE_PROBE.tmp").exists()
+
+    doc_content = """\
+# TST-2100: Four Col
+
+**Applies to:** All projects
+**Status:** Draft
+**Last updated:** 2026-01-01
+
+---
+
+## What Is It?
+
+A test document body.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+"""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-2100-SOP-Four-Col.md").write_text(doc_content)
+
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--title", "FOUR COL", "-y"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, (
+        f"Case-only rename failed (FS case-insensitive={fs_case_insensitive}):\n"
+        f"{result.output}"
+    )
+    new_path = rules / "TST-2100-SOP-FOUR-COL.md"
+    assert new_path.exists()
+    content = new_path.read_text()
+    assert "# TST-2100: FOUR COL" in content
+
+    # Assert the directory entry carries the new casing (not just that
+    # .exists() resolved case-insensitively).  On case-insensitive
+    # filesystems the single entry for this file must show the new casing;
+    # on case-sensitive filesystems the old-case entry must be gone.
+    names = [p.name for p in rules.iterdir()]
+    assert "TST-2100-SOP-FOUR-COL.md" in names
+    assert "TST-2100-SOP-Four-Col.md" not in names
+
+
 def test_update_rename_with_yes(tmp_path, monkeypatch):
     """Rename document with -y flag (no confirmation prompt)."""
     project = _make_project(tmp_path)
@@ -406,6 +471,52 @@ def test_update_rename_conflict(tmp_path, monkeypatch):
     )
     assert result.exit_code != 0
     assert "already exists" in result.output
+
+
+def test_update_rename_file_collision(tmp_path, monkeypatch):
+    """Rename fails when target path already exists as a file (different inode).
+
+    The existing ``test_update_rename_conflict`` blocks with a directory.
+    This test verifies the collision guard also catches a genuine
+    file-vs-file collision — two different inodes at the same path.
+    The scanner is monkeypatched to return only the source document so
+    the colliding target file does not cause ambiguity during resolution.
+    """
+    from fx_alfred.core.scanner import scan_documents
+
+    project = _make_project(tmp_path)
+    rules = project / "rules"
+
+    # Resolve doc A before creating the colliding file
+    monkeypatch.chdir(project)
+    docs = scan_documents(project)
+    doc_a = [d for d in docs if d.prefix == "TST" and d.acid == "2100"][0]
+
+    # Create a genuine file (not a directory) at the rename target path
+    target = rules / "TST-2100-SOP-Beta-Doc.md"
+    target.write_text("colliding file content")
+
+    # Monkeypatch the scanner so the colliding file is invisible to doc resolution
+    monkeypatch.setattr(
+        "fx_alfred.commands.update_cmd.scan_or_fail",
+        lambda ctx: [doc_a],
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--title", "Beta Doc", "-y"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert "Target path already exists" in result.output
+    # Source file still exists with original content
+    source = rules / "TST-2100-SOP-Test-Document.md"
+    assert source.exists()
+    assert "TST-2100: Test Document" in source.read_text()
+    # Colliding file untouched
+    assert target.read_text() == "colliding file content"
 
 
 def test_update_rename_bad_title_path_separator(tmp_path, monkeypatch):
