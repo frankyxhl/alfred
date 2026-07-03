@@ -843,6 +843,7 @@ def _emit_json_output(
         or output_graph
         or (composed_from_provenance is not None)
         or with_skills
+        or bool(skipped)
     )
     schema_ver = "3" if with_skills else ("2" if has_new_keys else "1")
 

@@ -2862,6 +2862,56 @@ def test_plan_mixed_sop_and_ref_surfaces_skip(sample_project, monkeypatch):
     assert any(p["source_sop"] == "TST-5001" for p in data["phases"])
     assert "skipped" in data
     assert any(s["id"] == "COR-0002" for s in data["skipped"])
+    assert data["schema_version"] == "2", (
+        "schema_version must be '2' when skipped is present — "
+        "bool(skipped) contributes to has_new_keys"
+    )
+
+
+def test_plan_malformed_only_gate(tmp_path):
+    """af plan with only a malformed SOP exits non-zero; output names doc and reason.
+
+    When the only requested SOP has metadata that fails to parse (e.g. missing
+    the ``---`` separator), the command must fail — a machine consumer should
+    never receive an empty valid-looking plan. Text output names the document
+    and the malformed reason; JSON output reports composition_valid false and
+    includes a skipped entry whose reason contains "malformed".
+    """
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    # A valid-looking H1 but missing the --- separator — parse_metadata fails.
+    (rules / "TST-2700-SOP-Broken-Metadata.md").write_text(
+        "# TST-2700: Broken Metadata\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n"
+        "## What Is It?\n"
+        "A test SOP with broken metadata.\n"
+    )
+
+    runner = CliRunner()
+
+    # Text mode: exits non-zero, names doc and malformed reason
+    result = runner.invoke(
+        cli, ["plan", "TST-2700", "--root", str(tmp_path)], catch_exceptions=False
+    )
+    assert result.exit_code != 0
+    assert "TST-2700" in result.output
+    assert "malformed" in result.output.lower()
+
+    # JSON mode: composition_valid false, skipped with malformed reason
+    result_json = runner.invoke(
+        cli,
+        ["plan", "--json", "TST-2700", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result_json.exit_code != 0
+    data = json.loads(result_json.output)
+    assert data["composition_valid"] is False
+    assert "skipped" in data
+    assert len(data["skipped"]) >= 1
+    skipped = data["skipped"][0]
+    assert skipped["id"] == "TST-2700"
+    assert "malformed" in skipped["reason"].lower()
 
 
 def test_plan_all_sop_unchanged(sample_project, monkeypatch):
@@ -2891,3 +2941,6 @@ def test_plan_all_sop_unchanged(sample_project, monkeypatch):
     assert data["composition_valid"] is True
     assert len(data["phases"]) >= 1
     assert "skipped" not in data
+    assert data["schema_version"] == "1", (
+        "schema_version must be '1' when no new-key flags are active and no docs are skipped"
+    )
