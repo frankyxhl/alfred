@@ -60,8 +60,7 @@ Key definitions, valid enums, and defaults are normative in COR-1622 — when th
 
 | Key | Value |
 |-----|-------|
-| `<worker-agent>` | ⟨option A: subagent worker, e.g. "trinity-glm via droid exec"⟩ |
-|  | ⟨option B: sandboxed CLI per COR-1628, e.g. "codex exec (COR-1628 lane)" — brief template, invocation contract, and verification checklist in COR-1628⟩ |
+| `<worker-agent>` | ⟨pick one — option A: subagent worker, e.g. "trinity-glm via droid exec"; option B: sandboxed CLI per COR-1628, e.g. "codex exec (COR-1628 lane)" (brief template, invocation contract, and verification checklist in COR-1628)⟩ |
 | `<worker-min-loc>` | 30 |
 | `<test-writer-worker-agent>` | ⟨unset = two-worker split OFF; set to a different model or a verified-fresh :instance suffix to enable COR-1507, e.g. "trinity-glm:writer"⟩ |
 
