@@ -957,6 +957,37 @@ def test_update_roundtrip_preserves_trailing_newline(tmp_path, monkeypatch):
     assert content.endswith("\n")
 
 
+def test_update_status_preserves_metadata_comment(tmp_path, monkeypatch):
+    """Updating Status must not erase non-field lines in the metadata block."""
+    doc = (
+        "# TST-2100: Test Document\n"
+        "\n"
+        "**Applies to:** All projects\n"
+        "**Status:** Draft\n"
+        "<!-- reviewer note -->\n"
+        "**Last updated:** 2026-01-01\n"
+        "\n"
+        "---\n"
+        "\n"
+        "## What Is It?\n"
+        "\n"
+        "A test document body.\n"
+    )
+    project = _make_project(tmp_path, doc)
+    monkeypatch.chdir(project)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "Active"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2100-SOP-Test-Document.md").read_text()
+    assert "<!-- reviewer note -->\n**Last updated:**" in content
+
+
 # ── Fix 3: Rename H1 uses type_code, not prefix ────────────────────────────
 
 
