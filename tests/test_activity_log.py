@@ -462,24 +462,90 @@ def test_compose_record_generates_session_id_when_missing(monkeypatch):
     )
 
 
-def test_iter_records_skips_archive_member_when_loose_file_exists(tmp_path):
+def test_iter_records_unions_shadowed_archive_member(tmp_path):
+    """PR #290 R2: a shadowed member yields rows the loose file lacks.
+
+    After a merge-then-failed-unlink (or a restore before re-archive), the
+    member can hold rows that exist only in the archive; hiding the whole
+    member behind the loose file would lose them from every reader.
+    """
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
+    shared_line = json.dumps(activity_log.compose_record(summary="loose")) + "\n"
     loose = log_dir / "2026-06-20.jsonl"
-    loose.write_text(
-        json.dumps(activity_log.compose_record(summary="loose")) + "\n",
-        encoding="utf-8",
-    )
+    loose.write_text(shared_line, encoding="utf-8")
     with ZipFile(log_dir / "archive.zip", "w") as zf:
         zf.writestr(
             "2026-06-20.jsonl",
-            json.dumps(activity_log.compose_record(summary="archived")) + "\n",
+            shared_line
+            + json.dumps(activity_log.compose_record(summary="archived"))
+            + "\n",
         )
+
+    records = list(activity_log.iter_records(log_dir))
+
+    summaries = [rec[2]["summary"] for rec in records]
+    assert sorted(summaries) == ["archived", "loose"]
+
+
+def test_iter_records_does_not_double_count_shadowed_identical_member(tmp_path):
+    """Guard: loose row also present in the member is yielded exactly once."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    shared_line = json.dumps(activity_log.compose_record(summary="loose")) + "\n"
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_text(shared_line, encoding="utf-8")
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", shared_line)
 
     records = list(activity_log.iter_records(log_dir))
 
     assert len(records) == 1
     assert records[0][2]["summary"] == "loose"
+
+
+def test_iter_records_best_effort_unions_shadowed_archive_member(tmp_path):
+    """PR #290 R2: best-effort reader also unions shadowed members."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    shared_line = json.dumps(activity_log.compose_record(summary="loose")) + "\n"
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_text(shared_line, encoding="utf-8")
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr(
+            "2026-06-20.jsonl",
+            shared_line
+            + json.dumps(activity_log.compose_record(summary="archived"))
+            + "\n",
+        )
+
+    records = list(activity_log._iter_records_best_effort(log_dir))
+
+    summaries = [rec[2]["summary"] for rec in records]
+    assert sorted(summaries) == ["archived", "loose"]
+
+
+def test_merge_preserves_existing_member_duplicate_rows(tmp_path):
+    """PR #290 R2: existing member's duplicate identical rows survive a merge.
+
+    Byte-identical rows are a legitimate ledger state (second-resolution ts,
+    env-pinned session_id); the merge must not collapse the archive's own
+    multiplicity — only suppress loose copies already covered by existing.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    row = json.dumps(activity_log.compose_record(summary="dup")) + "\n"
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", row + row)
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_text(row, encoding="utf-8")
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == ["2026-06-20.jsonl"]
+        payload = zf.read("2026-06-20.jsonl")
+    assert payload == row.encode("utf-8") * 2
 
 
 def test_archive_directory_merges_existing_member_once(tmp_path):
