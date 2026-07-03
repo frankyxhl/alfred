@@ -3438,3 +3438,99 @@ def test_validate_duplicate_cross_layer_reported(tmp_path):
     finally:
         if usr_doc_path.exists():
             usr_doc_path.unlink()
+
+
+def test_validate_duplicate_recursive_usr_same_basename(tmp_path):
+    """Recursive USR scan with same-basename docs in different subdirectories
+    produces exactly one duplicate issue per colliding file.
+
+    When two files share the same PREFIX-ACID AND the same basename (e.g.
+    ``~/.alfred/sub1/TST-7700-SOP-Same-Name.md`` and
+    ``~/.alfred/sub2/TST-7700-SOP-Same-Name.md``), the scanner emits a
+    ``source:filename`` label that is identical for both.  The
+    ``_duplicate_issues_from_layer_errors`` helper keys by that label and
+    must not inflate the issue count (4 lines instead of 2).
+    """
+    import json as json_mod
+    from pathlib import Path
+
+    # A valid PRJ doc so tmp_path is a real project root.
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+    _write_valid_document(
+        rules_dir / "TST-7701-SOP-PRJ-Doc.md",
+        "TST",
+        "7701",
+        "SOP",
+        "PRJ Doc",
+    )
+
+    alfred_dir = Path.home() / ".alfred"
+    alfred_dir.mkdir(parents=True, exist_ok=True)
+
+    sub1 = alfred_dir / "_test_dup_sub1"
+    sub2 = alfred_dir / "_test_dup_sub2"
+    sub1.mkdir(exist_ok=True)
+    sub2.mkdir(exist_ok=True)
+
+    doc1_path = sub1 / "TST-7700-SOP-Same-Name.md"
+    doc2_path = sub2 / "TST-7700-SOP-Same-Name.md"
+
+    try:
+        _write_valid_document(doc1_path, "TST", "7700", "SOP", "Same Name One")
+        _write_valid_document(doc2_path, "TST", "7700", "SOP", "Same Name Two")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["validate", "--root", str(tmp_path), "--json"])
+
+        assert result.exit_code != 0, (
+            f"Expected non-zero exit for recursive-USR duplicate, "
+            f"got {result.exit_code}\n{result.output}"
+        )
+
+        payload = json_mod.loads(result.output)
+        results = payload["results"]
+
+        # Find the two colliding entries by their distinct relative paths.
+        entry_sub1 = next(
+            (r for r in results if "_test_dup_sub1" in r.get("path", "")), None
+        )
+        entry_sub2 = next(
+            (r for r in results if "_test_dup_sub2" in r.get("path", "")), None
+        )
+        assert entry_sub1 is not None, (
+            f"Missing entry for _test_dup_sub1 in results: "
+            f"{[r.get('path') for r in results]}"
+        )
+        assert entry_sub2 is not None, (
+            f"Missing entry for _test_dup_sub2 in results: "
+            f"{[r.get('path') for r in results]}"
+        )
+
+        # Each colliding file must carry EXACTLY ONE duplicate issue.
+        dup_errors_1 = [e for e in entry_sub1["errors"] if "Duplicate" in e]
+        dup_errors_2 = [e for e in entry_sub2["errors"] if "Duplicate" in e]
+
+        assert len(dup_errors_1) == 1, (
+            f"Expected 1 duplicate error for _test_dup_sub1 doc, "
+            f"got {len(dup_errors_1)}: {dup_errors_1}"
+        )
+        assert len(dup_errors_2) == 1, (
+            f"Expected 1 duplicate error for _test_dup_sub2 doc, "
+            f"got {len(dup_errors_2)}: {dup_errors_2}"
+        )
+
+        # Total duplicate-issue count across ALL results must be exactly 2.
+        total_dup = sum(
+            len([e for e in r.get("errors", []) if "Duplicate" in e]) for r in results
+        )
+        assert total_dup == 2, (
+            f"Expected 2 total duplicate issues across all entries, got {total_dup}"
+        )
+    finally:
+        for p in (doc1_path, doc2_path):
+            if p.exists():
+                p.unlink()
+        for d in (sub1, sub2):
+            if d.exists():
+                d.rmdir()
