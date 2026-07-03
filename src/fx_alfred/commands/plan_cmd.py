@@ -23,7 +23,13 @@ from fx_alfred.core.parser import (
 )
 from fx_alfred.core.ascii_graph import render_ascii
 from fx_alfred.core.dag_graph import render_dag
-from fx_alfred.core.compose import CompositionError, resolve_sops_from_task
+from fx_alfred.core.compose import (
+    CompositionError,
+    bigrams,
+    resolve_sops_from_task,
+    tokenize,
+    tokenize_ordered,
+)
 from fx_alfred.core.mermaid import render_mermaid
 from fx_alfred.core.phases import PhaseDict
 from fx_alfred.core.schema import TASK_TAGS
@@ -53,11 +59,12 @@ _PhaseInfo = tuple[
     str, Document, ParsedDocument, "WorkflowSignature | None", list[LoopSignature]
 ]
 _SkippedInfo = dict[str, str]
+_SopMetadata = tuple[Document, frozenset[str], bool]
 
 
 def _gather_all_sops(
     docs: list[Document],
-) -> list[tuple[Document, frozenset[str], bool]]:
+) -> list[_SopMetadata]:
     """Gather all SOPs with their task tags and always-included status.
 
     Returns list of (Document, task_tags_frozenset, always_included_bool).
@@ -95,6 +102,34 @@ def _gather_all_sops(
         result.append((doc, task_tags, always_included))
 
     return result
+
+
+def _task_requested_sop_ids(
+    task_description: str,
+    all_sops: list[_SopMetadata],
+    positional_ids: tuple[str, ...],
+) -> set[str]:
+    """Return SOP IDs requested by user intent, excluding always-only injections."""
+    probes = tokenize(task_description) | bigrams(tokenize_ordered(task_description))
+    requested: set[str] = set()
+
+    for doc, task_tags, _always_included in all_sops:
+        doc_id = f"{doc.prefix}-{doc.acid}"
+        if task_tags and task_tags & probes:
+            requested.add(doc_id)
+
+    if positional_ids:
+        all_docs = [doc for doc, _, _ in all_sops]
+        for positional_id in positional_ids:
+            matches = [
+                f"{doc.prefix}-{doc.acid}"
+                for doc in all_docs
+                if positional_id in {doc.acid, f"{doc.prefix}-{doc.acid}"}
+            ]
+            if len(matches) == 1:
+                requested.add(matches[0])
+
+    return requested
 
 
 def _format_composed_from_header(provenance: dict[str, list[str]]) -> str:
@@ -552,10 +587,10 @@ def _resolve_sop_ids(
     docs: list[Document],
     sop_ids: tuple[str, ...],
     task_description: str,
-) -> tuple[tuple[str, ...], dict[str, list[str]]]:
+) -> tuple[tuple[str, ...], dict[str, list[str]], set[str]]:
     """Resolve --task auto-composition into an ordered SOP-ID tuple.
 
-    Returns (resolved_sop_ids, provenance). CLI boundary for
+    Returns (resolved_sop_ids, provenance, requested_sop_ids). CLI boundary for
     CompositionError (CHG-2295): core raises the domain exception;
     converted here preserving message and exit code (2 = zero-match).
     """
@@ -576,7 +611,8 @@ def _resolve_sop_ids(
             except Exception:
                 pass
         raise ExitCodeError(str(e), e.exit_code) from e
-    return tuple(resolved_ids), provenance
+    requested_ids = _task_requested_sop_ids(task_description, all_sops, sop_ids)
+    return tuple(resolved_ids), provenance, requested_ids
 
 
 def _enforce_branches_gate(doc: Document, parsed: ParsedDocument) -> None:
@@ -669,7 +705,11 @@ def _format_all_skipped_error(skipped: list[_SkippedInfo]) -> str:
 def _requested_phase_ids(
     composed_from_provenance: dict[str, list[str]] | None,
     phase_info: list[_PhaseInfo],
+    task_requested_ids: set[str] | None = None,
 ) -> set[str]:
+    if task_requested_ids is not None:
+        return set(task_requested_ids)
+
     if composed_from_provenance is None:
         return {f"{doc.prefix}-{doc.acid}" for _, doc, *_ in phase_info}
 
@@ -682,11 +722,14 @@ def _all_requested_phases_skipped(
     phase_info: list[_PhaseInfo],
     skipped: list[_SkippedInfo],
     composed_from_provenance: dict[str, list[str]] | None,
+    task_requested_ids: set[str] | None = None,
 ) -> bool:
     if not skipped:
         return False
 
-    requested_ids = _requested_phase_ids(composed_from_provenance, phase_info)
+    requested_ids = _requested_phase_ids(
+        composed_from_provenance, phase_info, task_requested_ids
+    )
     valid_ids = {f"{doc.prefix}-{doc.acid}" for _, doc, *_ in phase_info}
     skipped_ids = {item["id"] for item in skipped}
 
@@ -1057,8 +1100,9 @@ def plan_cmd(
 
     # Handle --task flag for auto-composition
     composed_from_provenance: dict[str, list[str]] | None = None
+    task_requested_ids: set[str] | None = None
     if task_description is not None:
-        sop_ids, composed_from_provenance = _resolve_sop_ids(
+        sop_ids, composed_from_provenance, task_requested_ids = _resolve_sop_ids(
             docs, sop_ids, task_description
         )
 
@@ -1069,7 +1113,9 @@ def plan_cmd(
         raise click.UsageError("--json and --human are mutually exclusive")
 
     phase_info, skipped = _collect_phase_info(docs, sop_ids, output_json)
-    if _all_requested_phases_skipped(phase_info, skipped, composed_from_provenance):
+    if _all_requested_phases_skipped(
+        phase_info, skipped, composed_from_provenance, task_requested_ids
+    ):
         if output_json:
             _emit_json_output(
                 sop_ids,
