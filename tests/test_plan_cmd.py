@@ -2968,6 +2968,73 @@ def test_plan_task_malformed_sop_all_skipped_gate(tmp_path):
     )
 
 
+def test_plan_task_mixed_bundled_valid_and_prj_malformed_succeeds(tmp_path):
+    """--task matching both a valid bundled (PKG) SOP and a malformed PRJ SOP
+    succeeds with exit 0 and surfaces the malformed PRJ doc in ``skipped``.
+
+    When a --task query matches a bundled SOP that produces a valid phase
+    PLUS a malformed PRJ SOP that ``_collect_phase_info`` skips, the plan
+    must succeed because at least one requested (non-always) SOP yielded a
+    valid phase. The all-skipped gate must only fire when NONE of the
+    requested IDs produced a phase — a single valid bundled SOP is enough
+    to clear the gate.
+
+    Currently RED: the prj-local branch in ``_all_requested_phases_skipped``
+    fires the all-skipped gate when any prj-local requested ID is skipped,
+    ignoring that a bundled requested ID (e.g. COR-1500) produced a valid
+    phase.
+    """
+    import json
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+
+    # PRJ SOP with Task tags matching the same query that also matches
+    # COR-1500 (bundled PKG, tags [implement, feature, ...]) AND malformed
+    # Workflow loops so _collect_phase_info skips it.
+    (rules / "TST-9002-SOP-Malformed-Task.md").write_text(
+        "# TST-9002: Malformed Task SOP\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n"
+        "**Task tags:** [implement, feature]\n"
+        '**Workflow loops:** [{id: bad, from: not-an-int, to: 1, max_iterations: 3, condition: "test"}]\n'
+        "\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "A test SOP with malformed loops.\n\n"
+        "## Steps\n\n"
+        "1. First step\n"
+        "2. Second step\n"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["plan", "--task", "implement feature", "--json", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, (
+        f"Expected exit 0 (valid bundled SOP produced a phase), "
+        f"got {result.exit_code}. Output: {result.output[:500]}"
+    )
+
+    data = json.loads(result.output)
+    assert data["composition_valid"] is True, (
+        f"Expected composition_valid=True, got {data['composition_valid']}"
+    )
+    assert len(data["phases"]) >= 1, (
+        f"Expected at least one phase (bundled COR-1500 matched), "
+        f"got {len(data['phases'])} phases"
+    )
+    assert "skipped" in data, (
+        "Expected 'skipped' key with the malformed PRJ doc surfaced"
+    )
+    assert any(s["id"] == "TST-9002" for s in data["skipped"]), (
+        f"Expected TST-9002 in skipped list, got {data.get('skipped', [])}"
+    )
+
+
 def test_plan_all_sop_unchanged(sample_project, monkeypatch):
     """Normal all-SOP plan is unaffected by the empty-gate — regression test.
 
