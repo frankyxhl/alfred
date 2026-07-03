@@ -14,6 +14,7 @@ import re
 import tempfile
 import uuid
 import zipfile
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -510,25 +511,93 @@ def _jsonl_files(directory: Path) -> list[Path]:
     return sorted(p for p in directory.glob("*.jsonl") if p.is_file())
 
 
-def _iter_zip_records(
-    path: Path, *, skip_members: set[str] | None = None
-) -> Iterator[tuple[str, int, dict[str, Any]]]:
-    skipped = skip_members or set()
-    seen: set[str] = set()
-    with zipfile.ZipFile(path) as zf:
-        for member in sorted(zf.namelist()):
-            if not member.endswith(".jsonl") or member in skipped or member in seen:
+def _merge_jsonl_payloads(existing: bytes, loose: bytes) -> bytes:
+    """Multiset-union two JSONL payloads, existing rows first, by raw line bytes.
+
+    Existing rows are preserved verbatim (including byte-identical
+    duplicates — a legitimate ledger state given second-resolution ``ts``
+    and env-pinned ``session_id``); each loose row suppresses at most one
+    matching existing occurrence, so per-row multiplicity is
+    ``max(existing_count, loose_count)``.  Identity is byte-level
+    (``splitlines()`` content), so a restored byte-identical file merges to
+    an unchanged member and CRLF/LF variants of one row count as the same
+    row.
+    """
+    rows = [row for row in existing.splitlines() if row.strip()]
+    remaining = Counter(rows)
+    for row in loose.splitlines():
+        if not row.strip():
+            continue
+        if remaining[row] > 0:
+            remaining[row] -= 1
+            continue
+        rows.append(row)
+    if not rows:
+        return b""
+    return b"\n".join(rows) + b"\n"
+
+
+def _shadow_line_counts(payload: bytes) -> Counter[bytes]:
+    """Count non-blank raw lines (terminator-stripped)."""
+
+    return Counter(row for row in payload.splitlines() if row.strip())
+
+
+def _iter_member_lines(
+    zf: zipfile.ZipFile, member: str, suppress: Counter[bytes] | None
+) -> Iterator[tuple[int, bytes]]:
+    """Yield ``(lineno, raw)`` member rows, skipping blanks and shadowed rows.
+
+    ``suppress`` counts rows a same-named loose file already yielded; each
+    match consumes one occurrence so only rows the loose copy lacks remain
+    (merge-then-failed-unlink or restore-before-re-archive states).
+    """
+
+    with zf.open(member) as fh:
+        for lineno, raw in enumerate(fh, start=1):
+            if not raw.strip():
                 continue
-            seen.add(member)
-            with zf.open(member) as fh:
-                for lineno, raw in enumerate(fh, start=1):
-                    if raw.strip():
-                        record = _parse_jsonl_record(f"{path}::{member}", lineno, raw)
-                        yield (
-                            f"{path}::{member}",
-                            lineno,
-                            record,
-                        )
+            if suppress is not None and suppress[raw.rstrip(b"\r\n")] > 0:
+                suppress[raw.rstrip(b"\r\n")] -= 1
+                continue
+            yield lineno, raw
+
+
+def _iter_zip_members(
+    zf: zipfile.ZipFile, shadow: dict[str, Counter[bytes]]
+) -> Iterator[tuple[str, Counter[bytes] | None]]:
+    """Yield each ``.jsonl`` member once, with its shadow-suppression counts."""
+
+    seen: set[str] = set()
+    for member in sorted(zf.namelist()):
+        if not member.endswith(".jsonl") or member in seen:
+            continue
+        seen.add(member)
+        yield member, shadow.get(member)
+
+
+def _iter_zip_records(
+    path: Path, *, shadowed: dict[str, Counter[bytes]] | None = None
+) -> Iterator[tuple[str, int, dict[str, Any]]]:
+    with zipfile.ZipFile(path) as zf:
+        for member, suppress in _iter_zip_members(zf, shadowed or {}):
+            source = f"{path}::{member}"
+            for lineno, raw in _iter_member_lines(zf, member, suppress):
+                yield (source, lineno, _parse_jsonl_record(source, lineno, raw))
+
+
+def _iter_jsonl_payload_records(
+    source: str, payload: bytes, *, best_effort: bool = False
+) -> Iterator[tuple[str, int, dict[str, Any]]]:
+    for lineno, raw in enumerate(payload.splitlines(keepends=True), start=1):
+        if not raw.strip():
+            continue
+        try:
+            yield (source, lineno, _parse_jsonl_record(source, lineno, raw))
+        except ActivityLogLineError:
+            if best_effort:
+                continue
+            raise
 
 
 def _parse_jsonl_record(source: str, lineno: int, raw: bytes) -> dict[str, Any]:
@@ -581,13 +650,17 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
         return
     if path.is_dir():
         loose_files = _jsonl_files(path)
+        shadowed: dict[str, Counter[bytes]] = {}
         for file_path in loose_files:
-            yield from iter_records(file_path)
+            try:
+                payload = file_path.read_bytes()
+            except FileNotFoundError:
+                continue
+            shadowed[file_path.name] = _shadow_line_counts(payload)
+            yield from _iter_jsonl_payload_records(str(file_path), payload)
         archive = path / "archive.zip"
         if archive.exists():
-            yield from _iter_zip_records(
-                archive, skip_members={file_path.name for file_path in loose_files}
-            )
+            yield from _iter_zip_records(archive, shadowed=shadowed)
         return
     if path.suffix == ".zip":
         yield from _iter_zip_records(path)
@@ -603,29 +676,17 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
 
 
 def _iter_zip_records_best_effort(
-    path: Path, *, skip_members: set[str] | None = None
+    path: Path, *, shadowed: dict[str, Counter[bytes]] | None = None
 ) -> Iterator[tuple[str, int, dict[str, Any]]]:
-    skipped = skip_members or set()
-    seen: set[str] = set()
     try:
         with zipfile.ZipFile(path) as zf:
-            for member in sorted(zf.namelist()):
-                if not member.endswith(".jsonl") or member in skipped or member in seen:
-                    continue
-                seen.add(member)
-                with zf.open(member) as fh:
-                    for lineno, raw in enumerate(fh, start=1):
-                        if not raw.strip():
-                            continue
-                        source = f"{path}::{member}"
-                        try:
-                            yield (
-                                source,
-                                lineno,
-                                _parse_jsonl_record(source, lineno, raw),
-                            )
-                        except ActivityLogLineError:
-                            continue
+            for member, suppress in _iter_zip_members(zf, shadowed or {}):
+                source = f"{path}::{member}"
+                for lineno, raw in _iter_member_lines(zf, member, suppress):
+                    try:
+                        yield (source, lineno, _parse_jsonl_record(source, lineno, raw))
+                    except ActivityLogLineError:
+                        continue
     except (OSError, zipfile.BadZipFile):
         return
 
@@ -639,13 +700,19 @@ def _iter_records_best_effort(
         return
     if path.is_dir():
         loose_files = _jsonl_files(path)
+        shadowed: dict[str, Counter[bytes]] = {}
         for file_path in loose_files:
-            yield from _iter_records_best_effort(file_path)
+            try:
+                payload = file_path.read_bytes()
+            except OSError:
+                continue
+            shadowed[file_path.name] = _shadow_line_counts(payload)
+            yield from _iter_jsonl_payload_records(
+                str(file_path), payload, best_effort=True
+            )
         archive = path / "archive.zip"
         if archive.exists():
-            yield from _iter_zip_records_best_effort(
-                archive, skip_members={file_path.name for file_path in loose_files}
-            )
+            yield from _iter_zip_records_best_effort(archive, shadowed=shadowed)
         return
     if path.suffix == ".zip":
         yield from _iter_zip_records_best_effort(path)
@@ -719,11 +786,18 @@ def archive_directory(
         try:
             with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
                 closed_names = {file_path.name for file_path in closed}
+                closed_by_name = {file_path.name: file_path for file_path in closed}
+                merged_names: set[str] = set()
                 for name, payload in sorted(existing.items()):
                     if name in closed_names:
+                        loose_payload = closed_by_name[name].read_bytes()
+                        zf.writestr(name, _merge_jsonl_payloads(payload, loose_payload))
+                        merged_names.add(name)
                         continue
                     zf.writestr(name, payload)
                 for file_path in closed:
+                    if file_path.name in merged_names:
+                        continue
                     zf.write(file_path, arcname=file_path.name)
             os.replace(tmp_path, archive)
             for file_path in closed:

@@ -17,6 +17,35 @@ from fx_alfred.core.scanner import scan_documents
 pytestmark = pytest.mark.unit
 
 
+# ---------------------------------------------------------------------------
+# Helpers for archive-merge tests (FXA-264)
+# ---------------------------------------------------------------------------
+
+
+def _make_test_record(summary, ts="2026-06-20T12:00:00Z", session_id="test-session-1"):
+    """Build a minimal valid record with deterministic fields for merge tests."""
+    return {
+        "schema": "alfred.activity/v1",
+        "ts": ts,
+        "agent": "other",
+        "agent_name": "af",
+        "agent_version": "test",
+        "event": "note",
+        "summary": summary,
+        "session_id": session_id,
+    }
+
+
+def _record_line(record):
+    """Serialize one record to its JSONL line bytes (with trailing newline).
+
+    Matches the format produced by ``activity_log._line_bytes``.
+    """
+    return (
+        json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
+    ).encode("utf-8")
+
+
 def test_compose_and_append_user_usage_record_round_trips():
     log_dir = activity_log.user_log_dir()
     record = activity_log.compose_record(
@@ -433,19 +462,41 @@ def test_compose_record_generates_session_id_when_missing(monkeypatch):
     )
 
 
-def test_iter_records_skips_archive_member_when_loose_file_exists(tmp_path):
+def test_iter_records_unions_shadowed_archive_member(tmp_path):
+    """PR #290 R2: a shadowed member yields rows the loose file lacks.
+
+    After a merge-then-failed-unlink (or a restore before re-archive), the
+    member can hold rows that exist only in the archive; hiding the whole
+    member behind the loose file would lose them from every reader.
+    """
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
+    shared_line = json.dumps(activity_log.compose_record(summary="loose")) + "\n"
     loose = log_dir / "2026-06-20.jsonl"
-    loose.write_text(
-        json.dumps(activity_log.compose_record(summary="loose")) + "\n",
-        encoding="utf-8",
-    )
+    loose.write_text(shared_line, encoding="utf-8")
     with ZipFile(log_dir / "archive.zip", "w") as zf:
         zf.writestr(
             "2026-06-20.jsonl",
-            json.dumps(activity_log.compose_record(summary="archived")) + "\n",
+            shared_line
+            + json.dumps(activity_log.compose_record(summary="archived"))
+            + "\n",
         )
+
+    records = list(activity_log.iter_records(log_dir))
+
+    summaries = [rec[2]["summary"] for rec in records]
+    assert sorted(summaries) == ["archived", "loose"]
+
+
+def test_iter_records_does_not_double_count_shadowed_identical_member(tmp_path):
+    """Guard: loose row also present in the member is yielded exactly once."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    shared_line = json.dumps(activity_log.compose_record(summary="loose")) + "\n"
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_text(shared_line, encoding="utf-8")
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", shared_line)
 
     records = list(activity_log.iter_records(log_dir))
 
@@ -453,7 +504,124 @@ def test_iter_records_skips_archive_member_when_loose_file_exists(tmp_path):
     assert records[0][2]["summary"] == "loose"
 
 
-def test_archive_directory_replaces_existing_member_once(tmp_path):
+def test_iter_records_skips_loose_file_vanished_before_read(tmp_path, monkeypatch):
+    """PR #290 R5: a vanished loose file must not shadow the archive member."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    loose_record = activity_log.compose_record(summary="loose")
+    archived_record = activity_log.compose_record(summary="archived")
+    loose_line = _record_line(loose_record)
+    archived_line = _record_line(archived_record)
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(loose_line)
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", loose_line + archived_line)
+    listing = activity_log._jsonl_files(log_dir)
+    loose.unlink()
+    monkeypatch.setattr(activity_log, "_jsonl_files", lambda _path: listing)
+
+    records = list(activity_log.iter_records(log_dir))
+
+    assert [rec[2]["summary"] for rec in records] == ["loose", "archived"]
+    assert all(rec[0].endswith("archive.zip::2026-06-20.jsonl") for rec in records)
+
+
+def test_iter_records_does_not_duplicate_rows_when_shadow_vanishes_after_read(
+    tmp_path,
+):
+    """PR #290 R4: shadowing is based on loose bytes already yielded."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    loose_record = activity_log.compose_record(summary="loose")
+    archived_record = activity_log.compose_record(summary="archived")
+    loose_line = _record_line(loose_record)
+    archived_line = _record_line(archived_record)
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(loose_line)
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", loose_line + archived_line)
+
+    gen = activity_log.iter_records(log_dir)
+    first = next(gen)
+    loose.unlink()
+    records = [first, *gen]
+
+    assert [rec[2]["summary"] for rec in records] == ["loose", "archived"]
+    assert records[0][0] == str(loose)
+    assert records[1][0].endswith("archive.zip::2026-06-20.jsonl")
+
+
+def test_iter_records_best_effort_unions_shadowed_archive_member(tmp_path):
+    """PR #290 R2: best-effort reader also unions shadowed members."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    shared_line = json.dumps(activity_log.compose_record(summary="loose")) + "\n"
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_text(shared_line, encoding="utf-8")
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr(
+            "2026-06-20.jsonl",
+            shared_line
+            + json.dumps(activity_log.compose_record(summary="archived"))
+            + "\n",
+        )
+
+    records = list(activity_log._iter_records_best_effort(log_dir))
+
+    summaries = [rec[2]["summary"] for rec in records]
+    assert sorted(summaries) == ["archived", "loose"]
+
+
+def test_iter_records_best_effort_does_not_duplicate_rows_when_shadow_vanishes_after_read(
+    tmp_path,
+):
+    """PR #290 R4: best-effort shadowing uses bytes already yielded."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    loose_record = activity_log.compose_record(summary="loose")
+    archived_record = activity_log.compose_record(summary="archived")
+    loose_line = _record_line(loose_record)
+    archived_line = _record_line(archived_record)
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(loose_line)
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", loose_line + archived_line)
+
+    gen = activity_log._iter_records_best_effort(log_dir)
+    first = next(gen)
+    loose.unlink()
+    records = [first, *gen]
+
+    assert [rec[2]["summary"] for rec in records] == ["loose", "archived"]
+    assert records[0][0] == str(loose)
+    assert records[1][0].endswith("archive.zip::2026-06-20.jsonl")
+
+
+def test_merge_preserves_existing_member_duplicate_rows(tmp_path):
+    """PR #290 R2: existing member's duplicate identical rows survive a merge.
+
+    Byte-identical rows are a legitimate ledger state (second-resolution ts,
+    env-pinned session_id); the merge must not collapse the archive's own
+    multiplicity — only suppress loose copies already covered by existing.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    row = json.dumps(activity_log.compose_record(summary="dup")) + "\n"
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", row + row)
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_text(row, encoding="utf-8")
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == ["2026-06-20.jsonl"]
+        payload = zf.read("2026-06-20.jsonl")
+    assert payload == row.encode("utf-8") * 2
+
+
+def test_archive_directory_merges_existing_member_once(tmp_path):
+    """Colliding member + loose file → both rows preserved, member listed once."""
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
     old_file = log_dir / "2026-06-20.jsonl"
@@ -471,8 +639,142 @@ def test_archive_directory_replaces_existing_member_once(tmp_path):
 
     with ZipFile(log_dir / "archive.zip") as zf:
         assert zf.namelist() == ["2026-06-20.jsonl"]
-        payload = json.loads(zf.read("2026-06-20.jsonl"))
-    assert payload["summary"] == "new"
+        payload = zf.read("2026-06-20.jsonl")
+    # Merge contract (FXA-264): both "old" and "new" rows preserved,
+    # existing-member-first order, member appears exactly once.
+    lines = payload.decode("utf-8").splitlines()
+    summaries = [json.loads(line)["summary"] for line in lines]
+    assert summaries == ["old", "new"]
+
+
+# ---------------------------------------------------------------------------
+# FXA-264: archive merge-member tests (RED on current unfixed code)
+# ---------------------------------------------------------------------------
+
+
+def test_archive_directory_merges_divergent_rows(tmp_path):
+    """archive.zip[r1,r2] + reappeared-loose[r2,r3] → merged r1,r2,r3 (deduped)."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    r1 = _make_test_record("row1")
+    r2 = _make_test_record("row2")
+    r3 = _make_test_record("row3")
+    r1_line = _record_line(r1)
+    r2_line = _record_line(r2)
+    r3_line = _record_line(r3)
+
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", r1_line + r2_line)
+
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(r2_line + r3_line)
+
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert result.archived_files == ["2026-06-20.jsonl"]
+    assert not loose.exists()
+
+    with ZipFile(log_dir / "archive.zip") as zf:
+        assert zf.namelist() == ["2026-06-20.jsonl"]
+        payload = zf.read("2026-06-20.jsonl")
+
+    # Must contain r1,r2,r3 in existing-first order, each exactly once.
+    lines = payload.splitlines()
+    summaries = [json.loads(line)["summary"] for line in lines]
+    assert summaries == ["row1", "row2", "row3"]
+
+
+def test_archive_directory_noop_on_identical_restore(tmp_path):
+    """Byte-identical loose file → content unchanged, rows NOT duplicated.
+
+    On current (unfixed) code the existing member is replaced with the
+    identical loose-file bytes, so this test passes today.  It is kept as a
+    contract guard to ensure the merge path does not accidentally duplicate.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    r1 = _make_test_record("row1")
+    r2 = _make_test_record("row2")
+    r3 = _make_test_record("row3")
+    content = _record_line(r1) + _record_line(r2) + _record_line(r3)
+
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", content)
+
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(content)
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert not loose.exists()
+    with ZipFile(log_dir / "archive.zip") as zf:
+        payload = zf.read("2026-06-20.jsonl")
+
+    lines = payload.splitlines()
+    assert len(lines) == 3
+    summaries = [json.loads(line)["summary"] for line in lines]
+    assert summaries == ["row1", "row2", "row3"]
+
+
+def test_archive_directory_handles_missing_trailing_newline_in_existing_member(
+    tmp_path,
+):
+    """Existing member without trailing newline still merges — no concatenated row."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    r_old = _make_test_record("old-row")
+    r_new = _make_test_record("new-row")
+
+    # Write existing member payload WITHOUT trailing newline via zipfile.
+    old_bytes = json.dumps(r_old, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", old_bytes)
+
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(_record_line(r_new))
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert not loose.exists()
+
+    archive_path = log_dir / "archive.zip"
+    records = list(activity_log.iter_records(archive_path))
+    summaries = {r[2]["summary"] for r in records}
+
+    assert len(records) == 2
+    assert summaries == {"old-row", "new-row"}
+    for _, _, rec in records:
+        assert activity_log.validate_record(rec) == []
+
+
+def test_archive_directory_merged_records_pass_validation(tmp_path):
+    """Every record yielded by iter_records on merged archive passes validate_record."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+
+    r1 = _make_test_record("row1")
+    r2 = _make_test_record("row2")
+    r3 = _make_test_record("row3")
+
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", _record_line(r1) + _record_line(r2))
+
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(_record_line(r2) + _record_line(r3))
+
+    activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    archive_path = log_dir / "archive.zip"
+    records = list(activity_log.iter_records(archive_path))
+
+    assert len(records) == 3
+    for _, _, rec in records:
+        assert activity_log.validate_record(rec) == []
 
 
 def test_archive_directory_treats_unlink_failure_as_best_effort(tmp_path, monkeypatch):
@@ -830,3 +1132,20 @@ def test_archive_and_append_succeed_when_fcntl_unavailable(tmp_path, monkeypatch
     summaries = {r[2]["summary"] for r in records}
     assert "old" in summaries
     assert "portable-append" in summaries
+
+
+def test_iter_records_best_effort_treats_shadow_vanished_before_read_as_unshadowed(
+    tmp_path, monkeypatch
+):
+    """PR #290 R4: if no loose rows were emitted, the member is unshadowed."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    row = json.dumps(activity_log.compose_record(summary="archived")) + "\n"
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", row)
+    vanished = log_dir / "2026-06-20.jsonl"  # never created on disk
+    monkeypatch.setattr(activity_log, "_jsonl_files", lambda _path: [vanished])
+
+    records = list(activity_log._iter_records_best_effort(log_dir))
+
+    assert [rec[2]["summary"] for rec in records] == ["archived"]
