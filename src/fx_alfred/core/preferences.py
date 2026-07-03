@@ -14,6 +14,8 @@ from typing import Any
 
 import yaml
 
+from fx_alfred.core.fsmode import resolve_write_mode
+
 
 _HEADER_COMMENT = "# Managed by `af star` and `af tag vocab`; safe to edit by hand.\n"
 
@@ -54,12 +56,15 @@ def load_preferences() -> dict[str, Any]:
 def _atomic_write(path: Path, content: str) -> None:
     """Write content to path via tempfile + os.replace (no .tmp leftover)."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    mode = resolve_write_mode(path)
+
     fd, tmp_path = tempfile.mkstemp(
         prefix=".preferences.", suffix=".tmp", dir=str(path.parent)
     )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
+        os.chmod(tmp_path, mode)
         os.replace(tmp_path, path)
     except Exception:
         if os.path.exists(tmp_path):

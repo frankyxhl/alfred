@@ -11,6 +11,7 @@ import click
 
 from fx_alfred.context import get_root
 from fx_alfred.core.document import Document
+from fx_alfred.core.fsmode import resolve_write_mode
 from fx_alfred.core.scanner import (
     AmbiguousDocumentError,
     DocumentNotFoundError,
@@ -113,10 +114,13 @@ def atomic_write(path: Path, content: str) -> None:
     Raises:
         OSError: If file operations fail (propagated after cleanup).
     """
+    mode = resolve_write_mode(path)
+
     fd, tmp_path_str = tempfile.mkstemp(dir=str(path.parent), suffix=".md.tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
+        os.chmod(tmp_path_str, mode)
         os.replace(tmp_path_str, str(path))
     except Exception:
         # Clean up temp file on any failure
