@@ -1,5 +1,6 @@
 """Validate command for af CLI -- validates all documents."""
 
+from dataclasses import dataclass
 import re
 from pathlib import Path
 
@@ -53,28 +54,39 @@ _BASE_REQUIRED_FIELDS = {"Applies to", "Last updated", "Last reviewed"}
 REQUIRED_HISTORY_COLUMNS = ["Date", "Change", "By"]
 
 
-def _load_corpus_and_targets(
-    root: Path, doc_ids: tuple[str, ...]
-) -> tuple[
-    list[Document],
-    list[Document],
-    dict[tuple[str, str], Document],
-    dict[str, str | None],
-]:
+@dataclass
+class _ValidationCorpus:
+    all_docs: list[Document]
+    docs: list[Document]
+    docs_by_id: dict[tuple[str, str], Document]
+    cor_dispositions: dict[str, str | None]
+    duplicate_issues_by_label: dict[str, list[str]]
+
+    def __iter__(self):
+        yield self.all_docs
+        yield self.docs
+        yield self.docs_by_id
+        yield self.cor_dispositions
+
+
+def _load_corpus_and_targets(root: Path, doc_ids: tuple[str, ...]) -> _ValidationCorpus:
     """Scan the full corpus and resolve the validation target set.
 
-    Returns ``(all_docs, docs, docs_by_id, cor_dispositions)`` where
-    ``docs`` is the set to actually validate (the full corpus when no
-    identifiers are given, otherwise the resolved subset). ``docs_by_id``
-    and ``cor_dispositions`` are always built from the FULL corpus so
-    that filtering the validation set does not mis-report a valid
-    cross-SOP loop target or governance binding as missing.
+    The returned object unpacks as ``(all_docs, docs, docs_by_id,
+    cor_dispositions)`` for compatibility, with scanner-derived duplicate
+    issues carried as an attribute. ``docs`` is the set to actually validate
+    (the full corpus when no identifiers are given, otherwise the resolved
+    subset). ``docs_by_id`` and ``cor_dispositions`` are always built from
+    the FULL corpus so that filtering the validation set does not mis-report
+    a valid cross-SOP loop target or governance binding as missing.
     """
+    layer_errors: list[str] = []
     try:
         all_docs = scan_documents(root)
-    except LayerValidationError:
+    except LayerValidationError as exc:
         # Layer violations found -- re-scan without validation so we can
         # report them as per-document issues instead of aborting.
+        layer_errors = exc.errors
         all_docs = scan_documents(root, validate_layers=False)
 
     # Corpus-wide lookup table for cross-SOP reference resolution (FXA-2218 D2/D3).
@@ -88,7 +100,45 @@ def _load_corpus_and_targets(
     else:
         docs = all_docs
 
-    return all_docs, docs, docs_by_id, cor_dispositions
+    return _ValidationCorpus(
+        all_docs=all_docs,
+        docs=docs,
+        docs_by_id=docs_by_id,
+        cor_dispositions=cor_dispositions,
+        duplicate_issues_by_label=_duplicate_issues_from_layer_errors(layer_errors),
+    )
+
+
+def _duplicate_issues_from_layer_errors(errors: list[str]) -> dict[str, list[str]]:
+    """Map scanner duplicate errors to each colliding source:filename label."""
+    duplicate_issues: dict[str, list[str]] = {}
+    for error in errors:
+        match = re.match(
+            r"^Duplicate (?P<doc_id>[A-Z]{3}-\d{4}) found in: (?P<sources>.+)$",
+            error,
+        )
+        if not match:
+            continue
+        sources = [source.strip() for source in match.group("sources").split(",")]
+        issue = f"Duplicate {match.group('doc_id')} found in: {', '.join(sources)}"
+        for source in sources:
+            duplicate_issues.setdefault(source, []).append(issue)
+    return duplicate_issues
+
+
+def _doc_path(doc: Document, root: Path) -> str:
+    """Return a stable per-file path for validation result attribution."""
+    if doc.source == "pkg":
+        return f"pkg/{doc.directory}/{doc.filename}"
+    resource = doc.resolve_resource()
+    if isinstance(resource, Path):
+        for base in (root, Path.home()):
+            try:
+                return str(resource.relative_to(base))
+            except ValueError:
+                continue
+        return str(resource)
+    return f"{doc.source}:{doc.filename}"
 
 
 def _validate_history_header(header: str) -> list[str]:
@@ -253,6 +303,85 @@ def _validate_governance_fields(
     return issues
 
 
+def _emit_validation_output(
+    docs: list[Document],
+    root: Path,
+    issues_by_path: dict[str, list[str]],
+    warnings_by_path: dict[str, list[str]],
+    corpus_warnings: list[str],
+    total_issues: int,
+    total_warnings: int,
+    output_json: bool,
+) -> None:
+    """Emit validation findings in JSON or text form."""
+    if output_json:
+        results = []
+        hide_clean_pkg = any(
+            issue.startswith("Duplicate ")
+            for issues in issues_by_path.values()
+            for issue in issues
+        )
+        for doc in docs:
+            doc_id = f"{doc.prefix}-{doc.acid}"
+            doc_path = _doc_path(doc, root)
+            doc_errors = issues_by_path.get(doc_path, [])
+            doc_warnings = warnings_by_path.get(doc_path, [])
+            if (
+                hide_clean_pkg
+                and doc.source == "pkg"
+                and not doc_errors
+                and not doc_warnings
+            ):
+                continue
+            results.append(
+                {
+                    "doc_id": doc_id,
+                    "path": doc_path,
+                    "valid": not doc_errors,
+                    "errors": doc_errors,
+                    "warnings": doc_warnings,
+                }
+            )
+
+        emit_json(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "results": results,
+                "corpus_warnings": corpus_warnings,
+            }
+        )
+        return
+
+    # Report issues and warnings (text output) — one heading per doc,
+    # `-` issue lines then `~` warning lines beneath it (CHG-2296; R1
+    # panel convergent advisory). Iterate in scan order so issue-only
+    # corpora print identically to the pre-CHG-2296 output.
+    for doc in docs:
+        doc_id = f"{doc.prefix}-{doc.acid}"
+        doc_path = _doc_path(doc, root)
+        doc_issues = issues_by_path.get(doc_path, [])
+        doc_warnings = warnings_by_path.get(doc_path, [])
+        if not doc_issues and not doc_warnings:
+            continue
+        click.echo(f"{doc_id}:")
+        for issue in doc_issues:
+            click.echo(f"  - {issue}")
+        for warning in doc_warnings:
+            click.echo(f"  ~ {warning}")
+
+    for cw in corpus_warnings:
+        click.echo(f"~ {cw}")
+
+    warnings_suffix = (
+        f", {total_warnings} warning{'' if total_warnings == 1 else 's'}"
+        if total_warnings
+        else ""
+    )
+    click.echo(
+        f"{len(docs)} documents checked, {total_issues} issues found{warnings_suffix}."
+    )
+
+
 def _validate_tags_vocab(
     doc: Document,
     tag_field,
@@ -339,15 +468,17 @@ def validate_cmd(
     (parity with `af fmt` and `af export`).
     """
     root = get_root(ctx)
-    _all_docs, docs, docs_by_id, cor_dispositions = _load_corpus_and_targets(
-        root, doc_ids
-    )
+    corpus = _load_corpus_and_targets(root, doc_ids)
+    docs = corpus.docs
+    docs_by_id = corpus.docs_by_id
+    cor_dispositions = corpus.cor_dispositions
+    duplicate_issues_by_label = corpus.duplicate_issues_by_label
 
-    issues_by_doc: dict[str, list[str]] = {}
+    issues_by_path: dict[str, list[str]] = {}
     # CHG-2296: non-fatal findings. Warnings never affect the exit code;
     # they surface degraded validation (e.g. unknown TYPE codes) that was
     # previously silent.
-    warnings_by_doc: dict[str, list[str]] = {}
+    warnings_by_path: dict[str, list[str]] = {}
 
     # FXA-2315: compute once per invocation so we don't re-read
     # ~/.alfred/preferences.yaml on every document iteration.
@@ -370,8 +501,9 @@ def validate_cmd(
     ov_doc_count: int = 0
 
     for doc in docs:
-        doc_id = f"{doc.prefix}-{doc.acid}"
-        issues: list[str] = []
+        doc_path = _doc_path(doc, root)
+        doc_layer_label = f"{doc.source}:{doc.filename}"
+        issues: list[str] = list(duplicate_issues_by_label.get(doc_layer_label, []))
         warnings: list[str] = []
 
         # CHG-2296: single membership check replaces the per-lookup
@@ -395,12 +527,14 @@ def validate_cmd(
         try:
             content = doc.resolve_resource().read_text(encoding="utf-8")
         except Exception:
-            issues_by_doc[doc_id] = ["Could not read document"]
+            issues.append("Could not read document")
+            issues_by_path[doc_path] = issues
             continue
 
         lines = content.split("\n")
         if not lines:
-            issues_by_doc[doc_id] = ["Empty document"]
+            issues.append("Empty document")
+            issues_by_path[doc_path] = issues
             continue
 
         h1_line = lines[0]
@@ -624,9 +758,9 @@ def validate_cmd(
             issues.append(f"Malformed document: {e}")
 
         if issues:
-            issues_by_doc[doc_id] = issues
+            issues_by_path[doc_path] = issues
         if warnings:
-            warnings_by_doc[doc_id] = warnings
+            warnings_by_path[doc_path] = warnings
 
     # FXA-2315 summary: one aggregate line when tag_warnings="summary".
     corpus_warnings: list[str] = []
@@ -639,60 +773,21 @@ def validate_cmd(
             f"(see FXA-2315; use --tag-warnings=detail for specifics)"
         )
 
-    total_issues = sum(len(i) for i in issues_by_doc.values())
-    total_warnings = sum(len(w) for w in warnings_by_doc.values()) + len(
+    total_issues = sum(len(i) for i in issues_by_path.values())
+    total_warnings = sum(len(w) for w in warnings_by_path.values()) + len(
         corpus_warnings
     )
 
-    # Build results for JSON output
-    if output_json:
-        results = []
-        for doc in docs:
-            doc_id = f"{doc.prefix}-{doc.acid}"
-            results.append(
-                {
-                    "doc_id": doc_id,
-                    "valid": doc_id not in issues_by_doc,
-                    "errors": issues_by_doc.get(doc_id, []),
-                    "warnings": warnings_by_doc.get(doc_id, []),
-                }
-            )
-
-        result = {
-            "schema_version": SCHEMA_VERSION,
-            "results": results,
-            "corpus_warnings": corpus_warnings,
-        }
-        emit_json(result)
-    else:
-        # Report issues and warnings (text output) — one heading per doc,
-        # `-` issue lines then `~` warning lines beneath it (CHG-2296; R1
-        # panel convergent advisory). Iterate in scan order so issue-only
-        # corpora print identically to the pre-CHG-2296 output.
-        for doc in docs:
-            doc_id = f"{doc.prefix}-{doc.acid}"
-            doc_issues = issues_by_doc.get(doc_id, [])
-            doc_warnings = warnings_by_doc.get(doc_id, [])
-            if not doc_issues and not doc_warnings:
-                continue
-            click.echo(f"{doc_id}:")
-            for issue in doc_issues:
-                click.echo(f"  - {issue}")
-            for warning in doc_warnings:
-                click.echo(f"  ~ {warning}")
-
-        for cw in corpus_warnings:
-            click.echo(f"~ {cw}")
-
-        warnings_suffix = (
-            f", {total_warnings} warning{'' if total_warnings == 1 else 's'}"
-            if total_warnings
-            else ""
-        )
-        click.echo(
-            f"{len(docs)} documents checked, "
-            f"{total_issues} issues found{warnings_suffix}."
-        )
+    _emit_validation_output(
+        docs,
+        root,
+        issues_by_path,
+        warnings_by_path,
+        corpus_warnings,
+        total_issues,
+        total_warnings,
+        output_json,
+    )
 
     # Exit with code 1 if issues found
     if total_issues > 0:
