@@ -510,6 +510,20 @@ def _jsonl_files(directory: Path) -> list[Path]:
     return sorted(p for p in directory.glob("*.jsonl") if p.is_file())
 
 
+def _merge_jsonl_payloads(existing: bytes, loose: bytes) -> bytes:
+    rows: list[bytes] = []
+    seen: set[bytes] = set()
+    for payload in (existing, loose):
+        for row in payload.splitlines():
+            if not row.strip() or row in seen:
+                continue
+            rows.append(row)
+            seen.add(row)
+    if not rows:
+        return b""
+    return b"\n".join(rows) + b"\n"
+
+
 def _iter_zip_records(
     path: Path, *, skip_members: set[str] | None = None
 ) -> Iterator[tuple[str, int, dict[str, Any]]]:
@@ -719,11 +733,18 @@ def archive_directory(
         try:
             with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
                 closed_names = {file_path.name for file_path in closed}
+                closed_by_name = {file_path.name: file_path for file_path in closed}
+                merged_names: set[str] = set()
                 for name, payload in sorted(existing.items()):
                     if name in closed_names:
+                        loose_payload = closed_by_name[name].read_bytes()
+                        zf.writestr(name, _merge_jsonl_payloads(payload, loose_payload))
+                        merged_names.add(name)
                         continue
                     zf.writestr(name, payload)
                 for file_path in closed:
+                    if file_path.name in merged_names:
+                        continue
                     zf.write(file_path, arcname=file_path.name)
             os.replace(tmp_path, archive)
             for file_path in closed:
