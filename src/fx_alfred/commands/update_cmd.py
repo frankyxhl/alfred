@@ -26,6 +26,7 @@ from fx_alfred.core.document import FILENAME_PATTERN
 from fx_alfred.core.parser import (
     MalformedDocumentError,
     MetadataField,
+    iter_lines_with_fence_state,
     parse_metadata,
     render_document,
 )
@@ -58,19 +59,37 @@ def _replace_section_in_body(
     Returns tuple of (modified body, found flag). If section not found,
     returns (original body, False).
     """
-    # Match the section heading and capture everything until next heading or end
-    pattern = rf"^(##\s+{re.escape(section_name)}\s*\n)(.*?)(?=\n##\s|\n---\s*$|\Z)"
-    match = re.search(pattern, body, re.MULTILINE | re.DOTALL)
+    lines = body.split("\n")
+    annotated = list(iter_lines_with_fence_state(body))
+    heading_re = re.compile(rf"^##\s+{re.escape(section_name)}\s*$")
 
-    if match:
-        # Replace the content after the heading
-        before = body[: match.start()]
-        heading = match.group(1)
-        after = body[match.end() :]
-        return before + heading + new_content + "\n" + after, True
-    else:
-        # Section not found
+    start_idx = next(
+        (
+            i
+            for i, (line, fenced) in enumerate(annotated)
+            if not fenced and heading_re.match(line)
+        ),
+        None,
+    )
+    if start_idx is None:
         return body, False
+
+    boundary_re = re.compile(r"^##\s+")
+    end_idx = next(
+        (
+            i
+            for i in range(start_idx + 1, len(annotated))
+            if not annotated[i][1]
+            and (boundary_re.match(annotated[i][0]) or annotated[i][0].strip() == "---")
+        ),
+        len(lines),
+    )
+
+    replacement_lines = lines[: start_idx + 1]
+    replacement_lines.extend(new_content.split("\n"))
+    replacement_lines.append("")
+    replacement_lines.extend(lines[end_idx:])
+    return "\n".join(replacement_lines), True
 
 
 _EPILOG = """\

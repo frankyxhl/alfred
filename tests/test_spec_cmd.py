@@ -6,6 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+from fx_alfred.commands.update_cmd import _replace_section_in_body
 
 
 pytestmark = [pytest.mark.cli, pytest.mark.integration]
@@ -411,6 +412,124 @@ When not to use content.
     # Unchanged sections preserved
     assert "Original why." in content
     assert "Original content." in content
+
+
+def test_replace_section_ignores_fenced_headings_and_separators():
+    """Section replacement ignores boundary lookalikes inside fences."""
+    body = """---
+
+## Steps
+
+Before example.
+
+```markdown
+## Steps
+
+---
+```
+
+After example.
+
+## Why
+
+Sibling section.
+"""
+
+    updated, found = _replace_section_in_body(body, "Steps", "Replacement.")
+
+    assert found is True
+    assert (
+        updated
+        == """---
+
+## Steps
+Replacement.
+
+## Why
+
+Sibling section.
+"""
+    )
+
+
+def test_update_spec_patch_section_with_fenced_boundaries_preserves_sibling(
+    spec_project, monkeypatch
+):
+    """Patch replaces the whole target section and preserves fenced sibling content."""
+    monkeypatch.chdir(spec_project)
+
+    rules = spec_project / "rules"
+    doc = rules / "TST-2100-SOP-Test-Document.md"
+    doc.write_text(
+        """# SOP-2100: Test Document
+
+**Applies to:** All
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Original content.
+
+## Why
+
+Sibling before.
+
+```markdown
+## Steps
+
+---
+```
+
+Sibling after.
+
+## Steps
+
+Old step before fence.
+
+```markdown
+## Steps
+
+---
+```
+
+Old step after fence.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+"""
+    )
+
+    spec_file = spec_project / "patch.yaml"
+    spec_file.write_text(
+        """sections:
+  Steps: New step content.
+"""
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--spec", str(spec_file)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, f"Output: {result.output}"
+    content = doc.read_text()
+    assert "New step content." in content
+    assert "Old step before fence." not in content
+    assert "Old step after fence." not in content
+    assert "Sibling before." in content
+    assert "Sibling after." in content
+    assert content.count("```markdown\n## Steps\n\n---\n```") == 1
 
 
 # ─────────────────────────────────────────────────────────────────────────────

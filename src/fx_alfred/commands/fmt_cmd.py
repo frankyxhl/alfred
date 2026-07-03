@@ -15,6 +15,7 @@ from fx_alfred.core.parser import (
     MalformedDocumentError,
     MetadataField,
     ParsedDocument,
+    iter_lines_with_fence_state,
     parse_metadata,
     render_document,
 )
@@ -121,19 +122,11 @@ def normalize_blank_lines_in_body(parsed: ParsedDocument) -> bool:
     if not parsed.body:
         return False
 
-    lines = parsed.body.split("\n")
     result: list[str] = []
-    in_fence = False
 
-    for line in lines:
-        # Track fence state (lines starting with ```)
-        if line.strip().startswith("```"):
-            in_fence = not in_fence
-            result.append(line)
-            continue
-
+    for line, fenced in iter_lines_with_fence_state(parsed.body):
         # Inside fence: pass through unchanged
-        if in_fence:
+        if fenced:
             result.append(line)
             continue
 

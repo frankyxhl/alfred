@@ -8,6 +8,7 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+from fx_alfred.commands.fmt_cmd import normalize_blank_lines_in_body
 from fx_alfred.core.parser import parse_metadata
 
 
@@ -460,6 +461,62 @@ def test_fmt_blank_line_normalization(tmp_path):
     assert (
         "\n\n\n\n" not in content.split("## Change History")[0]
     )  # No triple blanks before history
+
+
+def test_normalize_blank_lines_preserves_tilde_and_long_backtick_fences():
+    """Blank-line normalization must leave all fence contents byte-identical."""
+    tilde_block = """~~~markdown
+## Inside tilde fence
+
+
+body
+~~~"""
+    long_backtick_block = """````markdown
+```python
+## Inside long backtick fence
+
+
+body
+```
+````"""
+    doc = f"""# TST-2107: Fence Blank Lines
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+
+## What Is It?
+
+Before.
+
+{tilde_block}
+
+Between.
+
+{long_backtick_block}
+
+
+## Steps
+
+After.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+"""
+    parsed = parse_metadata(doc)
+
+    assert normalize_blank_lines_in_body(parsed) is True
+    assert tilde_block in parsed.body
+    assert long_backtick_block in parsed.body
 
 
 # ── Unit Tests: Table Alignment ──────────────────────────────────────────────

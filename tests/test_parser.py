@@ -61,6 +61,36 @@ def test_parse_metadata_change_history_heading_without_table():
     assert "Change History" in parsed.body
 
 
+def test_parse_metadata_ignores_fenced_change_history_example():
+    """Fenced Change History examples must not bind the parsed history table."""
+    content = (
+        "# SOP-2101: Test\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "## What Is It?\n\n"
+        "Example:\n\n"
+        "```markdown\n"
+        "## Change History\n\n"
+        "| Date | Change | By |\n"
+        "|------|--------|----|\n"
+        "| 1999-01-01 | Fenced example | Nobody |\n"
+        "```\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By |\n"
+        "|------|--------|----|\n"
+        "| 2026-01-01 | Real row | Author |\n"
+    )
+
+    parsed = parse_metadata(content)
+
+    assert len(parsed.history_rows) == 1
+    assert parsed.history_rows[0].date == "2026-01-01"
+    assert parsed.history_rows[0].change == "Real row"
+    assert "Fenced example" in parsed.body
+
+
 # --- extract_section fence-awareness (CHG-2294) ---
 
 
