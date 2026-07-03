@@ -2,6 +2,56 @@
 
 ## Unreleased
 
+## v1.25.2 (2026-07-04)
+
+Patch release: ten bug fixes from the 2026-07-02 full-repo review batch
+(#266-#275), hardened further by five multi-round bot-review cycles. No new
+features, no breaking changes.
+
+### Bug Fixes
+
+- **`af validate` no longer hides duplicate `PREFIX-ACID` documents.**
+  Duplicates are reported per file (scanner-rule parity, cross-layer), issue
+  maps are keyed by file path so same-ID files cannot shadow each other, JSON
+  entries carry a `path` field, text headings disambiguate duplicated ids
+  with the filename, and label parsing survives comma-bearing filenames and
+  same-basename collisions in recursive scans (#266, #304).
+- **Branch/loop validation agrees with the planner on step headings.**
+  `validate_branches` / `_parse_step_indices` resolve steps via the shared
+  `extract_steps_section` (Steps/Rule/Rules/Concepts) — no more spurious
+  branch errors under `## Rule`, and loops targeting nonexistent steps fail
+  loudly instead of silently validating (#267, #306).
+- **`af plan` fails loudly when every requested doc was skipped.** All-skipped
+  requests exit non-zero (text names each doc + type; JSON carries
+  `composition_valid: false` + a `skipped` list and bumps `schema_version`);
+  the gate covers explicit ids and `--task` compositions — including matches
+  that are Always-included — while mixed plans still succeed with the skip
+  surfaced (#268, #307).
+- **`af update --dry-run` renders a real unified diff** (difflib, fmt_cmd's
+  exact idiom): shrinking updates show deletions and mid-file insertions no
+  longer cascade bogus -/+ pairs (#269, #302).
+- **`af update` reindexes when Status changes**, not only on rename — via
+  `--status`, `--field Status`, or `--spec` metadata patches; `--dry-run`
+  never reindexes (#270, #303).
+- **`af search --json` emits raw source values** (`"pkg"`) matching list/tag
+  JSON instead of display labels (`"PKG"`) (#271, #296).
+- **`af fmt` canonical order re-synced with the schema.** `Workflow branches`,
+  `Disposition`, `Instantiates`, `Overlays` sort into their proper positions;
+  a drift test pins schema ⊆ order (#272, #300).
+- **`af log-archive` works on platforms without `os.fchmod`** (guarded with a
+  portable path-based fallback) (#273, #298).
+- **Atomic writes preserve file permissions.** `af update`/`af fmt --write`/
+  `af tag` no longer reset 0644/0664 docs to 0600; new files honor the umask;
+  shared mode-resolution helper in `core/fsmode.py` (#274, #301).
+- **Case-only title renames succeed on case-insensitive filesystems** (inode
+  identity check + portable two-step rename; genuine collisions still error)
+  (#275, #305).
+
+### Stats
+
+- 1468 tests, all passing (45 new test functions since v1.25.1)
+- 0 breaking changes
+
 ## v1.25.1 (2026-07-04)
 
 Patch release: four bug fixes, two of them closing silent data-loss paths in
