@@ -1421,12 +1421,7 @@ def _prebuild_index(runner: CliRunner) -> None:
 
 
 def test_update_status_triggers_reindex(tmp_path, monkeypatch):
-    """af update --status Active reindexes: index row shows new status.
-
-    Currently RED — the index still shows the stale status after a
-    plain --status update because only the rename path triggers
-    invoke_index_update.
-    """
+    """af update --status Active reindexes: index row shows new status (regression guard)."""
     project = _make_project(tmp_path)
     monkeypatch.chdir(project)
     runner = CliRunner()
@@ -1521,3 +1516,69 @@ def test_update_dry_run_status_does_not_reindex(tmp_path, monkeypatch):
 
     after = index_path.read_bytes()
     assert before == after, "dry-run must not modify the index file"
+
+
+def test_update_rename_and_status_calls_invoke_index_once(tmp_path, monkeypatch):
+    """Combined rename + status update triggers invoke_index_update exactly once.
+
+    Both a title change and a status change independently qualify for
+    reindex, but the command must not call invoke_index_update twice.
+    """
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+
+    # Counting wrapper that delegates to the real invoke_index_update
+    real_invoke = __import__(
+        "fx_alfred.commands._helpers", fromlist=["invoke_index_update"]
+    ).invoke_index_update
+    call_count = 0
+
+    def counting_wrapper(ctx):
+        nonlocal call_count
+        call_count += 1
+        real_invoke(ctx)
+
+    monkeypatch.setattr(
+        "fx_alfred.commands.update_cmd.invoke_index_update",
+        counting_wrapper,
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--title", "New Name", "--status", "Active", "-y"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert call_count == 1, f"Expected 1 call to invoke_index_update, got {call_count}"
+
+
+def test_update_usr_status_does_not_reindex(tmp_path, monkeypatch):
+    """USR-layer doc status update does NOT reindex any PRJ index.
+
+    The index is a PRJ-layer artifact; USR-layer changes must not touch it.
+    """
+    project, _user_alfred = _make_usr_project(tmp_path)
+    monkeypatch.chdir(project)
+
+    call_count = 0
+
+    def counting_wrapper(ctx):
+        nonlocal call_count
+        call_count += 1
+
+    monkeypatch.setattr(
+        "fx_alfred.commands.update_cmd.invoke_index_update",
+        counting_wrapper,
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["update", "TST-2100", "--status", "Active"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert call_count == 0, (
+        f"Expected 0 calls to invoke_index_update for USR doc, got {call_count}"
+    )
