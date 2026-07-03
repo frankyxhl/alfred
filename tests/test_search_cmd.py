@@ -229,3 +229,98 @@ def test_search_format_header_line(sample_project, monkeypatch):
     assert "ALF-2201" in header
     assert "PRJ" in header
     assert "AF CLI Tool" in header
+
+
+# ---------------------------------------------------------------------------
+# Tests for source field consistency (#271 — search JSON raw source bug)
+# ---------------------------------------------------------------------------
+
+
+def test_search_json_source_is_raw_value(sample_project, monkeypatch):
+    """Search --json emits raw source values (pkg/usr/prj), not display labels.
+
+    Regression: search --json used SOURCE_LABELS (PKG/USR/PRJ) while every
+    other JSON surface (list, tag) emitted the raw doc.source value.
+    Machine consumers filtering ``source == "pkg"`` got zero search hits.
+    """
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    # "SOP" matches PKG docs (e.g. COR-1000) — enough to get at least one hit
+    result = runner.invoke(cli, ["search", "SOP", "--json"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    assert "results" in data
+    assert len(data["results"]) > 0, "Expected at least one search hit for 'SOP'"
+
+    raw_sources = {"pkg", "usr", "prj"}
+    for hit in data["results"]:
+        assert hit["source"] in raw_sources, (
+            f"Expected raw source in {{pkg, usr, prj}}, got: {hit['source']!r}"
+        )
+        # Negative guard: display labels must never leak into JSON
+        assert hit["source"] != "PKG", (
+            "Display label 'PKG' leaked into JSON source field"
+        )
+
+
+def test_search_json_source_consistent_with_list(sample_project, monkeypatch):
+    """Same doc has identical source string in search --json and list --json.
+
+    Cross-command consistency: a doc located both ways must carry the same
+    ``source`` value so machine consumers can join results across commands.
+    """
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+
+    # Search for a pattern that matches ALF-2201 (PRJ doc in sample_project)
+    search_result = runner.invoke(
+        cli, ["search", "AF CLI", "--json"], catch_exceptions=False
+    )
+    assert search_result.exit_code == 0
+    search_data = json.loads(search_result.output)
+    assert len(search_data["results"]) > 0
+
+    # Get full document list
+    list_result = runner.invoke(cli, ["list", "--json"], catch_exceptions=False)
+    assert list_result.exit_code == 0
+    list_data = json.loads(list_result.output)
+    assert len(list_data) > 0
+
+    # Index list by doc_id for lookup
+    list_by_id = {f"{d['prefix']}-{d['acid']}": d for d in list_data}
+
+    for hit in search_data["results"]:
+        doc_id = hit["doc_id"]
+        assert doc_id in list_by_id, (
+            f"Doc {doc_id} from search not found in list output"
+        )
+        list_source = list_by_id[doc_id]["source"]
+        assert hit["source"] == list_source, (
+            f"Source mismatch for {doc_id}: "
+            f"search={hit['source']!r}, list={list_source!r}"
+        )
+
+
+def test_search_text_mode_shows_display_label(sample_project, monkeypatch):
+    """Search text output shows display labels (PKG/USR/PRJ), not raw values.
+
+    Guard: text mode uses SOURCE_LABELS for human readability. Must hold
+    before and after the JSON fix.
+    """
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    # "SOP" matches PKG docs — text output should show "PKG" label
+    result = runner.invoke(cli, ["search", "SOP"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # Display labels appear in the header line: "COR-1000  PKG  Title"
+    assert "PKG" in result.output
+
+    # Also check a PRJ doc for "PRJ" label
+    result2 = runner.invoke(cli, ["search", "AF CLI"], catch_exceptions=False)
+    assert result2.exit_code == 0
+    assert "PRJ" in result2.output
