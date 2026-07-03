@@ -675,6 +675,7 @@ def archive_directory(
     day = today or _today_utc()
     log_dir.mkdir(parents=True, exist_ok=True)
     lock_fd = os.open(log_dir, os.O_RDONLY) if fcntl is not None else None
+    append_lock_fd: int | None = None
     try:
         try:
             if lock_fd is not None:
@@ -683,6 +684,12 @@ def archive_directory(
             return ArchiveResult(
                 [], skipped=True, message="another archiver is running, skipping"
             )
+
+        if lock_fd is not None:
+            append_lock_fd = os.open(
+                _append_lock_path(log_dir), os.O_WRONLY | os.O_CREAT, 0o644
+            )
+            _flock(append_lock_fd, _lock_ex())
 
         _cleanup_stale_archive_tmps(log_dir)
         archive = log_dir / "archive.zip"
@@ -733,6 +740,8 @@ def archive_directory(
         _cleanup_stale_archive_tmps(log_dir)
         return ArchiveResult([p.name for p in closed])
     finally:
+        if append_lock_fd is not None:
+            os.close(append_lock_fd)
         if lock_fd is not None:
             os.close(lock_fd)
 
