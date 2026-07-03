@@ -1141,3 +1141,128 @@ def test_create_layer_user_subdir_unaffected_by_mapping(tmp_path):
     )
     assert result.exit_code == 0, result.output
     assert (alfred / "MYP" / "MYP-3000-SOP-User-Subdir-Doc.md").exists()
+
+
+# ── FXA-265: Filename validation on create ──────────────────────────────────
+
+
+def test_create_rejects_title_that_slugifies_to_empty(tmp_path, monkeypatch):
+    """Title '???' slugifies to empty string, producing an invalid filename.
+
+    Before the fix, af create silently writes TST-9998-SOP-.md which is
+    invisible to af read / af list / the index (FILENAME_PATTERN title group
+    requires at least one character).
+    """
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "9998", "--title", "???"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for empty-slug title, got 0. Output: {result.output}"
+    )
+    # Error message must mention the offending title or slug
+    assert "???" in result.output or "slug" in result.output.lower(), (
+        f"Error should mention the title or slug issue. Output: {result.output}"
+    )
+    # No file should exist on disk (the write must be blocked before filesystem IO)
+    bad_path = tmp_path / "rules" / "TST-9998-SOP-.md"
+    assert not bad_path.exists(), f"File was created at {bad_path} but should not exist"
+    # af read should also report not found (sanity: file isn't accidentally readable)
+    read_result = runner.invoke(cli, ["read", "TST-9998"], catch_exceptions=False)
+    assert read_result.exit_code != 0, (
+        f"af read should not find TST-9998, got exit {read_result.exit_code}"
+    )
+
+
+def test_create_rejects_spec_with_title_that_slugifies_to_empty(tmp_path, monkeypatch):
+    """Spec-file path: title '???' slugifies to empty — filename fails validation."""
+    monkeypatch.chdir(tmp_path)
+
+    spec_file = tmp_path / "spec.yaml"
+    spec_file.write_text(
+        "type: SOP\n"
+        "prefix: TST\n"
+        "acid: '9998'\n"
+        "title: '???'\n"
+        "metadata:\n"
+        "  Applies to: test\n"
+        "  Last updated: '2026-01-01'\n"
+        "  Last reviewed: '2026-01-01'\n"
+        "  Status: Active\n"
+        "sections:\n"
+        "  What Is It?: Test\n"
+        "  Why: Test\n"
+        "  When to Use: Test\n"
+        "  When NOT to Use: Test\n"
+        "  Steps: Test\n"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "--spec", str(spec_file)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for spec with empty-slug title, got 0. "
+        f"Output: {result.output}"
+    )
+    # Error message must mention the offending title or slug
+    assert "???" in result.output or "slug" in result.output.lower(), (
+        f"Error should mention the title or slug issue. Output: {result.output}"
+    )
+    # No file should exist on disk
+    bad_path = tmp_path / "rules" / "TST-9998-SOP-.md"
+    assert not bad_path.exists(), f"File was created at {bad_path} but should not exist"
+
+
+def test_create_rejects_title_dashes_and_spaces(tmp_path, monkeypatch):
+    """Title '- - -' slugifies to empty string — filename fails validation.
+
+    All characters are either hyphens or spaces; slugify strips leading/trailing
+    hyphens and collapses runs, leaving an empty string.
+    """
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "9999", "--title", "- - -"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code != 0, (
+        f"Expected non-zero exit for dash-only title, got 0. Output: {result.output}"
+    )
+    # Error message must be actionable — check for common keywords
+    combined = result.output.lower()
+    assert any(
+        word in combined for word in ("- - -", "slug", "filename", "title", "empty")
+    ), f"Error should mention the title or slug issue. Output: {result.output}"
+    # No file should exist on disk
+    bad_path = tmp_path / "rules" / "TST-9999-SOP-.md"
+    assert not bad_path.exists(), f"File was created at {bad_path} but should not exist"
+
+
+def test_create_allows_title_with_unsafe_chars_that_slugify_nonempty(
+    tmp_path, monkeypatch
+):
+    """Title 'a?b' slugifies to 'ab' (non-empty) — must still create successfully.
+
+    Regression guard: filename validation must not over-block titles that
+    produce a valid slug after unsafe characters are stripped.
+    """
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "9997", "--title", "a?b"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, (
+        f"Title 'a?b' should slugify to 'ab' (non-empty) and succeed. "
+        f"Output: {result.output}"
+    )
+    expected = tmp_path / "rules" / "TST-9997-SOP-ab.md"
+    assert expected.exists(), f"Expected file at {expected} but it does not exist"
