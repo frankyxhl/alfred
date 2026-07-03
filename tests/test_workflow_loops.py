@@ -1104,24 +1104,26 @@ def test_validate_loops_still_checks_max_iterations_for_cross_sop():
 # ---------------------------------------------------------------------------
 
 
-def test_rule_heading_rejects_nonexistent_loop_target() -> None:
-    """An SOP with steps under ``## Rule`` and a loop targeting nonexistent
-    steps must be rejected — ``_parse_step_indices`` delegates to
-    ``extract_steps_section`` so headings other than ``## Steps`` that the
-    planner accepts are recognised for step membership checks.
+@pytest.mark.parametrize("heading", ["Rule", "Rules", "Concepts"])
+def test_rule_heading_rejects_nonexistent_loop_target(heading: str) -> None:
+    """An SOP with steps under any recognised non-Steps heading and a loop
+    targeting nonexistent steps must be rejected — ``_parse_step_indices``
+    delegates to ``extract_steps_section`` so headings other than ``## Steps``
+    that the planner accepts (Rule, Rules, Concepts) are recognised for step
+    membership checks.
 
     Before FXA-267, ``_parse_step_indices`` hardcoded ``extract_section(..., "Steps")``,
-    returned ``None`` for ``## Rule``, and ``validate_loops`` silently skipped the
-    membership check. A loop with ``from=100, to=99`` (both nonexistent, but
+    returned ``None`` for non-Steps headings, and ``validate_loops`` silently skipped
+    the membership check. A loop with ``from=100, to=99`` (both nonexistent, but
     directionally valid as a back-edge) would validate clean because no
     membership check ran.
 
     After FXA-267, the loop must be rejected with an error naming the
     nonexistent step.
     """
-    body = """---
+    body = f"""---
 
-## Rule
+## {heading}
 
 1. First
 2. Second

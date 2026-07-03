@@ -330,11 +330,13 @@ def test_branch_validation_fenced_sibling_does_not_count_as_declared() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_branches_respects_rule_heading() -> None:
-    """An SOP with steps under ``## Rule`` and valid ``Workflow branches``
-    metadata must pass validation cleanly — ``validate_branches`` delegates
-    to ``extract_steps_section`` so headings other than ``## Steps`` that the
-    planner accepts (Rule, Rules, Concepts) are recognised.
+@pytest.mark.parametrize("heading", ["Rule", "Rules", "Concepts"])
+def test_branches_respects_rule_heading(heading: str) -> None:
+    """An SOP with steps under any recognised non-Steps heading and valid
+    ``Workflow branches`` metadata must pass validation cleanly —
+    ``validate_branches`` delegates to ``extract_steps_section`` so headings
+    other than ``## Steps`` that the planner accepts (Rule, Rules, Concepts)
+    are recognised.
 
     Before FXA-267, ``validate_branches`` hardcoded ``extract_section(..., "Steps")``
     and produced a spurious "does not reference an existing step" error.
@@ -347,7 +349,7 @@ def test_branches_respects_rule_heading() -> None:
         "\n"
         "---\n"
         "\n"
-        "## Rule\n"
+        f"## {heading}\n"
         "\n"
         "1. Setup\n2. Decision\n3a. Pass\n3b. Fail\n4. After\n"
         "## Change History\n"

@@ -397,17 +397,17 @@ def validate_branches(
        presence of *any* branch declaration is a hard error directing
        authors to wait for CHG-2227. ``_gate_open_for_test`` bypasses this
        gate for tests that need to exercise the structural rules below.
-    2. **`from` exists** — must reference an existing integer step in
-       ``## Steps``.
+    2. **`from` exists** — must reference an existing integer step under
+       the recognised steps heading.
     3. **`to.parent == from + 1`** — every sibling's parent integer must
        equal ``from + 1`` (the convention is that branches fork from step
        N to siblings ``(N+1)a``, ``(N+1)b``, ...).
-    4. **Sub-step exists** — every ``to.id`` (e.g. ``3a``) must appear in
-       ``## Steps`` as an actual sub-step line.
-    5. **Siblings contiguous** — sibling lines must appear consecutively in
-       ``## Steps`` (no integer step interleaved between them).
-    6. **No orphan sub-steps** — every sub-step letter present in ``## Steps``
-       must appear in some ``branches.to`` declaration.
+    4. **Sub-step exists** — every ``to.id`` (e.g. ``3a``) must appear under
+       the recognised steps heading as an actual sub-step line.
+    5. **Siblings contiguous** — sibling lines must appear consecutively under
+       the recognised steps heading (no integer step interleaved between them).
+    6. **No orphan sub-steps** — every sub-step letter present under the
+       recognised steps heading must appear in some ``branches.to`` declaration.
     """
     errors: list[BranchError] = []
 
@@ -694,9 +694,10 @@ def parse_workflow_loops(parsed: ParsedDocument) -> list[LoopSignature]:
 def _parse_step_indices(parsed: ParsedDocument) -> frozenset[int] | None:
     """Parse the set of step indices observed in the SOP's Steps section.
 
-    Returns ``None`` if no ``Steps`` heading is present; otherwise a frozenset
-    of the step indices parsed from top-level numbered Markdown lines (e.g.
-    ``1. First``, ``### 1. First``, or ``3a. Sub-step``).
+    Returns ``None`` if no recognised steps heading is present (any of
+    Steps/Rule/Rules/Concepts per :mod:`fx_alfred.core.steps`); otherwise a
+    frozenset of the step indices parsed from top-level numbered Markdown lines
+    (e.g. ``1. First``, ``### 1. First``, or ``3a. Sub-step``).
 
     Delegates to :func:`fx_alfred.core.steps.parse_top_level_step_indices`,
     which is fence-aware: numbered lines inside ```` ``` ```` / ``~~~``
