@@ -1,7 +1,7 @@
 # REF-0000: Document Index
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-06-26
+**Last updated:** 2026-07-03
 **Last reviewed:** 2026-05-09
 **Status:** Active
 **Disposition:** inherit-only
@@ -82,6 +82,8 @@ A reference index of all documents in the COR system.
 | 1625 | SOP | Loop — L2 Assisted + Gated |
 | 1626 | SOP | Loop — L3 Unattended (Draft) |
 | 1627 | SOP | Loop PDCA Run Audit |
+| 1628 | SOP | Sandboxed Worker CLI Dispatch |
+| 1629 | REF | Loop Config Starter Template |
 | 1700 | SOP | Initialize Project |
 | 1701 | SOP | Archive Project |
 | 1702 | SOP | Sync Project |
@@ -119,3 +121,4 @@ A reference index of all documents in the COR system.
 | 2026-06-19 | Added COR-1625 (Loop — L2 Assisted + Gated) and COR-1626 (Loop — L3 Unattended, Status: Draft) — completing the Loop autonomy ladder. | Claude Code |
 | 2026-06-26 | Added COR-1627 (Loop PDCA Run Audit) — report-only PDCA retrospective for L1/L2 runs. | Claude Code |
 | 2026-06-29 | Added COR-1003 (Tag Document) — COR-level tagging mechanism + process (optional-overlay); also backfilled the missing COR-1004 (Create Routing Document) index row. | Claude Code |
+| 2026-07-03 | Added COR-1628 (Sandboxed Worker CLI Dispatch) + COR-1629 (Loop Config Starter Template) — promoted from alfred #282/#283 codex-lane practice. | Claude Code |

@@ -230,6 +230,7 @@
 | 2317 | SOP | Add A Tag On Request | Active |
 | 2318 | SOP | Backfill Tags Across The Corpus | Active |
 | 2319 | CHG | Preserve Wide Change History Rows | Completed |
+| 2320 | CHG | Promote Sandboxed Worker CLI Dispatch To COR Layer | Completed |
 
 ---
 
