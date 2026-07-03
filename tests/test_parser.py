@@ -258,6 +258,26 @@ def test_parse_metadata_stores_raw_line_on_history_rows():
     )
 
 
+def test_parse_metadata_history_row_retains_all_cells():
+    content = (
+        "# REF-9002: Wide History\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By | Reviewer | Evidence |\n"
+        "|------|--------|----|----------|----------|\n"
+        "| 2026-01-01 | Initial version | Alice | GLM | PR #260 |\n"
+    )
+    parsed = parse_metadata(content)
+    row = parsed.history_rows[0]
+    assert row.date == "2026-01-01"
+    assert row.change == "Initial version"
+    assert row.by == "Alice"
+    assert row.cells == ["2026-01-01", "Initial version", "Alice", "GLM", "PR #260"]
+    assert row.raw_line == "| 2026-01-01 | Initial version | Alice | GLM | PR #260 |"
+
+
 def test_render_document_preserves_aligned_history_rows_verbatim():
     """render_document must round-trip aligned history table rows byte-for-byte.
 
@@ -282,3 +302,24 @@ def test_render_document_preserves_aligned_history_rows_verbatim():
     assert rendered == content, (
         "render_document must emit aligned history rows verbatim via raw_line"
     )
+
+
+def test_render_document_dirty_wide_history_row_preserves_extra_cells():
+    content = (
+        "# REF-9003: Dirty Wide History\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By | Reviewer | Evidence |\n"
+        "|------|--------|----|----------|----------|\n"
+        "| 2026-01-01 | Initial version | Alice | GLM | PR #260 |\n"
+    )
+    parsed = parse_metadata(content)
+    row = parsed.history_rows[0]
+    row.cells[1] = "Updated version"
+    row.change = "Updated version"
+    row.dirty = True
+
+    rendered = render_document(parsed)
+    assert "| 2026-01-01 | Updated version | Alice | GLM | PR #260 |" in rendered

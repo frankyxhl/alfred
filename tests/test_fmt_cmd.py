@@ -396,6 +396,12 @@ def _make_project(tmp_path: Path, *docs: tuple[str, str]) -> Path:
     return tmp_path
 
 
+def _history_lines(content: str) -> list[str]:
+    lines = content.splitlines()
+    idx = next(i for i, line in enumerate(lines) if line == "## Change History")
+    return lines[idx:]
+
+
 # ── Unit Tests: Metadata Ordering ────────────────────────────────────────────
 
 
@@ -1071,6 +1077,212 @@ def test_fmt_table_idempotent_after_write(tmp_path):
     assert result2.exit_code == 0, (
         f"False positive: --check reported changes after --write. Output: {result2.output}"
     )
+
+
+# ── FXA-2319: Wide Change History Rows ───────────────────────────────────────
+
+
+def test_fmt_write_preserves_wide_history_table_cells(tmp_path):
+    doc = """\
+# SOP-2319: Wide History
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body.
+
+---
+
+## Change History
+
+| Date | Change | By | Reviewer | Evidence |
+|------|--------|----|----------|----------|
+| 2026-01-01 | Initial version | Alice | GLM | PR #260 |
+| 2026-01-02 | Verified extra cells survive | Codex | DeepSeek + MiniMax | fixture |
+"""
+    project = _make_project(tmp_path, ("TST-2319-SOP-Wide-History.md", doc))
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2319"])
+
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2319-SOP-Wide-History.md").read_text()
+    history = _history_lines(content)
+    assert any("GLM" in line and "PR #260" in line for line in history)
+    assert any("DeepSeek + MiniMax" in line and "fixture" in line for line in history)
+
+
+def test_fmt_write_preserves_ragged_history_table_cells(tmp_path):
+    doc = """\
+# SOP-2320: Ragged History
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Alice | carried review note | extra evidence |
+"""
+    project = _make_project(tmp_path, ("TST-2320-SOP-Ragged-History.md", doc))
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2320"])
+
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2320-SOP-Ragged-History.md").read_text()
+    history = _history_lines(content)
+    assert any(
+        "carried review note" in line and "extra evidence" in line for line in history
+    )
+
+
+def test_fmt_write_preserves_update_appended_row_in_wide_table(tmp_path):
+    from datetime import date
+
+    doc = """\
+# SOP-2321: Update Then Format
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body.
+
+---
+
+## Change History
+
+| Date | Change | By | Reviewer | Evidence |
+|------|--------|----|----------|----------|
+| 2026-01-01 | Initial version | Alice | DeepSeek | PR #260 |
+"""
+    project = _make_project(tmp_path, ("TST-2321-SOP-Update-Then-Format.md", doc))
+    runner = CliRunner()
+
+    update_result = runner.invoke(
+        cli,
+        [
+            "--root",
+            str(project),
+            "update",
+            "TST-2321",
+            "--history",
+            "Follow-up entry",
+            "--by",
+            "Codex",
+        ],
+    )
+    assert update_result.exit_code == 0
+
+    fmt_result = runner.invoke(
+        cli, ["fmt", "--root", str(project), "--write", "TST-2321"]
+    )
+
+    assert fmt_result.exit_code == 0
+    content = (project / "rules" / "TST-2321-SOP-Update-Then-Format.md").read_text()
+    history = _history_lines(content)
+    assert any("DeepSeek" in line and "PR #260" in line for line in history)
+    assert any(
+        date.today().isoformat() in line
+        and "Follow-up entry" in line
+        and "Codex" in line
+        for line in history
+    )
+
+    check_result = runner.invoke(
+        cli, ["fmt", "--root", str(project), "--check", "TST-2321"]
+    )
+    assert check_result.exit_code == 0, check_result.output
+
+
+def test_fmt_write_preserves_canonical_three_column_history_table(tmp_path):
+    doc = """\
+# SOP-2322: Canonical History
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body.
+
+---
+
+## Change History
+
+| Date       | Change          | By     |
+|------------|-----------------|--------|
+| 2026-01-01 | Initial version | Author |
+"""
+    project = _make_project(tmp_path, ("TST-2322-SOP-Canonical-History.md", doc))
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2322"])
+
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2322-SOP-Canonical-History.md").read_text()
+    assert content == doc
+
+
+def test_fmt_write_preserves_escaped_pipe_in_extra_history_cell(tmp_path):
+    doc = """\
+# SOP-2323: Escaped Extra Cell
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body.
+
+---
+
+## Change History
+
+| Date | Change | By | Reviewer | Evidence |
+|------|--------|----|----------|----------|
+| 2026-01-01 | Initial version | Alice | Reviewer A\\|B | PR #260 |
+"""
+    project = _make_project(tmp_path, ("TST-2323-SOP-Escaped-Extra-Cell.md", doc))
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2323"])
+
+    assert result.exit_code == 0
+    content = (project / "rules" / "TST-2323-SOP-Escaped-Extra-Cell.md").read_text()
+    history = _history_lines(content)
+    assert any("Reviewer A\\|B" in line and "PR #260" in line for line in history)
 
 
 # ── C3: HistoryRow with missing 'by' column ─────────────────────────────────

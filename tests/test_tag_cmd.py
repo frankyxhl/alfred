@@ -1095,6 +1095,38 @@ def test_tag_add_leaves_aligned_history_table_unchanged(tmp_path):
     assert "**Tags:** xtag-new" in after
 
 
+def test_tag_add_preserves_existing_wide_history_rows(tmp_path):
+    """af tag add must not collapse existing Change History rows to three cells."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    doc_path = rules / "ALF-9003-SOP-Wide-History.md"
+    original = (
+        "# SOP-9003: Wide History\n\n"
+        "**Applies to:** Test\n"
+        "**Last updated:** 2025-01-01\n"
+        "**Last reviewed:** 2025-01-01\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "## Change History\n\n"
+        "| Date | Change | By | Reviewer | Evidence |\n"
+        "|------|--------|----|----------|----------|\n"
+        "| 2025-01-01 | Initial version | Alice | GLM | PR #260 |\n"
+    )
+    doc_path.write_text(original, encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-9003", "xtag-new", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+
+    after = doc_path.read_text(encoding="utf-8")
+    assert "| 2025-01-01 | Initial version | Alice | GLM | PR #260 |" in after
+    assert "**Tags:** xtag-new" in after
+
+
 def test_tag_rm_leaves_aligned_history_table_unchanged(tmp_path):
     """af tag rm on a doc with an aligned history table must not churn the table."""
     rules = tmp_path / "rules"
