@@ -3596,3 +3596,87 @@ def test_validate_duplicate_comma_in_filename_preserves_labels(tmp_path):
     assert "Other" in issue_text, (
         f"Other filename missing from issue text: {issue_text!r}"
     )
+
+
+def test_validate_duplicate_docs_distinguishable_headings_text_mode(tmp_path):
+    """When two documents collide on the same PREFIX-ACID and exactly one has
+    an extra validation issue, text-mode section headings include the filename
+    so each document's issues are attributable to the correct file.  The extra
+    issue appears under the heading that names the offending file, not the
+    clean one."""
+    import re
+
+    rules_dir = tmp_path / "rules"
+    rules_dir.mkdir()
+
+    # First doc: valid SOP (all required sections present)
+    _write_valid_document(
+        rules_dir / "TST-2100-SOP-First-Doc.md",
+        "TST",
+        "2100",
+        "SOP",
+        "First Doc",
+    )
+
+    # Second doc: same PREFIX-ACID but missing ## Why section
+    second_content = """# SOP-2100: Second Doc
+
+**Applies to:** All projects
+**Last updated:** 2026-03-14
+**Last reviewed:** 2026-03-14
+**Status:** Active
+
+---
+
+## What Is It?
+
+This document is missing the Why section.
+
+## When to Use
+
+Use when needed.
+
+## When NOT to Use
+
+Do not use when not needed.
+
+## Steps
+
+1. Step one.
+2. Step two.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-03-14 | Initial version | Frank |
+"""
+    (rules_dir / "TST-2100-SOP-Second-Doc.md").write_text(second_content)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["validate", "--root", str(tmp_path)])
+
+    assert result.exit_code != 0
+
+    # Each heading must include its own filename — distinguishable when
+    # two docs share the same TST-2100 doc_id.
+    assert "TST-2100 (TST-2100-SOP-First-Doc.md):" in result.output
+    assert "TST-2100 (TST-2100-SOP-Second-Doc.md):" in result.output
+
+    # The missing-section issue must appear under the second doc's heading
+    # (the broken file), not under the first doc's clean section.
+    section_pattern = re.compile(
+        r"TST-2100 \(TST-2100-SOP-Second-Doc\.md\):\n"
+        r"(.*?)"
+        r"(?=\n[A-Z]{3}-\d{4}|\n\d+ documents checked|\Z)",
+        re.DOTALL,
+    )
+    section_match = section_pattern.search(result.output)
+    assert section_match is not None, (
+        f"Second-Doc heading section not found in output:\n{result.output}"
+    )
+    assert "SOP missing required section: '## Why'" in section_match.group(1), (
+        f"Missing-section error not under Second-Doc heading:\n{result.output}"
+    )
