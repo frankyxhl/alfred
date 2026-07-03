@@ -652,7 +652,10 @@ def iter_records(path: Path) -> Iterator[tuple[str, int, dict[str, Any]]]:
         loose_files = _jsonl_files(path)
         shadowed: dict[str, Counter[bytes]] = {}
         for file_path in loose_files:
-            payload = file_path.read_bytes()
+            try:
+                payload = file_path.read_bytes()
+            except FileNotFoundError:
+                continue
             shadowed[file_path.name] = _shadow_line_counts(payload)
             yield from _iter_jsonl_payload_records(str(file_path), payload)
         archive = path / "archive.zip"

@@ -504,6 +504,28 @@ def test_iter_records_does_not_double_count_shadowed_identical_member(tmp_path):
     assert records[0][2]["summary"] == "loose"
 
 
+def test_iter_records_skips_loose_file_vanished_before_read(tmp_path, monkeypatch):
+    """PR #290 R5: a vanished loose file must not shadow the archive member."""
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    loose_record = activity_log.compose_record(summary="loose")
+    archived_record = activity_log.compose_record(summary="archived")
+    loose_line = _record_line(loose_record)
+    archived_line = _record_line(archived_record)
+    loose = log_dir / "2026-06-20.jsonl"
+    loose.write_bytes(loose_line)
+    with ZipFile(log_dir / "archive.zip", "w") as zf:
+        zf.writestr("2026-06-20.jsonl", loose_line + archived_line)
+    listing = activity_log._jsonl_files(log_dir)
+    loose.unlink()
+    monkeypatch.setattr(activity_log, "_jsonl_files", lambda _path: listing)
+
+    records = list(activity_log.iter_records(log_dir))
+
+    assert [rec[2]["summary"] for rec in records] == ["loose", "archived"]
+    assert all(rec[0].endswith("archive.zip::2026-06-20.jsonl") for rec in records)
+
+
 def test_iter_records_does_not_duplicate_rows_when_shadow_vanishes_after_read(
     tmp_path,
 ):
