@@ -164,14 +164,19 @@ def test_plan_todo_json_outputs_active_process_declarations(
 
 
 def test_plan_skips_non_sop(sample_project, monkeypatch):
-    """Non-SOP documents trigger a warning about not being SOP."""
+    """af plan with only non-SOP IDs exits non-zero, error names doc and type.
+
+    Replaces prior contract (exit 0 + warning). When every requested ID is
+    non-SOP and phases end up empty, the command fails with a non-zero exit
+    so machine consumers don't receive an empty valid-looking plan.
+    """
     # sample_project has ALF-2201-PRP-AF-CLI-Tool.md (PRP type)
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
     result = runner.invoke(cli, ["plan", "ALF-2201"], catch_exceptions=False)
-    assert result.exit_code == 0
+    assert result.exit_code != 0
+    assert "ALF-2201" in result.output
     assert "PRP" in result.output
-    assert "not SOP" in result.output
 
 
 def test_plan_missing_document(sample_project, monkeypatch):
@@ -2783,3 +2788,106 @@ def test_plan_logging_failure_does_not_break_command(sample_project, monkeypatch
 
     assert result.exit_code == 0
     assert "TST-5903" in result.output
+
+
+# ── FXA-268: empty-plan gate (RED tests — src unchanged) ───────────────────
+
+
+def test_plan_ref_only_text_errors_with_doc_id_and_type(sample_project, monkeypatch):
+    """af plan <REF> exits non-zero; error output names the doc ID and type.
+
+    COR-0002 is a PKG-layer REF document. When it is the only requested ID,
+    the plan is empty and the command must fail — a machine consumer should
+    never receive an empty plan that looks valid.
+    """
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "COR-0002"], catch_exceptions=False)
+    assert result.exit_code != 0
+    assert "COR-0002" in result.output
+    assert "REF" in result.output
+
+
+def test_plan_ref_only_json_errors_with_skipped_payload(sample_project, monkeypatch):
+    """af plan <REF> --json exits non-zero; payload has composition_valid false
+    and a skipped list with id + reason for each skipped doc.
+
+    Machine consumers must be able to distinguish "valid empty plan" (which
+    only happens when zero IDs are requested — a programming error caught
+    earlier) from "all requested IDs were non-SOP" (the empty-gate here).
+    """
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "--json", "COR-0002"], catch_exceptions=False)
+    assert result.exit_code != 0
+    data = json.loads(result.output)
+    assert data["composition_valid"] is False
+    assert "skipped" in data
+    assert isinstance(data["skipped"], list)
+    assert len(data["skipped"]) >= 1
+    skipped = data["skipped"][0]
+    assert skipped["id"] == "COR-0002"
+    assert "reason" in skipped
+
+
+def test_plan_mixed_sop_and_ref_surfaces_skip(sample_project, monkeypatch):
+    """One SOP + one non-SOP: exit 0, plan for the SOP is produced, and the
+    non-SOP is surfaced in the skip list (JSON) or as a warning (text).
+
+    Mixed compositions must still succeed when at least one valid SOP exists.
+    The skip is informational — machine consumers check the ``skipped`` list;
+    human consumers see the existing text warning.
+    """
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+    monkeypatch.chdir(sample_project)
+
+    # Text mode — warning unchanged (GREEN: current behaviour already warns)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-5001", "COR-0002"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert "TST-5001" in result.output
+    assert "REF" in result.output
+    assert "not SOP" in result.output
+
+    # JSON mode — skipped list must include the REF (RED: new key)
+    result_json = runner.invoke(
+        cli, ["plan", "--json", "TST-5001", "COR-0002"], catch_exceptions=False
+    )
+    assert result_json.exit_code == 0
+    data = json.loads(result_json.output)
+    assert len(data["phases"]) >= 1
+    assert any(p["source_sop"] == "TST-5001" for p in data["phases"])
+    assert "skipped" in data
+    assert any(s["id"] == "COR-0002" for s in data["skipped"])
+
+
+def test_plan_all_sop_unchanged(sample_project, monkeypatch):
+    """Normal all-SOP plan is unaffected by the empty-gate — regression test.
+
+    When every requested ID is a valid SOP, the output must match existing
+    behaviour exactly: exit 0, phased output, no skipped key, no error.
+    """
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+    monkeypatch.chdir(sample_project)
+
+    # Text mode
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5001"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "## Phase" in result.output
+    assert "First step" in result.output
+    assert "## RULES" in result.output
+
+    # JSON mode
+    result_json = runner.invoke(
+        cli, ["plan", "--json", "TST-5001"], catch_exceptions=False
+    )
+    assert result_json.exit_code == 0
+    data = json.loads(result_json.output)
+    assert data["composition_valid"] is True
+    assert len(data["phases"]) >= 1
+    assert "skipped" not in data
