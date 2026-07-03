@@ -258,6 +258,63 @@ def test_parse_metadata_stores_raw_line_on_history_rows():
     )
 
 
+# --- Metadata-block raw line preservation (issue #261) ---
+
+
+def test_metadata_roundtrip_preserves_comment_between_fields():
+    content = (
+        "# REF-9002: Test\n\n"
+        "**Applies to:** Test\n"
+        "<!-- reviewer note -->\n"
+        "**Status:** Active\n"
+        "\n---\n"
+    )
+
+    parsed = parse_metadata(content)
+
+    assert render_document(parsed) == content
+
+
+def test_metadata_roundtrip_preserves_blank_line_between_fields():
+    content = "# REF-9003: Test\n\n**Applies to:** Test\n\n**Status:** Active\n\n---\n"
+
+    parsed = parse_metadata(content)
+
+    assert render_document(parsed) == content
+
+
+def test_metadata_roundtrip_preserves_comment_and_blanks_after_last_field():
+    content = (
+        "# REF-9004: Test\n\n"
+        "**Applies to:** Test\n"
+        "**Status:** Active\n"
+        "\n"
+        "<!-- reviewer note -->\n"
+        "\n"
+        "---\n"
+    )
+
+    parsed = parse_metadata(content)
+
+    assert render_document(parsed) == content
+
+
+def test_metadata_roundtrip_preserves_consecutive_comments_before_field():
+    content = (
+        "# REF-9005: Test\n\n"
+        "**Applies to:** Test\n"
+        "<!-- note a -->\n"
+        "<!-- note b -->\n"
+        "\n"
+        "**Status:** Active\n"
+        "\n---\n"
+    )
+
+    parsed = parse_metadata(content)
+
+    assert render_document(parsed) == content
+
+
 def test_parse_metadata_history_row_retains_all_cells():
     content = (
         "# REF-9002: Wide History\n\n"

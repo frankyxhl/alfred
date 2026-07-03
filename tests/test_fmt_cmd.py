@@ -597,6 +597,38 @@ def test_fmt_idempotent(tmp_path):
     assert "All documents already formatted" in result2.output
 
 
+def test_fmt_write_preserves_metadata_comment_and_blank_lines_when_reordering(tmp_path):
+    """Metadata leading lines travel with their field through fmt reordering."""
+    doc = (
+        "# REF-2114: Metadata Comment\n\n"
+        "**Status:** Active\n"
+        "<!-- reviewer note -->\n"
+        "\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2026-06-28\n"
+        "**Last reviewed:** 2026-06-28\n"
+        "\n"
+        "---\n"
+    )
+    project = _make_project(
+        tmp_path,
+        ("TST-2114-REF-Metadata-Comment.md", doc),
+    )
+    path = project / "rules" / "TST-2114-REF-Metadata-Comment.md"
+    runner = CliRunner()
+
+    result1 = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2114"])
+    assert result1.exit_code == 0
+    content1 = path.read_text()
+    assert "<!-- reviewer note -->\n\n**Applies to:** ALF project" in content1
+
+    result2 = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2114"])
+    assert result2.exit_code == 0
+    content2 = path.read_text()
+    assert content2 == content1
+    assert "All documents already formatted" in result2.output
+
+
 # ── Fence-aware ───────────────────────────────────────────────────────────────
 
 

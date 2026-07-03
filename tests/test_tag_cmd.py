@@ -573,6 +573,35 @@ def test_tag_add_creates_tags_field_when_absent(write_project):
     assert "**Tags:** xtag-new" in content
 
 
+def test_tag_add_preserves_metadata_comment_attached_to_reordered_field(tmp_path):
+    """Creating Tags reorders metadata without dropping a comment before a field."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    path = rules / "ALF-7001-REF-Metadata-Comment.md"
+    path.write_text(
+        "# REF-7001: Metadata Comment\n\n"
+        "**Status:** Active\n"
+        "<!-- reviewer note -->\n"
+        "**Applies to:** ALF project\n"
+        "**Last updated:** 2026-06-28\n"
+        "**Last reviewed:** 2026-06-28\n\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        ["tag", "add", "ALF-7001", "maintain", "--root", str(tmp_path)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    content = path.read_text(encoding="utf-8")
+    assert "<!-- reviewer note -->\n**Applies to:** ALF project" in content
+    assert content.index("<!-- reviewer note -->") < content.index("**Applies to:**")
+
+
 def test_tag_add_and_validate_stays_clean(write_project):
     """After af tag add, af validate ALF-6001 reports 0 issues (exit 0)."""
     runner = CliRunner()

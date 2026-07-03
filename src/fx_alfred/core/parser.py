@@ -24,6 +24,7 @@ class MetadataField:
     prefix_style: str  # "bold" for "**Key:** value", "list" for "- **Key:** value"
     raw_line: str  # original line for round-trip fidelity
     dirty: bool = False  # True when value has been modified (forces re-render)
+    leading_lines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -61,6 +62,7 @@ class ParsedDocument:
     blank_after_metadata: int = (
         0  # number of blank lines between last field and first ---
     )
+    trailing_metadata_lines: list[str] = field(default_factory=list)
     body: str = (
         ""  # everything between first --- and Change History (inclusive of separators)
     )
@@ -124,47 +126,49 @@ def parse_metadata(content: str) -> ParsedDocument:
 
     # Parse metadata fields between H1 and first ---
     metadata_fields: list[MetadataField] = []
-    blank_lines_before_sep: list[str] = []
+    pending_leading_lines: list[str] = []
 
     for i in range(first_non_blank, sep_index):
         line = lines[i]
         stripped = line.strip()
-        if not stripped:
-            blank_lines_before_sep.append(line)
-            continue
 
         list_match = _LIST_FIELD.match(stripped)
         bold_match = _BOLD_FIELD.match(stripped)
 
         if list_match:
-            # Drain any accumulated blank lines (they were between fields)
-            blank_lines_before_sep.clear()
             metadata_fields.append(
                 MetadataField(
                     key=list_match.group(1),
                     value=list_match.group(2),
                     prefix_style="list",
                     raw_line=line,
+                    leading_lines=pending_leading_lines,
                 )
             )
+            pending_leading_lines = []
         elif bold_match:
-            blank_lines_before_sep.clear()
             metadata_fields.append(
                 MetadataField(
                     key=bold_match.group(1),
                     value=bold_match.group(2),
                     prefix_style="bold",
                     raw_line=line,
+                    leading_lines=pending_leading_lines,
                 )
             )
+            pending_leading_lines = []
         else:
-            # Non-blank, non-field line in metadata block — skip
-            blank_lines_before_sep.clear()
+            pending_leading_lines.append(line)
 
     if not metadata_fields:
         raise MalformedDocumentError("No metadata fields found in document")
 
-    blank_after_metadata_count = len(blank_lines_before_sep)
+    trailing_metadata_lines = pending_leading_lines
+    blank_after_metadata_count = 0
+    for line in reversed(trailing_metadata_lines):
+        if line.strip():
+            break
+        blank_after_metadata_count += 1
 
     # Everything from first --- onward is body + change history
     rest_lines = lines[sep_index:]
@@ -184,6 +188,7 @@ def parse_metadata(content: str) -> ParsedDocument:
             metadata_fields=metadata_fields,
             blank_after_h1=blank_after_h1_count,
             blank_after_metadata=blank_after_metadata_count,
+            trailing_metadata_lines=trailing_metadata_lines,
             body=rest_text,
             history_header="",
             history_rows=[],
@@ -213,6 +218,7 @@ def parse_metadata(content: str) -> ParsedDocument:
             metadata_fields=metadata_fields,
             blank_after_h1=blank_after_h1_count,
             blank_after_metadata=blank_after_metadata_count,
+            trailing_metadata_lines=trailing_metadata_lines,
             body=rest_text,
             history_header="",
             history_rows=[],
@@ -253,6 +259,7 @@ def parse_metadata(content: str) -> ParsedDocument:
         metadata_fields=metadata_fields,
         blank_after_h1=blank_after_h1_count,
         blank_after_metadata=blank_after_metadata_count,
+        trailing_metadata_lines=trailing_metadata_lines,
         body=body,
         history_header=history_header,
         history_rows=rows,
@@ -278,6 +285,7 @@ def render_document(parsed: ParsedDocument) -> str:
 
     # Metadata fields — use raw_line for unmodified fields, regenerate for dirty ones
     for mf in parsed.metadata_fields:
+        lines.extend(mf.leading_lines)
         if mf.dirty:
             if mf.prefix_style == "list":
                 lines.append(f"- **{mf.key}:** {mf.value}")
@@ -286,9 +294,12 @@ def render_document(parsed: ParsedDocument) -> str:
         else:
             lines.append(mf.raw_line)
 
-    # Blank lines between metadata and separator
-    for _ in range(parsed.blank_after_metadata):
-        lines.append("")
+    if parsed.trailing_metadata_lines:
+        lines.extend(parsed.trailing_metadata_lines)
+    else:
+        # Blank lines between metadata and separator
+        for _ in range(parsed.blank_after_metadata):
+            lines.append("")
 
     # Body (starts with first --- separator)
     if parsed.body:
