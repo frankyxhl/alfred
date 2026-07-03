@@ -121,7 +121,7 @@ def _duplicate_issues_from_layer_errors(errors: list[str]) -> dict[str, list[str
             continue
         sources = [source.strip() for source in match.group("sources").split(",")]
         issue = f"Duplicate {match.group('doc_id')} found in: {', '.join(sources)}"
-        for source in sources:
+        for source in dict.fromkeys(sources):
             duplicate_issues.setdefault(source, []).append(issue)
     return duplicate_issues
 
