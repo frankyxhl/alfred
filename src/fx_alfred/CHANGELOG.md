@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+## v1.25.1 (2026-07-04)
+
+Patch release: four bug fixes, two of them closing silent data-loss paths in
+the activity-log archive. No new features, no breaking changes.
+
+### Bug Fixes
+
+- **Concurrent appends can no longer be lost during archival.**
+  `archive_directory` now takes the same `.append.lock` the appender uses
+  (blocking exclusive flock across the whole zip-snapshot -> unlink critical
+  section), so a record appended mid-archive lands either in the archived
+  snapshot or in a fresh loose file — never dropped. fcntl-less platforms
+  unchanged (#263, #289).
+- **Re-archiving a reappeared loose file merges instead of silently
+  destroying archived rows.** Same-named `archive.zip` members are now
+  multiset-merged (existing rows first, per-row multiplicity =
+  max(existing, loose), byte-level line identity); readers gained matching
+  shadow-union semantics so rows stay visible (and are never double-counted)
+  across failed-unlink / restore / mid-iteration-vanish states (#264, #290).
+- **`af create` refuses titles whose filename would be invisible to the CLI.**
+  Titles that slugify to an empty string (e.g. `"???"`, `"- - -"`, whitespace)
+  are rejected with an actionable error before any write, in both the CLI and
+  `--spec` paths — no more scanner-invisible `PREFIX-ACID-TYP-.md` orphans
+  (#265, #291).
+- **Fence handling unified across write/scan paths onto the shared
+  iterator**, fixing fence-state divergence between `af fmt --write` and the
+  scanners (#262, #288).
+
+### Stats
+
+- 1418 tests, all passing (26 new test functions since v1.25.0)
+- 0 breaking changes
+
 ## v1.25.0 (2026-07-03)
 
 The sandboxed-worker development lane ships to every project: dispatch a
