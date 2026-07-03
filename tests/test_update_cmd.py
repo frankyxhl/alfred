@@ -404,6 +404,14 @@ A test document body.
     content = new_path.read_text()
     assert "# TST-2100: FOUR COL" in content
 
+    # Assert the directory entry carries the new casing (not just that
+    # .exists() resolved case-insensitively).  On case-insensitive
+    # filesystems the single entry for this file must show the new casing;
+    # on case-sensitive filesystems the old-case entry must be gone.
+    names = [p.name for p in rules.iterdir()]
+    assert "TST-2100-SOP-FOUR-COL.md" in names
+    assert "TST-2100-SOP-Four-Col.md" not in names
+
 
 def test_update_rename_with_yes(tmp_path, monkeypatch):
     """Rename document with -y flag (no confirmation prompt)."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import difflib
+import os
 import re
 import sys
 from datetime import date
@@ -58,6 +59,25 @@ def _is_same_file(file_path: Path, new_file_path: Path) -> bool:
         return file_path.exists() and new_file_path.samefile(file_path)
     except OSError:
         return False
+
+
+def _rename_case_only(file_path: Path, new_file_path: Path) -> None:
+    tmp_path = file_path.with_name(f"{new_file_path.name}.{os.getpid()}.casefix.tmp")
+    if tmp_path.exists():
+        raise click.ClickException(f"Temporary rename path exists: {tmp_path}")
+    file_path.rename(tmp_path)
+    try:
+        tmp_path.rename(new_file_path)
+    except OSError as e:
+        try:
+            tmp_path.rename(file_path)
+        except OSError as rollback_error:
+            raise click.ClickException(
+                f"Case-only rename failed; file remains at temporary path: {tmp_path}"
+            ) from rollback_error
+        raise click.ClickException(
+            f"Case-only rename failed; restored original path: {file_path}"
+        ) from e
 
 
 def _replace_section_in_body(
@@ -227,7 +247,6 @@ def update_cmd(
             )
 
     # ── Step 1: Validate all options ────────────────────────────────────────
-
     # Load spec file if provided
     spec_metadata_updates: dict[str, Any] = {}
     spec_section_updates: dict[str, Any] = {}
@@ -335,7 +354,6 @@ def update_cmd(
                 raise click.ClickException("Rename cancelled by user")
 
     # ── Step 2: Apply metadata updates ──────────────────────────────────────
-
     for mf in parsed.metadata_fields:
         if mf.key in field_updates:
             mf.value = field_updates[mf.key]
@@ -360,7 +378,6 @@ def update_cmd(
             )
 
     # ── Step 3: Apply history append ────────────────────────────────────────
-
     if history is not None:
         from fx_alfred.core.parser import HistoryRow
 
@@ -373,7 +390,6 @@ def update_cmd(
         )
 
     # ── Step 3.5: Apply section patches from spec ───────────────────────────
-
     if spec_section_updates:
         for section_name, section_content in spec_section_updates.items():
             rendered = render_section_content(section_content)
@@ -387,7 +403,6 @@ def update_cmd(
             parsed.body = new_body
 
     # ── Step 4: Apply rename (H1 update) ────────────────────────────────────
-
     if new_title is not None:
         # Update H1 line: replace the title portion after ": "
         h1_match = re.match(r"^(# .+?:\s*)", parsed.h1_line)
@@ -398,7 +413,6 @@ def update_cmd(
             parsed.h1_line = f"# {doc.type_code}-{doc.acid}: {new_title}"
 
     # ── Step 5: Auto-touch Last updated ─────────────────────────────────────
-
     for mf in parsed.metadata_fields:
         if mf.key == "Last updated":
             mf.value = date.today().isoformat()
@@ -406,7 +420,6 @@ def update_cmd(
             break
 
     # ── Step 6: Render and write ────────────────────────────────────────────
-
     new_content = render_document(parsed)
 
     if dry_run:
@@ -429,7 +442,6 @@ def update_cmd(
     atomic_write(file_path, new_content)
 
     # ── Step 7: Post-write — rename file and auto-index ─────────────────────
-
     renamed = (
         new_title is not None
         and new_file_path is not None
@@ -437,7 +449,13 @@ def update_cmd(
     )
     if renamed:
         assert new_file_path is not None
-        file_path.rename(new_file_path)
+        case_only = file_path.name != new_file_path.name and _is_same_file(
+            file_path, new_file_path
+        )
+        if case_only:
+            _rename_case_only(file_path, new_file_path)
+        else:
+            file_path.rename(new_file_path)
         click.echo(f"Renamed {file_path.name} -> {new_file_path.name}")
     else:
         click.echo(f"Updated {file_path.name}")
