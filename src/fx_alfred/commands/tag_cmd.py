@@ -19,7 +19,7 @@ from fx_alfred.commands._helpers import (
 )
 from fx_alfred.context import root_option
 from fx_alfred.core.document import Document
-from fx_alfred.core.normalize import sort_metadata
+from fx_alfred.core.normalize import reorder_by_canonical_keys, sort_metadata
 from fx_alfred.core.parser import (
     MalformedDocumentError,
     MetadataField,
@@ -98,15 +98,9 @@ def _edit_tags(
             if doc_type is not None:
                 current_keys = [mf.key for mf in parsed.metadata_fields]
                 canonical_keys = sort_metadata(current_keys, doc_type)
-                ordered: list[MetadataField] = []
-                remaining = list(parsed.metadata_fields)
-                for key in canonical_keys:
-                    for i, mf in enumerate(remaining):
-                        if mf.key == key:
-                            ordered.append(remaining.pop(i))
-                            break
-                ordered.extend(remaining)
-                parsed.metadata_fields = ordered
+                parsed.metadata_fields = reorder_by_canonical_keys(
+                    parsed.metadata_fields, canonical_keys
+                )
         else:
             tag_field.value = tags_value
             tag_field.dirty = True

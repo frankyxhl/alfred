@@ -103,7 +103,7 @@ def test_branches_from_must_be_plain_int_not_substep_only() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     # Should reject `from: 2` because there's no bare `2.` line — only `2a/2b`.
     assert any("from = 2" in e.msg for e in errors)
 
@@ -116,7 +116,7 @@ def test_branches_from_must_exist() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     assert any("from" in e.msg and "99" in e.msg for e in errors)
 
 
@@ -128,7 +128,7 @@ def test_branches_to_must_exist() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     assert any("3z" in e.msg for e in errors)
 
 
@@ -140,7 +140,7 @@ def test_branches_to_parent_must_match_from_plus_one() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     assert any("from + 1" in e.msg or "must be 3" in e.msg for e in errors)
 
 
@@ -152,7 +152,7 @@ def test_branches_parent_mismatch_message_renders_substep_id_cleanly() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     message = "\n".join(e.msg for e in errors)
     assert "id 3a parent" in message
     assert "3'a'" not in message
@@ -177,7 +177,7 @@ def test_branches_orphan_substep_rejected() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     assert any("3b" in e.msg and "orphan" in e.msg.lower() for e in errors)
 
 
@@ -189,7 +189,7 @@ def test_branches_siblings_must_be_contiguous() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     assert any("contiguous" in e.msg.lower() for e in errors)
 
 
@@ -201,7 +201,7 @@ def test_branches_valid_3way_passes_when_gate_open() -> None:
     )
     parsed = parse_metadata(body)
     branches = parse_workflow_branches(parsed)
-    errors = validate_branches(parsed, branches, _gate_open_for_test=True)
+    errors = validate_branches(parsed, branches)
     assert errors == []
 
 

@@ -345,11 +345,14 @@ def _render_phase(
             # -> next-step flows are visually disconnected (Codex P1 review
             # finding). Compute "has next" by scanning for any later
             # non-skipped, non-branch-group-parent step.
+            # (later not in skip_indices and later not in branch_groups) or
+            # (later in branch_groups) is a tautology once the outer filter
+            # already guarantees `later not in skip_indices` — every later
+            # is either in branch_groups or not, so the disjunction is
+            # always True. Simplifies to: is there any later step at all
+            # (skipped ones excluded)?
             has_following_step = any(
-                (later not in skip_indices and later not in branch_groups)
-                or later in branch_groups
-                for later in range(s_idx + 1, step_count)
-                if later not in skip_indices
+                later not in skip_indices for later in range(s_idx + 1, step_count)
             )
             if has_following_step:
                 lines.append(_render_arrow_line(inside_phase=True))

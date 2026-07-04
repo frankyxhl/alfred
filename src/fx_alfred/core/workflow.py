@@ -383,8 +383,6 @@ def parse_workflow_branches(parsed: ParsedDocument) -> list[BranchSignature]:
 def validate_branches(
     parsed: ParsedDocument,
     branches: list[BranchSignature],
-    *,
-    _gate_open_for_test: bool = False,
 ) -> list[BranchError]:
     """Validate ``Workflow branches:`` declarations against the SOP body.
 
@@ -395,8 +393,7 @@ def validate_branches(
     1. **Renderer-readiness gate** — if ``_BRANCHES_RENDERER_READY`` is False
        (the default in CHG-2226 until CHG-2227 Phase 8a flips it), the
        presence of *any* branch declaration is a hard error directing
-       authors to wait for CHG-2227. ``_gate_open_for_test`` bypasses this
-       gate for tests that need to exercise the structural rules below.
+       authors to wait for CHG-2227.
     2. **`from` exists** — must reference an existing integer step under
        the recognised steps heading.
     3. **`to.parent == from + 1`** — every sibling's parent integer must
@@ -416,7 +413,7 @@ def validate_branches(
     # non-emptiness. The spec is "MUST NOT author this field until
     # CHG-2227 lands" — authoring an empty list still authors the field.
     field_present = has_workflow_branches_field(parsed)
-    if field_present and not (_BRANCHES_RENDERER_READY or _gate_open_for_test):
+    if field_present and not _BRANCHES_RENDERER_READY:
         errors.append(
             BranchError(
                 msg=(
@@ -434,9 +431,17 @@ def validate_branches(
 
     section = extract_steps_section(parsed.body) if parsed.body else None
     sub_steps_in_order: list[tuple[int, str]] = []  # [(parent, branch), ...]
-    plain_step_positions: dict[int, int] = {}  # int_index -> first occurrence
+    # Plain-step ints only (excluding parent ints injected from sub-step
+    # lines) — used by Rule 2 below per PR #68 Codex F1 finding. The
+    # spec says `from` must reference an EXISTING INTEGER step in
+    # `## Steps`; sub-stepped-only parents (no bare `2.` line) should
+    # NOT satisfy `from: 2`.
+    plain_only_ints: set[int] = set()
+    # Unified ordered view of every step line (plain + sub) — shared across
+    # all branches' Rule 5 contiguity check below (the section doesn't
+    # change per branch, so scan it once).
+    unified: list[tuple[str, int, str | None]] = []
     if section is not None:
-        position = 0  # logical position counting ALL parsed step lines
         # Fenced lines are skipped via the shared CommonMark tracker
         # (CHG-2299; same discipline as parse_top_level_step_indices).
         # Validation-side matching stays permissive — both "3." and
@@ -451,11 +456,10 @@ def validate_branches(
             parent = int(m.group(1))
             sub = m.group(2)
             if sub is None:
-                if parent not in plain_step_positions:
-                    plain_step_positions[parent] = position
+                plain_only_ints.add(parent)
             else:
                 sub_steps_in_order.append((parent, sub))
-            position += 1
+            unified.append(("sub" if sub else "plain", parent, sub))
 
     # Build a lookup set of (parent, branch) pairs that exist in ## Steps.
     sub_steps_set = set(sub_steps_in_order)
@@ -464,13 +468,6 @@ def validate_branches(
     for sig in branches:
         for tgt in sig.to:
             declared.add((tgt.parent, tgt.branch))
-
-    # Plain-step ints only (excluding parent ints injected from sub-step
-    # lines) — used by Rule 2 below per PR #68 Codex F1 finding. The
-    # spec says `from` must reference an EXISTING INTEGER step in
-    # `## Steps`; sub-stepped-only parents (no bare `2.` line) should
-    # NOT satisfy `from: 2`.
-    plain_only_ints = frozenset(plain_step_positions.keys())
 
     for i, sig in enumerate(branches):
         # Rule 2: from references existing INTEGER step (must be a bare
@@ -512,40 +509,20 @@ def validate_branches(
                     )
                 )
 
-        # Rule 5: siblings contiguous in ## Steps. Find positions of declared
-        # siblings; assert they are consecutive (allowing only sub-step lines
-        # between them).
-        sibling_positions = [
-            idx
-            for idx, (parent, branch) in enumerate(sub_steps_in_order)
-            if (parent, branch) in {(t.parent, t.branch) for t in sig.to}
+        # Rule 5: siblings contiguous in ## Steps. Uses the pre-scanned
+        # `unified` ordering (shared across all branches — the section
+        # doesn't change per branch) to verify no plain integer step
+        # appears between the first and last declared sibling.
+        sibling_set = {(t.parent, t.branch) for t in sig.to}
+        sib_unified_positions = [
+            u_idx
+            for u_idx, (kind, p, s) in enumerate(unified)
+            if kind == "sub" and (p, s) in sibling_set
         ]
-        if sibling_positions:
+        if sib_unified_positions:
             expected_parent = sig.from_step + 1
             interleaved_plain = False
-            # Build a unified ordered list of (kind, parent, branch_or_None)
-            # and verify no plain integer step appears between the first and
-            # last declared sibling.
-            unified: list[tuple[str, int, str | None]] = []
-            if section is not None:
-                # Shared fence tracker (CHG-2299); permissive matching as
-                # in the sub-step scan above.
-                for raw, fenced in iter_lines_with_fence_state(section):
-                    if fenced:
-                        continue
-                    m = re.match(r"^(?:###\s+)?(\d+)([a-z])?\.\s+", raw)
-                    if not m:
-                        continue
-                    p = int(m.group(1))
-                    s = m.group(2)
-                    unified.append(("sub" if s else "plain", p, s))
-            sibling_set = {(t.parent, t.branch) for t in sig.to}
-            sib_unified_positions = [
-                u_idx
-                for u_idx, (kind, p, s) in enumerate(unified)
-                if kind == "sub" and (p, s) in sibling_set
-            ]
-            if sib_unified_positions and len(sib_unified_positions) >= 2:
+            if len(sib_unified_positions) >= 2:
                 lo = min(sib_unified_positions)
                 hi = max(sib_unified_positions)
                 for u_idx in range(lo + 1, hi):
