@@ -517,3 +517,69 @@ def test_golden_audit_ledger_fixture() -> None:
         f"Audit Ledger render has non-uniform line widths: {widths}\n"
         + "\n".join(f"  ({wcwidth.wcswidth(line)}) {line}" for line in out.lines)
     )
+
+
+# --------------------------------------------------------------------------
+# FXA-277: tab character (control char) in wcswidth fast paths
+# --------------------------------------------------------------------------
+
+
+def test_truncate_to_cells_with_tab_falls_back_to_per_char():
+    """_truncate_to_cells must NOT return the string verbatim when wcswidth==-1.
+
+    Before the fix, the fast path ``if width <= max_cells`` sees -1 <= N
+    (always True) and returns the string untruncated. After the fix, it must
+    fall back to the per-char guard (cw<0 → width 1) and truncate as expected.
+    """
+    from fx_alfred.core.branch_geometry import _truncate_to_cells
+
+    # 10 ASCII chars + 1 tab = ~11 visual cells (tab treated as 1 cell by per-char guard)
+    # Budget of 5 should force truncation.
+    s = "hello\tworld"
+    result = _truncate_to_cells(s, 5)
+    # Must be shorter than the original (truncation happened).
+    assert len(result) < len(s), (
+        f"Expected truncation for tab string with budget 5, got untruncated: {result!r}"
+    )
+
+
+def test_pad_to_cells_with_tab_does_not_over_pad():
+    """_pad_to_cells must NOT over-pad when wcswidth returns -1.
+
+    Before the fix, ``total_cells - (-1)`` adds 1 extra space. After the
+    fix, the per-char fallback computes the correct visual width.
+    """
+    from fx_alfred.core.branch_geometry import _pad_to_cells
+
+    import wcwidth
+
+    s = "a\tb"
+    result = _pad_to_cells(s, 5)
+    # The result's visual width (measured per-char) must be ≤ target.
+    measured = sum(max(wcwidth.wcwidth(ch), 1) for ch in result)
+    assert measured <= 5, (
+        f"Over-padded: target 5 cells, measured {measured} cells, result {result!r}"
+    )
+
+
+def test_render_branch_with_tab_in_sibling_text_does_not_crash():
+    """render_branch must handle tab in sibling text without crashing or
+    producing wildly misaligned output."""
+    import wcwidth
+
+    # The tab is in sibling text — exercises _box_lines → _truncate_to_cells
+    inp = _make_input(
+        siblings=[(3, "a", "OK"), (3, "b", "NO")],
+        sibling_texts=["has\ttab", "plain"],
+        converges_to=None,
+        converges_to_text=None,
+    )
+    out = render_branch(inp)
+    # Must produce output lines.
+    assert len(out.lines) > 0
+    # Width uniformity (I2) must hold even with tab in body text.
+    widths = {wcwidth.wcswidth(line) for line in out.lines}
+    assert len(widths) == 1, (
+        f"non-uniform line widths with tab body: {widths}\n"
+        + "\n".join(f"  ({wcwidth.wcswidth(line)}) {line!r}" for line in out.lines)
+    )

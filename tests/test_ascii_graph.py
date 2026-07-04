@@ -619,31 +619,36 @@ class TestTruncateVisualEdges:
 
 
 class TestVisualWidthMiscSymbols:
-    """Direct tests for _visual_width handling of Misc Symbols + Dingbats."""
+    """Direct tests for _visual_width — wcwidth contract (FXA-277 authority).
 
-    def test_visual_width_warning_sign_is_2(self):
+    Before FXA-277 these pinned hand-rolled widths from a local table.
+    After the fix, _visual_width delegates to wcwidth, so each assertion
+    reflects wcwidth's known values (computed at test time or pinned).
+    """
+
+    def test_visual_width_warning_sign_matches_wcwidth(self):
         from fx_alfred.core.ascii_graph import _visual_width
 
-        # ⚠ = U+26A0 (Misc Symbols) — 2 cells
-        assert _visual_width("⚠") == 2
+        # ⚠ = U+26A0 — wcwidth says 1 cell (hand-rolled table was wrong at 2)
+        assert _visual_width("⚠") == 1
 
-    def test_visual_width_variation_selector_is_0(self):
+    def test_visual_width_variation_selector_matches_wcwidth(self):
         from fx_alfred.core.ascii_graph import _visual_width
 
-        # U+FE0F variation selector — 0 cells
+        # U+FE0F variation selector — wcwidth says 0 cells (unchanged)
         assert _visual_width("\ufe0f") == 0
 
-    def test_visual_width_repeat_emoji_is_2(self):
+    def test_visual_width_repeat_emoji_matches_wcwidth(self):
         from fx_alfred.core.ascii_graph import _visual_width
 
-        # 🔁 = U+1F501 (Emoji block) — 2 cells
+        # 🔁 = U+1F501 (Emoji block) — wcwidth says 2 cells (unchanged)
         assert _visual_width("🔁") == 2
 
-    def test_visual_width_warning_emoji_sequence_is_2(self):
+    def test_visual_width_warning_emoji_sequence_matches_wcwidth(self):
         from fx_alfred.core.ascii_graph import _visual_width
 
-        # ⚠️ = U+26A0 + U+FE0F — total 2 cells (2 + 0)
-        assert _visual_width("⚠️") == 2
+        # ⚠️ — wcwidth.wcswidth says 2 cells (unchanged)
+        assert _visual_width("⚠\ufe0f") == 2
 
 
 class TestEveryLineUniformVisualWidth:
@@ -703,3 +708,265 @@ class TestEveryLineUniformVisualWidth:
                 f"Line width mismatch: expected {box_width}, got {line_width}\n"
                 f"Line: {ln!r}"
             )
+
+
+class TestCheckmarkWidthAlignment:
+    """FXA-277: ✓ alignment across wcwidth vs hand-rolled _visual_width.
+
+    When step/sibling text contains ✓ (U+2713), the hand-rolled _visual_width
+    counts it as 2 cells (range 0x2600–0x27BF), but wcwidth says 1.  Lines
+    padded by branch_geometry (wcwidth) get re-measured by _visual_width →
+    right borders shift by one column.  After the fix, _visual_width delegates
+    to wcwidth and every box content line has uniform wcswidth.
+    """
+
+    @staticmethod
+    def _branchy_phase_with_checkmark():
+        """Single-phase branchy SOP with ✓ in step/sibling text."""
+        from fx_alfred.core.workflow import BranchSignature, BranchTarget
+
+        return [
+            {
+                "sop_id": "TEST-CHECK",
+                "provenance": "always",
+                "steps": [
+                    {"index": 1, "text": "Start", "gate": False},
+                    {"index": 2, "text": "Decision✓", "gate": False},
+                    {"index": 3, "text": "Path A✓", "gate": False, "sub_branch": "a"},
+                    {"index": 3, "text": "Path B", "gate": False, "sub_branch": "b"},
+                    {"index": 4, "text": "Done", "gate": False},
+                ],
+                "loops": [],
+                "branches": [
+                    BranchSignature(
+                        from_step=2,
+                        to=(
+                            BranchTarget(parent=3, branch="a", label="OK"),
+                            BranchTarget(parent=3, branch="b", label="NO"),
+                        ),
+                    )
+                ],
+            }
+        ]
+
+    def test_ascii_graph_box_lines_have_uniform_wcswidth(self):
+        """Every content line (│...│) has uniform wcswidth, measured by wcwidth."""
+        import wcwidth
+
+        from fx_alfred.core.ascii_graph import render_ascii
+
+        output = render_ascii(self._branchy_phase_with_checkmark())
+        lines = output.splitlines()
+
+        content_lines = [ln for ln in lines if ln.startswith("│") and ln.endswith("│")]
+        assert content_lines, "no content lines found"
+
+        widths = {wcwidth.wcswidth(ln) for ln in content_lines}
+        assert len(widths) == 1, (
+            f"non-uniform wcswidth in ascii_graph output: {sorted(widths)}\n"
+            + "\n".join(f"  (wc={wcwidth.wcswidth(ln)}) {ln!r}" for ln in content_lines)
+        )
+
+    def test_ascii_graph_right_border_at_consistent_visual_column(self):
+        """The right │ border sits at the same wcwidth-measured column in every line."""
+        import wcwidth
+
+        from fx_alfred.core.ascii_graph import render_ascii
+
+        output = render_ascii(self._branchy_phase_with_checkmark())
+        lines = output.splitlines()
+
+        content_lines = [ln for ln in lines if ln.startswith("│") and ln.endswith("│")]
+        border_cols = set()
+        for ln in content_lines:
+            # Measure the visual column of the rightmost │ using wcwidth
+            prefix = ln[: ln.rindex("│")]
+            border_cols.add(wcwidth.wcswidth(prefix))
+        assert len(border_cols) == 1, (
+            f"right │ border at inconsistent wcwidth columns: {sorted(border_cols)}"
+        )
+
+
+class TestTabHandling:
+    """FXA-277: tab (control char) in step text — truncation and padding bugs.
+
+    wcwidth.wcswidth returns -1 for strings containing control chars.
+    branch_geometry._truncate_to_cells fast-path (wcswidth <= max_cells)
+    passes -1 <= N → untruncated.  _pad_to_cells computes total_cells - (-1)
+    → over-pads by 1.  Both fast-paths must fall back to the per-char loop.
+    """
+
+    @staticmethod
+    def _phase_with_tab():
+        return [
+            {
+                "sop_id": "TEST-TAB",
+                "provenance": "always",
+                "steps": [
+                    {"index": 1, "text": "normal step", "gate": False},
+                    {"index": 2, "text": "has\ttab", "gate": False},
+                ],
+                "loops": [],
+            }
+        ]
+
+    def test_tab_text_does_not_break_box(self):
+        """Text with a literal tab must not overflow the box or corrupt padding."""
+        from fx_alfred.core.ascii_graph import render_ascii, _visual_width
+
+        output = render_ascii(self._phase_with_tab())
+        lines = output.splitlines()
+
+        # Measure box width from a border line.
+        top_border = [ln for ln in lines if ln.startswith("┌")][0]
+        box_visual = _visual_width(top_border)
+
+        # No line may exceed the box width.
+        for ln in lines:
+            assert _visual_width(ln) <= box_visual, (
+                f"line exceeds box width ({box_visual}): {_visual_width(ln)}\n  {ln!r}"
+            )
+
+        # The tab must not crash the renderer.
+        assert isinstance(output, str)
+        # Step 2 text must be present (possibly truncated, but not missing).
+        assert "has" in output
+        assert "tab" in output
+
+    def test_ascii_graph_render_contains_both_steps(self):
+        """Both steps are present — tab didn't cause silent data loss."""
+        from fx_alfred.core.ascii_graph import render_ascii
+
+        output = render_ascii(self._phase_with_tab())
+        assert "[1.1] normal step" in output
+        assert "[1.2] has" in output
+
+
+class TestPlainAsciiGoldenGuard:
+    """FXA-277 guard: plain-ASCII branchy SOP render is byte-identical
+    before and after the width authority fix.
+
+    These exact outputs were captured from the CURRENT code on the
+    fxa-277-width-authority branch.  They must pass both today AND after
+    the fix is applied — the fix changes only non-ASCII width measurement,
+    so plain-ASCII renders must be unchanged.
+    """
+
+    @staticmethod
+    def _plain_ascii_branchy_ascii_graph_phases():
+        from fx_alfred.core.workflow import BranchSignature, BranchTarget
+
+        return [
+            {
+                "sop_id": "TEST-0001",
+                "provenance": "always",
+                "steps": [
+                    {"index": 1, "text": "Start", "gate": False},
+                    {"index": 2, "text": "Decision", "gate": False},
+                    {"index": 3, "text": "Path A", "gate": False, "sub_branch": "a"},
+                    {"index": 3, "text": "Path B", "gate": False, "sub_branch": "b"},
+                    {"index": 4, "text": "Continue", "gate": False},
+                ],
+                "loops": [],
+                "branches": [
+                    BranchSignature(
+                        from_step=2,
+                        to=(
+                            BranchTarget(parent=3, branch="a", label="A"),
+                            BranchTarget(parent=3, branch="b", label="B"),
+                        ),
+                    )
+                ],
+            }
+        ]
+
+    @staticmethod
+    def _plain_ascii_branchy_dag_phases():
+        from fx_alfred.core.workflow import BranchSignature, BranchTarget
+
+        return [
+            {
+                "sop_id": "TEST-0001",
+                "steps": [
+                    {"index": 1, "text": "Start", "gate": False},
+                    {"index": 2, "text": "Decision", "gate": False},
+                    {"index": 3, "text": "Path A", "gate": False, "sub_branch": "a"},
+                    {"index": 3, "text": "Path B", "gate": False, "sub_branch": "b"},
+                    {"index": 4, "text": "Continue", "gate": False},
+                ],
+                "loops": [],
+                "branches": [
+                    BranchSignature(
+                        from_step=2,
+                        to=(
+                            BranchTarget(parent=3, branch="a", label="A"),
+                            BranchTarget(parent=3, branch="b", label="B"),
+                        ),
+                    )
+                ],
+            }
+        ]
+
+    # Golden output captured 2026-07-04 from current branch (pre-fix).
+    ASCII_GOLDEN = (
+        "┌────────────────────────────────────────────────┐\n"
+        "│ Phase 1: TEST-0001 (always)                    │\n"
+        "│ [1.1] Start                                    │\n"
+        "│ [1.2] Decision                                 │\n"
+        "│ └─────┬─────────────┬────┘                     │\n"
+        "│       A             B                          │\n"
+        "│       ▼             ▼                          │\n"
+        "│ ┌──────────┐  ┌──────────┐                     │\n"
+        "│ │Path A    │  │Path B    │                     │\n"
+        "│ └──────────┘  └──────────┘                     │\n"
+        "│       └──────┼──────┘                          │\n"
+        "│              ▼                                 │\n"
+        "│        ┌──────────┐                            │\n"
+        "│        │Continue  │                            │\n"
+        "│        └──────────┘                            │\n"
+        "└────────────────────────────────────────────────┘\n"
+    )
+
+    DAG_GOLDEN = (
+        "┌─────────────────────────────────────────────────────┐\n"
+        "│ Phase 1: TEST-0001                                  │\n"
+        "│                                                     │\n"
+        "│  ┌───────────────────────────────────────────────┐  │\n"
+        "│  │ 1.1 Start                                     │  │\n"
+        "│  └───────────────────────┴───────────────────────┘  │\n"
+        "│                          ▼                          │\n"
+        "│  ┌───────────────────────────────────────────────┐  │\n"
+        "│  │ 1.2 Decision                                  │  │\n"
+        "│             └─────┬─────────────┬────┘              │\n"
+        "│                   A             B                   │\n"
+        "│                   ▼             ▼                   │\n"
+        "│             ┌──────────┐  ┌──────────┐              │\n"
+        "│             │Path A    │  │Path B    │              │\n"
+        "│             └──────────┘  └──────────┘              │\n"
+        "│                   └──────┼──────┘                   │\n"
+        "│                          ▼                          │\n"
+        "│                    ┌──────────┐                     │\n"
+        "│                    │Continue  │                     │\n"
+        "│                    └──────────┘                     │\n"
+        "└─────────────────────────────────────────────────────┘"
+    )
+
+    def test_ascii_graph_golden_byte_identical(self):
+        """Plain-ASCII branchy SOP render_ascii output is byte-identical."""
+        from fx_alfred.core.ascii_graph import render_ascii
+
+        output = render_ascii(self._plain_ascii_branchy_ascii_graph_phases())
+        assert output == self.ASCII_GOLDEN, (
+            f"ASCII golden mismatch!\nExpected repr:\n{self.ASCII_GOLDEN!r}\n"
+            f"Got repr:\n{output!r}"
+        )
+
+    def test_dag_graph_golden_byte_identical(self):
+        """Plain-ASCII branchy SOP render_dag output is byte-identical."""
+        from fx_alfred.core.dag_graph import render_dag
+
+        output = render_dag(self._plain_ascii_branchy_dag_phases())
+        assert output == self.DAG_GOLDEN, (
+            f"DAG golden mismatch!\nExpected repr:\n{self.DAG_GOLDEN!r}\n"
+            f"Got repr:\n{output!r}"
+        )
