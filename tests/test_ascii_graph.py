@@ -842,6 +842,82 @@ class TestTabHandling:
         assert "[1.2] has" in output
 
 
+class TestZwjEmojiStepText:
+    """FXA-277: ZWJ emoji in step text — walker/view width consistency.
+
+    When step text contains a ZWJ emoji sequence (family emoji
+    U+1F468 ZWJ U+1F469 ZWJ U+1F467 ZWJ U+1F466), the whole-string
+    wcswidth fast path in _width_to_cells measures the sequence as one
+    glyph (2 cells), while walkers like dag_graph._overwrite_at measure
+    per codepoint (8 cells).  This mismatch breaks box alignment: the
+    box is sized for the undercounted width, text overflows, and
+    right borders are misaligned.
+    """
+
+    # Family: U+1F468 ZWJ U+1F469 ZWJ U+1F467 ZWJ U+1F466
+    FAMILY = "👨‍👩‍👧‍👦"
+
+    @staticmethod
+    def _phase_with_zwj_emoji_in_step():
+        return [
+            {
+                "sop_id": "TEST-ZWJ",
+                "provenance": "always",
+                "steps": [
+                    {"index": 1, "text": "Start", "gate": False},
+                    {
+                        "index": 2,
+                        "text": f"go {TestZwjEmojiStepText.FAMILY} now",
+                        "gate": False,
+                    },
+                    {"index": 3, "text": "Done", "gate": False},
+                ],
+                "loops": [],
+            }
+        ]
+
+    def test_ascii_graph_box_uniform_with_zwj_in_step(self):
+        """All content lines (│...│) have uniform wcswidth with ZWJ text."""
+        import wcwidth
+
+        from fx_alfred.core.ascii_graph import render_ascii
+
+        output = render_ascii(self._phase_with_zwj_emoji_in_step())
+        lines = output.splitlines()
+
+        content_lines = [ln for ln in lines if ln.startswith("│") and ln.endswith("│")]
+        assert content_lines, "no content lines found"
+
+        widths = {wcwidth.wcswidth(ln) for ln in content_lines}
+        assert len(widths) == 1, (
+            f"non-uniform wcswidth with ZWJ step text: {sorted(widths)}\n"
+            + "\n".join(f"  (wc={wcwidth.wcswidth(ln)}) {ln!r}" for ln in content_lines)
+        )
+
+    def test_ascii_graph_zwj_text_not_clipped(self):
+        """The ZWJ family emoji appears in output — not silently dropped."""
+        from fx_alfred.core.ascii_graph import render_ascii
+
+        output = render_ascii(self._phase_with_zwj_emoji_in_step())
+        # At minimum the base emoji U+1F468 (man) should appear
+        assert self.FAMILY[0] in output, (
+            f"base emoji from ZWJ sequence missing in output:\n{output}"
+        )
+
+    def test_ascii_graph_zwj_step_top_bottom_border_match(self):
+        """Top and bottom box borders have matching ─ counts with ZWJ text."""
+        from fx_alfred.core.ascii_graph import render_ascii
+
+        output = render_ascii(self._phase_with_zwj_emoji_in_step())
+        lines = output.splitlines()
+        top_border = [ln for ln in lines if ln.startswith("┌")][0]
+        bottom_border = [ln for ln in lines if ln.startswith("└")][0]
+        assert top_border.count("─") == bottom_border.count("─"), (
+            f"border mismatch with ZWJ: top={top_border.count('─')}, "
+            f"bottom={bottom_border.count('─')}"
+        )
+
+
 class TestPlainAsciiGoldenGuard:
     """FXA-277 guard: plain-ASCII branchy SOP render is pinned.
 
