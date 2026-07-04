@@ -115,6 +115,29 @@ def test_guide_shows_layer_separators(sample_project, monkeypatch):
     assert "PKG:" in result.output
 
 
+def test_guide_text_output_shows_display_labels(sample_project, monkeypatch):
+    """guide text output shows display labels (PKG/USR/PRJ), not raw values.
+
+    Guard: text mode uses SOURCE_LABELS (uppercase) for human readability.
+    The JSON fix (#297) must not affect text output — the ``label`` variable
+    on line 26 of guide_cmd.py is independent of the JSON ``source`` field.
+    """
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["guide"], catch_exceptions=False)
+    assert result.exit_code == 0
+    # Text output uses display labels in separator headers: "PKG:", "USR:", "PRJ:"
+    assert "PKG:" in result.output
+
+    # The raw lowercase "pkg:" must NOT appear as a section header
+    # (guide_cmd.py:26 builds label from source.upper() for text output)
+    for line in result.output.split("\n"):
+        if line.strip().startswith("pkg:"):
+            assert False, (
+                f"Raw source leaked into text section header: {line.strip()!r}"
+            )
+
+
 def test_guide_malformed_routing_continues(sample_project, monkeypatch):
     """Malformed doc shows error, continues to next layer."""
     routing_doc = sample_project / "rules" / "FXA-2125-SOP-Workflow-Routing-PRJ.md"

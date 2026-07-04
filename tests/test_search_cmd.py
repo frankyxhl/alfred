@@ -324,3 +324,54 @@ def test_search_text_mode_shows_display_label(sample_project, monkeypatch):
     result2 = runner.invoke(cli, ["search", "AF CLI"], catch_exceptions=False)
     assert result2.exit_code == 0
     assert "PRJ" in result2.output
+
+
+def test_guide_list_search_source_consistent(sample_project, monkeypatch):
+    """Same doc has identical source string in guide, list, and search --json.
+
+    Cross-command consistency: a doc located via guide, list, or search must
+    carry the same ``source`` value so machine consumers can join results
+    across commands without mapping display labels.
+    """
+    import json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+
+    # guide --json
+    guide_result = runner.invoke(cli, ["guide", "--json"], catch_exceptions=False)
+    assert guide_result.exit_code == 0
+    guide_data = json.loads(guide_result.output)
+    guide_by_id = {d["doc_id"]: d["source"] for d in guide_data.get("routing_docs", [])}
+
+    # list --json
+    list_result = runner.invoke(cli, ["list", "--json"], catch_exceptions=False)
+    assert list_result.exit_code == 0
+    list_data = json.loads(list_result.output)
+    list_by_id = {f"{d['prefix']}-{d['acid']}": d["source"] for d in list_data}
+
+    # search --json (pattern that matches COR-1103, the PKG routing doc)
+    search_result = runner.invoke(
+        cli, ["search", "routing", "--json"], catch_exceptions=False
+    )
+    assert search_result.exit_code == 0
+    search_data = json.loads(search_result.output)
+    search_by_id = {r["doc_id"]: r["source"] for r in search_data.get("results", [])}
+
+    # Every doc present in multiple views must agree on source
+    for doc_id, guide_source in guide_by_id.items():
+        if doc_id in list_by_id:
+            assert guide_source == list_by_id[doc_id], (
+                f"Source mismatch for {doc_id}: "
+                f"guide={guide_source!r}, list={list_by_id[doc_id]!r}"
+            )
+        if doc_id in search_by_id:
+            assert guide_source == search_by_id[doc_id], (
+                f"Source mismatch for {doc_id}: "
+                f"guide={guide_source!r}, search={search_by_id[doc_id]!r}"
+            )
+
+    # At minimum, COR-1103 must be in both guide and list (and maybe search
+    # depending on match) — verify consistency where they intersect.
+    common_ids = set(guide_by_id) & set(list_by_id)
+    assert len(common_ids) >= 1, "Expected at least one doc in both guide and list"
