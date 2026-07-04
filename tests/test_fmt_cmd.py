@@ -1556,3 +1556,125 @@ def test_fmt_workflow_metadata_reordered_canonically(tmp_path):
         if k.startswith("Workflow") and k in workflow_keys
     ]
     assert workflow_keys == canonical_workflow_order
+
+
+# ── FXA-2287: Ragged Change History Row Warning ──────────────────────────────
+
+RAGGED_PIPE_WARNING_DOC = """\
+# TST-2287: Ragged Pipe Warning
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body content.
+
+---
+
+## Change History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-01-01 | Initial version | Author |
+| 2026-01-15 | Support CHG | ADR | RFC | inline-PR-body formats | Alice |
+"""
+
+
+def test_fmt_ragged_pipe_warning_on_check(tmp_path):
+    """``--check`` on a doc whose history row has unescaped ``|`` emits warning on stderr.
+
+    When a Change History row parses into more effective cells than the header
+    (unescaped ``|`` in cell text), ``af fmt --check`` prints a warning to
+    stderr naming the doc ID, the row's date, and an escape hint. Exit code
+    is unchanged from the current behaviour (1 because the doc needs changes).
+    """
+    project = _make_project(
+        tmp_path,
+        ("TST-2287-SOP-Ragged-Pipe-Warning.md", RAGGED_PIPE_WARNING_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--check", "TST-2287"])
+
+    # Exit code unchanged from today: doc needs formatting → exit 1
+    assert result.exit_code == 1
+
+    # Warning on stderr: doc ID, row date, escape hint
+    stderr = result.stderr or ""
+    assert "TST-2287" in stderr, f"expected doc ID in stderr, got: {stderr!r}"
+    assert "2026-01-15" in stderr, f"expected row date in stderr, got: {stderr!r}"
+    assert "unescaped pipe" in stderr.lower() or "\\|" in stderr, (
+        f"expected escape hint in stderr, got: {stderr!r}"
+    )
+
+
+def test_fmt_ragged_pipe_warning_on_write(tmp_path):
+    """``--write`` on a doc with unescaped pipes emits warning on stderr; write proceeds.
+
+    The warning appears on stderr. The file is still written with the current
+    alignment behaviour — table restructuring proceeds exactly as today, and
+    exit code is 0.
+    """
+    project = _make_project(
+        tmp_path,
+        ("TST-2287-SOP-Ragged-Pipe-Warning.md", RAGGED_PIPE_WARNING_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--write", "TST-2287"])
+
+    # Write succeeds
+    assert result.exit_code == 0
+
+    # Warning on stderr
+    stderr = result.stderr or ""
+    assert "TST-2287" in stderr, f"expected doc ID in stderr, got: {stderr!r}"
+    assert "2026-01-15" in stderr, f"expected row date in stderr, got: {stderr!r}"
+    assert "unescaped pipe" in stderr.lower() or "\\|" in stderr, (
+        f"expected escape hint in stderr, got: {stderr!r}"
+    )
+
+    # File was written (write proceeds as today)
+    content = (project / "rules" / "TST-2287-SOP-Ragged-Pipe-Warning.md").read_text()
+    assert content != RAGGED_PIPE_WARNING_DOC
+    # Original cell content survives the restructured table
+    assert "inline-PR-body" in content
+    assert "2026-01-15" in content
+
+
+def test_fmt_canonical_table_no_ragged_warning(tmp_path):
+    """A canonical well-formed Change History table produces no ragged-row warning."""
+    project = _make_project(
+        tmp_path,
+        ("TST-2100-SOP-Test-Document.md", FORMATTED_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--check", "TST-2100"])
+
+    # Already formatted — exit 0
+    assert result.exit_code == 0
+    # No ragged-row warning on stderr
+    stderr = result.stderr or ""
+    assert "unescaped pipe" not in stderr.lower()
+
+
+def test_fmt_escaped_pipe_no_ragged_warning(tmp_path):
+    """A table with properly escaped ``\\|`` pipes produces no ragged-row warning.
+
+    Escaped pipes are preserved as literal ``|`` characters inside cells,
+    not split as column separators, so the row has the same cell count
+    as the header.
+    """
+    project = _make_project(
+        tmp_path,
+        ("TST-2111-SOP-Escaped-Pipes.md", ESCAPED_PIPE_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--check", "TST-2111"])
+
+    # No ragged-row warning on stderr
+    stderr = result.stderr or ""
+    assert "unescaped pipe" not in stderr.lower()
