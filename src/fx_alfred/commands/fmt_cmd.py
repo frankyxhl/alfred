@@ -388,6 +388,7 @@ def fmt_cmd(
             docs_error.append(f"{doc.prefix}-{doc.acid}")
             continue
 
+        # Default diff mode intentionally omits this warning; the diff shows ragged rows.
         if check or write_:
             header_line = next(
                 (

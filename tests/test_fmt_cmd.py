@@ -1678,3 +1678,107 @@ def test_fmt_escaped_pipe_no_ragged_warning(tmp_path):
     # No ragged-row warning on stderr
     stderr = result.stderr or ""
     assert "unescaped pipe" not in stderr.lower()
+
+
+# ── FXA-2287: Multi-Doc Ragged Warning Attribution ─────────────────────────────
+
+
+def test_fmt_multi_doc_ragged_warning_names_only_ragged_doc(tmp_path):
+    """Multi-doc ``--check``: warning on stderr names only the ragged doc, not the clean one.
+
+    When a corpus contains both a clean doc and a ragged doc, the ragged-row
+    warning must attribute the offending doc ID, not the clean one.
+    """
+    project = _make_project(
+        tmp_path,
+        ("TST-2100-SOP-Test-Document.md", FORMATTED_DOC),
+        ("TST-2287-SOP-Ragged-Pipe-Warning.md", RAGGED_PIPE_WARNING_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["fmt", "--root", str(project), "--check", "TST-2100", "TST-2287"]
+    )
+
+    # Ragged doc needs formatting → exit 1
+    assert result.exit_code == 1
+
+    stderr = result.stderr or ""
+    # Warning names the ragged doc
+    assert "TST-2287" in stderr, f"expected ragged doc ID in stderr, got: {stderr!r}"
+    # Clean doc ID absent from stderr
+    assert "TST-2100" not in stderr, (
+        f"clean doc ID should not appear in stderr, got: {stderr!r}"
+    )
+
+
+# ── FXA-2287: Header-Wider-Than-Row No False Warning ──────────────────────────
+
+HEADER_WIDER_DOC = """\
+# TST-2288: Header Wider Than Row
+
+**Applies to:** All projects
+**Last updated:** 2026-01-01
+**Last reviewed:** 2026-01-01
+**Status:** Draft
+
+---
+
+## What Is It?
+
+Body content.
+
+---
+
+## Change History
+
+| Date | Change | By | Reviewer | Evidence |
+|------|--------|----|----------|----------|
+| 2026-01-01 | Initial version | Author |
+"""
+
+
+def test_fmt_header_wider_than_row_no_ragged_warning(tmp_path):
+    """Header with more cells than a row does not trigger the ragged-row warning.
+
+    The warning fires only when a row has strictly more cells than the header
+    (``len(row_cells) > len(header_cells)``). A row with fewer cells is
+    missing data, not an unescaped pipe, and must not be flagged.
+    """
+    project = _make_project(
+        tmp_path,
+        ("TST-2288-SOP-Header-Wider-Than-Row.md", HEADER_WIDER_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--check", "TST-2288"])
+
+    # No ragged-row warning on stderr — strict > trigger is not met
+    stderr = result.stderr or ""
+    assert "unescaped pipe" not in stderr.lower(), (
+        f"unexpected ragged-row warning, got: {stderr!r}"
+    )
+
+
+# ── FXA-2287: No Change History Section Guard ──────────────────────────────────
+
+
+def test_fmt_no_change_history_section_no_ragged_warning(tmp_path):
+    """Doc without a ``## Change History`` section produces no warning and no crash.
+
+    The ragged-row check iterates over history rows only when a header line
+    is found. Documents with no Change History section skip the check
+    entirely and must not raise an exception or emit a spurious warning.
+    """
+    project = _make_project(
+        tmp_path,
+        ("TST-2109-SOP-No-History.md", NO_HISTORY_DOC),
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["fmt", "--root", str(project), "--check", "TST-2109"])
+
+    # No crash — exit 0 (doc is already well-formed)
+    assert result.exit_code == 0
+
+    stderr = result.stderr or ""
+    assert "unescaped pipe" not in stderr.lower(), (
+        f"unexpected ragged-row warning for doc with no history, got: {stderr!r}"
+    )
