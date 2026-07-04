@@ -193,6 +193,29 @@ def test_output_to_directory_fails(project, tmp_path):
     assert result.exit_code == 1
 
 
+def test_output_to_missing_parent_directory_gives_clean_error(project):
+    """Export -o to a path whose parent directory does not exist.
+
+    _write_output calls atomic_write, which uses tempfile.mkstemp in the
+    target's parent directory. When the parent dir is missing, mkstemp
+    raises FileNotFoundError — a raw traceback instead of a user-facing
+    ClickException.
+
+    After fix (pre-validate parent exists): non-zero exit, one-line error
+    mentioning the directory, no traceback in output.
+    """
+    target = project / "missing-dir" / "out.md"
+    result = _run(project, "-o", str(target))
+
+    # Currently RED: FileNotFoundError traceback, exit 1 from the unhandled exception.
+    # After fix: non-zero exit, clean error message mentioning the directory.
+    assert result.exit_code != 0
+    output_lower = (result.output + (result.stderr or "")).lower()
+    assert "missing-dir" in output_lower or "directory" in output_lower
+    # No Python traceback in output
+    assert "Traceback" not in result.output
+
+
 # ── Behavior 7: exit codes ──────────────────────────────────────────────────
 
 

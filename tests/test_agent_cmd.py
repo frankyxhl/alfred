@@ -299,3 +299,35 @@ def test_agent_run_text_mode_replays_stdout_stderr_and_exit_code(sample_project)
     assert result.exit_code == 3
     assert "hello stdout" in result.output
     assert "hello stderr" in result.output
+
+
+def test_agent_run_non_decodable_stdout_json_envelope(sample_project):
+    """Script emitting invalid UTF-8 bytes on stdout produces JSON envelope.
+
+    subprocess.run with text=True and no errors= parameter uses strict
+    locale-based decoding. A script that writes raw non-UTF-8 bytes to
+    sys.stdout.buffer causes UnicodeDecodeError instead of the documented
+    JSON envelope.
+
+    After fix (errors="replace"): envelope always produced; stdout carries
+    U+FFFD replacement characters for undecodable bytes.
+    """
+    script = sample_project / "bad_encoding.py"
+    script.write_text(
+        "import sys\nsys.stdout.buffer.write(b'\\xff\\xfe')\nsys.stdout.flush()\n"
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        ["--root", str(sample_project), "agent", "run", "bad_encoding.py", "--json"],
+        env={"ALFRED_AGENT_TOOLS": "1"},
+    )
+
+    # Currently RED: UnicodeDecodeError traceback; output is not valid JSON.
+    # After fix: valid JSON envelope with U+FFFD replacement chars.
+    data = json.loads(result.output)
+    assert data["schema_version"] == "1"
+    assert data["status"] == "ok"
+    assert data["exit_code"] == 0
+    # stdout should contain U+FFFD replacement chars for the invalid bytes
+    assert "�" in data["stdout"]

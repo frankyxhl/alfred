@@ -686,11 +686,12 @@ def _collect_phase_info(
             sig = parse_workflow_signature(parsed)
             loops = parse_workflow_loops(parsed)
             _enforce_branches_gate(doc, parsed)
-        except MalformedDocumentError as e:
-            reason = f"{doc.type_code} malformed: {e}"
+        except (OSError, MalformedDocumentError) as e:
+            issue = "unreadable" if isinstance(e, OSError) else "malformed"
+            reason = f"{doc.type_code} {issue}: {e}"
             skipped.append({"id": doc_id, "reason": reason})
             if not output_json:
-                click.echo(f"Warning: {doc_id} (malformed: {e}). Skipping.")
+                click.echo(f"Warning: {doc_id} ({issue}: {e}). Skipping.")
             continue
 
         phase_info.append((sop_id, doc, parsed, sig, loops))

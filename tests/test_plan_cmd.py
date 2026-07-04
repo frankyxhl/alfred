@@ -1,6 +1,8 @@
 """Tests for af plan command (FXA-2134)."""
 
 import json
+import os
+import sys
 from pathlib import Path
 
 import click
@@ -3133,3 +3135,75 @@ def test_plan_all_sop_unchanged(sample_project, monkeypatch):
     assert data["schema_version"] == "1", (
         "schema_version must be '1' when no new-key flags are active and no docs are skipped"
     )
+
+
+def test_plan_unreadable_sop_all_skipped_gate_fires(
+    sample_project, monkeypatch, tmp_path
+):
+    """Plan with a chmod-000 SOP as the only requested ID fires all-skipped gate.
+
+    _collect_phase_info catches only MalformedDocumentError, so read_text()
+    on a 000-mode file raises PermissionError (OSError) raw — traceback
+    instead of the skip/warn contract from FXA-268.
+
+    After fix (except widened to OSError): SOP is skipped with warning;
+    all-skipped gate fires → non-zero exit with diagnostic naming the file.
+    Skip on Windows and root.
+    """
+    if sys.platform == "win32":
+        pytest.skip("Unix permissions not available on Windows")
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root can read 000-mode files")
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Test-Workflow")
+    sop_path = rules_dir / "TST-5001-SOP-Test-Workflow.md"
+    sop_path.chmod(0o000)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["plan", "TST-5001"], catch_exceptions=False)
+
+    # Currently RED: PermissionError traceback.
+    # After fix: non-zero exit, all-skipped error names the file.
+    assert result.exit_code != 0
+    assert "TST-5001" in result.output
+    assert "skipped" in result.output.lower()
+
+
+def test_plan_unreadable_sop_mixed_with_readable_warns_and_continues(
+    sample_project, monkeypatch
+):
+    """Plan with both chmod-000 and readable SOPs: warns, continues for readable.
+
+    Same root cause as the all-skipped case: _collect_phase_info only
+    catches MalformedDocumentError. When both a 000-mode SOP and a
+    readable SOP are requested, the read_text PermissionError propagates
+    before the readable SOP can be processed.
+
+    After fix: the unreadable SOP is skipped with warning; the readable SOP
+    produces its normal phased checklist output.
+    """
+    if sys.platform == "win32":
+        pytest.skip("Unix permissions not available on Windows")
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root can read 000-mode files")
+
+    rules_dir = sample_project / "rules"
+    _create_sop_with_steps(rules_dir, "TST", "5001", "Unreadable-SOP")
+    _create_sop_with_steps(rules_dir, "TST", "5002", "Readable-SOP")
+    sop_path = rules_dir / "TST-5001-SOP-Unreadable-SOP.md"
+    sop_path.chmod(0o000)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["plan", "TST-5001", "TST-5002"], catch_exceptions=False
+    )
+
+    # Currently RED: PermissionError traceback.
+    # After fix: exit 0, warns about TST-5001, TST-5002 content present.
+    assert result.exit_code == 0
+    assert "TST-5001" in result.output  # named in warning
+    assert "TST-5002" in result.output  # readable SOP still rendered
+    assert "First step for 5002" in result.output
