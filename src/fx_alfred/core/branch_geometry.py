@@ -108,9 +108,29 @@ def compute_column_offsets(
     return [half + i * (box_width + gutter) for i in range(n_siblings)]
 
 
+def _width_to_cells(s: str) -> int:
+    """Return visible cell width, treating unprintable chars as 1 cell."""
+    width = wcwidth.wcswidth(s)
+    if width >= 0:
+        return width
+    width = 0
+    for ch in s:
+        cw = wcwidth.wcwidth(ch)
+        width += 1 if cw < 0 else cw
+    return width
+
+
+def _normalize_unprintable_cells(s: str) -> str:
+    """Replace unprintable one-cell chars with spaces for render stability."""
+    if wcwidth.wcswidth(s) >= 0:
+        return s
+    return "".join(" " if wcwidth.wcwidth(ch) < 0 else ch for ch in s)
+
+
 def _truncate_to_cells(s: str, max_cells: int) -> str:
     """Truncate ``s`` to at most ``max_cells`` visible cells (wcwidth)."""
-    width = wcwidth.wcswidth(s)
+    width = _width_to_cells(s)
+    s = _normalize_unprintable_cells(s)
     if width <= max_cells:
         return s
     # Walk character by character; stop when adding the next char would
@@ -121,6 +141,7 @@ def _truncate_to_cells(s: str, max_cells: int) -> str:
         cw = wcwidth.wcwidth(ch)
         if cw < 0:
             cw = 1
+            ch = " "
         if used + cw > max_cells - 1:
             break
         out_chars.append(ch)
@@ -130,7 +151,8 @@ def _truncate_to_cells(s: str, max_cells: int) -> str:
 
 def _pad_to_cells(s: str, total_cells: int) -> str:
     """Right-pad ``s`` with spaces to exactly ``total_cells`` visible cells."""
-    used = wcwidth.wcswidth(s)
+    used = _width_to_cells(s)
+    s = _normalize_unprintable_cells(s)
     if used >= total_cells:
         return s
     return s + " " * (total_cells - used)

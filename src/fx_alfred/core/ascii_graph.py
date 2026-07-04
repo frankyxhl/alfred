@@ -12,6 +12,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from fx_alfred.core.branch_layout import discover_branch_groups
+from fx_alfred.core.branch_geometry import (
+    _pad_to_cells,
+    _truncate_to_cells,
+    _width_to_cells,
+)
 
 if TYPE_CHECKING:
     from fx_alfred.core.phases import PhaseDict, StepDict
@@ -29,77 +34,27 @@ TRACK_RESERVE = 14
 
 
 def _visual_width(s: str) -> int:
-    """Return visual cell width (1 or 2 per char).
-
-    Handles:
-    - CJK characters (2 cells each)
-    - Emoji (2 cells each)
-    - Misc Symbols + Dingbats (⚠️, 🔁, etc.) — 2 cells each
-    - Combining marks (0 cells)
-    - ASCII (1 cell each)
-    """
-    width = 0
-    for ch in s:
-        code = ord(ch)
-        # Wide chars: CJK unified ideographs, emoji, common double-width zones
-        if (
-            0x1100 <= code <= 0x115F  # Hangul Jamo init
-            or 0x2E80 <= code <= 0x303E  # CJK radicals, Kangxi
-            or 0x3041 <= code <= 0x33FF  # Hiragana, Katakana, CJK compat
-            or 0x3400 <= code <= 0x4DBF  # CJK ext A
-            or 0x4E00 <= code <= 0x9FFF  # CJK unified
-            or 0xA000 <= code <= 0xA4CF  # Yi
-            or 0xAC00 <= code <= 0xD7A3  # Hangul syllables
-            or 0xF900 <= code <= 0xFAFF  # CJK compat ideographs
-            or 0xFE30 <= code <= 0xFE4F  # CJK compat forms
-            or 0xFF00 <= code <= 0xFF60  # Fullwidth forms
-            or 0xFFE0 <= code <= 0xFFE6  # Fullwidth signs
-            or 0x2600 <= code <= 0x27BF  # Misc Symbols + Dingbats (⚠️, 🔁, etc.)
-            or 0x1F000 <= code <= 0x1FFFF  # Emoji blocks (SMP)
-            or 0x20000 <= code <= 0x2FFFD  # CJK ext B-F (SIP)
-            or 0x30000 <= code <= 0x3FFFD  # CJK ext G (TIP)
-        ):
-            width += 2
-        elif (
-            0x0300 <= code <= 0x036F  # Combining diacritical marks
-            or 0x200B <= code <= 0x200F  # ZWJ, etc.
-            or 0xFE00 <= code <= 0xFE0F  # Variation selectors
-        ):
-            # Combining marks, ZWJ, variation selectors — zero width
-            pass
-        else:
-            width += 1
-    return width
+    """Return visual cell width via the branch-geometry wcwidth authority."""
+    return _width_to_cells(s)
 
 
 def _truncate_visual(s: str, max_visual: int) -> str:
-    """Truncate string to max_visual cells, appending '...' if truncated.
-
-    Respects char boundaries (never splits a wide char mid-character).
-    """
+    """Truncate string to max_visual cells, appending '...' if truncated."""
     if _visual_width(s) <= max_visual:
         return s
     # Need to leave room for '...'
     budget = max_visual - 3
     if budget <= 0:
         return "." * max_visual
-    out = []
-    w = 0
-    for ch in s:
-        cw = _visual_width(ch)
-        if w + cw > budget:
-            break
-        out.append(ch)
-        w += cw
-    return "".join(out) + "..."
+    truncated = _truncate_to_cells(s, budget + 1)
+    if truncated.endswith("…"):
+        truncated = truncated[:-1]
+    return truncated + "..."
 
 
 def _pad_visual(s: str, target_visual: int) -> str:
     """Right-pad string with ASCII spaces to reach target visual width."""
-    cur = _visual_width(s)
-    if cur >= target_visual:
-        return s
-    return s + " " * (target_visual - cur)
+    return _pad_to_cells(s, target_visual)
 
 
 def _loop_attr(loop: object, name: str, default=None):
