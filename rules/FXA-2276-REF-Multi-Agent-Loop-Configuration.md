@@ -111,14 +111,14 @@ Worked example — the PR #290 matrix (2×2, so its cells were "quadrants"; larg
 | **strict reader** | skip file, member unshadowed (test: `…skips_loose_file_vanished_before_read`) | suppress from snapshot (test: `…does_not_duplicate_rows_when_shadow_vanishes_after_read`) |
 | **best-effort reader** | OSError→skip, member unshadowed | suppress from snapshot (best-effort variant test) |
 
-Worked example 2 — the PR #307 provenance matrix (origin × outcome; the bot found rows 3 and 4's defects in separate rounds because R3's brief enumerated nothing):
+Worked example 2 — the PR #307 provenance matrix (origin × in-requested-set, with the outcome dimension fixed at *skipped* — the gate only matters on that branch; the valid-outcome cells are `n/a` by construction). The bot surfaced one uncovered cell per round — R3 (auto-tag-match gate missing), R4 (mixed-plan false positive), R5 (always∩user-matched escape) — because R3's brief enumerated nothing:
 
 | ID origin | in the "requested" set? | all-skipped gate behavior |
 |---|---|---|
-| explicit positional | YES | gate fires when none yield a phase (test: explicit-ID gate tests) |
+| explicit positional | YES | gate fires when none yield a phase (tests: `…ref_only_text_errors_with_doc_id_and_type`, `…ref_only_json_errors_with_skipped_payload`) |
 | auto tag match (non-always) | YES | same (test: `…task_malformed_sop_all_skipped_gate`) |
 | tag match that is ALSO always-included | YES — the R5 defect: recorded under `always` provenance only, escaped the set | gate fires (test: `…task_always_included_malformed_sop_gate`) |
-| always-only injected (no user match) | NO | never gates on these alone (test: zero-match exits upstream) |
+| always-only injected (no user match) | NO | never gates on these alone (test: `test_task_no_match_raises_exit_2` — asserts the upstream exit-2 that makes this cell unreachable, not a gate regression) |
 
 Dispatch binding: when the round is implemented via the COR-1628 sandboxed worker lane, the enumerated matrix goes **into the task brief** (Design guardrails block) so the worker implements against the full space, and the orchestrator's scope check verifies per-cell tests exist before commit.
 
