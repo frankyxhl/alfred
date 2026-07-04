@@ -201,6 +201,7 @@ def run_script(root: Path, script_path: str) -> dict[str, Any]:
         [sys.executable, str(path)],
         capture_output=True,
         text=True,
+        errors="replace",
         check=False,
     )
     return {

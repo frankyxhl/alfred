@@ -349,6 +349,10 @@ def _write_output(text: str, output_path: str | None) -> None:
     target = Path(output_path)
     if target.is_dir():
         raise click.ClickException(f"--output target is a directory: {target}")
+    if not target.parent.is_dir():
+        raise click.ClickException(
+            f"--output directory does not exist: {target.parent}"
+        )
     atomic_write(target, text + "\n")
 
 

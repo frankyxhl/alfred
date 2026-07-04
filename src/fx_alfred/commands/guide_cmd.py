@@ -51,7 +51,7 @@ def guide_cmd(ctx: click.Context, output_json: bool):
                     continue
                 if status == "Active":
                     active_docs.append((doc, content, role))
-            except MalformedDocumentError as e:
+            except (OSError, MalformedDocumentError) as e:
                 # Only report malformed errors for filename-pattern-matched docs
                 # (backward-compatible: non-routing docs were never parsed
                 # before this refactor). Metadata-role routing docs that are
