@@ -143,6 +143,14 @@ ALFRED_AGENT_TOOLS=1 af agent run scripts/check_release.py --json
 first, then `~/.alfred/agent_helpers.py`. The exact
 `ALFRED_AGENT_TOOLS=1` gate is checked before importing helper code.
 
+**Trust model.** Setting `ALFRED_AGENT_TOOLS=1` is full arbitrary-code-execution
+consent: `af agent call` imports the PRJ and USR helper modules at lookup time
+(their import-time side effects run merely to resolve a name), `af agent run`
+accepts absolute script paths outside the project root, and execution uses the
+current Python interpreter with no sandboxing. Only set the gate when you trust
+both the repository's `.alfred/` content and your global
+`~/.alfred/agent_helpers.py` as you would any executable code.
+
 Discover reusable skill documents without executing code:
 
 ```bash

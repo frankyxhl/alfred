@@ -1,3 +1,13 @@
+"""Agent helper execution trust model.
+
+Setting ALFRED_AGENT_TOOLS=1 is consent to full arbitrary code execution.
+call_helper imports PRJ/USR helper modules while looking up a helper name.
+That import runs module side effects even when it only resolves a name.
+resolve_script_path allows absolute script paths outside the project root.
+Scripts execute with the current interpreter, sys.executable.
+No sandbox is applied around helper imports, helper calls, or scripts.
+"""
+
 from __future__ import annotations
 
 import asyncio
