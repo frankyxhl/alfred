@@ -1133,6 +1133,14 @@ def test_archive_and_append_succeed_when_fcntl_unavailable(tmp_path, monkeypatch
     assert "old" in summaries
     assert "portable-append" in summaries
 
+    # No archive.zip.tmp.* file leaks into the directory after
+    # archive + append on fcntl-None platforms (FXA-299 panel A299-2).
+    tmp_files = list(log_dir.glob("archive.zip.tmp.*"))
+    assert len(tmp_files) == 0, (
+        f"archive.zip.tmp.* files leaked after archive+append on "
+        f"fcntl-None platform: {[f.name for f in tmp_files]}"
+    )
+
 
 # ---------------------------------------------------------------------------
 # FXA-273: fchmod guard for non-POSIX platforms
@@ -1209,3 +1217,64 @@ def test_iter_records_best_effort_treats_shadow_vanished_before_read_as_unshadow
     records = list(activity_log._iter_records_best_effort(log_dir))
 
     assert [rec[2]["summary"] for rec in records] == ["archived"]
+
+
+# ---------------------------------------------------------------------------
+# FXA-299: Windows-safe staletmp — fcntl-None early return
+# ---------------------------------------------------------------------------
+
+
+def test_archive_directory_skips_stale_tmp_cleanup_when_fcntl_unavailable(
+    tmp_path,
+    monkeypatch,
+):
+    """archive_directory must not call os.kill when fcntl is None.
+
+    When fcntl is unavailable (non-POSIX platform), os.kill(pid, 0) has
+    console-control-event / terminate semantics on Windows instead of the
+    POSIX liveness-probe behaviour.  _cleanup_stale_archive_tmps must
+    short-circuit before reaching os.kill so the call is statically
+    unreachable on those platforms.
+
+    Before FXA-299, _cleanup_stale_archive_tmps reached os.kill
+    unconditionally regardless of fcntl availability; the gate makes it
+    unreachable on non-POSIX.
+    """
+    monkeypatch.setattr(activity_log, "fcntl", None)
+
+    kill_calls: list[tuple[int, int]] = []
+
+    def sentinel_kill(pid: int, sig: int) -> None:
+        kill_calls.append((pid, sig))
+        raise AssertionError("os.kill must not be called when fcntl is None")
+
+    monkeypatch.setattr(activity_log.os, "kill", sentinel_kill)
+
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    # Stale tmp from a nonexistent PID — matches the glob + regex pattern
+    # in _cleanup_stale_archive_tmps / _archive_tmp_is_stale.
+    stale_tmp = log_dir / "archive.zip.tmp.123456.dead"
+    stale_tmp.write_text("stale", encoding="utf-8")
+    # Closed-day file so there is something to archive.
+    old_file = log_dir / "2026-06-20.jsonl"
+    old_file.write_text(
+        json.dumps(activity_log.compose_record(summary="old")) + "\n",
+        encoding="utf-8",
+    )
+
+    # archive_directory must succeed without calling os.kill.
+    # On current (unfixed) code this raises AssertionError from the
+    # sentinel_kill recorder — os.kill is reached unconditionally.
+    result = activity_log.archive_directory(log_dir, today="2026-06-21")
+
+    assert result.archived_files == ["2026-06-20.jsonl"]
+    assert not old_file.exists()
+    # os.kill must never have been called.
+    assert len(kill_calls) == 0, (
+        f"os.kill called {len(kill_calls)} time(s) — "
+        "must not be invoked when fcntl is None"
+    )
+    # Stale tmp survives on non-POSIX (acceptable degradation — they
+    # age out only when the platform supports fcntl-based locking).
+    assert stale_tmp.exists()
