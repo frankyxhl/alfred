@@ -63,7 +63,7 @@ def test_guide_json_has_routing_docs_array(sample_project, monkeypatch):
     # COR-1103 should be in PKG layer
     cor_1103 = next((d for d in routing_docs if d["doc_id"] == "COR-1103"), None)
     assert cor_1103 is not None
-    assert cor_1103["source"] == "PKG"
+    assert cor_1103["source"] == "pkg"
     assert cor_1103["status"] == "Active"
     assert cor_1103["role"] == "routing"
 
@@ -93,7 +93,7 @@ USR routing test content here
     routing_docs = data["routing_docs"]
     usr_doc = next((d for d in routing_docs if d["doc_id"] == "ALF-2207"), None)
     assert usr_doc is not None
-    assert usr_doc["source"] == "USR"
+    assert usr_doc["source"] == "usr"
 
 
 def test_guide_json_includes_prj_routing(sample_project, monkeypatch):
@@ -119,7 +119,7 @@ PRJ routing test content here
     routing_docs = data["routing_docs"]
     prj_doc = next((d for d in routing_docs if d["doc_id"] == "FXA-2125"), None)
     assert prj_doc is not None
-    assert prj_doc["source"] == "PRJ"
+    assert prj_doc["source"] == "prj"
 
 
 def test_guide_json_skips_deprecated(sample_project, monkeypatch):
@@ -145,6 +145,33 @@ Should not appear
     routing_docs = data["routing_docs"]
     deprecated = next((d for d in routing_docs if d["doc_id"] == "FXA-2125"), None)
     assert deprecated is None
+
+
+def test_guide_json_source_values_are_raw(sample_project, monkeypatch):
+    """guide --json emits raw source values (pkg/usr/prj), not display labels.
+
+    Regression: guide --json used doc.source.upper() which produced display
+    labels (PKG/USR/PRJ) while every other JSON surface (list, tag, search,
+    read, where) emitted the raw doc.source value.  The fix (#297) makes
+    guide consistent by emitting the un-modified doc.source.
+    """
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["guide", "--json"], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    data = json.loads(result.output)
+    routing_docs = data.get("routing_docs", [])
+    # Every routing entry's source must be a raw value
+    raw_sources = {"pkg", "usr", "prj"}
+    for doc_entry in routing_docs:
+        assert doc_entry["source"] in raw_sources, (
+            f"Expected raw source in {{pkg, usr, prj}}, got: {doc_entry['source']!r}"
+        )
+        # Negative guard: display labels must never leak into JSON
+        assert doc_entry["source"] != "PKG", (
+            "Display label 'PKG' leaked into guide --json source field"
+        )
 
 
 def test_guide_text_output_unchanged_without_json(sample_project, monkeypatch):
