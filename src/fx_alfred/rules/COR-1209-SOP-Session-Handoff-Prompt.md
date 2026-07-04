@@ -55,6 +55,7 @@ Ad-hoc handoff prompts fail in recurring ways, each observed in real sessions:
 
    ```bash
    pwd
+   git fetch --all --prune   # refresh remote-tracking refs first, or ahead/behind counts are stale
    git status --short --branch
    git log --oneline -5
    ```
@@ -66,6 +67,9 @@ Ad-hoc handoff prompts fail in recurring ways, each observed in real sessions:
    ```bash
    gh issue view <N> --json state,title
    gh pr view <N> --json state,mergeStateStatus,statusCheckRollup,reviewDecision
+   # unresolved-thread count (gh pr view has no reviewThreads field):
+   gh api graphql -f query='{repository(owner:"<org>",name:"<repo>"){pullRequest(number:<N>){reviewThreads(first:50){nodes{isResolved}}}}}' \
+     --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved==false)] | length'
    ```
 
    Record: issue/PR numbers with their **current** states, CI status, unresolved review threads, and pending bot reviews. A handoff written between a push and its bot review must say so ("bot review on <SHA> still pending — wait for quiescence before merging").
