@@ -119,6 +119,7 @@ Worked example 2 — the PR #307 provenance matrix (origin × in-requested-set, 
 | auto tag match (non-always) | YES | same (test: `…task_malformed_sop_all_skipped_gate`) |
 | tag match that is ALSO always-included | YES — the R5 defect: recorded under `always` provenance only, escaped the set | gate fires (test: `…task_always_included_malformed_sop_gate`) |
 | always-only injected (no user match) | NO | never gates on these alone (test: `test_task_no_match_raises_exit_2` — asserts the upstream exit-2 that makes this cell unreachable, not a gate regression) |
+| **mixed set** — ≥1 requested id valid, ≥1 requested id skipped (the R4 cell; a set-level combination of the rows above) | — | gate must NOT fire; plan succeeds with the skip surfaced (test: `…task_mixed_bundled_valid_and_prj_malformed_succeeds`) |
 
 Dispatch binding: when the round is implemented via the COR-1628 sandboxed worker lane, the enumerated matrix goes **into the task brief** (Design guardrails block) so the worker implements against the full space, and the orchestrator's scope check verifies per-cell tests exist before commit.
 
