@@ -1236,8 +1236,9 @@ def test_archive_directory_skips_stale_tmp_cleanup_when_fcntl_unavailable(
     short-circuit before reaching os.kill so the call is statically
     unreachable on those platforms.
 
-    Currently RED: _cleanup_stale_archive_tmps calls _archive_tmp_is_stale
-    which calls os.kill unconditionally, regardless of fcntl availability.
+    Before FXA-299, _cleanup_stale_archive_tmps reached os.kill
+    unconditionally regardless of fcntl availability; the gate makes it
+    unreachable on non-POSIX.
     """
     monkeypatch.setattr(activity_log, "fcntl", None)
 

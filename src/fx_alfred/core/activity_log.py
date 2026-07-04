@@ -635,7 +635,14 @@ def _archive_tmp_is_stale(path: Path) -> bool:
 
 
 def _cleanup_stale_archive_tmps(log_dir: Path) -> None:
-    """Remove stale POSIX archive tmps; non-POSIX tmps stay inert and abort-bounded."""
+    """Remove stale POSIX archive tmps; non-POSIX tmps stay inert.
+
+    On non-POSIX platforms stale tmps are not cleaned because readers only
+    glob ``*.zip`` and ``*.jsonl`` files. This process's own tmp is
+    abort-bounded by ``archive_directory``'s finally-unlink, while tmps from
+    other hard-killed processes may persist until the platform gains fcntl
+    locking.
+    """
     if fcntl is None:
         return
     for stale in log_dir.glob("archive.zip.tmp.*"):
