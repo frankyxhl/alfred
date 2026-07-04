@@ -59,8 +59,9 @@ def guide_cmd(ctx: click.Context, output_json: bool):
                 # unreadable, so they are indistinguishable from non-routing.
                 if ROUTING_PATTERN in doc.filename:
                     if not output_json:
+                        issue = "unreadable" if isinstance(e, OSError) else "malformed"
                         click.echo(
-                            f"═══ {label}: {doc.prefix}-{doc.acid} (malformed: {e}) ═══"
+                            f"═══ {label}: {doc.prefix}-{doc.acid} ({issue}: {e}) ═══"
                         )
                         click.echo()
                 continue
