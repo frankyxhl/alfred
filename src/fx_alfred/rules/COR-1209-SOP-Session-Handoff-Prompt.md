@@ -6,7 +6,7 @@
 **Status:** Active
 **Tags:** session
 **Related:** COR-1208 (Session Startup Sanity Check — the receiving session's first action), COR-1200 (Session Retrospective — session-end reflection; a handoff is not a retrospective), COR-1202 (Compose Session Plan — the receiving session may re-plan from the handoff), COR-1402 (Declare Active Process — active SOPs must be named in the handoff), COR-1103 (Workflow Routing — the receiving session re-routes; the handoff names the routing entry point)
-**Source:** iterwheel/voyager session follow-up (PRs #230/#231, issue #227 handoff) — alfred issue #246
+**Inspired by:** iterwheel/voyager session follow-up (PRs #230/#231, issue #227 handoff) — alfred issue #246
 **Disposition:** inherit-only
 
 ---
@@ -30,7 +30,7 @@ Ad-hoc handoff prompts fail in recurring ways, each observed in real sessions:
 ## When to Use
 
 - Work must continue in a **new session** (context exhausted, scheduled compaction, end of day with an in-flight task)
-- Work moves to a **different runtime or model** (e.g. dispatching a task lane to a sandboxed worker CLI, or from one agent product to another)
+- Work moves to a **different runtime or model** that takes over session ownership (e.g. from one agent product to another) — a bounded one-deliverable dispatch to a worker CLI is a task brief instead (see When NOT to Use)
 - A **long task splits** and a parallel session takes one lane
 - The user explicitly asks for a handoff prompt
 
@@ -59,7 +59,7 @@ Ad-hoc handoff prompts fail in recurring ways, each observed in real sessions:
    git log --oneline -5
    ```
 
-   Record: current branch, ahead/behind counts, uncommitted files (and whether the receiving session may touch them), last commit SHA.
+   Record: current branch, ahead/behind counts, uncommitted files (and whether the receiving session may touch them), last commit SHA — and the current UTC timestamp (the template's "fetched" stamp; `date -u +%FT%TZ`).
 
 3. **Fetch fresh GitHub state for every referenced artifact.**
 
@@ -99,9 +99,10 @@ Ad-hoc handoff prompts fail in recurring ways, each observed in real sessions:
 - PR #<N>: <state>, CI <status>, review <status>, unresolved threads: <n>
 - Working tree: <clean | list uncommitted files + whether you may touch them>
 - <any pending external event: bot review on <SHA>, CI run, deploy>
+- Assumptions / unresolved blockers: <list, or "none">
 
 ### Process you must operate under
-- Run the startup check (COR-1208) and `af guide --root .` first; declare your active SOP per COR-1402.
+- Run the startup check (COR-1208) and `af guide --root <project-root>` first; declare your active SOP per COR-1402.
 - Active SOPs for this task: <list, with one-line roles>
 - Review loop: <reviewers/bots + pass thresholds + quiescence rules>
 
