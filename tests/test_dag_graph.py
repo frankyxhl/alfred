@@ -535,3 +535,89 @@ class TestNoOrphanArrowOnTrailingEmptyPhase:
         )
         # The ▼ count equals the intra-phase arrows only (1 for step1->step2).
         assert out.count("▼") == 1
+
+
+class TestCheckmarkWidthAlignment:
+    """FXA-277: ✓ in step text misaligns dag_graph phase-box right border.
+
+    _visual_width counts ✓ as 2 cells; wcwidth says 1.  branch_geometry's
+    primitive lines are wcwidth-padded, but dag_graph measures them with
+    _visual_width → centering is off by 1 column per ✓.
+    """
+
+    @staticmethod
+    def _branchy_phase_with_checkmark():
+        from fx_alfred.core.workflow import BranchSignature, BranchTarget
+
+        return [
+            {
+                "sop_id": "TEST-CHECK",
+                "steps": [
+                    {"index": 1, "text": "Start", "gate": False},
+                    {"index": 2, "text": "Decision✓", "gate": False},
+                    {"index": 3, "text": "Path A✓", "gate": False, "sub_branch": "a"},
+                    {"index": 3, "text": "Path B", "gate": False, "sub_branch": "b"},
+                    {"index": 4, "text": "Done", "gate": False},
+                ],
+                "loops": [],
+                "branches": [
+                    BranchSignature(
+                        from_step=2,
+                        to=(
+                            BranchTarget(parent=3, branch="a", label="OK"),
+                            BranchTarget(parent=3, branch="b", label="NO"),
+                        ),
+                    )
+                ],
+            }
+        ]
+
+    def test_dag_graph_box_lines_have_uniform_wcswidth(self):
+        """Every phase-box line (┌─...─┐, │...│, └─...─┘) has uniform wcswidth."""
+        import wcwidth
+
+        output = render_dag(self._branchy_phase_with_checkmark())
+        lines = output.splitlines()
+
+        # Include all box lines: top border, content, bottom border
+        box_lines = [
+            ln
+            for ln in lines
+            if (ln.startswith("┌") or ln.startswith("│") or ln.startswith("└"))
+        ]
+        assert box_lines, "no box lines found"
+
+        widths = {wcwidth.wcswidth(ln) for ln in box_lines}
+        assert len(widths) == 1, (
+            f"non-uniform wcswidth in dag_graph output: {sorted(widths)}\n"
+            + "\n".join(f"  (wc={wcwidth.wcswidth(ln)}) {ln!r}" for ln in box_lines)
+        )
+
+    def test_dag_graph_right_border_at_consistent_visual_column(self):
+        """The right border char sits at the same wcwidth-measured column."""
+        import wcwidth
+
+        output = render_dag(self._branchy_phase_with_checkmark())
+        lines = output.splitlines()
+
+        box_lines = [
+            ln
+            for ln in lines
+            if (ln.startswith("┌") or ln.startswith("│") or ln.startswith("└"))
+        ]
+        border_cols = set()
+        for ln in box_lines:
+            # For top/bottom borders: ┌...┐ → border is ┐ at end
+            # For content: │...│ → border is │ at end
+            if ln.startswith("┌"):
+                border_char = "┐"
+            elif ln.startswith("└"):
+                border_char = "┘"
+            else:
+                border_char = "│"
+            last_idx = ln.rindex(border_char)
+            prefix = ln[:last_idx]
+            border_cols.add(wcwidth.wcswidth(prefix))
+        assert len(border_cols) == 1, (
+            f"right border at inconsistent wcwidth columns: {sorted(border_cols)}"
+        )

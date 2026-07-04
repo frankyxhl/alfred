@@ -517,3 +517,189 @@ def test_golden_audit_ledger_fixture() -> None:
         f"Audit Ledger render has non-uniform line widths: {widths}\n"
         + "\n".join(f"  ({wcwidth.wcswidth(line)}) {line}" for line in out.lines)
     )
+
+
+# --------------------------------------------------------------------------
+# FXA-277: tab character (control char) in wcswidth fast paths
+# --------------------------------------------------------------------------
+
+
+def test_truncate_to_cells_with_tab_falls_back_to_per_char():
+    """_truncate_to_cells must NOT return the string verbatim when wcswidth==-1.
+
+    Before the fix, the fast path ``if width <= max_cells`` sees -1 <= N
+    (always True) and returns the string untruncated. After the fix, it must
+    fall back to the per-char guard (cw<0 → width 1) and truncate as expected.
+    """
+    from fx_alfred.core.branch_geometry import _truncate_to_cells
+
+    # 10 ASCII chars + 1 tab = ~11 visual cells (tab treated as 1 cell by per-char guard)
+    # Budget of 5 should force truncation.
+    s = "hello\tworld"
+    result = _truncate_to_cells(s, 5)
+    # Must be shorter than the original (truncation happened).
+    assert len(result) < len(s), (
+        f"Expected truncation for tab string with budget 5, got untruncated: {result!r}"
+    )
+
+
+def test_pad_to_cells_with_tab_does_not_over_pad():
+    """_pad_to_cells must NOT over-pad when wcswidth returns -1.
+
+    Before the fix, ``total_cells - (-1)`` adds 1 extra space. After the
+    fix, the per-char fallback computes the correct visual width.
+    """
+    from fx_alfred.core.branch_geometry import _pad_to_cells
+
+    import wcwidth
+
+    s = "a\tb"
+    result = _pad_to_cells(s, 5)
+    # The result's visual width (measured per-char) must be ≤ target.
+    measured = sum(max(wcwidth.wcwidth(ch), 1) for ch in result)
+    assert measured <= 5, (
+        f"Over-padded: target 5 cells, measured {measured} cells, result {result!r}"
+    )
+
+
+def test_render_branch_with_tab_in_sibling_text_does_not_crash():
+    """render_branch must handle tab in sibling text without crashing or
+    producing wildly misaligned output."""
+    import wcwidth
+
+    # The tab is in sibling text — exercises _box_lines → _truncate_to_cells
+    inp = _make_input(
+        siblings=[(3, "a", "OK"), (3, "b", "NO")],
+        sibling_texts=["has\ttab", "plain"],
+        converges_to=None,
+        converges_to_text=None,
+    )
+    out = render_branch(inp)
+    # Must produce output lines.
+    assert len(out.lines) > 0
+    # Width uniformity (I2) must hold even with tab in body text.
+    widths = {wcwidth.wcswidth(line) for line in out.lines}
+    assert len(widths) == 1, (
+        f"non-uniform line widths with tab body: {widths}\n"
+        + "\n".join(f"  ({wcwidth.wcswidth(line)}) {line!r}" for line in out.lines)
+    )
+
+
+# --------------------------------------------------------------------------
+# FXA-277: width authority — per-codepoint additive invariant for ZWJ emoji
+# --------------------------------------------------------------------------
+
+
+def _per_char_width(s: str) -> int:
+    """Per-codepoint visible cell width sum.
+
+    Computed as ``sum(max(wcwidth.wcwidth(ch), 1) for ch in s)`` — the
+    contract that the post-fix ``_width_to_cells`` must satisfy for any
+    string, including those containing ZWJ emoji sequences.
+    """
+    total = 0
+    for ch in s:
+        cw = wcwidth.wcwidth(ch)
+        total += 1 if cw < 0 else cw
+    return total
+
+
+class TestWidthAuthorityAdditive:
+    """FXA-277: _width_to_cells additive invariant and pad consistency.
+
+    Walkers like ``dag_graph._overwrite_at`` sum ``_visual_width(ch)``
+    per codepoint when measuring overlay columns.  ``_width_to_cells``
+    must produce the same total so that column arithmetic is consistent
+    for strings containing ZWJ emoji sequences (family emoji, profession
+    emoji with ZWJ skin-tone modifiers, etc.).
+    """
+
+    # Family: U+1F468 ZWJ U+1F469 ZWJ U+1F467 ZWJ U+1F466
+    FAMILY = "👨‍👩‍👧‍👦"
+
+    def test_additive_invariant_zwj_family_emoji(self):
+        """_width_to_cells(s) == sum(_width_to_cells(ch) for ch in s) for
+        the ZWJ family emoji sequence."""
+        from fx_alfred.core.branch_geometry import _width_to_cells
+
+        whole = _width_to_cells(self.FAMILY)
+        per_char = sum(_width_to_cells(ch) for ch in self.FAMILY)
+        assert whole == per_char, (
+            f"additive invariant violated for ZWJ family emoji: "
+            f"_width_to_cells(s)={whole} != sum(per-char)={per_char}"
+        )
+
+    def test_additive_invariant_zwj_in_phrase(self):
+        """_width_to_cells(s) == sum(_width_to_cells(ch) for ch in s) for
+        a phrase that contains a ZWJ family emoji."""
+        from fx_alfred.core.branch_geometry import _width_to_cells
+
+        s = f"go {self.FAMILY} now"
+        whole = _width_to_cells(s)
+        per_char = sum(_width_to_cells(ch) for ch in s)
+        assert whole == per_char, (
+            f"additive invariant violated for ZWJ phrase: "
+            f"whole={whole}, per_char={per_char}"
+        )
+
+    def test_pad_to_cells_zwj_per_char_equals_target(self):
+        """_pad_to_cells(s, target) result per-codepoint width equals target.
+
+        Walkers measure overlay columns via per-codepoint summation, so
+        the padded string's per-codepoint width must match the target
+        budget that _pad_to_cells was asked to satisfy.
+        """
+        from fx_alfred.core.branch_geometry import _pad_to_cells
+
+        s = f"go {self.FAMILY} now"
+        target = 20
+        padded = _pad_to_cells(s, target)
+        measured = _per_char_width(padded)
+        assert measured == target, (
+            f"pad inconsistency: target={target}, "
+            f"per-codepoint measured={measured}, padded={padded!r}"
+        )
+
+    # -- guard tests: existing behaviour unchanged -----------------------
+
+    def test_additive_invariant_passes_for_ascii(self):
+        """Guard: additive invariant already holds for plain ASCII strings."""
+        from fx_alfred.core.branch_geometry import _width_to_cells
+
+        for s in ("hello", "test123", "spaces here"):
+            assert _width_to_cells(s) == sum(_width_to_cells(ch) for ch in s), s
+
+    def test_additive_invariant_passes_for_checkmark(self):
+        """Guard: additive invariant holds for ✓ (U+2713)."""
+        from fx_alfred.core.branch_geometry import _width_to_cells
+
+        s = "✓"
+        assert _width_to_cells(s) == sum(_width_to_cells(ch) for ch in s)
+
+    def test_additive_invariant_passes_for_warning_sign(self):
+        """Guard: additive invariant holds for ⚠ (U+26A0)."""
+        from fx_alfred.core.branch_geometry import _width_to_cells
+
+        s = "⚠"
+        assert _width_to_cells(s) == sum(_width_to_cells(ch) for ch in s)
+
+    def test_tab_falls_back_to_per_char_additive(self):
+        """Guard: tab (U+0009) already uses per-char fallback, additive holds."""
+        from fx_alfred.core.branch_geometry import _width_to_cells
+
+        s = "a\tb"
+        assert _width_to_cells(s) == sum(_width_to_cells(ch) for ch in s), (
+            f"tab additive: whole={_width_to_cells(s)}, "
+            f"per_char={sum(_width_to_cells(ch) for ch in s)}"
+        )
+
+    def test_combining_marks_preserve_additive(self):
+        """Guard: combining marks (cw=0) preserve additive invariant."""
+        from fx_alfred.core.branch_geometry import _width_to_cells
+
+        # e + combining acute accent (U+0301)
+        s = "Café"
+        assert _width_to_cells(s) == sum(_width_to_cells(ch) for ch in s), (
+            f"combining-mark additive: whole={_width_to_cells(s)}, "
+            f"per_char={sum(_width_to_cells(ch) for ch in s)}"
+        )
