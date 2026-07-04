@@ -124,6 +124,9 @@ Top-level (outside the package): `skills/alfred/` — cross-platform agent-skill
 ## Essential Commands
 
 ```bash
+# Bootstrap (fresh checkout — creates .venv; required before any .venv/bin/* command below)
+uv sync --extra dev
+
 # Dev
 .venv/bin/pytest -v --tb=short        # run tests
 .venv/bin/ruff check .                 # lint
