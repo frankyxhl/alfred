@@ -2,6 +2,67 @@
 
 ## Unreleased
 
+## v1.26.0 (2026-07-04)
+
+Eight changes closing out the 2026-07-02 full-repo review backlog plus one new
+bundled SOP. New COR document and two behavior-visible improvements justify the
+minor bump; no breaking changes.
+
+### New
+
+- **COR-1209: Session Handoff Prompt** — new bundled session-lifecycle SOP:
+  producing a copy-pasteable handoff prompt from freshly fetched git/GitHub
+  state (never memory), with active-SOP declaration, explicit scope and
+  do-not-touch exclusions, validation commands, GitHub identity/PR policy, a
+  reusable template, an anti-pattern table, and its relationship to
+  COR-1200/1202/1208 (#246, #316).
+
+### Improvements
+
+- **`af fmt` warns on ragged Change History rows.** A row parsing wider than
+  its header (unescaped `|` — code spans do not protect) previously
+  restructured the table silently; both `--check` and `--write` now emit a
+  stderr warning naming the doc, the row date, and an escape-as-`\|` hint.
+  Alignment behavior and exit codes unchanged (#287, #311).
+- **Graceful errors on three former-traceback paths.** `af agent run` always
+  produces its JSON envelope (undecodable bytes become U+FFFD); `af guide` /
+  `af plan` warn-and-continue on unreadable docs (labeled `unreadable`, not
+  `malformed`); `af export -o missing-dir/…` exits with a one-line error
+  (#276, #312).
+
+### Bug Fixes
+
+- **One wcwidth authority for workflow graphs.** The hand-rolled width table
+  disagreed with wcwidth on the gate-marker `✓` (borders shifted one column);
+  tabs in step text exploded box padding; ZWJ emoji sequences broke the
+  additive width invariant overlay walkers assume. Layout math is now
+  per-codepoint additive everywhere; plain-ASCII output byte-identical
+  (#277, #313).
+- **`af guide --json` emits raw source values** (`"pkg"`), the last JSON
+  surface still producing display labels after v1.25.2's search fix; FXA-2142
+  examples synced (#297, #309).
+- **Stale-tmp cleanup is Windows-safe.** `os.kill(pid, 0)` probing is gated
+  behind the module's POSIX sentinel — statically unreachable on platforms
+  where signal 0 carries terminate semantics (#299, #310).
+
+### Docs & Internals
+
+- **Bootstrap + trust model documented.** CLAUDE.md leads Essential Commands
+  with `uv sync --extra dev`; README and the `agent_helpers` module docstring
+  state the `af agent` execution trust model (env gate = full code-execution
+  consent, PRJ+USR import-on-lookup, out-of-root paths, no sandbox)
+  (#280, #314).
+- **Dead-code and duplication cleanup** (net −8 LoC, behavior-preserving):
+  shared metadata-reorder helper, `Document._metadata_value`, single-parse
+  skill scoring, unreachable scanner fallback removed, dag-graph tautology
+  simplified, duplicate Status-error branches consolidated (#279, #315).
+
+### Stats
+
+- 1506 tests, all passing (38 new test functions since v1.25.2)
+- 325 bundled+layer documents validate clean
+- 0 breaking changes
+
 ## v1.25.2 (2026-07-04)
 
 Patch release: ten bug fixes from the 2026-07-02 full-repo review batch
