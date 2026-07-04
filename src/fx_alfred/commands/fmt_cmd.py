@@ -388,6 +388,30 @@ def fmt_cmd(
             docs_error.append(f"{doc.prefix}-{doc.acid}")
             continue
 
+        # Default diff mode intentionally omits this warning; the diff shows ragged rows.
+        if check or write_:
+            header_line = next(
+                (
+                    line.strip()
+                    for line in parsed.history_header.split("\n")
+                    if line.strip().startswith("|")
+                    and line.strip().endswith("|")
+                    and "---" not in line
+                ),
+                "",
+            )
+            header_cells = [
+                c.strip() for c in re.split(r"(?<!\\)\|", header_line[1:-1])
+            ]
+            for row in parsed.history_rows if header_line else []:
+                cells = row.effective_cells
+                if len(cells) > len(header_cells):
+                    click.echo(
+                        f"Warning: {doc.prefix}-{doc.acid} Change History row "
+                        f"{cells[0]} has an unescaped pipe; escape it as \\|.",
+                        err=True,
+                    )
+
         # Determine document type
         try:
             doc_type = DocType(doc.type_code)
