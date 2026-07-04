@@ -1,3 +1,7 @@
+import os
+import sys
+
+
 import pytest
 
 
@@ -292,6 +296,46 @@ def test_guide_logging_failure_does_not_break_command(sample_project, monkeypatc
 
     assert result.exit_code == 0
     assert "Workflow Routing" in result.output
+
+
+def test_guide_unreadable_routing_doc_warns_and_continues(sample_project, monkeypatch):
+    """Guide with a chmod-000 routing doc warns and continues to next layer.
+
+    doc.resolve_resource().read_text() on a file with mode 0000 raises
+    PermissionError (OSError subclass). Currently the except clause only
+    catches MalformedDocumentError, so the PermissionError propagates raw.
+
+    After fix (except widened to OSError): warns naming the file, continues
+    to show PKG routing content. Skip on Windows (no Unix permissions) and
+    when running as root (root bypasses permission bits).
+    """
+    if sys.platform == "win32":
+        pytest.skip("Unix permissions not available on Windows")
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root can read 000-mode files")
+
+    routing_doc = sample_project / "rules" / "FXA-2125-SOP-Workflow-Routing-PRJ.md"
+    routing_doc.write_text(
+        "# SOP-2125: Workflow Routing PRJ\n\n"
+        "**Applies to:** FXA\n"
+        "**Status:** Active\n\n"
+        "---\n\n"
+        "PRJ routing content\n"
+    )
+    routing_doc.chmod(0o000)
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["guide"], catch_exceptions=False)
+
+    # Currently RED: PermissionError traceback, non-zero exit.
+    # After fix: exits 0, warns about the unreadable file, PKG content intact.
+    assert result.exit_code == 0
+    output_lower = result.output.lower()
+    assert "FXA-2125" in result.output  # file named in the warning
+    assert "permission" in output_lower or "error" in output_lower
+    # PKG layer routing doc still shown
+    assert "COR-1103" in result.output
 
 
 # ── FXA-2314: USR sub-project layer via projects.json mapping ─────────────────
