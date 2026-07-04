@@ -86,7 +86,7 @@ def guide_cmd(ctx: click.Context, output_json: bool):
             {
                 "doc_id": f"{doc.prefix}-{doc.acid}",
                 "title": doc.title,
-                "source": doc.source.upper(),
+                "source": doc.source,
                 "status": "Active",
                 "role": ROUTING_ROLE_VALUE if role == ROUTING_ROLE_VALUE else "routing",
             }

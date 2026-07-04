@@ -1,14 +1,14 @@
 # CHG-2142: JSON Output For Guide Plan Search Validate
 
 **Applies to:** FXA project
-**Last updated:** 2026-03-22
+**Last updated:** 2026-07-04
 **Last reviewed:** 2026-03-22
 **Status:** Completed
+**Related:** FXA-2140, FXA-2143
 **Date:** 2026-03-22
 **Requested by:** Frank
 **Priority:** High
 **Change Type:** Normal
-**Related:** FXA-2140, FXA-2143
 
 ---
 
@@ -47,7 +47,7 @@ Alfred's README defines it as a tool for "AI agents and humans." Today, agents m
     {
       "doc_id": "COR-1103",
       "title": "Workflow Routing",
-      "source": "PKG",
+      "source": "pkg",
       "status": "Active",
       "role": "routing"
     }
@@ -84,7 +84,7 @@ Alfred's README defines it as a tool for "AI agents and humans." Today, agents m
     {
       "doc_id": "COR-1103",
       "title": "Workflow Routing",
-      "source": "PKG",
+      "source": "pkg",
       "snippet": "...session-start routing SOP..."
     }
   ]
@@ -146,6 +146,7 @@ _To be completed after implementation._
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-03-22 | Initial version | Frank + Claude Code |
+| Date       | Change                                                                                         | By                  |
+|------------|------------------------------------------------------------------------------------------------|---------------------|
+| 2026-03-22 | Initial version                                                                                | Frank + Claude Code |
+| 2026-07-04 | issue #297: sync source examples to raw values (pkg) matching the post-#271/#297 code contract | Claude Code         |
