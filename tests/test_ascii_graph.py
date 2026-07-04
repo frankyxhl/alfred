@@ -843,13 +843,11 @@ class TestTabHandling:
 
 
 class TestPlainAsciiGoldenGuard:
-    """FXA-277 guard: plain-ASCII branchy SOP render is byte-identical
-    before and after the width authority fix.
+    """FXA-277 guard: plain-ASCII branchy SOP render is pinned.
 
-    These exact outputs were captured from the CURRENT code on the
-    fxa-277-width-authority branch.  They must pass both today AND after
-    the fix is applied — the fix changes only non-ASCII width measurement,
-    so plain-ASCII renders must be unchanged.
+    These exact outputs pin plain-ASCII rendering, which is width-identical
+    under the old hand table and wcwidth by construction. They were captured
+    2026-07-04 on the fxa-277-width-authority branch.
     """
 
     @staticmethod
@@ -907,7 +905,7 @@ class TestPlainAsciiGoldenGuard:
             }
         ]
 
-    # Golden output captured 2026-07-04 from current branch (pre-fix).
+    # Golden output captured 2026-07-04 on fxa-277-width-authority.
     ASCII_GOLDEN = (
         "┌────────────────────────────────────────────────┐\n"
         "│ Phase 1: TEST-0001 (always)                    │\n"

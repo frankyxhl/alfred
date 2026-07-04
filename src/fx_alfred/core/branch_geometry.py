@@ -235,7 +235,7 @@ def render_label_row(labels: list[str], offsets: list[int], box_width: int) -> s
         if max_w <= 0:
             continue
         truncated = _truncate_to_cells(label, max_w)
-        truncated_w = wcwidth.wcswidth(truncated)
+        truncated_w = _width_to_cells(truncated)
         # Center the truncated label at column offsets[i] using the shared
         # wcwidth-aware painter (single source of truth).
         start = offsets[i] - (truncated_w - 1) // 2
