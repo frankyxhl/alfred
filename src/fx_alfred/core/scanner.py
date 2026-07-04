@@ -96,10 +96,7 @@ def _scan_path_dir(
     for f in files:
         if not f.is_file():
             continue
-        try:
-            rel_parts = f.relative_to(directory).parts
-        except ValueError:
-            rel_parts = f.parts
+        rel_parts = f.relative_to(directory).parts
         if rel_parts and rel_parts[0] == "logs":
             continue
         if exclude_subdirs and rel_parts and rel_parts[0] in exclude_subdirs:

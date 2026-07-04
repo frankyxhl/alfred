@@ -3,6 +3,7 @@
 import re
 from datetime import datetime
 
+from fx_alfred.core.parser import MetadataField
 from fx_alfred.core.schema import DocType, REQUIRED_METADATA
 
 
@@ -75,6 +76,27 @@ def sort_metadata(fields: list[str], doc_type: DocType) -> list[str]:
     ]
     # Truly unknown fields in original relative order
     ordered += [f for f in fields if f not in canonical_set and f not in optional_set]
+    return ordered
+
+
+def reorder_by_canonical_keys(
+    fields: list[MetadataField], canonical_keys: list[str]
+) -> list[MetadataField]:
+    """Stable-reorder metadata fields to match ``canonical_keys``.
+
+    Fields whose key is not in ``canonical_keys`` keep their original
+    relative order, appended at the end. Preserves duplicate keys. Shared
+    by ``af fmt``'s metadata-order normalizer and ``af tag add``'s
+    newly-inserted ``Tags`` field placement.
+    """
+    ordered: list[MetadataField] = []
+    remaining = list(fields)
+    for key in canonical_keys:
+        for i, mf in enumerate(remaining):
+            if mf.key == key:
+                ordered.append(remaining.pop(i))
+                break
+    ordered.extend(remaining)
     return ordered
 
 

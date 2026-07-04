@@ -4,7 +4,12 @@ import re
 from typing import Any
 
 from fx_alfred.core.document import Document
-from fx_alfred.core.parser import MalformedDocumentError, parse_metadata, parse_tags
+from fx_alfred.core.parser import (
+    MalformedDocumentError,
+    ParsedDocument,
+    parse_metadata,
+    parse_tags,
+)
 from fx_alfred.core.schema import TASK_TAGS
 
 
@@ -30,25 +35,33 @@ def _read_content(doc: Document) -> str:
     return doc.resolve_resource().read_text(encoding="utf-8")
 
 
-def _field_value(doc: Document, field: str) -> str | None:
+def _parsed(doc: Document) -> ParsedDocument | None:
+    """Read + parse a doc's metadata once. None if unreadable/malformed.
+
+    Callers that need multiple fields (task tags, body, ...) from the same
+    doc should call this once and reuse the result, instead of each field
+    accessor re-reading and re-parsing the file from scratch.
+    """
     try:
-        parsed = parse_metadata(_read_content(doc))
+        return parse_metadata(_read_content(doc))
     except (OSError, MalformedDocumentError):
+        return None
+
+
+def _field_value(parsed: ParsedDocument | None, field: str) -> str | None:
+    if parsed is None:
         return None
     field_map = {mf.key: mf.value for mf in parsed.metadata_fields}
     return field_map.get(field)
 
 
-def task_tags(doc: Document) -> list[str]:
-    raw = _field_value(doc, TASK_TAGS)
+def task_tags(parsed: ParsedDocument | None) -> list[str]:
+    raw = _field_value(parsed, TASK_TAGS)
     return parse_tags(raw) if raw else []
 
 
-def _body(doc: Document) -> str:
-    try:
-        return parse_metadata(_read_content(doc)).body
-    except (OSError, MalformedDocumentError):
-        return ""
+def _body(parsed: ParsedDocument | None) -> str:
+    return parsed.body if parsed is not None else ""
 
 
 def _source(doc: Document) -> dict[str, str]:
@@ -59,7 +72,11 @@ def _source(doc: Document) -> dict[str, str]:
     return {"layer": doc.source.upper(), "path": path}
 
 
-def skill_metadata(doc: Document) -> dict[str, Any]:
+def skill_metadata(
+    doc: Document, parsed: ParsedDocument | None = None
+) -> dict[str, Any]:
+    if parsed is None:
+        parsed = _parsed(doc)
     return {
         "id": doc_id(doc),
         "prefix": doc.prefix,
@@ -68,7 +85,7 @@ def skill_metadata(doc: Document) -> dict[str, Any]:
         "title": doc.title,
         "source": _source(doc),
         "tags": doc.tags,
-        "task_tags": task_tags(doc),
+        "task_tags": task_tags(parsed),
     }
 
 
@@ -91,15 +108,19 @@ def _slug(text: str) -> str:
     return _normalize(text).replace(" ", "-")
 
 
-def _score_skill(doc: Document, task: str) -> tuple[int, list[str]]:
+def _score_skill(
+    doc: Document, task: str, parsed: ParsedDocument | None = None
+) -> tuple[int, list[str]]:
+    if parsed is None:
+        parsed = _parsed(doc)
     score = 0
     reasons: list[str] = []
     tokens = _tokenize(task)
 
-    task_tag_set = set(task_tags(doc))
+    task_tag_set = set(task_tags(parsed))
     tag_set = set(doc.tags)
     title_tokens = set(_tokenize(doc.title))
-    body_tokens = set(_tokenize(_body(doc)))
+    body_tokens = set(_tokenize(_body(parsed)))
 
     for token in tokens:
         if token in task_tag_set:
@@ -130,9 +151,10 @@ def list_skills(
 
     results: list[dict[str, Any]] = []
     for doc in skills:
-        item = skill_metadata(doc)
+        parsed = _parsed(doc)
+        item = skill_metadata(doc, parsed)
         if task:
-            score, reasons = _score_skill(doc, task)
+            score, reasons = _score_skill(doc, task, parsed)
             if score <= 0:
                 continue
             item["score"] = score

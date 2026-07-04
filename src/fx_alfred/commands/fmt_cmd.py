@@ -10,10 +10,9 @@ import click
 
 from fx_alfred.commands._helpers import atomic_write, find_or_fail, scan_or_fail
 from fx_alfred.context import root_option
-from fx_alfred.core.normalize import sort_metadata
+from fx_alfred.core.normalize import reorder_by_canonical_keys, sort_metadata
 from fx_alfred.core.parser import (
     MalformedDocumentError,
-    MetadataField,
     ParsedDocument,
     iter_lines_with_fence_state,
     parse_metadata,
@@ -48,14 +47,7 @@ def normalize_metadata_order(parsed: ParsedDocument, doc_type: DocType | None) -
     canonical_keys = sort_metadata(current_keys, doc_type)
 
     # List-based reorder — preserves all fields including duplicates
-    ordered_fields: list[MetadataField] = []
-    remaining = list(parsed.metadata_fields)
-    for key in canonical_keys:
-        for i, mf in enumerate(remaining):
-            if mf.key == key:
-                ordered_fields.append(remaining.pop(i))
-                break
-    ordered_fields.extend(remaining)
+    ordered_fields = reorder_by_canonical_keys(parsed.metadata_fields, canonical_keys)
 
     # Same objects in same order = no change (dataclass __eq__ compares all fields)
     if ordered_fields == parsed.metadata_fields:

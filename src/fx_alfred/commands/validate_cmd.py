@@ -597,19 +597,14 @@ def validate_cmd(
                     if doc_type is not None
                     else None
                 )
-                if allowed is not None:
-                    if "(" in status_val or ")" in status_val:
-                        issues.append(
-                            f"Invalid Status value '{status_val}' for type "
-                            f"{doc.type_code} (allowed: "
-                            f"{', '.join(sorted(allowed))})"
-                        )
-                    elif status_val not in allowed:
-                        issues.append(
-                            f"Invalid Status value '{status_val}' for type "
-                            f"{doc.type_code} (allowed: "
-                            f"{', '.join(sorted(allowed))})"
-                        )
+                if allowed is not None and (
+                    "(" in status_val or ")" in status_val or status_val not in allowed
+                ):
+                    issues.append(
+                        f"Invalid Status value '{status_val}' for type "
+                        f"{doc.type_code} (allowed: "
+                        f"{', '.join(sorted(allowed))})"
+                    )
 
             # Validate Tags field format (if present)
             tag_field = next(

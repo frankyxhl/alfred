@@ -62,47 +62,37 @@ class Document:
     def filename(self) -> str:
         return f"{self.prefix}-{self.acid}-{self.type_code}-{self.title.replace(' ', '-')}.md"
 
-    @property
-    def tags(self) -> list[str]:
-        """Parse Tags metadata field. Returns [] if absent or unreadable."""
+    def _metadata_value(self, key: str) -> str | None:
+        """Read a single metadata field's raw value from the source file.
+
+        Returns None if the field is absent or the document is unreadable.
+        Applies the same ACID=0000 dummy-H1 substitution used by both the
+        ``tags`` and ``status`` properties so the parser can extract
+        metadata from index docs with non-standard H1s.
+        """
         try:
             content = self.resolve_resource().read_text(encoding="utf-8")
-            # ACID=0000 index docs may have non-standard H1; substitute
-            # a dummy H1 so the parser can extract metadata (same approach
-            # as validate_cmd).
             if self.acid == "0000":
                 lines = content.split("\n")
                 if lines and not H1_PATTERN.match(lines[0]):
                     dummy_h1 = f"# {self.type_code}-{self.acid}: Index"
                     content = dummy_h1 + content[len(lines[0]) :]
             parsed = parse_metadata(content)
-            tag_field = next(
-                (mf for mf in parsed.metadata_fields if mf.key == "Tags"), None
-            )
-            return parse_tags(tag_field.value) if tag_field else []
+            field = next((mf for mf in parsed.metadata_fields if mf.key == key), None)
+            return field.value if field else None
         except (ValueError, OSError, MalformedDocumentError):
-            return []
+            return None
+
+    @property
+    def tags(self) -> list[str]:
+        """Parse Tags metadata field. Returns [] if absent or unreadable."""
+        value = self._metadata_value("Tags")
+        return parse_tags(value) if value else []
 
     @property
     def status(self) -> str:
         """Parse Status metadata field. Returns '' if absent or unreadable."""
-        try:
-            content = self.resolve_resource().read_text(encoding="utf-8")
-            # ACID=0000 index docs may have non-standard H1; substitute
-            # a dummy H1 so the parser can extract metadata (same approach
-            # as tags property).
-            if self.acid == "0000":
-                lines = content.split("\n")
-                if lines and not H1_PATTERN.match(lines[0]):
-                    dummy_h1 = f"# {self.type_code}-{self.acid}: Index"
-                    content = dummy_h1 + content[len(lines[0]) :]
-            parsed = parse_metadata(content)
-            status_field = next(
-                (mf for mf in parsed.metadata_fields if mf.key == "Status"), None
-            )
-            return status_field.value if status_field else ""
-        except (ValueError, OSError, MalformedDocumentError):
-            return ""
+        return self._metadata_value("Status") or ""
 
     def resolve_resource(self) -> Resource:
         """Return a resource that supports read_text().
