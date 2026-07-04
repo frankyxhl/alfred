@@ -110,9 +110,6 @@ def compute_column_offsets(
 
 def _width_to_cells(s: str) -> int:
     """Return visible cell width, treating unprintable chars as 1 cell."""
-    width = wcwidth.wcswidth(s)
-    if width >= 0:
-        return width
     width = 0
     for ch in s:
         cw = wcwidth.wcwidth(ch)
@@ -122,7 +119,7 @@ def _width_to_cells(s: str) -> int:
 
 def _normalize_unprintable_cells(s: str) -> str:
     """Replace unprintable one-cell chars with spaces for render stability."""
-    if wcwidth.wcswidth(s) >= 0:
+    if all(wcwidth.wcwidth(ch) >= 0 for ch in s):
         return s
     return "".join(" " if wcwidth.wcwidth(ch) < 0 else ch for ch in s)
 

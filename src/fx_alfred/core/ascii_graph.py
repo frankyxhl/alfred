@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import wcwidth
+
 from fx_alfred.core.branch_layout import discover_branch_groups
 from fx_alfred.core.branch_geometry import (
     _pad_to_cells,
@@ -35,6 +37,8 @@ TRACK_RESERVE = 14
 
 def _visual_width(s: str) -> int:
     """Return visual cell width via the branch-geometry wcwidth authority."""
+    if s == "⚠️":
+        return 2
     return _width_to_cells(s)
 
 
@@ -55,6 +59,16 @@ def _truncate_visual(s: str, max_visual: int) -> str:
 def _pad_visual(s: str, target_visual: int) -> str:
     """Right-pad string with ASCII spaces to reach target visual width."""
     return _pad_to_cells(s, target_visual)
+
+
+def _pad_terminal_line(line: str, target_cells: int) -> str:
+    """Pad a rendered terminal line to ``target_cells`` via whole-string wcwidth."""
+    used = wcwidth.wcswidth(line)
+    if used < 0 or used >= target_cells:
+        return line
+    if line.endswith("│"):
+        return line[:-1] + (" " * (target_cells - used)) + "│"
+    return line + (" " * (target_cells - used))
 
 
 def _loop_attr(loop: object, name: str, default=None):
@@ -475,7 +489,7 @@ def render_ascii(phases: list[PhaseDict]) -> str:
 
         # Content lines
         for ln in padded_lines:
-            out_lines.append("│ " + ln + " │")
+            out_lines.append(_pad_terminal_line("│ " + ln + " │", box_width))
 
         # Bottom border
         if p_idx == n_phases - 1:
