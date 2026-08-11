@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-08-12
 **Last reviewed:** 2026-08-12
-**Status:** Proposed
+**Status:** Completed
 **Date:** 2026-08-12
 **Requested by:** Frank Xu (session request: retrofit tier-1 candidates from the COR-1005 corpus audit)
 **Priority:** Medium
@@ -65,3 +65,4 @@ exhausted; "or max rounds reached" names no number and no behavior).
 | Date       | Change          | By          |
 |------------|-----------------|-------------|
 | 2026-08-12 | Initial version | Claude Code |
+| 2026-08-12 | Implemented: back-edges declared, exhaustion paths added, graphs verified | Claude Code |
