@@ -7,11 +7,11 @@
 - **COR-1600 / COR-1601 declare their review back-edges** — first COR-1005
   retrofit (FXA-2323): both review-loop SOPs now carry machine-readable
   `Workflow loops:` declarations (`revise-resend` 6→5 and `revise-cycle` 7→4,
-  `max_iterations: 3` matching COR-1602), so `af plan --graph` renders the
-  actual iteration instead of a straight line, and each loop's step body now
-  defines the previously-missing exhaustion path (COR-1600: escalate unresolved
-  findings to the Leader; COR-1601: Leader resolves via step 6's
-  Arbitrate/Accept/abandon options).
+  `max_iterations: 5` matching each SOP's documented §Iteration Mode default),
+  so `af plan --graph` renders the actual iteration instead of a straight line,
+  and each loop's `from` step body now restates the §Termination Criteria
+  exhaustion behavior (COR-1600: escalate unresolved findings to the Leader;
+  COR-1601: Leader resolves via step 6's Arbitrate/Accept/abandon options).
 
 ### New
 

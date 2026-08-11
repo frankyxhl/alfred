@@ -17,26 +17,29 @@
 Symmetric-class retrofit of the two prose-loop review SOPs, applying COR-1005
 (Engineer Workflow Loops) to its tier-1 audit candidates:
 
-- **COR-1600**: declare `{id: revise-resend, from: 6, to: 5, max_iterations: 3,
-  condition: "iteration is on and not all reviewers approve"}`; step 6 gains the
-  missing exhaustion path (escalate unresolved findings to the Leader).
-- **COR-1601**: declare `{id: revise-cycle, from: 7, to: 4, max_iterations: 3,
-  condition: "iteration is on and Leader requests revision"}`; step 7 gains the
-  missing exhaustion path (Leader stops the loop and Arbitrates / Accepts with
+- **COR-1600**: declare `{id: revise-resend, from: 6, to: 5, max_iterations: 5,
+  condition: "iteration is on and not all reviewers approve"}`; step 6 body now
+  carries the exhaustion path (escalate unresolved findings to the Leader).
+- **COR-1601**: declare `{id: revise-cycle, from: 7, to: 4, max_iterations: 5,
+  condition: "iteration is on and Leader requests revision"}`; step 7 body now
+  carries the final call (Leader stops the loop and Arbitrates / Accepts with
   justification / abandons).
 
 Shared before/after invariant (symmetric class): each member's prose loop
 ("repeat step N") becomes a declared `Workflow loops:` back-edge with
-`max_iterations: 3` matching family precedent COR-1602, plus an explicit
-exhaustion path in the loop's `from` step body. No other steps change.
+`max_iterations: 5` matching each SOP's own §Iteration Mode default, plus the
+§Termination Criteria exhaustion behavior restated in the loop's `from` step
+body per COR-1005 step 3. No other steps change.
 
 ## Why
 
 The COR-1005 audit (2026-08-11, post-#320) found only COR-1602 and COR-1005
 declare machine-readable loops; every other iterative SOP is a prose loop —
 COR-1005 failure mode ① (invisible to `af plan`, `--graph`, `af validate`) and
-③ (success-only exits: neither SOP defines what happens when rounds are
-exhausted; "or max rounds reached" names no number and no behavior).
+③ in the step bodies: the 5-round budget and exhaustion behavior existed only
+in §Iteration Mode / §Termination Criteria, invisible to the planner and absent
+from the step an executing agent actually follows (COR-1005 step 3 requires the
+exhaustion behavior in the `from` step body, not only elsewhere).
 
 ## Impact Analysis
 
@@ -66,3 +69,4 @@ exhausted; "or max rounds reached" names no number and no behavior).
 |------------|-----------------|-------------|
 | 2026-08-12 | Initial version | Claude Code |
 | 2026-08-12 | Implemented: back-edges declared, exhaustion paths added, graphs verified | Claude Code |
+| 2026-08-12 | Codex R1: max_iterations 3→5 to match each SOP's documented §Iteration Mode default; corrected Why claim (budget existed outside step bodies) | Claude Code |

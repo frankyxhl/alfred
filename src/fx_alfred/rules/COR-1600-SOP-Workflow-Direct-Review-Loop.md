@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-04-01
 **Status:** Active
 **Tags:** workflow, review
-**Workflow loops:** [{id: revise-resend, from: 6, to: 5, max_iterations: 3, condition: "iteration is on and not all reviewers approve"}]
+**Workflow loops:** [{id: revise-resend, from: 6, to: 5, max_iterations: 5, condition: "iteration is on and not all reviewers approve"}]
 **Disposition:** inherit-only
 
 ---
@@ -75,7 +75,7 @@ Leader    Worker    Reviewer A    Reviewer B
 3. **Worker executes** — produces first version of the deliverable
 4. **Worker sends to Reviewer(s)** — directly, not through Leader
 5. **Reviewer(s) review** — each provides feedback or approval with a score
-6. **If not all approved** — Worker revises based on feedback, sends again (repeat step 5; max 3 rounds per the `revise-resend` loop). If reviewers still have not all approved after round 3, stop iterating and escalate to the Leader with the unresolved findings — do not keep looping.
+6. **If not all approved** — Worker revises based on feedback, sends again (repeat step 5; max 5 rounds per the `revise-resend` loop, matching §Iteration Mode). If reviewers still have not all approved after round 5, stop iterating and escalate to the Leader with the unresolved findings — do not keep looping.
 7. **If all approved** — Worker sends final result to Leader
 8. **Leader confirms** — task complete
 
@@ -169,4 +169,4 @@ Final result → Claude Code
 | 2026-03-19 | Added sequence diagram (D4), iteration mode (D3), review scoring (D9), Lead Reviewer rule (D10), renamed with Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
-| 2026-08-12 | CHG FXA-2323: declare revise-resend back-edge (6→5, max 3) per COR-1005; step 6 gains exhaustion path (escalate to Leader) | Claude Code |
+| 2026-08-12 | CHG FXA-2323: declare revise-resend back-edge (6→5, max 5 per §Iteration Mode default) per COR-1005; step 6 body now carries the §Termination Criteria exhaustion path (escalate to Leader) | Claude Code |
