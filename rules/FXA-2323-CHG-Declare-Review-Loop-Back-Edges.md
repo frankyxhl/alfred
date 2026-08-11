@@ -52,7 +52,9 @@ exhaustion behavior in the `from` step body, not only elsewhere).
   as read by humans is unchanged except the previously-undefined exhaustion
   case is now defined.
 - **No cascade:** COR-1602/1005 referenced, not edited.
-- **Rollback plan:** revert the two doc edits, set this CHG to Rolled Back.
+- **Rollback plan:** revert the two doc edits, set this CHG to Rolled Back,
+  re-run `af index` so the FXA-0000 row reflects the Rolled Back status, and
+  remove (or amend to "rolled back") the CHANGELOG Unreleased entry.
 
 ## Implementation Plan
 
@@ -73,3 +75,4 @@ exhaustion behavior in the `from` step body, not only elsewhere).
 | 2026-08-12 | Implemented: back-edges declared, exhaustion paths added, graphs verified | Claude Code |
 | 2026-08-12 | Codex R1: max_iterations 3→5 to match each SOP's documented §Iteration Mode default; corrected Why claim (budget existed outside step bodies) | Claude Code |
 | 2026-08-12 | Codex R2: Impact Analysis now lists every touched file (CHG itself, FXA-0000 index row, CHANGELOG) | Claude Code |
+| 2026-08-12 | Codex R3: rollback plan covers index re-run and CHANGELOG entry removal | Claude Code |
