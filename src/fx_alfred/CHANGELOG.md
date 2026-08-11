@@ -4,6 +4,14 @@
 
 ### Improvements
 
+- **COR-1617 becomes machine-readable** — tier-3 COR-1005 retrofit (FXA-2325):
+  §Phases is renamed §Steps and the twelve-phase list is un-fenced into
+  parser-visible numbered steps (`af plan COR-1617` previously extracted zero
+  steps). Two back-edges declared from Triage: `iterate-round` (9→8, budget =
+  the documented §Round-count cap) and `replan-blocker` (9→4, newly-proposed
+  max 2 with halt-and-surface exhaustion). The 12→1 restart and idle-with-retry
+  stay deliberately undeclared as governance-bounded runtime loops, now
+  recorded in §Phase 12 per COR-1005 §When NOT to Use.
 - **COR-1612 / COR-1615 / COR-1802 declare their loops** — tier-2 COR-1005
   retrofit (FXA-2324): the COR-1612 fix-round cycle (6→1, max 10 per its own
   stopping-condition fail-safe), the COR-1615 restart-on-push cycle (11→1,

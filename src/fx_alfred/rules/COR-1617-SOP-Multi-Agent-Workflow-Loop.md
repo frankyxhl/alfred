@@ -1,11 +1,12 @@
 # SOP-1617: Multi-Agent Workflow Loop
 
 **Applies to:** All projects with a multi-provider review setup and an autonomous-orchestrator capability
-**Last updated:** 2026-06-26
+**Last updated:** 2026-08-12
 **Last reviewed:** 2026-05-17
 **Status:** Active
 **Tags:** workflow, loop
 **Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema), COR-1506 (issue quality gate — Phase 1 autonomous picks)
+**Workflow loops:** [{id: iterate-round, from: 9, to: 8, max_iterations: 10, condition: "code-review panel or bot gate not met for the current head after triage"}, {id: replan-blocker, from: 9, to: 4, max_iterations: 2, condition: "plan-review architectural blocker requires re-dispatching the panel after a CHG fix"}]
 **Disposition:** optional-overlay
 
 ---
@@ -57,11 +58,10 @@ The phases below reference parameters by `<key>`. See COR-1622 for the full key 
 
 ---
 
-## Phases
+## Steps
 
-The loop has **12 phases**:
+The loop has **12 phases** (one numbered step per phase; the `### Phase N` subsections below carry each phase's full contract):
 
-```
 1. Auto-pick               ← consent gate per COR-1618
 2. Branch & identity       ← COR-1505
 3. Plan                    ← CHG sizing per COR-1104
@@ -74,7 +74,6 @@ The loop has **12 phases**:
 10. Handoff + merge-watch  ← user merges; merge-watch wake per COR-1620
 11. Retrospective          ← synchronous; no wakeup
 12. Loop restart           ← post-handoff wake per COR-1620
-```
 
 ### Phase-to-SOP routing
 
@@ -251,6 +250,8 @@ Case C is evaluated first: reaching the extended hard-stop round requires operat
 
 Apply COR-1621 to every finding. Plan-review architectural blockers go back to phase 4 (re-dispatch panel after CHG fix); code-review and bot findings flow through the severity tree. Re-dispatch the panel only when blockers (or convergent advisories) were addressed.
 
+Two declared back-edges leave this phase: `iterate-round` (9→8, capped by §Round-count cap — its Cases A/B/C are the budget and exhaustion contract) and `replan-blocker` (9→4, max 2 re-plans — if a second re-planned round still produces architectural blockers, halt and surface to the user: the approach, not the plan, is likely wrong).
+
 ### Phase 10 — Handoff + merge-watch
 
 When the current-head state packet proves all readiness conditions below:
@@ -313,6 +314,8 @@ Output a 3-line nomination (target SOP, evidence — round numbers and finding c
 After phase 10 completes (PR merged + main checked out + main pulled) and phase 11 (Retrospective) finishes, arm a single 60 s wake (per COR-1620's hard floor) whose prompt re-runs phase 1. The 60 s captures the post-handoff burst window where the operator may signal a queued issue immediately after merge.
 
 The wake's prompt MUST include the FIRST stop-marker guard and SECOND branch guard from COR-1620.
+
+The 12→1 restart is deliberately NOT declared as `Workflow loops:` metadata: its exit is governance, not an iteration budget — COR-1618 consent gating on every tick plus the COR-1620 stop-marker bound it, per COR-1005 §When NOT to Use (runtime pacing of a running loop). The same applies to Phase 1's idle-with-retry (bounded by `<idle-cap>` per COR-1622).
 
 ---
 
@@ -393,3 +396,4 @@ This SOP is the PKG-layer generalization of trinity's `TRN-1008-SOP-Multi-Agent-
 | 2026-05-17 | issue #166 R2 (PR #180 codex bot P2): R1's fall-through note from User-driven to "Continuation or Loop-driven" was broken — those rows cover post-merge mandate-carry and scheduled wakeup re-entry respectively, NOT initial user-typed loop-start. Added a 4th trigger row **Loop-start (user-initiated)** explicitly covering bare `pick next issue` / `auto-pick` / `follow FXA-2276` — mandate from invocation, consent gate applies on every pick including the first. Phrase-list table updated 3-row → 4-row; intro sentence updated accordingly. | Claude Opus 4.7 |
 | 2026-06-26 | FXA-2311: Phase 8 now carries a current-head PR state packet; Phase 10 readiness requires current-head review, required checks, pre-merge sweep, merge-state policy, review-decision policy, and explicit human gate state. | Codex |
 | 2026-06-26 | FXA-2311 R2 (codex bot P2): Phase 10 required-check bullet now whitelists allowed `conclusion in {success, skipped, neutral}` and names the full set of completed non-green conclusions (`action_required`, `stale`, `startup_failure`, etc.) as blockers, closing the blacklist gap. | Codex |
+| 2026-08-12 | CHG FXA-2325: §Phases renamed §Steps with the 12-phase list un-fenced into parser-visible numbered steps (af plan previously extracted zero steps); declared iterate-round (9→8, budget = §Round-count cap) and replan-blocker (9→4, max 2 newly proposed) back-edges per COR-1005; §Phase 12 records why 12→1 stays undeclared (governance-bounded, COR-1005 §When NOT to Use) | Claude Code |
