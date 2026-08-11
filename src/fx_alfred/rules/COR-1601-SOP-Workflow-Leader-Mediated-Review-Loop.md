@@ -1,10 +1,11 @@
 # SOP-1601: Workflow — Leader Mediated Review Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-04-01
+**Last updated:** 2026-08-12
 **Last reviewed:** 2026-04-01
 **Status:** Active
 **Tags:** workflow, review
+**Workflow loops:** [{id: revise-cycle, from: 7, to: 4, max_iterations: 3, condition: "iteration is on and Leader requests revision"}]
 **Disposition:** inherit-only
 
 ---
@@ -77,7 +78,7 @@ Leader        Worker      Reviewer A    Reviewer B
    - **Redirect**: change approach entirely, give Worker new instructions
    - **Arbitrate**: if reviewers contradict, Leader decides which feedback to follow
    - **Accept**: override reviewers and accept as-is (with justification)
-7. **If revising** — Worker revises per Leader's instructions, repeat from step 4
+7. **If revising** — Worker revises per Leader's instructions, repeat from step 4 (max 3 rounds per the `revise-cycle` loop). If after round 3 the Reviewers still have not all approved, the Leader stops the loop and resolves it via step 6's own options — Arbitrate, Accept with justification, or abandon the task — do not keep looping.
 8. **If all approved** — task complete
 
 ---
@@ -188,3 +189,4 @@ Round 3:
 | 2026-03-19 | Added sequence diagram (D4), iteration mode (D3), review scoring (D9), renamed with Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
+| 2026-08-12 | CHG FXA-2323: declare revise-cycle back-edge (7→4, max 3) per COR-1005; step 7 gains exhaustion path (Leader resolves via step 6 options) | Claude Code |
