@@ -6,7 +6,7 @@
 **Status:** Active
 **Tags:** workflow, loop
 **Related:** COR-1602 (Multi Model Parallel Review — composes for plan-review and code-review panels), COR-1615 (GitHub App PR Review Bot Loop — composes for §8 bot polling), COR-1618 (consent auto-pick), COR-1619 (worker dispatch), COR-1620 (loop primitives), COR-1621 (triage), COR-1505 (branch + identity hygiene), COR-1104 (CHG sizing), COR-1622 (parameter schema), COR-1506 (issue quality gate — Phase 1 autonomous picks)
-**Workflow loops:** [{id: iterate-round, from: 9, to: 8, max_iterations: 13, condition: "code-review panel or bot gate not met for the current head after triage"}, {id: replan-blocker, from: 9, to: 4, max_iterations: 2, condition: "plan-review architectural blocker requires re-dispatching the panel after a CHG fix"}]
+**Workflow loops:** [{id: replan-blocker, from: 9, to: 4, max_iterations: 2, condition: "plan-review architectural blocker requires re-dispatching the panel after a CHG fix"}, {id: iterate-round, from: 9, to: 8, max_iterations: 13, condition: "code-review panel or bot gate not met for the current head after triage"}]
 **Disposition:** optional-overlay
 
 ---
