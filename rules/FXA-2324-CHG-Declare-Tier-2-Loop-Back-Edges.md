@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-08-12
 **Last reviewed:** 2026-08-12
-**Status:** Proposed
+**Status:** Completed
 **Date:** 2026-08-12
 **Requested by:** Frank Xu (session request: continue the COR-1005 corpus audit with the tier-2 candidates)
 **Priority:** Medium
@@ -75,3 +75,4 @@ just visibility.
 | Date       | Change          | By          |
 |------------|-----------------|-------------|
 | 2026-08-12 | Initial version | Claude Code |
+| 2026-08-12 | Implemented: four back-edges declared, 1802 extraction fixed, all validation green | Claude Code |
