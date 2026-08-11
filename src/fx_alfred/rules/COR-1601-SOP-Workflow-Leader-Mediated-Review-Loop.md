@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-04-01
 **Status:** Active
 **Tags:** workflow, review
-**Workflow loops:** [{id: revise-cycle, from: 7, to: 4, max_iterations: 5, condition: "iteration is on and Leader requests revision"}]
+**Workflow loops:** [{id: revise-cycle, from: 7, to: 4, max_iterations: 5, condition: "iteration is on and Leader requests revision or redirects the approach"}]
 **Disposition:** inherit-only
 
 ---
@@ -78,7 +78,7 @@ Leader        Worker      Reviewer A    Reviewer B
    - **Redirect**: change approach entirely, give Worker new instructions
    - **Arbitrate**: if reviewers contradict, Leader decides which feedback to follow
    - **Accept**: override reviewers and accept as-is (with justification)
-7. **If revising** — Worker revises per Leader's instructions, repeat from step 4 (max 5 rounds per the `revise-cycle` loop, matching §Iteration Mode). If after round 5 the Reviewers still have not all approved, the Leader stops the loop and makes the final call via step 6's own options — Arbitrate or Accept with justification — do not keep looping.
+7. **If revising or redirecting** — Worker revises (or re-executes under the redirected approach) per Leader's instructions, repeat from step 4 (max 5 rounds per the `revise-cycle` loop, matching §Iteration Mode). If after round 5 the Reviewers still have not all approved, the Leader stops the loop and makes the final call via step 6's own options — Arbitrate or Accept with justification — do not keep looping.
 8. **If all approved** — task complete
 
 ---
@@ -189,4 +189,4 @@ Round 3:
 | 2026-03-19 | Added sequence diagram (D4), iteration mode (D3), review scoring (D9), renamed with Workflow prefix (D5) | Claude Code |
 | 2026-03-20 | Added Why section per FXA-2223 | Claude Code |
 | 2026-04-01 | CHG FXA-2183: Add dispatch context with af read/af list usage to dispatch steps | Claude Code |
-| 2026-08-12 | CHG FXA-2323: declare revise-cycle back-edge (7→4, max 5 per §Iteration Mode default) per COR-1005; step 7 body now carries the §Termination Criteria final call (Leader resolves via step 6's Arbitrate/Accept options) | Claude Code |
+| 2026-08-12 | CHG FXA-2323: declare revise-cycle back-edge (7→4, max 5 per §Iteration Mode default) per COR-1005; step 7 body now carries the §Termination Criteria final call (Leader resolves via step 6's Arbitrate/Accept options); loop condition covers both Revise and Redirect re-entry | Claude Code |
