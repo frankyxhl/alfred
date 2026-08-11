@@ -1,10 +1,11 @@
 # SOP-1802: Build Weighted Decision Matrix
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-10
+**Last updated:** 2026-08-12
 **Last reviewed:** 2026-05-10
 **Status:** Active
 **Tags:** plan, decision-record
+**Workflow loops:** [{id: anchor-rework, from: 4, to: 2, max_iterations: 2, condition: "a midpoint anchor cannot be written as testable behavior"}, {id: recalibrate, from: 5, to: 2, max_iterations: 2, condition: "calibration still fails after 3 weight-adjustment cycles"}]
 **Disposition:** inherit-only
 
 ---
@@ -52,11 +53,11 @@ Do not build a weighted matrix when any of the following conditions apply:
 
 ## Steps
 
-### Step 1 — Define the decision
+### 1. Define the decision
 
 State the single question the matrix answers. Name the action set: binary (yes/no) or ordinal (create issue / log / discard). A matrix with > 3 action bands is a smell — split into two decisions.
 
-### Step 2 — Enumerate dimensions (3–6)
+### 2. Enumerate dimensions (3–6)
 
 For each candidate dimension, apply four tests before keeping it:
 
@@ -69,7 +70,7 @@ For each candidate dimension, apply four tests before keeping it:
 
 Discard any dimension that fails any test. If you have > 6 passing dimensions, the decision is probably two decisions — split it.
 
-### Step 3 — Assign weights
+### 3. Assign weights
 
 1. Rank dimensions by importance (forced ranking — no ties)
 2. Assign weights top-down; all must sum to 100%
@@ -78,23 +79,23 @@ Discard any dimension that fails any test. If you have > 6 passing dimensions, t
 5. Warning: weight < 10% → drop or merge
 6. **Equal weights after forced ranking are permitted** when two adjacent-ranked dimensions are genuinely indistinguishable in importance — the ranking still records the tiebreaker for edge cases even when weights are the same.
 
-### Step 4 — Write anchors
+### 4. Write anchors
 
 For each dimension, write three anchor descriptions at 0, 5, and 10:
 
 - **Behaviors, not adjectives.** "First time seen in any context" not "low recurrence"
 - **Anchors must be mutually exclusive** — a real case maps to exactly one anchor
-- If writing a 5 anchor is genuinely difficult, that is a signal the dimension may fail the anchor-testability test from Step 2 — return to Step 2 and consider dropping or splitting the dimension rather than omitting the midpoint anchor
+- If writing a 5 anchor is genuinely difficult, that is a signal the dimension may fail the anchor-testability test from Step 2 — return to Step 2 and consider dropping or splitting the dimension rather than omitting the midpoint anchor (declared `anchor-rework` back-edge, 4→2, max 2 reworks — if anchors still cannot be written after two dimension-set reworks, stop and escalate to the operator: the dimension is likely not behaviorally testable)
 
-### Step 5 — Calibrate with known cases
+### 5. Calibrate with known cases
 
 Collect 3–5 cases where the correct action is already known. Cases come from historical decisions in the consuming SOP's domain, or from expert judgment when no relevant history exists. Score each on every dimension, compute composite, check action. A matrix is not valid until all calibration cases produce the correct action.
 
 If a case produces the wrong action: identify the miscalibrated dimension and adjust. Re-run all cases after each adjustment.
 
-**Termination rule:** if calibration fails after ≥3 adjustment cycles, return to Step 2. Persistent failure means the dimension set is MECE-incomplete, not that weights are slightly off.
+**Termination rule:** if calibration fails after ≥3 adjustment cycles, return to Step 2 (declared `recalibrate` back-edge, 5→2, max 2 returns — if a second dimension-set rework still fails calibration, stop and escalate to the operator: the decision may not reduce to a weighted matrix). Persistent failure means the dimension set is MECE-incomplete, not that weights are slightly off.
 
-### Step 6 — Set action thresholds
+### 6. Set action thresholds
 
 Use boundary cases — the weakest acceptable and the strongest unacceptable — not the clearest extremes:
 
@@ -102,7 +103,7 @@ Use boundary cases — the weakest acceptable and the strongest unacceptable —
 2. Pick the **strongest case that clearly does NOT deserve action X** → its composite is the lower evidence bound (threshold must be > this composite)
 3. Set the threshold in the gap between those two composites. That gap is the **"uncertain" middle band** — strongly preferred. A pure binary threshold (no middle band) is permitted only with explicit written justification. Note: COR-1608/1609/1610 use binary pass/fail (≥9.0) — intentional exceptions, not violations.
 
-### Step 7 — Validate
+### 7. Validate
 
 Run at least:
 
@@ -110,7 +111,7 @@ Run at least:
 - ≥1 case at each threshold boundary (within ±0.5 of cutoff)
 - ≥1 initially-counterintuitive edge case
 
-### Step 8 — Document
+### 8. Document
 
 Use COR-1800's table format for the scoring rubric and action thresholds tables. Required consuming-document sections:
 
@@ -228,3 +229,4 @@ Composite: 0.25×9 + 0.25×10 + 0.15×8 + 0.15×10 + 0.20×9 = 2.25 + 2.5 + 1.2 
 | 2026-05-10 | R5: fix COR-1800 back-reference (codex bot P2). Changed "Built per COR-1802" → "See COR-1802 for the meta-framework" to avoid false compliance claim — COR-1800 pre-dates COR-1802 and lacks the required 0/5/10 anchors and calibration examples sections. | Claude Sonnet 4.6 |
 | 2026-05-10 | R6: (1) remove Step 4 "interpolate linearly" exception — contradicts anchor-testability requirement from Step 2; replaced with guidance to return to Step 2 if midpoint anchor is hard (codex bot P2); (2) sync CHG Step 3 to include equal-weight rule 6 (codex bot P2 on CHG line 84). | Claude Sonnet 4.6 |
 | 2026-05-10 | Issue #139: §Step 8 — clarify "COR-1800 table format" applies to scoring rubric and action thresholds only; calibration examples is an additional COR-1802 requirement not present in COR-1800. Codex bot finding on PR #137. | Claude Sonnet 4.6 |
+| 2026-08-12 | CHG FXA-2324: step headings renamed "Step N —" → "N." so af plan extracts the real 8 steps (previously phantom sub-list steps); declared anchor-rework (4→2) and recalibrate (5→2) back-edges per COR-1005 with newly-proposed max 2 caps and operator-escalation exhaustion paths | Claude Code |

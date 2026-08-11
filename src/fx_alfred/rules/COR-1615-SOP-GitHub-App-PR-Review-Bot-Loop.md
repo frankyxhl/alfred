@@ -1,13 +1,14 @@
 # SOP-1615: GitHub App PR Review Bot Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-06-26
+**Last updated:** 2026-08-12
 **Last reviewed:** 2026-05-15
 **Status:** Active
 **Tags:** pr, review, loop
 **Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
 **Task tags:** [github, github-app, pull-request, pr-review, review, bot-review, codex, copilot]
 **Authored from:** BAB-1504-SOP-GitHub-Codex-PR-Review-Loop
+**Workflow loops:** [{id: restart-on-push, from: 11, to: 1, max_iterations: 10, condition: "a push created a new headRefOid without a completed review for it"}]
 **Disposition:** inherit-only
 
 ---
@@ -345,7 +346,7 @@ Classify each finding as blocking, advisory, question, or incorrect. Fix blockin
 
 ### 11. Restart after every push
 
-Every push creates a new `headRefOid`. Return to Step 1, then request or wait for a review of that new head. A clean review of the old head does not clear the new one. Do not assume re-review is automatic; some reviewers must be explicitly requested again after a push.
+Every push creates a new `headRefOid`. Return to Step 1 (declared `restart-on-push` back-edge, 11→1; max 10 restarts per PR, adopting COR-1612's documented 10-fix-round fail-safe since each restart follows a fix push — on exhaustion escalate to the user per COR-1612 stopping condition #4), then request or wait for a review of that new head. A clean review of the old head does not clear the new one. Do not assume re-review is automatic; some reviewers must be explicitly requested again after a push.
 
 ### 12. Stop only when the current head is clear
 
@@ -489,3 +490,4 @@ Use the GitHub App PR review bot loop:
 | 2026-05-15 | FXA-2285 R2: clarify no-bot repos do not waive unresolved human or code-review-app GitHub threads. | Codex |
 | 2026-06-26 | FXA-2311: completion criteria now require required-check policy evidence, merge state, review decision, draft/open state, and explicit human-gate handoff. | Codex |
 | 2026-06-26 | FXA-2311 R1 (codex bot P2): added `mergeStateStatus` to the §Commands `gh pr view` field list so operators following the SOP can record the value the completion gate now requires. | Codex |
+| 2026-08-12 | CHG FXA-2324: declare restart-on-push back-edge (11→1) per COR-1005; max 10 restarts adopted from COR-1612's documented 10-fix-round fail-safe (no own cap existed), exhaustion escalates per COR-1612 stopping condition #4 | Claude Code |

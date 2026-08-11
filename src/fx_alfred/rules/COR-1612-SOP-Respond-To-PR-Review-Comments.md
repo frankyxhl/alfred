@@ -1,11 +1,12 @@
 # SOP-1612: Respond To PR Review Comments
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-05-15
+**Last updated:** 2026-08-12
 **Last reviewed:** 2026-05-15
 **Status:** Draft
 **Tags:** pr, review
 **Related:** COR-1602 (Multi Model Parallel Review), COR-1615 (GitHub App PR Review Bot Loop)
+**Workflow loops:** [{id: fix-round, from: 6, to: 1, max_iterations: 10, condition: "new actionable comments since the last fix push or red CI for the current head"}]
 **Disposition:** inherit-only
 
 ---
@@ -158,6 +159,8 @@ GitHub only auto-marks line-anchored comments as outdated when the referenced di
 If there was no fix commit, reply only where applicable for Question, Incorrect, or declined Advisory comments.
 
 ### 6. Wait for CI **and the next bot review pass** — agent self-driven loop, no user prompting
+
+This wait→refetch cycle is the declared `fix-round` back-edge (6→1, max 10 rounds per stopping condition #4 below; on hitting the cap, escalate to the user per the cap-hit instructions — do not keep looping).
 
 After every fix push, the agent **MUST** wait 3–5 minutes and self-poll for new comments before handing control back to the user. Asking the user "anything new?" or "should I check again?" is **forbidden** — see §Pitfalls. The agent's job is to drive the loop until a stopping condition is hit.
 
@@ -598,3 +601,4 @@ These are orthogonal mechanisms — none is "bot is smarter." The defensive prac
 | 2026-05-09 | R3: codex bot R2 P2 (PR #122) — §When NOT useful skip rule "PR has fewer than 3 review rounds" contradicted the §Empirical evidence base (PR #119 + #120 both used hints from R1) and the CHG-2279 §Implementation Plan step 4 (eat-our-own-dogfood asks PRs to add hints before observing the bot). Adopters following the rule literally would never use hints from R1, losing the from-start usage pattern the SOP itself records. Narrowed to "small / uncertain scope PRs with no prior signal that the installed bot over-flags"; added explicit caveat that PRs known up-front to be long-running (large CHG/SOP, multi-file refactor) should add hints from R1. CHG-2279 R3. | Claude Opus 4.7 |
 | 2026-05-15 | FXA-2285: add pre-merge sweep routing from COR-1615; GitHub-side review threads must be resolved, outdated, or author-addressed before merge-ready. | Codex |
 | 2026-05-15 | FXA-2285 R2: clarify no-bot repos still route human and code-review-app GitHub threads through the pre-merge gate. | Codex |
+| 2026-08-12 | CHG FXA-2324: declare fix-round back-edge (6→1, max 10 per stopping condition #4) per COR-1005; step 6 names the loop and its cap-hit escalation | Claude Code |

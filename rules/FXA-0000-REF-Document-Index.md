@@ -234,6 +234,7 @@
 | 2321 | REF | Session Retrospective 2026 07 04 D1 | Active |
 | 2322 | CHG | Add COR 1005 Engineer Workflow Loops | Completed |
 | 2323 | CHG | Declare Review Loop Back Edges | Completed |
+| 2324 | CHG | Declare Tier 2 Loop Back Edges | Proposed |
 
 ---
 
