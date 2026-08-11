@@ -21,7 +21,7 @@ Symmetric-class retrofit of the two prose-loop review SOPs, applying COR-1005
   condition: "iteration is on and not all reviewers approve"}`; step 6 body now
   carries the exhaustion path (escalate unresolved findings to the Leader).
 - **COR-1601**: declare `{id: revise-cycle, from: 7, to: 4, max_iterations: 5,
-  condition: "iteration is on and Leader requests revision"}`; step 7 body now
+  condition: "iteration is on and Leader requests revision or redirects the approach"}`; step 7 body now
   carries the final call (Leader stops the loop and Arbitrates or Accepts with
   justification).
 
@@ -77,3 +77,4 @@ exhaustion behavior in the `from` step body, not only elsewhere).
 | 2026-08-12 | Codex R2: Impact Analysis now lists every touched file (CHG itself, FXA-0000 index row, CHANGELOG) | Claude Code |
 | 2026-08-12 | Codex R3: rollback plan covers index re-run and CHANGELOG entry removal | Claude Code |
 | 2026-08-12 | Codex R4/R5: exhaustion final call limited to step 6's enumerated Arbitrate/Accept; stale abandon wording purged from CHG and CHANGELOG | Claude Code |
+| 2026-08-12 | Codex R6/R7: loop condition covers Redirect re-entry; CHG quotation synced to the SOP's condition string | Claude Code |
