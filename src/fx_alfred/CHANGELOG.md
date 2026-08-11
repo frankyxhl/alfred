@@ -4,6 +4,15 @@
 
 ### Improvements
 
+- **COR-1612 / COR-1615 / COR-1802 declare their loops** — tier-2 COR-1005
+  retrofit (FXA-2324): the COR-1612 fix-round cycle (6→1, max 10 per its own
+  stopping-condition fail-safe), the COR-1615 restart-on-push cycle (11→1,
+  max 10 adopted from COR-1612's fail-safe), and COR-1802's anchor-rework (4→2)
+  and recalibrate (5→2) back-edges (newly-proposed max 2 caps with operator
+  escalation) are now machine-readable `Workflow loops:` declarations.
+  COR-1802's step headings were also renamed to the parser-recognized `N.` form,
+  fixing `af plan COR-1802` extracting phantom sub-list steps instead of the
+  real 8-step structure.
 - **COR-1600 / COR-1601 declare their review back-edges** — first COR-1005
   retrofit (FXA-2323): both review-loop SOPs now carry machine-readable
   `Workflow loops:` declarations (`revise-resend` 6→5 and `revise-cycle` 7→4,
