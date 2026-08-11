@@ -95,8 +95,8 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 
 1. Pure document management? (REF, Glossary, SOP creation, metadata update)
    ├── Promote PRJ pattern to PKG → COR-1801, then CHG/PRP as required
-   ├── New SOP               → COR-1000
    ├── SOP with loops/branches → COR-1000 + COR-1005
+   ├── New SOP (straight-line) → COR-1000
    ├── New reference doc     → COR-1001
    ├── Tag / retag / make filterable → COR-1003
    └── Update existing doc   → COR-1300

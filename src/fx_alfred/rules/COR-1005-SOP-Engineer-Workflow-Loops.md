@@ -94,9 +94,12 @@ Three failure modes recur when iteration is authored as prose:
    (`PREFIX-ACID.step`).
 
    Branch form — every edge carries a `label`; targets are sub-step IDs
-   (digits + one letter). This inline form is the one the parser accepts;
-   a multi-line YAML block is not read by `_BOLD_FIELD` and silently parses
-   as an empty list:
+   (digits + one letter). A branch supports **2–4 targets**: the parser
+   accepts any non-empty `to` list, but the renderer skips declarations
+   outside that range and the sub-steps silently render as plain linear
+   steps. This inline form is the one the parser accepts; a multi-line
+   YAML block is not read by `_BOLD_FIELD` and silently parses as an
+   empty list:
 
    ```
    **Workflow branches:** [{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]
