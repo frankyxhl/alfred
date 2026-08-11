@@ -106,9 +106,12 @@ Three failure modes recur when iteration is authored as prose:
    sub-headings nested under it. The `from` step of every loop spells out the
    repeat action and the exhaustion behavior in prose matching the metadata.
 
-7. **Verify.** Run `af validate` (schema check: required loop keys, branch IDs,
-   step references) and `af plan --graph <ID>`; the rendered flowchart must
-   match the control flow you intended in step 1. On failure, return to step 5
+7. **Verify.** Run `af validate` (schema check: required loop keys and types,
+   branch declarations, cross-SOP loop targets) and `af plan --graph <ID>`; the
+   rendered flowchart must match the control flow you intended in step 1. Note
+   `af validate` does not currently check intra-SOP loop step references,
+   back-edge direction, or that `max_iterations` is positive — the graph
+   inspection is your guard for those. On failure, return to step 5
    (loop `fix-authoring`, max 3 rounds); if still failing, re-examine the
    intended flow with a human reviewer — the design, not the syntax, is usually
    wrong.
