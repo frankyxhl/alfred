@@ -81,3 +81,4 @@ step-level back-edges existed only as prose (COR-1005 failure mode ①).
 | 2026-08-12 | Initial version | Claude Code |
 | 2026-08-12 | Implemented: section renamed, 12 steps extract, both back-edges render, validation green | Claude Code |
 | 2026-08-12 | Codex R1: iterate-round max 10 → 13 — COR-1005 exhaustion fires at the hard stop (soft cap + extension), not the soft cap | Claude Code |
+| 2026-08-12 | Codex R2: declarations reordered so iterate-round survives the --todo same-from-step collapse (interim); renderer defect filed as issue #324 | Claude Code |
