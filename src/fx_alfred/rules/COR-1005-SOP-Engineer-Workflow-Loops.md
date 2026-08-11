@@ -88,23 +88,23 @@ Three failure modes recur when iteration is authored as prose:
    **Workflow loops:** [{id: review-retry, from: 7, to: 3, max_iterations: 3, condition: "iteration is on and not all reviewers approve"}]
    ```
 
-   Cross-SOP back-edge: `to: COR-1602.3` (format `PREFIX-ACID.step`).
+   Cross-SOP back-edge: `to: COR-1602.3`. The reference format is strict:
+   exactly three uppercase letters, hyphen, four digits, dot, integer step
+   (`PREFIX-ACID.step`).
 
    Branch form — every edge carries a `label`; targets are sub-step IDs
-   (digits + one letter):
+   (digits + one letter). This inline form is the one the parser accepts;
+   a multi-line YAML block is not read by `_BOLD_FIELD` and silently parses
+   as an empty list:
 
    ```
-   **Workflow branches:**
-     - from: 2
-       to:
-         - {id: 3a, label: pass}
-         - {id: 3b, label: fail}
+   **Workflow branches:** [{from: 2, to: [{id: 3a, label: pass}, {id: 3b, label: fail}]}]
    ```
 
-6. **Write the step bodies.** Branch targets are authored as sub-step headings
-   (`3a.` / `3b.`) under the parent number. The `from` step of every loop spells
-   out the repeat action and the exhaustion behavior in prose matching the
-   metadata.
+6. **Write the step bodies.** Branch targets are authored as their own numbered
+   lines (`3a.` / `3b.`) standing in place of the plain numbered step — not as
+   sub-headings nested under it. The `from` step of every loop spells out the
+   repeat action and the exhaustion behavior in prose matching the metadata.
 
 7. **Verify.** Run `af validate` (schema check: required loop keys, branch IDs,
    step references) and `af plan --graph <ID>`; the rendered flowchart must
