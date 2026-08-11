@@ -6,7 +6,7 @@
 **Status:** Draft
 **Tags:** pr, review
 **Related:** COR-1602 (Multi Model Parallel Review), COR-1615 (GitHub App PR Review Bot Loop)
-**Workflow loops:** [{id: fix-round, from: 6, to: 1, max_iterations: 10, condition: "new actionable comments since the last fix push or red CI for the current head"}]
+**Workflow loops:** [{id: fix-round, from: 6, to: 1, max_iterations: 10, condition: "new actionable comments since the last fix push"}]
 **Disposition:** inherit-only
 
 ---
@@ -602,3 +602,4 @@ These are orthogonal mechanisms — none is "bot is smarter." The defensive prac
 | 2026-05-15 | FXA-2285: add pre-merge sweep routing from COR-1615; GitHub-side review threads must be resolved, outdated, or author-addressed before merge-ready. | Codex |
 | 2026-05-15 | FXA-2285 R2: clarify no-bot repos still route human and code-review-app GitHub threads through the pre-merge gate. | Codex |
 | 2026-08-12 | CHG FXA-2324: declare fix-round back-edge (6→1, max 10 per stopping condition #4) per COR-1005; step 6 names the loop and its cap-hit escalation | Claude Code |
+| 2026-08-12 | Codex R1: loop condition limited to new actionable comments — CI-only failure routes through the decision tree's investigate-then-Steps-2–5 path, not the 6→1 fetch edge | Claude Code |
