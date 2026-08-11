@@ -11,7 +11,7 @@
   so `af plan --graph` renders the actual iteration instead of a straight line,
   and each loop's `from` step body now restates the §Termination Criteria
   exhaustion behavior (COR-1600: escalate unresolved findings to the Leader;
-  COR-1601: Leader resolves via step 6's Arbitrate/Accept/abandon options).
+  COR-1601: Leader resolves via step 6's Arbitrate/Accept options).
 
 ### New
 
