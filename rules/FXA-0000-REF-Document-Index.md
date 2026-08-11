@@ -232,7 +232,7 @@
 | 2319 | CHG | Preserve Wide Change History Rows | Completed |
 | 2320 | CHG | Promote Sandboxed Worker CLI Dispatch To COR Layer | Completed |
 | 2321 | REF | Session Retrospective 2026 07 04 D1 | Active |
-| 2322 | CHG | Add COR 1005 Engineer Workflow Loops | Proposed |
+| 2322 | CHG | Add COR 1005 Engineer Workflow Loops | Completed |
 
 ---
 

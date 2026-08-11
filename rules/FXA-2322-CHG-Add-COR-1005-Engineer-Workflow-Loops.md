@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-08-11
 **Last reviewed:** 2026-08-11
-**Status:** Proposed
+**Status:** Completed
 **Date:** 2026-08-11
 **Requested by:** Frank Xu (session request: loop-engineering SOP for non-sequential SOP execution)
 **Priority:** Medium
@@ -66,3 +66,4 @@ rubrics, verification loops) and cobusgreyling/loop-engineering (phased autonomy
 | Date       | Change          | By          |
 |------------|-----------------|-------------|
 | 2026-08-11 | Initial version | Claude Code |
+| 2026-08-11 | Implemented: COR-1005 authored, pointers + index + CHANGELOG updated | Claude Code |
