@@ -25,11 +25,13 @@ loop becomes machine-readable:
   pattern, so they remain body content, and every intra- and cross-doc
   "§Phase N" reference stays valid.
 - **Two declared back-edges**, both from Phase 9 (Triage):
-  - `iterate-round` (9→8, `max_iterations: 10`): §8's "gate not met → triage →
-    push R+1 → loop back". Budget and exhaustion were already fully documented —
-    `<max-r-count>` default 10 per COR-1622 §R-count cap, with §Round-count
-    cap's Cases A/B/C (converged / extension / hard stop with operator
-    sign-off) as the exhaustion contract. Purely declarative.
+  - `iterate-round` (9→8, `max_iterations: 13`): §8's "gate not met → triage →
+    push R+1 → loop back". Budget and exhaustion were already fully documented:
+    max 13 is the §Round-count cap **hard stop** (`<max-r-count>` 10 +
+    `<max-r-count-extension>` 3 per COR-1622), matching COR-1005's definition
+    of `max_iterations` as the point where exhaustion behavior fires; the
+    soft-cap/extension logic (Cases A/B/C) is the in-doc contract between
+    rounds 10 and 13. Purely declarative.
   - `replan-blocker` (9→4, `max_iterations: 2`): §9's "plan-review
     architectural blockers go back to phase 4". ⚠️ The return path was
     documented but carried **no count**; max 2 is newly proposed, with a new
@@ -78,3 +80,4 @@ step-level back-edges existed only as prose (COR-1005 failure mode ①).
 |------------|-----------------|-------------|
 | 2026-08-12 | Initial version | Claude Code |
 | 2026-08-12 | Implemented: section renamed, 12 steps extract, both back-edges render, validation green | Claude Code |
+| 2026-08-12 | Codex R1: iterate-round max 10 → 13 — COR-1005 exhaustion fires at the hard stop (soft cap + extension), not the soft cap | Claude Code |
