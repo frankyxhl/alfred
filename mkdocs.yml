@@ -18,6 +18,8 @@ markdown_extensions:
       format: !!python/name:pymdownx.superfences.fence_code_format
 nav:
   - Home: index.md
+  - PRP:
+      - 'COR-1507: Two-Worker TDD Dispatch': COR-1507-PRP-Two-Worker-TDD-Dispatch.md
   - REF:
       - 'COR-0000: Document Index': COR-0000-REF-Document-Index.md
       - 'COR-0001: Glossary': COR-0001-REF-Glossary.md
@@ -26,13 +28,16 @@ nav:
       - 'COR-1205: Agent Activity Log Format': COR-1205-REF-Agent-Activity-Log-Format.md
       - 'COR-1504: Diagnose Phase Gates': COR-1504-REF-Diagnose-Phase-Gates.md
       - 'COR-1622: Multi-Agent Loop Project Configuration': COR-1622-REF-Multi-Agent-Loop-Project-Configuration.md
+      - 'COR-1629: Loop Config Starter Template': COR-1629-REF-Loop-Config-Starter-Template.md
       - 'COR-1705: Code Review Classification System': COR-1705-REF-Code-Review-Classification-System.md
       - 'COR-1800: Evolution Philosophy': COR-1800-REF-Evolution-Philosophy.md
   - SOP:
       - 'COR-1000: Create SOP': COR-1000-SOP-Create-SOP.md
       - 'COR-1001: Create Document': COR-1001-SOP-Create-Document.md
       - 'COR-1002: Read Document': COR-1002-SOP-Read-Document.md
+      - 'COR-1003: Tag Document': COR-1003-SOP-Tag-Document.md
       - 'COR-1004: Create Routing Document': COR-1004-SOP-Create-Routing-Document.md
+      - 'COR-1005: Engineer Workflow Loops': COR-1005-SOP-Engineer-Workflow-Loops.md
       - 'COR-1100: Create Decision Record': COR-1100-SOP-Create-Decision-Record.md
       - 'COR-1101: Submit Change Request': COR-1101-SOP-Submit-Change-Request.md
       - 'COR-1102: Create Proposal': COR-1102-SOP-Create-Proposal.md
@@ -45,6 +50,7 @@ nav:
       - 'COR-1206: Emit Agent Activity': COR-1206-SOP-Emit-Agent-Activity.md
       - 'COR-1207: Zoom Out': COR-1207-SOP-Zoom-Out.md
       - 'COR-1208: Session Startup Sanity Check': COR-1208-SOP-Session-Startup-Sanity-Check.md
+      - 'COR-1209: Session Handoff Prompt': COR-1209-SOP-Session-Handoff-Prompt.md
       - 'COR-1300: Update Document': COR-1300-SOP-Update-Document.md
       - 'COR-1301: Deprecate Document': COR-1301-SOP-Deprecate-Document.md
       - 'COR-1302: Maintain Document Index': COR-1302-SOP-Maintain-Document-Index.md
@@ -59,6 +65,8 @@ nav:
       - 'COR-1502: Git Branch Naming': COR-1502-SOP-Git-Branch-Naming.md
       - 'COR-1503: Diagnose Feedback Loop': COR-1503-SOP-Diagnose-Feedback-Loop.md
       - 'COR-1505: Branch and Identity Hygiene': COR-1505-SOP-Branch-and-Identity-Hygiene.md
+      - 'COR-1506: Review GitHub Issue Quality': COR-1506-SOP-Review-GitHub-Issue-Quality.md
+      - 'COR-1508: Minimal Code Ladder': COR-1508-SOP-Minimal-Code-Ladder.md
       - 'COR-1600: Workflow — Direct Review Loop': COR-1600-SOP-Workflow-Direct-Review-Loop.md
       - 'COR-1601: Workflow — Leader Mediated Review Loop': COR-1601-SOP-Workflow-Leader-Mediated-Review-Loop.md
       - 'COR-1602: Workflow — Multi Model Parallel Review': COR-1602-SOP-Workflow-Multi-Model-Parallel-Review.md
@@ -81,6 +89,12 @@ nav:
       - 'COR-1619: Orchestrator vs Worker Dispatch': COR-1619-SOP-Orchestrator-vs-Worker-Dispatch.md
       - 'COR-1620: Self-Pacing Loop Primitives': COR-1620-SOP-Self-Pacing-Loop-Primitives.md
       - 'COR-1621: Multi-Reviewer Triage and Severity': COR-1621-SOP-Multi-Reviewer-Triage-and-Severity.md
+      - 'COR-1623: PR Review Thread Verification': COR-1623-SOP-PR-Review-Thread-Verification.md
+      - 'COR-1624: Loop — L1 Report-Only': COR-1624-SOP-Loop-L1-Report-Only.md
+      - 'COR-1625: Loop — L2 Assisted + Gated': COR-1625-SOP-Loop-L2-Assisted-Gated.md
+      - 'COR-1626: Loop — L3 Unattended': COR-1626-SOP-Loop-L3-Unattended.md
+      - 'COR-1627: Loop PDCA Run Audit': COR-1627-SOP-Loop-PDCA-Run-Audit.md
+      - 'COR-1628: Sandboxed Worker CLI Dispatch': COR-1628-SOP-Sandboxed-Worker-CLI-Dispatch.md
       - 'COR-1700: Initialize Project': COR-1700-SOP-Initialize-Project.md
       - 'COR-1701: Archive Project': COR-1701-SOP-Archive-Project.md
       - 'COR-1702: Sync Project': COR-1702-SOP-Sync-Project.md
@@ -90,3 +104,4 @@ nav:
       - 'COR-1708: Code Review — Domain-Specific Checks': COR-1708-SOP-Code-Review-Domain-Specific-Checks.md
       - 'COR-1709: Code Review — AI-Assisted Code + Quick Reference': COR-1709-SOP-Code-Review-AI-Assisted-Code-Quick-Reference.md
       - 'COR-1801: Pattern Promotion': COR-1801-SOP-Pattern-Promotion.md
+      - 'COR-1802: Build Weighted Decision Matrix': COR-1802-SOP-Build-Weighted-Decision-Matrix.md

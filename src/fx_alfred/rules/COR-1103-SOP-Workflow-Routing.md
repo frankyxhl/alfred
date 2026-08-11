@@ -1,7 +1,7 @@
 # SOP-1103: Workflow Routing
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-06-19
+**Last updated:** 2026-08-11
 **Last reviewed:** 2026-05-05
 **Status:** Active
 **Tags:** routing, plan
@@ -95,7 +95,8 @@ like PRP, CHG, ADR, PLN, INC. Those match branches 2-6.
 
 1. Pure document management? (REF, Glossary, SOP creation, metadata update)
    ├── Promote PRJ pattern to PKG → COR-1801, then CHG/PRP as required
-   ├── New SOP               → COR-1000
+   ├── SOP with loops/branches → COR-1000 + COR-1005
+   ├── New SOP (straight-line) → COR-1000
    ├── New reference doc     → COR-1001
    ├── Tag / retag / make filterable → COR-1003
    └── Update existing doc   → COR-1300
@@ -262,3 +263,4 @@ To create a routing document, follow **COR-1004** (Create Routing Document).
 | 2026-05-07 | Add COR-1616 routing entries (OVERLAY + Golden Rule) for Contract-First Delivery Workflow promoted from BAB-1503 per issue #106. | Claude Code |
 | 2026-06-19 | Add COR-1508 routing entries (OVERLAYS line + Golden Rule) for the Minimal Code Ladder write-time gate, adapted from the Ponytail ruleset. | Claude Code |
 | 2026-06-26 | Align COR-1402 declaration cadence in cheat-sheet / Golden Rules to first-line-of-every-reply. | Claude Code |
+| 2026-08-11 | Router row: SOP with loops/branches → COR-1000 + COR-1005 (FXA-2322) | Claude Code |
