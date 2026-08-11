@@ -43,8 +43,10 @@ exhaustion behavior in the `from` step body, not only elsewhere).
 
 ## Impact Analysis
 
-- **Systems affected:** two PKG rules docs + COR-0000/PRJ index untouched (no
-  new documents). No code paths change.
+- **Systems affected:** two PKG rules docs (COR-1600, COR-1601); this CHG
+  document itself plus its PRJ index row (`rules/FXA-0000`, via `af index`);
+  one CHANGELOG Unreleased entry. COR-0000 is untouched (no new PKG documents).
+  No code paths change.
 - **Consumers:** `af plan --graph COR-1600/1601` now renders the review
   back-edge; checklists gain the exhaustion instruction. Behavior of the SOPs
   as read by humans is unchanged except the previously-undefined exhaustion
@@ -70,3 +72,4 @@ exhaustion behavior in the `from` step body, not only elsewhere).
 | 2026-08-12 | Initial version | Claude Code |
 | 2026-08-12 | Implemented: back-edges declared, exhaustion paths added, graphs verified | Claude Code |
 | 2026-08-12 | Codex R1: max_iterations 3→5 to match each SOP's documented §Iteration Mode default; corrected Why claim (budget existed outside step bodies) | Claude Code |
+| 2026-08-12 | Codex R2: Impact Analysis now lists every touched file (CHG itself, FXA-0000 index row, CHANGELOG) | Claude Code |
