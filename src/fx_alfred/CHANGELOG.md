@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### New
+
+- **COR-1005: Engineer Workflow Loops** — new bundled authoring SOP: the
+  loop-engineering design discipline for non-sequential SOPs. Control-flow
+  shape decision test (sequential vs `Workflow branches:` vs `Workflow loops:`
+  vs cross-SOP back-edge), dual-exit design (observable success condition +
+  defined exhaustion path), `max_iterations` budgeting, observable `condition`
+  predicates, exact metadata syntax, `af plan --graph` / `af validate`
+  verification, and runtime-governance pointers to COR-1620/1624–1626. Pointer
+  rows added to COR-1000 (Prerequisites) and COR-1103 (intent router)
+  (FXA-2322).
+
 ## v1.26.0 (2026-07-04)
 
 Eight changes closing out the 2026-07-02 full-repo review backlog plus one new
