@@ -1,7 +1,7 @@
 # SOP-1000: Create SOP
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-03-14
+**Last updated:** 2026-08-11
 **Last reviewed:** 2026-03-14
 **Status:** Active
 **Tags:** sop-authoring, document
@@ -41,6 +41,7 @@ SOPs ensure repeatable, consistent execution of processes. Without a standard wa
 
 - Follow COR-1001 (Create Document) for naming convention and ACID numbering
 - Follow COR-1302 (Maintain Document Index) after creation
+- Steps that iterate or branch: design the control flow per COR-1005 (Engineer Workflow Loops) and declare it in `Workflow loops:` / `Workflow branches:` metadata
 
 ---
 
@@ -85,3 +86,4 @@ Add additional sections (Prerequisites, Configuration, Troubleshooting, Safety N
 |------|--------|----|
 | 2026-03-14 | Initial version | Claude Code |
 | 2026-03-20 | Added Why/When to Use/When NOT to Use sections per FXA-2223 | Claude Code |
+| 2026-08-11 | Prerequisites pointer to COR-1005 for loop/branch design (FXA-2322) | Claude Code |
