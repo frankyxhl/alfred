@@ -4,6 +4,11 @@
 
 ### Improvements
 
+- **Loop-declaration regression guard** — `tests/test_bundled_loop_declarations.py`
+  (FXA-2326) pins step-extraction counts and exact loop signatures (in
+  declaration order) for all eight loop-declaring bundled docs, plus a coverage
+  sweep so new declarations must be pinned. The COR-1617 zero-steps and
+  COR-1802 phantom-steps defects would now fail CI on first run.
 - **COR-1617 becomes machine-readable** — tier-3 COR-1005 retrofit (FXA-2325):
   §Phases is renamed §Steps and the twelve-phase list is un-fenced into
   parser-visible numbered steps (`af plan COR-1617` previously extracted zero
