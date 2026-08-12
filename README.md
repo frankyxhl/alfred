@@ -386,6 +386,7 @@ graph TD
 | SOP | What it does |
 |-----|-------------|
 | COR-1103 | Workflow routing — which SOP to follow for any task |
+| COR-1005 | Engineer Workflow Loops — loop-engineering discipline for non-sequential SOPs (`Workflow loops:`/`Workflow branches:` design: dual exits, iteration budgets, observable conditions) |
 | COR-1202 | Compose Session Plan — `af plan --task … --todo --graph` for full session workflow |
 | COR-1102 | Create Proposal (PRP lifecycle) |
 | COR-1101 | Submit Change Request (CHG) |
