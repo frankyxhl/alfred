@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## v1.27.0 (2026-08-12)
+
+The loop-engineering release: one new bundled SOP (COR-1005) plus its
+corpus-wide application — eight docs now declare ten machine-readable
+back-edges, locked by a 17-test regression guard, with two step-extraction
+defect fixes and a ruff toolchain pin. New COR document justifies the minor
+bump; no breaking changes.
+
+### New
+
+- **COR-1005: Engineer Workflow Loops** — new bundled authoring SOP: the
+  loop-engineering design discipline for non-sequential SOPs. Control-flow
+  shape decision test (sequential vs `Workflow branches:` vs `Workflow loops:`
+  vs cross-SOP back-edge), dual-exit design (observable success condition +
+  defined exhaustion path), `max_iterations` budgeting, observable `condition`
+  predicates, exact metadata syntax, `af plan --graph` / `af validate`
+  verification, and runtime-governance pointers to COR-1620/1624–1626. Pointer
+  rows added to COR-1000 (Prerequisites) and COR-1103 (intent router)
+  (FXA-2322).
+
 ### Improvements
 
 - **Loop-declaration regression guard** — `tests/test_bundled_loop_declarations.py`
@@ -35,17 +55,12 @@
   exhaustion behavior (COR-1600: escalate unresolved findings to the Leader;
   COR-1601: Leader resolves via step 6's Arbitrate/Accept options).
 
-### New
+### Tooling
 
-- **COR-1005: Engineer Workflow Loops** — new bundled authoring SOP: the
-  loop-engineering design discipline for non-sequential SOPs. Control-flow
-  shape decision test (sequential vs `Workflow branches:` vs `Workflow loops:`
-  vs cross-SOP back-edge), dual-exit design (observable success condition +
-  defined exhaustion path), `max_iterations` budgeting, observable `condition`
-  predicates, exact metadata syntax, `af plan --graph` / `af validate`
-  verification, and runtime-governance pointers to COR-1620/1624–1626. Pointer
-  rows added to COR-1000 (Prerequisites) and COR-1103 (intent router)
-  (FXA-2322).
+- **ruff pinned `>=0.15,<0.16`** — CI installs dev extras at run time; ruff
+  0.16.2 released mid-campaign and flagged 168+ pre-existing violations in
+  untouched files, breaking every open PR. The pin restores deterministic CI;
+  adopting 0.16's rules is future work with its own autofix PR (FXA-2322).
 
 ## v1.26.0 (2026-07-04)
 
