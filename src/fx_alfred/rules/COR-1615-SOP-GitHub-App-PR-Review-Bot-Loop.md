@@ -494,7 +494,11 @@ pending; 4 = authentication failure — diagnose, like the review script's
 exit 3; any other non-zero = inspect the output: a check table means a
 required check failed, no table means the command itself failed and must be
 diagnosed before trusting any signal. Use the same rounds/interval/
-no-final-sleep shape as the review wait script. Do **not** use
+no-final-sleep shape as the review wait script — including its per-iteration
+`headRefOid` recheck: `gh pr checks` pins only the PR, not a commit, so
+without comparing the recorded `HEAD_OID` each round (exit-2 on mismatch, as
+in the review script) a push landing mid-wait could pass checks for the new
+head while the retained review covers the old one. Do **not** use
 `gh pr checks --watch`: it has no timeout, so a stuck check makes the harness
 kill the tool call instead of letting the script reach its budget and the
 rung-C handoff. Rung C's handoff note records the pending checks instead of a
@@ -671,3 +675,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R8 (codex bot, head 8bb15b0): Step 3 captures the auto-review request timestamp immediately before the final push (the numbered flow previously made pre-trigger capture impossible on that path); new §Agent Execution subsection generalizes the rungs to CI settling (`gh pr checks --watch` as rung B's equivalent; wake prompts and handoff notes name the awaited signal). | Claude Code |
 | 2026-08-16 | FXA-2327 R9 (codex bot, head 4e49411): CI-settling rung-B wait changed from unbounded `gh pr checks --watch` (no timeout — harness kills the call before the rung-C handoff) to a bounded poll of `gh pr checks` exit codes (0 passed / 8 pending / other failed) in the review-wait script's shape. | Claude Code |
 | 2026-08-16 | FXA-2327 R10 (codex bot, head 6304b96): CI poll uses `--required` so optional checks cannot extend the wait beyond the Step-12 gate; exit-code routing distinguishes auth/CLI failures (4, or non-zero with no check table) from genuinely failed required checks. | Claude Code |
+| 2026-08-16 | FXA-2327 R11 (codex bot, head 5ace93f; operator-extended past the 10-round budget): CI poll requires the review script's per-iteration `headRefOid` recheck (`gh pr checks` cannot pin a commit); contract no-bot reduction preserves the CI-settling ladder until required checks pass. | Claude Code |

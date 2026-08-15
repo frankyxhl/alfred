@@ -50,10 +50,12 @@ printed steps in order and do not skip any.
   or you have written its resumable handoff note. If `af read COR-1615`
   shows no §Agent Execution section, upgrade fx-alfred first — the ladder
   ships from the release that introduced this rule. In a repository with no
-  review bot and no pending review request, there is nothing to wait for: the
-  loop reduces to COR-1615's pre-merge sweep plus the top-level conversation
-  comments check from COR-1612's three-surface fetch — run them and record
-  the result instead of waiting.
+  review bot and no pending review request, no review is awaited — but
+  required checks may still be settling, and COR-1615's CI-settling ladder
+  still applies until they pass. Once checks are settled, the loop reduces
+  to COR-1615's pre-merge sweep plus the top-level conversation comments
+  check from COR-1612's three-surface fetch — run them and record the result
+  instead of waiting.
 
 ## 5. Session end
 
