@@ -77,7 +77,7 @@ Core invariant: a PR is not clear until the latest review result applies to the 
 - After pushing fixes from COR-1612, return to this SOP Step 1 for the new `headRefOid`.
 - Before saying "merge-ready", run the pre-merge sweep in §Commands. Trinity/panel PASS is necessary for that lane but not sufficient while non-bookkeeping GitHub-side review threads remain unresolved or unreplied.
 - For long iteration loops on the same PR, see COR-1612 §Scoping bot reviews via PR body for an optional, bot-vendor-dependent PR-body scope-hint technique.
-- Agents: never end the task while a review request for the current head is pending. Satisfy one rung of §Agent Execution first — arm a wakeup (A), run one bounded wait (B), or write a resumable handoff note (C).
+- Agents: never end the task while a review request for the current head is pending. Wait via §Agent Execution rung A or B; end only with a wakeup armed (A) or a resumable handoff note written (C) — rung-B exhaustion always terminates in C.
 
 ---
 
@@ -150,10 +150,13 @@ When thread state matters, use a GraphQL or project helper that exposes `isOutda
 Bounded blocking wait (rung B of §Agent Execution) — waits for a review result
 inside a single tool call so an agent turn does not end while the request is
 pending. Needs only `gh` and `awk`. One invocation of this script is one
-`poll-wait` back-edge round. Size `POLL_ROUNDS × POLL_INTERVAL` to fit the
-harness's per-call timeout (the default 3 × 180 s, with no sleep after the
-final poll, fits a common 10-minute cap); on exit 1 re-invoke the script,
-bounded overall by the `poll-wait` back-edge budget:
+`poll-wait` back-edge round. Size `POLL_ROUNDS` and `POLL_INTERVAL` to fit the
+harness's per-call timeout: with no sleep after the final poll, the default 3
+polls sleep 2 × 180 s ≈ 6 min plus API time, comfortably inside a common
+10-minute cap. On exit 1 re-invoke the script, bounded overall by the
+`poll-wait` back-edge budget. Pre-set `HEAD_OID` to the head recorded at Step
+5 so a push landing before the script starts is detected as exit 2 instead of
+being silently adopted as the baseline:
 
 ```bash
 OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
@@ -166,7 +169,11 @@ PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
 # Exit 2 = head changed while waiting (return to Step 1)
 # Exit 3 = gh/API failure (diagnose before trusting any other signal)
 head_oid() { gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid; }
-HEAD_OID="$(head_oid)" && [ -n "$HEAD_OID" ] || exit 3
+# Baseline: honor a pre-set HEAD_OID (Step-5-recorded head), else fetch. The
+# hex-shape guard rejects empty, jq "null", and error text before it can be
+# interpolated into the jq filter below.
+HEAD_OID="${HEAD_OID:-$(head_oid)}" || exit 3
+case "$HEAD_OID" in "" | *[!0-9a-f]*) exit 3 ;; esac
 ROUNDS="${POLL_ROUNDS:-3}"
 i=1
 while [ "$i" -le "$ROUNDS" ]; do
@@ -429,15 +436,15 @@ plus lock file on runtimes that substitute per COR-1620.
 
 Run the bounded blocking wait script from §Commands inside a single tool call;
 the turn stays open while it waits. One script invocation is one `poll-wait`
-back-edge round (at defaults, 10 rounds ≈ 90 minutes of total wait). Route on
-its exit code:
+back-edge round (at defaults one invocation sleeps 2 × 180 s ≈ 6 min plus API
+time, so 10 rounds ≈ 60 minutes of total wait). Route on its exit code:
 
 | Exit | Meaning | Next action |
 |------|---------|-------------|
 | 0 | A submitted review exists for the recorded head | Interpret via Steps 7–8 (candidate signal, not clearance) |
 | 1 | Budget exhausted, request still pending | Re-invoke the script (bounded by the `poll-wait` back-edge, max 10 invocations); on final exhaustion write the rung-C note |
 | 2 | Head changed while waiting | Return to Step 1 |
-| 3 | gh/API failure | Diagnose the failure; do not treat any other signal as trustworthy until resolved |
+| 3 | gh/API failure | Diagnose the failure; do not treat any other signal as trustworthy until resolved. After 3 consecutive exit-3 invocations, stop retrying and escalate with a rung-C note (mirrors COR-1620 stop conditions) |
 
 ### Rung C — neither is available
 
@@ -570,9 +577,10 @@ Use the GitHub App PR review bot loop:
 - Before declaring merge-ready, run the pre-merge sweep and confirm no non-bookkeeping GitHub-side review thread remains unresolved or unreplied.
 - Verify the visible-write identity with gh auth status.
 - Do not publish private IPs, local paths, tokens, or host-specific details in public PR text or commits.
-- If you are an agent, follow §Agent Execution for every wait: arm a wakeup,
-  run the bounded wait script, or write a resumable handoff note. Never end
-  the task silently while a review request for the current head is pending.
+- If you are an agent, follow §Agent Execution for every wait: arm a wakeup
+  or run the bounded wait script. End only with a wakeup armed or a resumable
+  handoff note written — never silently while a review request for the
+  current head is pending.
 ```
 
 ---
@@ -600,3 +608,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-12 | CHG FXA-2324: declare restart-on-push back-edge (11→1) per COR-1005; max 10 restarts adopted from COR-1612's documented 10-fix-round fail-safe (no own cap existed), exhaustion escalates per COR-1612 stopping condition #4 | Claude Code |
 | 2026-08-16 | FXA-2327: new §Agent Execution capability ladder (wakeup / bounded shell wait / resumable handoff) with binding no-silent-ending rule; bounded blocking wait script in §Commands; declared `poll-wait` back-edge (8→6); Step 6/8, Operator Checklist, Completion Criteria, and Portable Operator Prompt wired to the ladder. | Claude Code |
 | 2026-08-16 | FXA-2327 R1 (trinity panel): wait script hardened — gh failures exit 3 instead of false exit 0, empty-OID guard, PENDING/DISMISSED reviews excluded, per-page counts summed, no trailing sleep; rung-A delay corrected to 180–270 s per COR-1620 §Cadence rules; poll-wait round unit defined as one bounded-wait invocation; rung-B exhaustion now terminates in a rung-C note; Change History order restored. | Claude Code |
+| 2026-08-16 | FXA-2327 R2 (trinity panel): Operator Checklist and Portable Operator Prompt aligned with the A-or-C binding rule (rung B waits, only A/C end); wait-time arithmetic corrected to ≈60 min per 10 rounds; exit-3 bounded at 3 consecutive failures then rung-C escalation; script honors pre-set Step-5 `HEAD_OID` baseline and hex-shape-guards the OID before jq interpolation. | Claude Code |
