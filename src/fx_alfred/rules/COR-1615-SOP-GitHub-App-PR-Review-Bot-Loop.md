@@ -389,7 +389,7 @@ Post or request the project-specific review once. Examples:
 
 - Comment-triggered reviewer: `gh pr comment "$PR_NUM" --repo "$OWNER/$REPO" --body '@codex review'`
 - Reviewer-assignment bot: `gh pr edit "$PR_NUM" --repo "$OWNER/$REPO" --add-reviewer @copilot`
-- Repository-configured automatic review: no manual trigger; record that the head is waiting for the configured GitHub App reviewer
+- Repository-configured automatic review: no manual trigger; record that the head is waiting for the configured GitHub App reviewer. The push is the trigger, so capture the request timestamp **before** `git push` — there is no trigger comment to take a server-side `created_at` from, and a timestamp captured after the push can postdate a fast reviewer's result
 
 Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist. Capture the timestamp **before** posting the trigger (or take the trigger comment's own server-side `created_at` afterwards): a timestamp captured after the trigger can postdate a fast reviewer's result, and a `SINCE` filter built from it would then exclude the awaited review in every polling round.
 
@@ -637,3 +637,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R3 (codex bot on PR #327): wait script gains `SINCE` request-timestamp filter so a pre-existing review of the same unchanged head is not miscounted as the awaited result (P1); exit-1 semantics corrected — not proof of pending; check top-level comments and reactions per Steps 6–7 before re-invoking, since some reviewers complete without a review object (P2). | Claude Code |
 | 2026-08-16 | FXA-2327 R4 (live dogfood on PR #327): wait script gains optional `BOT_USER` reviewer filter — the author's own thread replies are recorded by GitHub as COMMENTED reviews on the current head and, like bookkeeping-bot reviews, registered as candidate results, causing immediate spurious exit 0s. | Claude Code |
 | 2026-08-16 | FXA-2327 R5 (codex bot, head cd07f9a): Step 5 now requires capturing the request timestamp before posting the trigger (a post-trigger timestamp can postdate a fast reviewer's result and starve the `SINCE` filter); rung-A wake prompts must carry a stateless `poll-wait N of 10` counter (COR-1620 Primitive 4) so the Step-8 budget stays enforceable across wakes. | Claude Code |
+| 2026-08-16 | FXA-2327 R6 (codex bot, head 3e3e467): automatic-review path anchors the request timestamp before `git push` (no trigger comment exists to take `created_at` from); contract no-bot reduction now includes COR-1612's top-level conversation surface; contract event rule gains a self-healing version check (`af read COR-1615` must show §Agent Execution, else upgrade). | Claude Code |

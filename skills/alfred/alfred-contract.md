@@ -47,10 +47,13 @@ printed steps in order and do not skip any.
   for review, the COR-1615 review-bot loop is active.
   Run `af read COR-1615`, follow its §Agent Execution ladder for every wait,
   and do not declare the task complete until its completion criteria are met
-  or you have written its resumable handoff note. In a repository with no
+  or you have written its resumable handoff note. If `af read COR-1615`
+  shows no §Agent Execution section, upgrade fx-alfred first — the ladder
+  ships from the release that introduced this rule. In a repository with no
   review bot and no pending review request, there is nothing to wait for: the
-  loop reduces to COR-1615's pre-merge sweep of human and review-app threads —
-  run it and record the result instead of waiting.
+  loop reduces to COR-1615's pre-merge sweep plus the top-level conversation
+  comments check from COR-1612's three-surface fetch — run them and record
+  the result instead of waiting.
 
 ## 5. Session end
 
