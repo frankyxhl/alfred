@@ -156,16 +156,23 @@ polls sleep 2 × 180 s ≈ 6 min plus API time, comfortably inside a common
 10-minute cap. On exit 1 re-invoke the script, bounded overall by the
 `poll-wait` back-edge budget. Pre-set `HEAD_OID` to the head recorded at Step
 5 so a push landing before the script starts is detected as exit 2 instead of
-being silently adopted as the baseline:
+being silently adopted as the baseline, and pre-set `SINCE` to the Step-5
+request timestamp (ISO-8601 UTC) so a review that predates the request — e.g.
+an earlier pass on the same unchanged head — is not miscounted as the awaited
+result:
 
 ```bash
 OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
 REPO="${REPO:?set REPO=<repo-name>}"
 PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
 
-# Exit 0 = a submitted (non-PENDING, non-DISMISSED) review exists for the
-#          recorded head (interpret via Steps 7-8; candidate signal, not clearance)
-# Exit 1 = wait budget exhausted, request still pending (re-invoke or hand off)
+# Exit 0 = a submitted (non-PENDING, non-DISMISSED) review at or after SINCE
+#          exists for the recorded head (interpret via Steps 7-8; candidate
+#          signal, not clearance)
+# Exit 1 = no new review object within the budget. NOT proof the request is
+#          still pending: some reviewers complete via a reaction or top-level
+#          comment without a review object — check the other feedback surfaces
+#          (Steps 6-7) before re-invoking
 # Exit 2 = head changed while waiting (return to Step 1)
 # Exit 3 = gh/API failure (diagnose before trusting any other signal)
 head_oid() { gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid; }
@@ -174,6 +181,10 @@ head_oid() { gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .
 # interpolated into the jq filter below.
 HEAD_OID="${HEAD_OID:-$(head_oid)}" || exit 3
 case "$HEAD_OID" in "" | *[!0-9a-f]*) exit 3 ;; esac
+# Optional request timestamp (Step 5); empty matches every review. Shape-guarded
+# like HEAD_OID because it is interpolated into the jq filter.
+SINCE="${SINCE:-}"
+case "$SINCE" in *[!0-9TZ:+.-]*) exit 3 ;; esac
 ROUNDS="${POLL_ROUNDS:-3}"
 i=1
 while [ "$i" -le "$ROUNDS" ]; do
@@ -184,7 +195,8 @@ while [ "$i" -le "$ROUNDS" ]; do
   PAGES="$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
     --jq "[.[] | select(.commit_id == \"$HEAD_OID\"
                         and .state != \"PENDING\"
-                        and .state != \"DISMISSED\")] | length")" || exit 3
+                        and .state != \"DISMISSED\"
+                        and (.submitted_at // \"\") >= \"$SINCE\")] | length")" || exit 3
   COUNT="$(printf '%s\n' "$PAGES" | awk '{s+=$1} END {print s+0}')"
   [ "$COUNT" -gt 0 ] && exit 0
   [ "$i" -lt "$ROUNDS" ] && sleep "${POLL_INTERVAL:-180}"
@@ -441,8 +453,8 @@ time, so 10 rounds ≈ 60 minutes of total wait). Route on its exit code:
 
 | Exit | Meaning | Next action |
 |------|---------|-------------|
-| 0 | A submitted review exists for the recorded head | Interpret via Steps 7–8 (candidate signal, not clearance) |
-| 1 | Budget exhausted, request still pending | Re-invoke the script (bounded by the `poll-wait` back-edge, max 10 invocations); on final exhaustion write the rung-C note |
+| 0 | A submitted review at or after the request timestamp exists for the recorded head | Interpret via Steps 7–8 (candidate signal, not clearance) |
+| 1 | No new review object within the budget | First check top-level comments and reactions (Steps 6–7) — some reviewers complete without a review object. If genuinely still pending, re-invoke (bounded by the `poll-wait` back-edge, max 10 invocations); on final exhaustion write the rung-C note |
 | 2 | Head changed while waiting | Return to Step 1 |
 | 3 | gh/API failure | Diagnose the failure; do not treat any other signal as trustworthy until resolved. After 3 consecutive exit-3 invocations, stop retrying and escalate with a rung-C note (mirrors COR-1620 stop conditions) |
 
@@ -609,3 +621,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327: new §Agent Execution capability ladder (wakeup / bounded shell wait / resumable handoff) with binding no-silent-ending rule; bounded blocking wait script in §Commands; declared `poll-wait` back-edge (8→6); Step 6/8, Operator Checklist, Completion Criteria, and Portable Operator Prompt wired to the ladder. | Claude Code |
 | 2026-08-16 | FXA-2327 R1 (trinity panel): wait script hardened — gh failures exit 3 instead of false exit 0, empty-OID guard, PENDING/DISMISSED reviews excluded, per-page counts summed, no trailing sleep; rung-A delay corrected to 180–270 s per COR-1620 §Cadence rules; poll-wait round unit defined as one bounded-wait invocation; rung-B exhaustion now terminates in a rung-C note; Change History order restored. | Claude Code |
 | 2026-08-16 | FXA-2327 R2 (trinity panel): Operator Checklist and Portable Operator Prompt aligned with the A-or-C binding rule (rung B waits, only A/C end); wait-time arithmetic corrected to ≈60 min per 10 rounds; exit-3 bounded at 3 consecutive failures then rung-C escalation; script honors pre-set Step-5 `HEAD_OID` baseline and hex-shape-guards the OID before jq interpolation. | Claude Code |
+| 2026-08-16 | FXA-2327 R3 (codex bot on PR #327): wait script gains `SINCE` request-timestamp filter so a pre-existing review of the same unchanged head is not miscounted as the awaited result (P1); exit-1 semantics corrected — not proof of pending; check top-level comments and reactions per Steps 6–7 before re-invoking, since some reviewers complete without a review object (P2). | Claude Code |
