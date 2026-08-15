@@ -159,7 +159,9 @@ polls sleep 2 × 180 s ≈ 6 min plus API time, comfortably inside a common
 being silently adopted as the baseline, and pre-set `SINCE` to the Step-5
 request timestamp (ISO-8601 UTC) so a review that predates the request — e.g.
 an earlier pass on the same unchanged head — is not miscounted as the awaited
-result:
+result. When the reviewer's login is known, also pre-set `BOT_USER` so
+bookkeeping-bot reviews and the author's own thread replies do not register
+as candidates:
 
 ```bash
 OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
@@ -185,6 +187,13 @@ case "$HEAD_OID" in "" | *[!0-9a-f]*) exit 3 ;; esac
 # like HEAD_OID because it is interpolated into the jq filter.
 SINCE="${SINCE:-}"
 case "$SINCE" in *[!0-9TZ:+.-]*) exit 3 ;; esac
+# Optional reviewer login (e.g. "chatgpt-codex-connector[bot]"); empty matches
+# any user. Set it: without this filter, bookkeeping-bot reviews and the
+# author's own thread replies (which GitHub records as COMMENTED reviews on
+# the current head) count as candidate results. Guard rejects jq-breaking
+# characters before interpolation.
+BOT_USER="${BOT_USER:-}"
+case "$BOT_USER" in *[\"\\]*) exit 3 ;; esac
 ROUNDS="${POLL_ROUNDS:-3}"
 i=1
 while [ "$i" -le "$ROUNDS" ]; do
@@ -196,7 +205,8 @@ while [ "$i" -le "$ROUNDS" ]; do
     --jq "[.[] | select(.commit_id == \"$HEAD_OID\"
                         and .state != \"PENDING\"
                         and .state != \"DISMISSED\"
-                        and (.submitted_at // \"\") >= \"$SINCE\")] | length")" || exit 3
+                        and (.submitted_at // \"\") >= \"$SINCE\"
+                        and ((\"$BOT_USER\" == \"\") or .user.login == \"$BOT_USER\"))] | length")" || exit 3
   COUNT="$(printf '%s\n' "$PAGES" | awk '{s+=$1} END {print s+0}')"
   [ "$COUNT" -gt 0 ] && exit 0
   [ "$i" -lt "$ROUNDS" ] && sleep "${POLL_INTERVAL:-180}"
@@ -622,3 +632,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R1 (trinity panel): wait script hardened — gh failures exit 3 instead of false exit 0, empty-OID guard, PENDING/DISMISSED reviews excluded, per-page counts summed, no trailing sleep; rung-A delay corrected to 180–270 s per COR-1620 §Cadence rules; poll-wait round unit defined as one bounded-wait invocation; rung-B exhaustion now terminates in a rung-C note; Change History order restored. | Claude Code |
 | 2026-08-16 | FXA-2327 R2 (trinity panel): Operator Checklist and Portable Operator Prompt aligned with the A-or-C binding rule (rung B waits, only A/C end); wait-time arithmetic corrected to ≈60 min per 10 rounds; exit-3 bounded at 3 consecutive failures then rung-C escalation; script honors pre-set Step-5 `HEAD_OID` baseline and hex-shape-guards the OID before jq interpolation. | Claude Code |
 | 2026-08-16 | FXA-2327 R3 (codex bot on PR #327): wait script gains `SINCE` request-timestamp filter so a pre-existing review of the same unchanged head is not miscounted as the awaited result (P1); exit-1 semantics corrected — not proof of pending; check top-level comments and reactions per Steps 6–7 before re-invoking, since some reviewers complete without a review object (P2). | Claude Code |
+| 2026-08-16 | FXA-2327 R4 (live dogfood on PR #327): wait script gains optional `BOT_USER` reviewer filter — the author's own thread replies are recorded by GitHub as COMMENTED reviews on the current head and, like bookkeeping-bot reviews, registered as candidate results, causing immediate spurious exit 0s. | Claude Code |
