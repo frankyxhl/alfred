@@ -489,7 +489,12 @@ prompt names check completion as the awaited signal (still one chain per
 awaited signal); rung B's equivalent is a bounded poll of
 `gh pr checks "$PR_NUM" --repo "$OWNER/$REPO" --required` — `--required`
 honors the Step-12 required-check gate so a pending or failing *optional*
-check does not extend the wait. Exit 0 = required checks passed; 8 = still
+check does not extend the wait. Resolve the project's
+`<required-check-policy>` (COR-1622) first: `--required` applies only when
+branch protection names required checks; under the fallback policy (no named
+checks — every non-skipped context must pass) omit `--required`, since it
+would filter out every check and route the poll to diagnosis instead of
+waiting. Exit 0 = required checks passed; 8 = still
 pending; 4 = authentication failure — diagnose, like the review script's
 exit 3; any other non-zero = inspect the output: a check table means a
 required check failed, no table means the command itself failed and must be
@@ -676,3 +681,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R9 (codex bot, head 4e49411): CI-settling rung-B wait changed from unbounded `gh pr checks --watch` (no timeout — harness kills the call before the rung-C handoff) to a bounded poll of `gh pr checks` exit codes (0 passed / 8 pending / other failed) in the review-wait script's shape. | Claude Code |
 | 2026-08-16 | FXA-2327 R10 (codex bot, head 6304b96): CI poll uses `--required` so optional checks cannot extend the wait beyond the Step-12 gate; exit-code routing distinguishes auth/CLI failures (4, or non-zero with no check table) from genuinely failed required checks. | Claude Code |
 | 2026-08-16 | FXA-2327 R11 (codex bot, head 5ace93f; operator-extended past the 10-round budget): CI poll requires the review script's per-iteration `headRefOid` recheck (`gh pr checks` cannot pin a commit); contract no-bot reduction preserves the CI-settling ladder until required checks pass. | Claude Code |
+| 2026-08-16 | FXA-2327 R12 (codex bot, head c6f9f3e): CI poll resolves the COR-1622 `<required-check-policy>` first — `--required` only when branch protection names required checks; under the all-non-skipped fallback omit it, since it filters out every check. | Claude Code |
