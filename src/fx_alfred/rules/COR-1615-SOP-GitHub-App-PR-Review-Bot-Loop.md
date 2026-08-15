@@ -445,9 +445,14 @@ this ladder the harness supports:
 
 ### Rung A — the harness has a wakeup or scheduler primitive
 
-Bind COR-1620 (Self-Pacing Loop Primitives). After every push and after every
-review trigger, arm a wakeup (delay 180–270 s — never exactly 300 s; follow
-COR-1620 §Cadence rules) whose prompt is self-contained:
+Bind COR-1620 (Self-Pacing Loop Primitives). Arm **exactly one wake chain per
+pending request**: on the manual path, arm after posting the Step-5 trigger
+(a post-push wake would predate the request mechanism and timestamp the
+prompt must carry); on the repository-configured automatic path, arm after
+the push, which is itself the trigger. Two chains polling the same request
+duplicate wakes and carry independent counters. Each wake uses delay
+180–270 s (never exactly 300 s; follow COR-1620 §Cadence rules) and a
+self-contained prompt:
 PR number, current `headRefOid`, request mechanism and timestamp, what the last
 push fixed, the re-entry point (Step 6), and the poll-wait round counter
 (`poll-wait N of 10`, incremented on each re-arm — COR-1620 Primitive 4;
@@ -638,3 +643,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R4 (live dogfood on PR #327): wait script gains optional `BOT_USER` reviewer filter — the author's own thread replies are recorded by GitHub as COMMENTED reviews on the current head and, like bookkeeping-bot reviews, registered as candidate results, causing immediate spurious exit 0s. | Claude Code |
 | 2026-08-16 | FXA-2327 R5 (codex bot, head cd07f9a): Step 5 now requires capturing the request timestamp before posting the trigger (a post-trigger timestamp can postdate a fast reviewer's result and starve the `SINCE` filter); rung-A wake prompts must carry a stateless `poll-wait N of 10` counter (COR-1620 Primitive 4) so the Step-8 budget stays enforceable across wakes. | Claude Code |
 | 2026-08-16 | FXA-2327 R6 (codex bot, head 3e3e467): automatic-review path anchors the request timestamp before `git push` (no trigger comment exists to take `created_at` from); contract no-bot reduction now includes COR-1612's top-level conversation surface; contract event rule gains a self-healing version check (`af read COR-1615` must show §Agent Execution, else upgrade). | Claude Code |
+| 2026-08-16 | FXA-2327 R7 (codex bot, head 2f87e28): rung A arms exactly one wake chain per pending request — manual path arms after the Step-5 trigger, automatic path after the push — preventing duplicate wake chains with independent counters. | Claude Code |
