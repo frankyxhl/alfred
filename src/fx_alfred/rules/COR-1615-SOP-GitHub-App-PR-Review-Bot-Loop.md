@@ -157,9 +157,9 @@ polls sleep 2 × 180 s ≈ 6 min plus API time, comfortably inside a common
 `poll-wait` back-edge budget. Pre-set `HEAD_OID` to the head recorded at Step
 5 so a push landing before the script starts is detected as exit 2 instead of
 being silently adopted as the baseline, and pre-set `SINCE` to the Step-5
-request timestamp (ISO-8601 UTC) so a review that predates the request — e.g.
-an earlier pass on the same unchanged head — is not miscounted as the awaited
-result. When the reviewer's login is known, also pre-set `BOT_USER` so
+request timestamp (ISO-8601 UTC, captured before the trigger was posted — see
+Step 5) so a review that predates the request — e.g. an earlier pass on the
+same unchanged head — is not miscounted as the awaited result. When the reviewer's login is known, also pre-set `BOT_USER` so
 bookkeeping-bot reviews and the author's own thread replies do not register
 as candidates:
 
@@ -391,7 +391,7 @@ Post or request the project-specific review once. Examples:
 - Reviewer-assignment bot: `gh pr edit "$PR_NUM" --repo "$OWNER/$REPO" --add-reviewer @copilot`
 - Repository-configured automatic review: no manual trigger; record that the head is waiting for the configured GitHub App reviewer
 
-Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist.
+Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist. Capture the timestamp **before** posting the trigger (or take the trigger comment's own server-side `created_at` afterwards): a timestamp captured after the trigger can postdate a fast reviewer's result, and a `SINCE` filter built from it would then exclude the awaited review in every polling round.
 
 ### 6. Poll without spamming
 
@@ -449,7 +449,10 @@ Bind COR-1620 (Self-Pacing Loop Primitives). After every push and after every
 review trigger, arm a wakeup (delay 180–270 s — never exactly 300 s; follow
 COR-1620 §Cadence rules) whose prompt is self-contained:
 PR number, current `headRefOid`, request mechanism and timestamp, what the last
-push fixed, and the re-entry point (Step 6). All five COR-1620 primitives
+push fixed, the re-entry point (Step 6), and the poll-wait round counter
+(`poll-wait N of 10`, incremented on each re-arm — COR-1620 Primitive 4;
+without it, stateless wakes cannot enforce the Step-8 budget and the loop
+never produces its rung-C escalation). All five COR-1620 primitives
 apply, including the stop-marker check and the status line telling the
 operator a wake is armed. Examples: Claude Code `ScheduleWakeup`; a cron entry
 plus lock file on runtimes that substitute per COR-1620.
@@ -633,3 +636,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R2 (trinity panel): Operator Checklist and Portable Operator Prompt aligned with the A-or-C binding rule (rung B waits, only A/C end); wait-time arithmetic corrected to ≈60 min per 10 rounds; exit-3 bounded at 3 consecutive failures then rung-C escalation; script honors pre-set Step-5 `HEAD_OID` baseline and hex-shape-guards the OID before jq interpolation. | Claude Code |
 | 2026-08-16 | FXA-2327 R3 (codex bot on PR #327): wait script gains `SINCE` request-timestamp filter so a pre-existing review of the same unchanged head is not miscounted as the awaited result (P1); exit-1 semantics corrected — not proof of pending; check top-level comments and reactions per Steps 6–7 before re-invoking, since some reviewers complete without a review object (P2). | Claude Code |
 | 2026-08-16 | FXA-2327 R4 (live dogfood on PR #327): wait script gains optional `BOT_USER` reviewer filter — the author's own thread replies are recorded by GitHub as COMMENTED reviews on the current head and, like bookkeeping-bot reviews, registered as candidate results, causing immediate spurious exit 0s. | Claude Code |
+| 2026-08-16 | FXA-2327 R5 (codex bot, head cd07f9a): Step 5 now requires capturing the request timestamp before posting the trigger (a post-trigger timestamp can postdate a fast reviewer's result and starve the `SINCE` filter); rung-A wake prompts must carry a stateless `poll-wait N of 10` counter (COR-1620 Primitive 4) so the Step-8 budget stays enforceable across wakes. | Claude Code |
