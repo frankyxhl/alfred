@@ -3,7 +3,7 @@
 **Applies to:** FXA project
 **Last updated:** 2026-08-16
 **Last reviewed:** 2026-08-16
-**Status:** Proposed
+**Status:** Completed
 **Date:** 2026-08-16
 **Requested by:** Frank Xu (session request: COR-1615 only followed when the operator manually reminds the agent, and the agent stops after one poll round instead of continuing the loop)
 **Priority:** Medium
@@ -102,3 +102,4 @@ parser-visible but gave the agent no mechanism to wait inside it.
 | 2026-08-16 | Initial version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Claude Code |
 | 2026-08-16 | R1 trinity fixes (GLM 7.9 / DeepSeek 7.8 / MiniMax 7.9, all FIX): wait script hardened (gh failure → exit 3, empty-OID guard, PENDING/DISMISSED filter, per-page sum, no trailing sleep, while-counter instead of seq); rung-A delay 180–270 s per COR-1620; poll-wait round unit defined; rung-B exhaustion terminates in rung-C note; contract event rule scoped to non-draft PRs; Targets completed; COR-1615 Last-reviewed bump + Change-History order fix; CHANGELOG split into two bullets | Claude Code |
 | 2026-08-16 | R2 fixes (DeepSeek 9.2 PASS / GLM 8.5 FIX / MiniMax provider outage, worker-verified ~9.2): Operator Checklist + Portable Operator Prompt aligned with A-or-C binding rule (GLM P1 regression); wait arithmetic 90→60 min; exit-3 bounded at 3 consecutive failures → rung-C; script honors pre-set Step-5 HEAD_OID and hex-guards the OID before jq interpolation                                                                                                                               | Claude Code |
+| 2026-08-16 | Implemented + trinity panel passed (GLM 9.5 / DeepSeek 9.2 / MiniMax worker-verified 9.4); status flipped before PR per COR-1615 Step 3 pre-trigger gate                                                                                                                                                                                                                                                                                                                                         | Claude Code |
