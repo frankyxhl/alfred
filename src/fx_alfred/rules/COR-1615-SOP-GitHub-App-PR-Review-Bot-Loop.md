@@ -486,10 +486,14 @@ time, so 10 rounds ≈ 60 minutes of total wait). Route on its exit code:
 The rungs generalize to any awaited signal, not only a review result. When the
 review is complete but required checks are still settling: rung A's wake
 prompt names check completion as the awaited signal (still one chain per
-awaited signal); rung B's equivalent bounded blocking wait is
-`gh pr checks "$PR_NUM" --repo "$OWNER/$REPO" --watch` inside a single tool
-call; rung C's handoff note records the pending checks instead of a review
-request.
+awaited signal); rung B's equivalent is a bounded poll of
+`gh pr checks "$PR_NUM" --repo "$OWNER/$REPO"` — exit 0 = all passed, 8 =
+still pending, other = a check failed — using the same rounds/interval/
+no-final-sleep shape as the review wait script. Do **not** use
+`gh pr checks --watch`: it has no timeout, so a stuck check makes the harness
+kill the tool call instead of letting the script reach its budget and the
+rung-C handoff. Rung C's handoff note records the pending checks instead of a
+review request.
 
 ### Rung C — neither is available
 
@@ -660,3 +664,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R6 (codex bot, head 3e3e467): automatic-review path anchors the request timestamp before `git push` (no trigger comment exists to take `created_at` from); contract no-bot reduction now includes COR-1612's top-level conversation surface; contract event rule gains a self-healing version check (`af read COR-1615` must show §Agent Execution, else upgrade). | Claude Code |
 | 2026-08-16 | FXA-2327 R7 (codex bot, head 2f87e28): rung A arms exactly one wake chain per pending request — manual path arms after the Step-5 trigger, automatic path after the push — preventing duplicate wake chains with independent counters. | Claude Code |
 | 2026-08-16 | FXA-2327 R8 (codex bot, head 8bb15b0): Step 3 captures the auto-review request timestamp immediately before the final push (the numbered flow previously made pre-trigger capture impossible on that path); new §Agent Execution subsection generalizes the rungs to CI settling (`gh pr checks --watch` as rung B's equivalent; wake prompts and handoff notes name the awaited signal). | Claude Code |
+| 2026-08-16 | FXA-2327 R9 (codex bot, head 4e49411): CI-settling rung-B wait changed from unbounded `gh pr checks --watch` (no timeout — harness kills the call before the rung-C handoff) to a bounded poll of `gh pr checks` exit codes (0 passed / 8 pending / other failed) in the review-wait script's shape. | Claude Code |
