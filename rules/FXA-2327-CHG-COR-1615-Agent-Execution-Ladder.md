@@ -8,7 +8,7 @@
 **Requested by:** Frank Xu (session request: COR-1615 only followed when the operator manually reminds the agent, and the agent stops after one poll round instead of continuing the loop)
 **Priority:** Medium
 **Change Type:** Normal
-**Targets:** src/fx_alfred/rules/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md, skills/alfred/alfred-contract.md, skills/alfred/claude/SKILL.md, skills/alfred/agents/AGENTS.md, skills/alfred/copilot/copilot-instructions.md
+**Targets:** src/fx_alfred/rules/COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md, skills/alfred/alfred-contract.md, skills/alfred/claude/SKILL.md, skills/alfred/agents/AGENTS.md, skills/alfred/copilot/copilot-instructions.md, tests/test_bundled_loop_declarations.py, src/fx_alfred/CHANGELOG.md, rules/FXA-0000-REF-Document-Index.md
 
 ---
 
@@ -25,19 +25,21 @@ every `af`-capable tool shares them (not only Claude Code):
      re-entry step).
    - **Rung B** — harness can run shell: a bounded blocking wait script added
      to §Commands (poll inside one tool call; exit codes route to Step 8 /
-     re-invoke / Step 1). Zero new code — inline in the SOP.
+     re-invoke / Step 1 / diagnose). Inline in the SOP; needs only `gh` + `awk`.
    - **Rung C** — neither: mandatory resumable handoff note (PR, headRefOid,
      pending request, re-entry step); silent turn-ending is a SOP violation.
    Plus a binding rule: an agent MUST NOT end its task while a review request
-   for the current head is pending unless it satisfied A, B, or C.
+   for the current head is pending unless it armed a wakeup (A) or wrote the
+   rung-C note — rung-B exhaustion always terminates in a rung-C note.
    A second machine-readable back-edge (`poll-wait`, Step 8 → Step 6) makes
    the waiting loop parser-visible alongside the existing `restart-on-push`.
 
-2. **skills/alfred contract trigger rule** — one new contract rule: after any
-   `git push` to a branch with an open PR, or after creating a PR, the
-   COR-1615 loop is active and the task must not be declared complete until
-   its completion criteria are met (or a rung-C handoff is written). Synced
-   into all three carriers per the FXA-2305 sentinel mechanism.
+2. **skills/alfred contract trigger rule** — one new contract rule: pushing to
+   a branch with an open non-draft PR, creating a non-draft PR, or marking one
+   ready for review activates the COR-1615 loop; the task must not be declared
+   complete until its completion criteria are met (or a rung-C handoff is
+   written). Synced into all three carriers per the FXA-2305 sentinel
+   mechanism.
 
 Out of scope (deliberately): renaming the SOP; new `af` subcommands;
 harness-specific hooks (e.g. a Claude Code PostToolUse hook lives in the
@@ -66,11 +68,12 @@ parser-visible but gave the agent no mechanism to wait inside it.
 ## Impact Analysis
 
 - **Systems affected:** one bundled PKG doc + the four skill-bundle files. No
-  `af` code paths change; CLI behavior identical. `docs/` mirror regenerated.
+  `af` code paths change; CLI behavior identical. `docs/` mirror (gitignored
+  local build artifact) rebuilt via `scripts/build_docs.py`.
 - **Consumers:** all projects see the new section via `af read COR-1615`;
   tools with the skill bundle installed additionally get the event trigger.
   Machines with only `pip install fx-alfred` still get the full ladder
-  (rung B is inline shell, zero dependencies).
+  (rung B is inline shell needing only `gh` + `awk`).
 - **Tests:** `tests/test_bundled_loop_declarations.py` pins loop signatures —
   the new `poll-wait` back-edge requires updating the COR-1615 pin (expected,
   guarded change). `tests/test_agent_skill_drift.py` forces carrier sync.
@@ -94,6 +97,7 @@ parser-visible but gave the agent no mechanism to wait inside it.
 
 ## Change History
 
-| Date       | Change          | By          |
-|------------|-----------------|-------------|
-| 2026-08-16 | Initial version | Claude Code |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | By          |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| 2026-08-16 | Initial version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Claude Code |
+| 2026-08-16 | R1 trinity fixes (GLM 7.9 / DeepSeek 7.8 / MiniMax 7.9, all FIX): wait script hardened (gh failure → exit 3, empty-OID guard, PENDING/DISMISSED filter, per-page sum, no trailing sleep, while-counter instead of seq); rung-A delay 180–270 s per COR-1620; poll-wait round unit defined; rung-B exhaustion terminates in rung-C note; contract event rule scoped to non-draft PRs; Targets completed; COR-1615 Last-reviewed bump + Change-History order fix; CHANGELOG split into two bullets | Claude Code |

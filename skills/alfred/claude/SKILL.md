@@ -48,8 +48,9 @@ printed steps in order and do not skip any.
   it on every turn; when no task SOP applies use
   `📋 COR-1402 Declare Active Process → no formal task SOP`.
 - Do not commit code before completing the review steps the plan lists.
-- Event rule — PR review loop: after you push to a branch with an open pull
-  request, or create a pull request, the COR-1615 review-bot loop is active.
+- Event rule — PR review loop: after you push to a branch with an open,
+  non-draft pull request, create a non-draft pull request, or mark one ready
+  for review, the COR-1615 review-bot loop is active.
   Run `af read COR-1615`, follow its §Agent Execution ladder for every wait,
   and do not declare the task complete until its completion criteria are met
   or you have written its resumable handoff note.

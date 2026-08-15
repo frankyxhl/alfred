@@ -2,7 +2,7 @@
 
 **Applies to:** All projects using the COR document system
 **Last updated:** 2026-08-16
-**Last reviewed:** 2026-05-15
+**Last reviewed:** 2026-08-16
 **Status:** Active
 **Tags:** pr, review, loop
 **Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review), COR-1620 (Self-Pacing Loop Primitives — rung A of §Agent Execution)
@@ -149,26 +149,39 @@ When thread state matters, use a GraphQL or project helper that exposes `isOutda
 
 Bounded blocking wait (rung B of §Agent Execution) — waits for a review result
 inside a single tool call so an agent turn does not end while the request is
-pending. Size `POLL_ROUNDS × POLL_INTERVAL` to fit the harness's per-call
-timeout (the default 3 × 180 s ≈ 9 min fits a common 10-minute cap); on exit 1
-re-invoke the script, bounded overall by the `poll-wait` back-edge budget:
+pending. Needs only `gh` and `awk`. One invocation of this script is one
+`poll-wait` back-edge round. Size `POLL_ROUNDS × POLL_INTERVAL` to fit the
+harness's per-call timeout (the default 3 × 180 s, with no sleep after the
+final poll, fits a common 10-minute cap); on exit 1 re-invoke the script,
+bounded overall by the `poll-wait` back-edge budget:
 
 ```bash
 OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
 REPO="${REPO:?set REPO=<repo-name>}"
 PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
 
-# Exit 0 = a review result exists for the recorded head (interpret via Steps 7-8;
-#          exit 0 is a candidate signal, not clearance)
+# Exit 0 = a submitted (non-PENDING, non-DISMISSED) review exists for the
+#          recorded head (interpret via Steps 7-8; candidate signal, not clearance)
 # Exit 1 = wait budget exhausted, request still pending (re-invoke or hand off)
 # Exit 2 = head changed while waiting (return to Step 1)
-HEAD_OID="$(gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid)"
-for _ in $(seq 1 "${POLL_ROUNDS:-3}"); do
-  NOW_OID="$(gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid)"
+# Exit 3 = gh/API failure (diagnose before trusting any other signal)
+head_oid() { gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid; }
+HEAD_OID="$(head_oid)" && [ -n "$HEAD_OID" ] || exit 3
+ROUNDS="${POLL_ROUNDS:-3}"
+i=1
+while [ "$i" -le "$ROUNDS" ]; do
+  NOW_OID="$(head_oid)" && [ -n "$NOW_OID" ] || exit 3
   [ "$NOW_OID" = "$HEAD_OID" ] || exit 2
-  gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
-    --jq "[.[] | select(.commit_id == \"$HEAD_OID\")] | length" | grep -qv '^0$' && exit 0
-  sleep "${POLL_INTERVAL:-180}"
+  # Capture before counting so a gh failure exits 3 instead of reading as data;
+  # per-page counts from --paginate are summed by awk.
+  PAGES="$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
+    --jq "[.[] | select(.commit_id == \"$HEAD_OID\"
+                        and .state != \"PENDING\"
+                        and .state != \"DISMISSED\")] | length")" || exit 3
+  COUNT="$(printf '%s\n' "$PAGES" | awk '{s+=$1} END {print s+0}')"
+  [ "$COUNT" -gt 0 ] && exit 0
+  [ "$i" -lt "$ROUNDS" ] && sleep "${POLL_INTERVAL:-180}"
+  i=$((i+1))
 done
 exit 1
 ```
@@ -368,7 +381,8 @@ Treat queue or acknowledgement reactions as in-progress signals, not approval. A
 If the review body or API object names a reviewed commit, compare it with current `headRefOid`. If the reviewed commit is stale, the current head is not clear. If the reviewer does not expose an explicit reviewed commit, use the best available evidence: request timestamp, review `commit_id`, PR head at review submission time, and absence of newer pushes.
 
 If no completed result for the current head has arrived yet, return to Step 6
-(declared `poll-wait` back-edge, 8→6; max 10 rounds per pending request — on
+(declared `poll-wait` back-edge, 8→6; max 10 rounds per pending request, where
+one round is one bounded-wait script invocation or one armed-wakeup cycle — on
 exhaustion escalate to the operator with a rung-C handoff note rather than
 ending silently).
 
@@ -403,7 +417,8 @@ this ladder the harness supports:
 ### Rung A — the harness has a wakeup or scheduler primitive
 
 Bind COR-1620 (Self-Pacing Loop Primitives). After every push and after every
-review trigger, arm a wakeup (delay 180–300 s) whose prompt is self-contained:
+review trigger, arm a wakeup (delay 180–270 s — never exactly 300 s; follow
+COR-1620 §Cadence rules) whose prompt is self-contained:
 PR number, current `headRefOid`, request mechanism and timestamp, what the last
 push fixed, and the re-entry point (Step 6). All five COR-1620 primitives
 apply, including the stop-marker check and the status line telling the
@@ -413,13 +428,16 @@ plus lock file on runtimes that substitute per COR-1620.
 ### Rung B — the harness can run shell commands
 
 Run the bounded blocking wait script from §Commands inside a single tool call;
-the turn stays open while it waits. Route on its exit code:
+the turn stays open while it waits. One script invocation is one `poll-wait`
+back-edge round (at defaults, 10 rounds ≈ 90 minutes of total wait). Route on
+its exit code:
 
 | Exit | Meaning | Next action |
 |------|---------|-------------|
-| 0 | A review result exists for the recorded head | Interpret via Steps 7–8 (candidate signal, not clearance) |
-| 1 | Budget exhausted, request still pending | Re-invoke the script (bounded by the `poll-wait` back-edge, max 10) or fall through to rung C |
+| 0 | A submitted review exists for the recorded head | Interpret via Steps 7–8 (candidate signal, not clearance) |
+| 1 | Budget exhausted, request still pending | Re-invoke the script (bounded by the `poll-wait` back-edge, max 10 invocations); on final exhaustion write the rung-C note |
 | 2 | Head changed while waiting | Return to Step 1 |
+| 3 | gh/API failure | Diagnose the failure; do not treat any other signal as trustworthy until resolved |
 
 ### Rung C — neither is available
 
@@ -431,10 +449,11 @@ operator — continues the loop from that state instead of restarting cold.
 ### Binding rule
 
 An agent MUST NOT end its task while a review request for the current head is
-pending, unless it has armed a wakeup (A), just exhausted one bounded wait and
-reported the pending state (B), or written the rung-C handoff note. Ending the
-turn without one of these is a SOP violation, equivalent to an operator walking
-away from an unmerged PR without telling anyone.
+pending, unless it has armed a wakeup (A) or written the rung-C handoff note —
+including after exhausting the rung-B wait budget, whose final exhaustion
+always terminates in a rung-C note rather than a chat-only status. Ending the
+turn without one of these durable states is a SOP violation, equivalent to an
+operator walking away from an unmerged PR without telling anyone.
 
 ---
 
@@ -456,9 +475,9 @@ away from an unmerged PR without telling anyone.
 - The handoff note names the remaining human gate, if any: required approval,
   owner merge, branch-protection merge queue, or `none`.
 - Any remaining blockers are explicitly external to the GitHub App review loop.
-- If the task ended while a request was still pending, one §Agent Execution
-  rung is on record: a wakeup armed (A), a bounded wait exhausted and reported
-  (B), or a resumable handoff note written (C).
+- If the task ended while a request was still pending, a durable §Agent
+  Execution state is on record: a wakeup armed (A) or a resumable handoff note
+  written (C — including after rung-B budget exhaustion).
 
 ---
 
@@ -578,5 +597,6 @@ Use the GitHub App PR review bot loop:
 | 2026-05-15 | FXA-2285 R2: clarify no-bot repos do not waive unresolved human or code-review-app GitHub threads. | Codex |
 | 2026-06-26 | FXA-2311: completion criteria now require required-check policy evidence, merge state, review decision, draft/open state, and explicit human-gate handoff. | Codex |
 | 2026-06-26 | FXA-2311 R1 (codex bot P2): added `mergeStateStatus` to the §Commands `gh pr view` field list so operators following the SOP can record the value the completion gate now requires. | Codex |
-| 2026-08-16 | FXA-2327: new §Agent Execution capability ladder (wakeup / bounded shell wait / resumable handoff) with binding no-silent-ending rule; bounded blocking wait script in §Commands; declared `poll-wait` back-edge (8→6); Step 6/8, Operator Checklist, Completion Criteria, and Portable Operator Prompt wired to the ladder. | Claude Code |
 | 2026-08-12 | CHG FXA-2324: declare restart-on-push back-edge (11→1) per COR-1005; max 10 restarts adopted from COR-1612's documented 10-fix-round fail-safe (no own cap existed), exhaustion escalates per COR-1612 stopping condition #4 | Claude Code |
+| 2026-08-16 | FXA-2327: new §Agent Execution capability ladder (wakeup / bounded shell wait / resumable handoff) with binding no-silent-ending rule; bounded blocking wait script in §Commands; declared `poll-wait` back-edge (8→6); Step 6/8, Operator Checklist, Completion Criteria, and Portable Operator Prompt wired to the ladder. | Claude Code |
+| 2026-08-16 | FXA-2327 R1 (trinity panel): wait script hardened — gh failures exit 3 instead of false exit 0, empty-OID guard, PENDING/DISMISSED reviews excluded, per-page counts summed, no trailing sleep; rung-A delay corrected to 180–270 s per COR-1620 §Cadence rules; poll-wait round unit defined as one bounded-wait invocation; rung-B exhaustion now terminates in a rung-C note; Change History order restored. | Claude Code |
