@@ -379,6 +379,11 @@ files, push the final known local commit, and re-read `headRefOid`.
 If the only possible next commits are review-response or CI-response fixes, the
 head is ready for a manual review trigger.
 
+If the repository has a configured automatic reviewer, capture the request
+timestamp immediately **before** this final push: the push itself is the
+trigger (Step 5), and a timestamp taken later can postdate a fast reviewer's
+result.
+
 ### 4. Decide whether a trigger is needed
 
 Trigger review only when the current head lacks a completed review result, the operator explicitly requested a new pass, or a push changed the head after the last review request. Do not trigger another review while an existing request for the same head is still pending.
@@ -475,6 +480,16 @@ time, so 10 rounds ≈ 60 minutes of total wait). Route on its exit code:
 | 1 | No new review object within the budget | First check top-level comments and reactions (Steps 6–7) — some reviewers complete without a review object. If genuinely still pending, re-invoke (bounded by the `poll-wait` back-edge, max 10 invocations); on final exhaustion write the rung-C note |
 | 2 | Head changed while waiting | Return to Step 1 |
 | 3 | gh/API failure | Diagnose the failure; do not treat any other signal as trustworthy until resolved. After 3 consecutive exit-3 invocations, stop retrying and escalate with a rung-C note (mirrors COR-1620 stop conditions) |
+
+### Waiting on CI instead of a review
+
+The rungs generalize to any awaited signal, not only a review result. When the
+review is complete but required checks are still settling: rung A's wake
+prompt names check completion as the awaited signal (still one chain per
+awaited signal); rung B's equivalent bounded blocking wait is
+`gh pr checks "$PR_NUM" --repo "$OWNER/$REPO" --watch` inside a single tool
+call; rung C's handoff note records the pending checks instead of a review
+request.
 
 ### Rung C — neither is available
 
@@ -644,3 +659,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R5 (codex bot, head cd07f9a): Step 5 now requires capturing the request timestamp before posting the trigger (a post-trigger timestamp can postdate a fast reviewer's result and starve the `SINCE` filter); rung-A wake prompts must carry a stateless `poll-wait N of 10` counter (COR-1620 Primitive 4) so the Step-8 budget stays enforceable across wakes. | Claude Code |
 | 2026-08-16 | FXA-2327 R6 (codex bot, head 3e3e467): automatic-review path anchors the request timestamp before `git push` (no trigger comment exists to take `created_at` from); contract no-bot reduction now includes COR-1612's top-level conversation surface; contract event rule gains a self-healing version check (`af read COR-1615` must show §Agent Execution, else upgrade). | Claude Code |
 | 2026-08-16 | FXA-2327 R7 (codex bot, head 2f87e28): rung A arms exactly one wake chain per pending request — manual path arms after the Step-5 trigger, automatic path after the push — preventing duplicate wake chains with independent counters. | Claude Code |
+| 2026-08-16 | FXA-2327 R8 (codex bot, head 8bb15b0): Step 3 captures the auto-review request timestamp immediately before the final push (the numbered flow previously made pre-trigger capture impossible on that path); new §Agent Execution subsection generalizes the rungs to CI settling (`gh pr checks --watch` as rung B's equivalent; wake prompts and handoff notes name the awaited signal). | Claude Code |
