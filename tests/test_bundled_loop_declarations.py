@@ -55,7 +55,7 @@ EXPECTED: dict[str, tuple[int, list[tuple[str, int, int | str, int]]]] = {
     ),
     "COR-1615-SOP-GitHub-App-PR-Review-Bot-Loop.md": (
         12,
-        [("restart-on-push", 11, 1, 10)],
+        [("restart-on-push", 11, 1, 10), ("poll-wait", 8, 6, 10)],
     ),
     "COR-1802-SOP-Build-Weighted-Decision-Matrix.md": (
         8,

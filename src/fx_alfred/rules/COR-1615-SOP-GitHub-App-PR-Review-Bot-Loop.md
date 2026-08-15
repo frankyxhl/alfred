@@ -1,14 +1,14 @@
 # SOP-1615: GitHub App PR Review Bot Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-08-12
+**Last updated:** 2026-08-16
 **Last reviewed:** 2026-05-15
 **Status:** Active
 **Tags:** pr, review, loop
-**Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
+**Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review), COR-1620 (Self-Pacing Loop Primitives — rung A of §Agent Execution)
 **Task tags:** [github, github-app, pull-request, pr-review, review, bot-review, codex, copilot]
 **Authored from:** BAB-1504-SOP-GitHub-Codex-PR-Review-Loop
-**Workflow loops:** [{id: restart-on-push, from: 11, to: 1, max_iterations: 10, condition: "a push created a new headRefOid without a completed review for it"}]
+**Workflow loops:** [{id: restart-on-push, from: 11, to: 1, max_iterations: 10, condition: "a push created a new headRefOid without a completed review for it"}, {id: poll-wait, from: 8, to: 6, max_iterations: 10, condition: "a review request for the current headRefOid is pending and no completed result for it has been fetched yet"}]
 **Disposition:** inherit-only
 
 ---
@@ -77,6 +77,7 @@ Core invariant: a PR is not clear until the latest review result applies to the 
 - After pushing fixes from COR-1612, return to this SOP Step 1 for the new `headRefOid`.
 - Before saying "merge-ready", run the pre-merge sweep in §Commands. Trinity/panel PASS is necessary for that lane but not sufficient while non-bookkeeping GitHub-side review threads remain unresolved or unreplied.
 - For long iteration loops on the same PR, see COR-1612 §Scoping bot reviews via PR body for an optional, bot-vendor-dependent PR-body scope-hint technique.
+- Agents: never end the task while a review request for the current head is pending. Satisfy one rung of §Agent Execution first — arm a wakeup (A), run one bounded wait (B), or write a resumable handoff note (C).
 
 ---
 
@@ -145,6 +146,32 @@ gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
 ```
 
 When thread state matters, use a GraphQL or project helper that exposes `isOutdated` and `isResolved`; REST flat comments do not expose the full thread state.
+
+Bounded blocking wait (rung B of §Agent Execution) — waits for a review result
+inside a single tool call so an agent turn does not end while the request is
+pending. Size `POLL_ROUNDS × POLL_INTERVAL` to fit the harness's per-call
+timeout (the default 3 × 180 s ≈ 9 min fits a common 10-minute cap); on exit 1
+re-invoke the script, bounded overall by the `poll-wait` back-edge budget:
+
+```bash
+OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
+REPO="${REPO:?set REPO=<repo-name>}"
+PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
+
+# Exit 0 = a review result exists for the recorded head (interpret via Steps 7-8;
+#          exit 0 is a candidate signal, not clearance)
+# Exit 1 = wait budget exhausted, request still pending (re-invoke or hand off)
+# Exit 2 = head changed while waiting (return to Step 1)
+HEAD_OID="$(gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid)"
+for _ in $(seq 1 "${POLL_ROUNDS:-3}"); do
+  NOW_OID="$(gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid)"
+  [ "$NOW_OID" = "$HEAD_OID" ] || exit 2
+  gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
+    --jq "[.[] | select(.commit_id == \"$HEAD_OID\")] | length" | grep -qv '^0$' && exit 0
+  sleep "${POLL_INTERVAL:-180}"
+done
+exit 1
+```
 
 Pre-merge sweep, excluding bookkeeping bots:
 
@@ -328,6 +355,10 @@ Record the current `headRefOid`, request mechanism, and request timestamp in the
 
 Wait 3-5 minutes between polls. Re-read PR state, latest reviews, top-level comments, and inline comments. Repeated request comments before the previous request has resolved add noise and can obscure the audit trail.
 
+Agents implement this wait via §Agent Execution — arm a wakeup, run the bounded
+wait script from §Commands, or write a resumable handoff. Ending the task is
+not a substitute for waiting.
+
 ### 7. Interpret reactions conservatively
 
 Treat queue or acknowledgement reactions as in-progress signals, not approval. A positive no-comment signal can clear the head only when it is tied to the current request or current head and no newer actionable comments exist.
@@ -335,6 +366,11 @@ Treat queue or acknowledgement reactions as in-progress signals, not approval. A
 ### 8. Match review result to the current head
 
 If the review body or API object names a reviewed commit, compare it with current `headRefOid`. If the reviewed commit is stale, the current head is not clear. If the reviewer does not expose an explicit reviewed commit, use the best available evidence: request timestamp, review `commit_id`, PR head at review submission time, and absence of newer pushes.
+
+If no completed result for the current head has arrived yet, return to Step 6
+(declared `poll-wait` back-edge, 8→6; max 10 rounds per pending request — on
+exhaustion escalate to the operator with a rung-C handoff note rather than
+ending silently).
 
 ### 9. Fetch actionable findings
 
@@ -356,6 +392,52 @@ If the sweep finds unresolved threads, route them to COR-1612 before declaring m
 
 ---
 
+## Agent Execution
+
+The Steps above are written for an operator who persists over time. An agent's
+turn ends, and nothing re-invokes it minutes later — so "wait 3-5 minutes" is
+not directly executable. When this SOP is driven by an agent, translate every
+wait (Step 6 polling, post-push re-review, CI settling) into the first rung of
+this ladder the harness supports:
+
+### Rung A — the harness has a wakeup or scheduler primitive
+
+Bind COR-1620 (Self-Pacing Loop Primitives). After every push and after every
+review trigger, arm a wakeup (delay 180–300 s) whose prompt is self-contained:
+PR number, current `headRefOid`, request mechanism and timestamp, what the last
+push fixed, and the re-entry point (Step 6). All five COR-1620 primitives
+apply, including the stop-marker check and the status line telling the
+operator a wake is armed. Examples: Claude Code `ScheduleWakeup`; a cron entry
+plus lock file on runtimes that substitute per COR-1620.
+
+### Rung B — the harness can run shell commands
+
+Run the bounded blocking wait script from §Commands inside a single tool call;
+the turn stays open while it waits. Route on its exit code:
+
+| Exit | Meaning | Next action |
+|------|---------|-------------|
+| 0 | A review result exists for the recorded head | Interpret via Steps 7–8 (candidate signal, not clearance) |
+| 1 | Budget exhausted, request still pending | Re-invoke the script (bounded by the `poll-wait` back-edge, max 10) or fall through to rung C |
+| 2 | Head changed while waiting | Return to Step 1 |
+
+### Rung C — neither is available
+
+End only with a resumable handoff note, in the PR checklist or session notes:
+PR number, current `headRefOid`, the pending request (mechanism + timestamp),
+and the re-entry point ("resume at Step 6"). The next invocation — or the
+operator — continues the loop from that state instead of restarting cold.
+
+### Binding rule
+
+An agent MUST NOT end its task while a review request for the current head is
+pending, unless it has armed a wakeup (A), just exhausted one bounded wait and
+reported the pending state (B), or written the rung-C handoff note. Ending the
+turn without one of these is a SOP violation, equivalent to an operator walking
+away from an unmerged PR without telling anyone.
+
+---
+
 ## Completion Criteria
 
 - Current `headRefOid` is recorded.
@@ -374,6 +456,9 @@ If the sweep finds unresolved threads, route them to COR-1612 before declaring m
 - The handoff note names the remaining human gate, if any: required approval,
   owner merge, branch-protection merge queue, or `none`.
 - Any remaining blockers are explicitly external to the GitHub App review loop.
+- If the task ended while a request was still pending, one §Agent Execution
+  rung is on record: a wakeup armed (A), a bounded wait exhausted and reported
+  (B), or a resumable handoff note written (C).
 
 ---
 
@@ -466,6 +551,9 @@ Use the GitHub App PR review bot loop:
 - Before declaring merge-ready, run the pre-merge sweep and confirm no non-bookkeeping GitHub-side review thread remains unresolved or unreplied.
 - Verify the visible-write identity with gh auth status.
 - Do not publish private IPs, local paths, tokens, or host-specific details in public PR text or commits.
+- If you are an agent, follow §Agent Execution for every wait: arm a wakeup,
+  run the bounded wait script, or write a resumable handoff note. Never end
+  the task silently while a review request for the current head is pending.
 ```
 
 ---
@@ -490,4 +578,5 @@ Use the GitHub App PR review bot loop:
 | 2026-05-15 | FXA-2285 R2: clarify no-bot repos do not waive unresolved human or code-review-app GitHub threads. | Codex |
 | 2026-06-26 | FXA-2311: completion criteria now require required-check policy evidence, merge state, review decision, draft/open state, and explicit human-gate handoff. | Codex |
 | 2026-06-26 | FXA-2311 R1 (codex bot P2): added `mergeStateStatus` to the §Commands `gh pr view` field list so operators following the SOP can record the value the completion gate now requires. | Codex |
+| 2026-08-16 | FXA-2327: new §Agent Execution capability ladder (wakeup / bounded shell wait / resumable handoff) with binding no-silent-ending rule; bounded blocking wait script in §Commands; declared `poll-wait` back-edge (8→6); Step 6/8, Operator Checklist, Completion Criteria, and Portable Operator Prompt wired to the ladder. | Claude Code |
 | 2026-08-12 | CHG FXA-2324: declare restart-on-push back-edge (11→1) per COR-1005; max 10 restarts adopted from COR-1612's documented 10-fix-round fail-safe (no own cap existed), exhaustion escalates per COR-1612 stopping condition #4 | Claude Code |

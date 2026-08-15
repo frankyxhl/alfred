@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Improvements
+
+- **COR-1615: Agent Execution ladder** (FXA-2327) — the PR review-bot loop is
+  now agent-executable, not only operator-executable. New §Agent Execution
+  capability ladder: rung A binds COR-1620 wakeup primitives, rung B is a
+  bounded blocking wait script added to §Commands (portable shell, fits
+  per-call timeouts), rung C mandates a resumable handoff note; a binding rule
+  forbids ending the task silently while a review request for the current head
+  is pending. Second machine-readable back-edge `poll-wait` (8→6) makes the
+  waiting loop parser-visible alongside `restart-on-push`. The skills/alfred
+  contract (all carriers) gains an event rule activating COR-1615 after any
+  push to a branch with an open PR or PR creation.
+
 ## v1.27.0 (2026-08-12)
 
 The loop-engineering release: one new bundled SOP (COR-1005) plus its
