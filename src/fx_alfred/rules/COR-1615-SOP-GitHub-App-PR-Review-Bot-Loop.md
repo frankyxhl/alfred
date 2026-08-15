@@ -159,9 +159,11 @@ polls sleep 2 × 180 s ≈ 6 min plus API time, comfortably inside a common
 being silently adopted as the baseline, and pre-set `SINCE` to the Step-5
 request timestamp (ISO-8601 UTC, captured before the trigger was posted — see
 Step 5) so a review that predates the request — e.g. an earlier pass on the
-same unchanged head — is not miscounted as the awaited result. Pre-set `BOT_USER` to the requested reviewer's login — the Step-5
-record names it in all but exotic cases; leave it empty only when the
-reviewer identity is genuinely unknown, accepting that bookkeeping-bot
+same unchanged head — is not miscounted as the awaited result. Pre-set `BOT_USER` to the login the reviewer **submits reviews
+under**, which can differ from the request handle — requesting `@copilot`
+yields reviews from `copilot-pull-request-reviewer[bot]` (COR-1612); check a
+prior PR's review objects when unsure. Leave it empty only when the
+submitting identity is genuinely unknown, accepting that bookkeeping-bot
 reviews, unrelated same-head reviews, and the author's own thread replies
 then register as candidates and can burn the `poll-wait` budget:
 
@@ -383,11 +385,14 @@ If the only possible next commits are review-response or CI-response fixes, the
 head is ready for a manual review trigger.
 
 If the repository has a configured automatic reviewer, the push itself is the
-trigger (Step 5) and it creates a brand-new `headRefOid`, so any review
-bearing that `commit_id` necessarily postdates the trigger. Run the wait with
-`HEAD_OID` and `BOT_USER` set and `SINCE` empty — do not anchor `SINCE` to
-the local clock: skew against GitHub's server-side `submitted_at` could
-exclude a fast valid review.
+trigger (Step 5) and it normally creates a brand-new `headRefOid`, so any
+review bearing that `commit_id` necessarily postdates the trigger. Run the
+wait with `HEAD_OID` and `BOT_USER` set and `SINCE` empty — do not anchor
+`SINCE` to the local clock: skew against GitHub's server-side `submitted_at`
+could exclude a fast valid review. Exception: a force-push or reset that
+repoints the PR to a **previously reviewed** SHA voids the new-SHA guarantee
+— there, snapshot that SHA's existing review IDs before the push and treat
+only reviews with higher IDs as candidates.
 
 ### 4. Decide whether a trigger is needed
 
@@ -401,7 +406,7 @@ Post or request the project-specific review once. Examples:
 - Reviewer-assignment bot: `gh pr edit "$PR_NUM" --repo "$OWNER/$REPO" --add-reviewer @copilot`
 - Repository-configured automatic review: no manual trigger; record that the head is waiting for the configured GitHub App reviewer. The push is the trigger and creates a new `headRefOid`, so the `commit_id` filter alone already excludes pre-trigger reviews — leave `SINCE` empty rather than anchoring it to the local clock, whose skew against GitHub's `submitted_at` could exclude a fast valid review
 
-Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist. Prefer the trigger comment's server-side `created_at` as the request timestamp — it shares GitHub's clock with review `submitted_at` values, so no skew applies. A locally captured timestamp is the fallback and must be taken **before** posting the trigger: one captured afterwards can postdate a fast reviewer's result, and a `SINCE` filter built from it would then exclude the awaited review in every polling round.
+Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist. Prefer a server-side timestamp — it shares GitHub's clock with review `submitted_at` values, so no skew applies: the trigger comment's `created_at` on the comment path, or the `review_requested` timeline event's `created_at` (`gh api "repos/$OWNER/$REPO/issues/$PR_NUM/timeline"`) on the reviewer-assignment path, which has no trigger comment. A locally captured timestamp is the last-resort fallback and must be taken **before** posting the trigger: one captured afterwards can postdate a fast reviewer's result, and a `SINCE` filter built from it would then exclude the awaited review in every polling round.
 
 ### 6. Poll without spamming
 
@@ -688,3 +693,4 @@ Use the GitHub App PR review bot loop:
 | 2026-08-16 | FXA-2327 R11 (codex bot, head 5ace93f; operator-extended past the 10-round budget): CI poll requires the review script's per-iteration `headRefOid` recheck (`gh pr checks` cannot pin a commit); contract no-bot reduction preserves the CI-settling ladder until required checks pass. | Claude Code |
 | 2026-08-16 | FXA-2327 R12 (codex bot, head c6f9f3e): CI poll resolves the COR-1622 `<required-check-policy>` first — `--required` only when branch protection names required checks; under the all-non-skipped fallback omit it, since it filters out every check. | Claude Code |
 | 2026-08-16 | FXA-2327 R13 (codex bot, head 04b44ea): `BOT_USER` upgraded from optional to set-whenever-known (empty wildcard burns the poll-wait budget on unrelated same-head reviews); request timestamps prefer GitHub's server-side clock (trigger comment `created_at`), and the automatic path drops the local-clock anchor entirely — a new `headRefOid` cannot carry pre-trigger reviews. | Claude Code |
+| 2026-08-16 | FXA-2327 R14 (codex bot, head f25f5c3): `BOT_USER` documented as the submitting actor, not the request handle (`@copilot` → `copilot-pull-request-reviewer[bot]`); force-push/reset onto a previously reviewed SHA voids the new-SHA guarantee — snapshot pre-trigger review IDs there; reviewer-assignment path takes the `review_requested` timeline event's server-side `created_at`. | Claude Code |
