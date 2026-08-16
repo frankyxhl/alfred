@@ -38,3 +38,21 @@ markers = [
 
 [tool.ruff]
 target-version = "py310"
+
+[tool.semantic_release]
+tag_format = "v{version}"
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+commit_parser = "conventional"
+# Build + PyPI upload are handled by publish.yml (release: published trigger);
+# semantic-release only versions, tags, and creates the GitHub Release.
+build_command = ""
+upload_to_pypi = false
+upload_to_repository = false
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test"]
+minor_tags = ["feat"]
+# `docs` bumps patch: bundled SOP documents ship inside the wheel, so a docs
+# change is a shippable change for this package.
+patch_tags = ["fix", "perf", "docs"]

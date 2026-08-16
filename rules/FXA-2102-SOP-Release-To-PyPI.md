@@ -1,17 +1,19 @@
 # SOP-2102: Release To PyPI
 
 **Applies to:** FXA project
-**Last updated:** 2026-06-29
-**Last reviewed:** 2026-03-17
+**Last updated:** 2026-08-16
+**Last reviewed:** 2026-08-16
 **Status:** Active
-**Tags:** release, ship
 **Task tags:** release, pypi
+**Tags:** release, ship
 
 ---
 
 ## What Is It?
 
 The process for releasing a new version of fx-alfred to PyPI via GitHub Actions and Trusted Publisher.
+
+Since FXA-2328 the primary path is **automated**: merging a conventional-commit PR to `main` triggers `cd-release.yml` (semantic-release decides the version, tags, and creates the GitHub Release), which fires `publish.yml` (test → build → Trusted Publishing). The manual §Steps below are the fallback for when the automation is unavailable or a hand-crafted release is needed.
 
 ---
 
@@ -33,7 +35,8 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
 
 - Code is not yet reviewed -- complete FXA-2100 (Leader Mediated Development) first
 - Tests or lint are failing
-- Only document changes were made (no code release needed)
+
+Note: bundled SOP document changes ship in the wheel, so `docs(...)` commits DO release (as a patch bump) under the automated path; commit as `chore`/`test`/`ci` when a change genuinely should not release.
 
 ---
 
@@ -50,7 +53,32 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
 
 ---
 
+## Automated Path (Primary, FXA-2328)
+
+1. Land the change on `main` through the normal PR flow with conventional
+   commits (`feat` → minor, `fix`/`perf`/`docs` → patch; `chore`/`test`/`ci`
+   → no release). Update CHANGELOG's `## Unreleased` section and the README
+   "NEW in vX" line (FXA-2136) inside the PR — semantic-release does not
+   write prose.
+2. On merge, `cd-release.yml` runs semantic-release: bumps
+   `pyproject.toml:project.version`, commits `chore(release): ...`, tags
+   `v{version}`, creates the GitHub Release (via `SEMANTIC_RELEASE_PAT`).
+3. The Release event triggers `publish.yml`: test gate → build → Trusted
+   Publishing to PyPI.
+4. Verify: `gh run list --workflow=publish.yml --limit 1` shows success and
+   `pip index versions fx-alfred` (or the PyPI JSON API) lists the new
+   version.
+
+Requirements: the `SEMANTIC_RELEASE_PAT` repository secret must exist (repo
+scope; the default `GITHUB_TOKEN` cannot fire `publish.yml`), and the PAT
+owner must be able to push the release commit to `main`.
+
+---
+
 ## Steps
+
+Manual fallback — use when the automation is unavailable, a release needs
+hand-crafted notes, or `cd-release.yml` is being bypassed deliberately.
 
 1. **Verify readiness**
    ```bash
@@ -170,3 +198,4 @@ pipx upgrade fx-alfred                        # verify on PyPI
 | 2026-05-07 | FXA-2275: promote README check from Prerequisites to a numbered Step (new Step 2). Renumbered subsequent steps 3-7. Reason: README updates were silently skipped twice during v1.12.0 and v1.13.0 release work because the check sat in Prerequisites and was easy to miss when reading top-down. | Claude Code         |
 | 2026-06-26 | Add task tags so COR-1202 can compose release plans from natural-language tasks.                                                                                                                                                                                                                  | Claude Code         |
 | 2026-06-26 | Drop bare `publish` task tag — too generic; `publish docs` etc. wrongly routed to PyPI release (Codex review).                                                                                                                                                                                    | Claude Code         |
+| 2026-08-16 | FXA-2328: automated path (cd-release.yml semantic-release → publish.yml) documented as primary; manual §Steps demoted to fallback; docs-commits-release note added (bundled SOPs ship in the wheel).                                                                                              | Claude Code         |

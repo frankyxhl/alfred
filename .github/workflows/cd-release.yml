@@ -1,0 +1,57 @@
+name: CD Release
+
+on:
+  push:
+    branches: [main]
+
+# One release at a time; never cancel a release mid-flight.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Recursion guard: semantic-release pushes a `chore(release): ...` commit
+    # back to main; that push must not trigger another release cycle.
+    if: |
+      github.actor != 'github-actions[bot]' &&
+      !contains(github.event.head_commit.message, 'chore(release):')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # PAT, not GITHUB_TOKEN: releases created with the default token do
+          # not fire the `release: published` trigger that publish.yml needs.
+          token: ${{ secrets.SEMANTIC_RELEASE_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Semantic Release (version + tag + GitHub Release)
+        id: semantic-release
+        uses: python-semantic-release/python-semantic-release@v9
+        with:
+          github_token: ${{ secrets.SEMANTIC_RELEASE_PAT }}
+          git_committer_name: "github-actions[bot]"
+          git_committer_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          # CHANGELOG stays hand-curated in src/fx_alfred/CHANGELOG.md
+          # (`af changelog` reads it); semantic-release must not overwrite it.
+          changelog: false
+
+      - name: Release status summary
+        if: always()
+        run: |
+          if [[ "${{ steps.semantic-release.outputs.version }}" == "" ]]; then
+            echo "## No release" >> $GITHUB_STEP_SUMMARY
+            echo "No release-worthy conventional commits since the last tag." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Released v${{ steps.semantic-release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "publish.yml now runs test -> build -> Trusted Publishing for the new GitHub Release." >> $GITHUB_STEP_SUMMARY
+          fi

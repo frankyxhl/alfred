@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Improvements
+
+- **Automated releases** (FXA-2328) — new `cd-release.yml` runs
+  python-semantic-release on every push to `main`: conventional commits decide
+  the version (`feat` → minor; `fix`/`perf`/`docs` → patch, since bundled SOPs
+  ship in the wheel), the version bump is committed and tagged, and the
+  GitHub Release it creates fires the existing `publish.yml` Trusted
+  Publishing path unchanged. CHANGELOG stays hand-curated (semantic-release
+  changelog generation disabled). FXA-2102 now documents the automated path
+  as primary with the manual flow as fallback. Requires the
+  `SEMANTIC_RELEASE_PAT` repository secret.
+
 ## v1.28.0 (2026-08-16)
 
 The agent-execution release: COR-1615's PR review-bot loop becomes executable
