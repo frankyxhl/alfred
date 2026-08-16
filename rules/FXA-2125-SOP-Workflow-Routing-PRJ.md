@@ -116,7 +116,7 @@ Dev install: cd fx_alfred && pip install -e .
 ## Project Golden Rules
 
 ```
-FXA-2102: Release = version bump → push → gh release create → CI publishes to PyPI
+FXA-2102: Release = merge conventional-commit PR to main (no pre-bump) → cd-release.yml auto-versions/tags → publish.yml → PyPI; manual bump + gh release create is the fallback only
 FXA-2100: Leader dispatches GLM (Worker), reviews with Codex+Gemini (Reviewer)
 ALF-2300: Incident = record what happened, impact, resolution, follow-up
 COR-1500: Any code change → TDD: failing test first, then green, then refactor
