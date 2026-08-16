@@ -67,18 +67,39 @@ jobs:
           python - "${{ steps.next.outputs.version }}" <<'EOF'
           import datetime
           import re
+          import subprocess
           import sys
 
           version = sys.argv[1]
           path = "src/fx_alfred/CHANGELOG.md"
           text = open(path, encoding="utf-8").read()
+          today = datetime.date.today().isoformat()
+
+          def tag_exists(v):
+              out = subprocess.run(
+                  ["git", "tag", "--list", f"v{v}"],
+                  capture_output=True, text=True, check=True,
+              ).stdout.strip()
+              return out != ""
+
+          # Reconcile an orphaned promotion: a prior run promoted a section,
+          # semantic-release failed, and a later merge changed the computed
+          # bump level (e.g. 1.28.1 -> 1.29.0). The topmost version heading
+          # then names a release that will never be tagged — rename it to the
+          # newly computed version so its notes ship under the real release.
+          top = re.search(r"^## v(\d+\.\d+\.\d+) \([^)]*\)\n", text, re.M)
+          if top and top.group(1) != version and not tag_exists(top.group(1)):
+              print(f"Renaming orphaned untagged v{top.group(1)} section to v{version}.")
+              text = text[: top.start()] + f"## v{version} ({today})\n" + text[top.end():]
+              open(path, "w", encoding="utf-8").write(text)
+
           m = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.M | re.S)
           notes = m.group(1) if m else ""
           existing = re.search(
               rf"^## v{re.escape(version)} \([^)]*\)\n", text, re.M
           )
           if existing and not notes.strip():
-              print(f"v{version} section already present; nothing to promote.")
+              print(f"v{version} section already present; nothing further to promote.")
               sys.exit(0)
           if existing:
               # Retry path: a prior run promoted this version, semantic-release
