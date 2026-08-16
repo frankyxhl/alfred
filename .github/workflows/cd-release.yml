@@ -68,16 +68,33 @@ jobs:
           version = sys.argv[1]
           path = "src/fx_alfred/CHANGELOG.md"
           text = open(path, encoding="utf-8").read()
-          if f"## v{version} (" in text:
-              print(f"v{version} section already present; promotion is idempotent — skipping.")
-              sys.exit(0)
           m = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-          if not m or not m.group(1).strip():
+          notes = m.group(1) if m else ""
+          existing = re.search(
+              rf"^## v{re.escape(version)} \([^)]*\)\n", text, re.M
+          )
+          if existing and not notes.strip():
+              print(f"v{version} section already present; nothing to promote.")
+              sys.exit(0)
+          if existing:
+              # Retry path: a prior run promoted this version, semantic-release
+              # failed, and a newer merge added fresh Unreleased notes before
+              # the rerun. Fold those notes into the existing section instead
+              # of stranding them under Unreleased.
+              text = text[: m.start()] + "## Unreleased\n\n" + text[m.end():]
+              existing = re.search(
+                  rf"^## v{re.escape(version)} \([^)]*\)\n", text, re.M
+              )
+              text = text[: existing.end()] + notes + text[existing.end():]
+              open(path, "w", encoding="utf-8").write(text)
+              print(f"Folded fresh Unreleased notes into existing v{version} section.")
+              sys.exit(0)
+          if not notes.strip():
               print("No curated Unreleased notes; skipping promotion.")
               sys.exit(0)
           today = datetime.date.today().isoformat()
           promoted = text[: m.start()] + (
-              f"## Unreleased\n\n## v{version} ({today})\n{m.group(1)}"
+              f"## Unreleased\n\n## v{version} ({today})\n{notes}"
           ) + text[m.end():]
           open(path, "w", encoding="utf-8").write(promoted)
           print(f"Promoted Unreleased to v{version} ({today}).")
