@@ -27,7 +27,8 @@ A defined release process ensures consistent, verifiable deployments. Using GitH
 
 - A new version of fx-alfred is ready for public release
 - All tests pass, lint is clean, and dual code review is complete
-- Version has been bumped and changes are pushed to `main`
+- The change has landed (or is about to land) on `main` — the automated path
+  bumps the version itself; only the manual fallback pre-bumps (§Prerequisites)
 
 ---
 

@@ -44,6 +44,9 @@ tag_format = "v{version}"
 version_toml = ["pyproject.toml:project.version"]
 branch = "main"
 commit_parser = "conventional"
+# Prefix must match cd-release.yml's recursion guard; [skip ci] suppresses
+# the push event at the platform level (psr's default message has neither).
+commit_message = "chore(release): v{version} [skip ci]"
 # Build + PyPI upload are handled by publish.yml (release: published trigger);
 # semantic-release only versions, tags, and creates the GitHub Release.
 build_command = ""
