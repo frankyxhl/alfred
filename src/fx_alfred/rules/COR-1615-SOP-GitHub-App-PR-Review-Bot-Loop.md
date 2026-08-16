@@ -1,14 +1,14 @@
 # SOP-1615: GitHub App PR Review Bot Loop
 
 **Applies to:** All projects using the COR document system
-**Last updated:** 2026-08-12
-**Last reviewed:** 2026-05-15
+**Last updated:** 2026-08-16
+**Last reviewed:** 2026-08-16
 **Status:** Active
 **Tags:** pr, review, loop
-**Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review)
+**Related:** COR-1602 (Multi Model Parallel Review), COR-1612 (Respond To PR Review Comments), COR-1613 (Council Review), COR-1620 (Self-Pacing Loop Primitives — rung A of §Agent Execution)
 **Task tags:** [github, github-app, pull-request, pr-review, review, bot-review, codex, copilot]
 **Authored from:** BAB-1504-SOP-GitHub-Codex-PR-Review-Loop
-**Workflow loops:** [{id: restart-on-push, from: 11, to: 1, max_iterations: 10, condition: "a push created a new headRefOid without a completed review for it"}]
+**Workflow loops:** [{id: restart-on-push, from: 11, to: 1, max_iterations: 10, condition: "a push created a new headRefOid without a completed review for it"}, {id: poll-wait, from: 8, to: 6, max_iterations: 10, condition: "a review request for the current headRefOid is pending and no completed result for it has been fetched yet"}]
 **Disposition:** inherit-only
 
 ---
@@ -77,6 +77,7 @@ Core invariant: a PR is not clear until the latest review result applies to the 
 - After pushing fixes from COR-1612, return to this SOP Step 1 for the new `headRefOid`.
 - Before saying "merge-ready", run the pre-merge sweep in §Commands. Trinity/panel PASS is necessary for that lane but not sufficient while non-bookkeeping GitHub-side review threads remain unresolved or unreplied.
 - For long iteration loops on the same PR, see COR-1612 §Scoping bot reviews via PR body for an optional, bot-vendor-dependent PR-body scope-hint technique.
+- Agents: never end the task while a review request for the current head is pending. Wait via §Agent Execution rung A or B; end only with a wakeup armed (A) or a resumable handoff note written (C) — rung-B exhaustion always terminates in C.
 
 ---
 
@@ -145,6 +146,79 @@ gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
 ```
 
 When thread state matters, use a GraphQL or project helper that exposes `isOutdated` and `isResolved`; REST flat comments do not expose the full thread state.
+
+Bounded blocking wait (rung B of §Agent Execution) — waits for a review result
+inside a single tool call so an agent turn does not end while the request is
+pending. Needs only `gh` and `awk`. One invocation of this script is one
+`poll-wait` back-edge round. Size `POLL_ROUNDS` and `POLL_INTERVAL` to fit the
+harness's per-call timeout: with no sleep after the final poll, the default 3
+polls sleep 2 × 180 s ≈ 6 min plus API time, comfortably inside a common
+10-minute cap. On exit 1 re-invoke the script, bounded overall by the
+`poll-wait` back-edge budget. Pre-set `HEAD_OID` to the head recorded at Step
+5 so a push landing before the script starts is detected as exit 2 instead of
+being silently adopted as the baseline, and pre-set `SINCE` to the Step-5
+request timestamp (ISO-8601 UTC, captured before the trigger was posted — see
+Step 5) so a review that predates the request — e.g. an earlier pass on the
+same unchanged head — is not miscounted as the awaited result. Pre-set `BOT_USER` to the login the reviewer **submits reviews
+under**, which can differ from the request handle — requesting `@copilot`
+yields reviews from `copilot-pull-request-reviewer[bot]` (COR-1612); check a
+prior PR's review objects when unsure. Leave it empty only when the
+submitting identity is genuinely unknown, accepting that bookkeeping-bot
+reviews, unrelated same-head reviews, and the author's own thread replies
+then register as candidates and can burn the `poll-wait` budget:
+
+```bash
+OWNER="${OWNER:?set OWNER=<github-org-or-user>}"
+REPO="${REPO:?set REPO=<repo-name>}"
+PR_NUM="${PR_NUM:?set PR_NUM=<pr-number>}"
+
+# Exit 0 = a submitted (non-PENDING, non-DISMISSED) review at or after SINCE
+#          exists for the recorded head (interpret via Steps 7-8; candidate
+#          signal, not clearance)
+# Exit 1 = no new review object within the budget. NOT proof the request is
+#          still pending: some reviewers complete via a reaction or top-level
+#          comment without a review object — check the other feedback surfaces
+#          (Steps 6-7) before re-invoking
+# Exit 2 = head changed while waiting (return to Step 1)
+# Exit 3 = gh/API failure (diagnose before trusting any other signal)
+head_oid() { gh pr view "$PR_NUM" --repo "$OWNER/$REPO" --json headRefOid --jq .headRefOid; }
+# Baseline: honor a pre-set HEAD_OID (Step-5-recorded head), else fetch. The
+# hex-shape guard rejects empty, jq "null", and error text before it can be
+# interpolated into the jq filter below.
+HEAD_OID="${HEAD_OID:-$(head_oid)}" || exit 3
+case "$HEAD_OID" in "" | *[!0-9a-f]*) exit 3 ;; esac
+# Optional request timestamp (Step 5); empty matches every review. Shape-guarded
+# like HEAD_OID because it is interpolated into the jq filter.
+SINCE="${SINCE:-}"
+case "$SINCE" in *[!0-9TZ:+.-]*) exit 3 ;; esac
+# Requested reviewer's login (e.g. "chatgpt-codex-connector[bot]") — set it
+# whenever known (the Step-5 record names it). Empty is a last-resort
+# wildcard: bookkeeping bots, unrelated same-head reviews, and the author's
+# own thread replies (recorded by GitHub as COMMENTED reviews on the current
+# head) then count as candidates. Guard rejects jq-breaking characters
+# before interpolation.
+BOT_USER="${BOT_USER:-}"
+case "$BOT_USER" in *[\"\\]*) exit 3 ;; esac
+ROUNDS="${POLL_ROUNDS:-3}"
+i=1
+while [ "$i" -le "$ROUNDS" ]; do
+  NOW_OID="$(head_oid)" && [ -n "$NOW_OID" ] || exit 3
+  [ "$NOW_OID" = "$HEAD_OID" ] || exit 2
+  # Capture before counting so a gh failure exits 3 instead of reading as data;
+  # per-page counts from --paginate are summed by awk.
+  PAGES="$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUM/reviews" --paginate \
+    --jq "[.[] | select(.commit_id == \"$HEAD_OID\"
+                        and .state != \"PENDING\"
+                        and .state != \"DISMISSED\"
+                        and (.submitted_at // \"\") >= \"$SINCE\"
+                        and ((\"$BOT_USER\" == \"\") or .user.login == \"$BOT_USER\"))] | length")" || exit 3
+  COUNT="$(printf '%s\n' "$PAGES" | awk '{s+=$1} END {print s+0}')"
+  [ "$COUNT" -gt 0 ] && exit 0
+  [ "$i" -lt "$ROUNDS" ] && sleep "${POLL_INTERVAL:-180}"
+  i=$((i+1))
+done
+exit 1
+```
 
 Pre-merge sweep, excluding bookkeeping bots:
 
@@ -310,6 +384,16 @@ files, push the final known local commit, and re-read `headRefOid`.
 If the only possible next commits are review-response or CI-response fixes, the
 head is ready for a manual review trigger.
 
+If the repository has a configured automatic reviewer, the push itself is the
+trigger (Step 5) and it normally creates a brand-new `headRefOid`, so any
+review bearing that `commit_id` necessarily postdates the trigger. Run the
+wait with `HEAD_OID` and `BOT_USER` set and `SINCE` empty — do not anchor
+`SINCE` to the local clock: skew against GitHub's server-side `submitted_at`
+could exclude a fast valid review. Exception: a force-push or reset that
+repoints the PR to a **previously reviewed** SHA voids the new-SHA guarantee
+— there, snapshot that SHA's existing review IDs before the push and treat
+only reviews with higher IDs as candidates.
+
 ### 4. Decide whether a trigger is needed
 
 Trigger review only when the current head lacks a completed review result, the operator explicitly requested a new pass, or a push changed the head after the last review request. Do not trigger another review while an existing request for the same head is still pending.
@@ -320,13 +404,17 @@ Post or request the project-specific review once. Examples:
 
 - Comment-triggered reviewer: `gh pr comment "$PR_NUM" --repo "$OWNER/$REPO" --body '@codex review'`
 - Reviewer-assignment bot: `gh pr edit "$PR_NUM" --repo "$OWNER/$REPO" --add-reviewer @copilot`
-- Repository-configured automatic review: no manual trigger; record that the head is waiting for the configured GitHub App reviewer
+- Repository-configured automatic review: no manual trigger; record that the head is waiting for the configured GitHub App reviewer. The push is the trigger and creates a new `headRefOid`, so the `commit_id` filter alone already excludes pre-trigger reviews — leave `SINCE` empty rather than anchoring it to the local clock, whose skew against GitHub's `submitted_at` could exclude a fast valid review
 
-Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist.
+Record the current `headRefOid`, request mechanism, and request timestamp in the session notes or PR checklist. Prefer a server-side timestamp — it shares GitHub's clock with review `submitted_at` values, so no skew applies: the trigger comment's `created_at` on the comment path, or the `review_requested` timeline event's `created_at` (`gh api "repos/$OWNER/$REPO/issues/$PR_NUM/timeline"`) on the reviewer-assignment path, which has no trigger comment. A locally captured timestamp is the last-resort fallback and must be taken **before** posting the trigger: one captured afterwards can postdate a fast reviewer's result, and a `SINCE` filter built from it would then exclude the awaited review in every polling round.
 
 ### 6. Poll without spamming
 
 Wait 3-5 minutes between polls. Re-read PR state, latest reviews, top-level comments, and inline comments. Repeated request comments before the previous request has resolved add noise and can obscure the audit trail.
+
+Agents implement this wait via §Agent Execution — arm a wakeup, run the bounded
+wait script from §Commands, or write a resumable handoff. Ending the task is
+not a substitute for waiting.
 
 ### 7. Interpret reactions conservatively
 
@@ -335,6 +423,12 @@ Treat queue or acknowledgement reactions as in-progress signals, not approval. A
 ### 8. Match review result to the current head
 
 If the review body or API object names a reviewed commit, compare it with current `headRefOid`. If the reviewed commit is stale, the current head is not clear. If the reviewer does not expose an explicit reviewed commit, use the best available evidence: request timestamp, review `commit_id`, PR head at review submission time, and absence of newer pushes.
+
+If no completed result for the current head has arrived yet, return to Step 6
+(declared `poll-wait` back-edge, 8→6; max 10 rounds per pending request, where
+one round is one bounded-wait script invocation or one armed-wakeup cycle — on
+exhaustion escalate to the operator with a rung-C handoff note rather than
+ending silently).
 
 ### 9. Fetch actionable findings
 
@@ -356,6 +450,93 @@ If the sweep finds unresolved threads, route them to COR-1612 before declaring m
 
 ---
 
+## Agent Execution
+
+The Steps above are written for an operator who persists over time. An agent's
+turn ends, and nothing re-invokes it minutes later — so "wait 3-5 minutes" is
+not directly executable. When this SOP is driven by an agent, translate every
+wait (Step 6 polling, post-push re-review, CI settling) into the first rung of
+this ladder the harness supports:
+
+### Rung A — the harness has a wakeup or scheduler primitive
+
+Bind COR-1620 (Self-Pacing Loop Primitives). Arm **exactly one wake chain per
+pending request**: on the manual path, arm after posting the Step-5 trigger
+(a post-push wake would predate the request mechanism and timestamp the
+prompt must carry); on the repository-configured automatic path, arm after
+the push, which is itself the trigger. Two chains polling the same request
+duplicate wakes and carry independent counters. Each wake uses delay
+180–270 s (never exactly 300 s; follow COR-1620 §Cadence rules) and a
+self-contained prompt:
+PR number, current `headRefOid`, request mechanism and timestamp, what the last
+push fixed, the re-entry point (Step 6), and the poll-wait round counter
+(`poll-wait N of 10`, incremented on each re-arm — COR-1620 Primitive 4;
+without it, stateless wakes cannot enforce the Step-8 budget and the loop
+never produces its rung-C escalation). All five COR-1620 primitives
+apply, including the stop-marker check and the status line telling the
+operator a wake is armed. Examples: Claude Code `ScheduleWakeup`; a cron entry
+plus lock file on runtimes that substitute per COR-1620.
+
+### Rung B — the harness can run shell commands
+
+Run the bounded blocking wait script from §Commands inside a single tool call;
+the turn stays open while it waits. One script invocation is one `poll-wait`
+back-edge round (at defaults one invocation sleeps 2 × 180 s ≈ 6 min plus API
+time, so 10 rounds ≈ 60 minutes of total wait). Route on its exit code:
+
+| Exit | Meaning | Next action |
+|------|---------|-------------|
+| 0 | A submitted review at or after the request timestamp exists for the recorded head | Interpret via Steps 7–8 (candidate signal, not clearance) |
+| 1 | No new review object within the budget | First check top-level comments and reactions (Steps 6–7) — some reviewers complete without a review object. If genuinely still pending, re-invoke (bounded by the `poll-wait` back-edge, max 10 invocations); on final exhaustion write the rung-C note |
+| 2 | Head changed while waiting | Return to Step 1 |
+| 3 | gh/API failure | Diagnose the failure; do not treat any other signal as trustworthy until resolved. After 3 consecutive exit-3 invocations, stop retrying and escalate with a rung-C note (mirrors COR-1620 stop conditions) |
+
+### Waiting on CI instead of a review
+
+The rungs generalize to any awaited signal, not only a review result. When the
+review is complete but required checks are still settling: rung A's wake
+prompt names check completion as the awaited signal (still one chain per
+awaited signal); rung B's equivalent is a bounded poll of
+`gh pr checks "$PR_NUM" --repo "$OWNER/$REPO" --required` — `--required`
+honors the Step-12 required-check gate so a pending or failing *optional*
+check does not extend the wait. Resolve the project's
+`<required-check-policy>` (COR-1622) first: `--required` applies only when
+branch protection names required checks; under the fallback policy (no named
+checks — every non-skipped context must pass) omit `--required`, since it
+would filter out every check and route the poll to diagnosis instead of
+waiting. Exit 0 = required checks passed; 8 = still
+pending; 4 = authentication failure — diagnose, like the review script's
+exit 3; any other non-zero = inspect the output: a check table means a
+required check failed, no table means the command itself failed and must be
+diagnosed before trusting any signal. Use the same rounds/interval/
+no-final-sleep shape as the review wait script — including its per-iteration
+`headRefOid` recheck: `gh pr checks` pins only the PR, not a commit, so
+without comparing the recorded `HEAD_OID` each round (exit-2 on mismatch, as
+in the review script) a push landing mid-wait could pass checks for the new
+head while the retained review covers the old one. Do **not** use
+`gh pr checks --watch`: it has no timeout, so a stuck check makes the harness
+kill the tool call instead of letting the script reach its budget and the
+rung-C handoff. Rung C's handoff note records the pending checks instead of a
+review request.
+
+### Rung C — neither is available
+
+End only with a resumable handoff note, in the PR checklist or session notes:
+PR number, current `headRefOid`, the pending request (mechanism + timestamp),
+and the re-entry point ("resume at Step 6"). The next invocation — or the
+operator — continues the loop from that state instead of restarting cold.
+
+### Binding rule
+
+An agent MUST NOT end its task while a review request for the current head is
+pending, unless it has armed a wakeup (A) or written the rung-C handoff note —
+including after exhausting the rung-B wait budget, whose final exhaustion
+always terminates in a rung-C note rather than a chat-only status. Ending the
+turn without one of these durable states is a SOP violation, equivalent to an
+operator walking away from an unmerged PR without telling anyone.
+
+---
+
 ## Completion Criteria
 
 - Current `headRefOid` is recorded.
@@ -374,6 +555,9 @@ If the sweep finds unresolved threads, route them to COR-1612 before declaring m
 - The handoff note names the remaining human gate, if any: required approval,
   owner merge, branch-protection merge queue, or `none`.
 - Any remaining blockers are explicitly external to the GitHub App review loop.
+- If the task ended while a request was still pending, a durable §Agent
+  Execution state is on record: a wakeup armed (A) or a resumable handoff note
+  written (C — including after rung-B budget exhaustion).
 
 ---
 
@@ -466,6 +650,10 @@ Use the GitHub App PR review bot loop:
 - Before declaring merge-ready, run the pre-merge sweep and confirm no non-bookkeeping GitHub-side review thread remains unresolved or unreplied.
 - Verify the visible-write identity with gh auth status.
 - Do not publish private IPs, local paths, tokens, or host-specific details in public PR text or commits.
+- If you are an agent, follow §Agent Execution for every wait: arm a wakeup
+  or run the bounded wait script. End only with a wakeup armed or a resumable
+  handoff note written — never silently while a review request for the
+  current head is pending.
 ```
 
 ---
@@ -491,3 +679,18 @@ Use the GitHub App PR review bot loop:
 | 2026-06-26 | FXA-2311: completion criteria now require required-check policy evidence, merge state, review decision, draft/open state, and explicit human-gate handoff. | Codex |
 | 2026-06-26 | FXA-2311 R1 (codex bot P2): added `mergeStateStatus` to the §Commands `gh pr view` field list so operators following the SOP can record the value the completion gate now requires. | Codex |
 | 2026-08-12 | CHG FXA-2324: declare restart-on-push back-edge (11→1) per COR-1005; max 10 restarts adopted from COR-1612's documented 10-fix-round fail-safe (no own cap existed), exhaustion escalates per COR-1612 stopping condition #4 | Claude Code |
+| 2026-08-16 | FXA-2327: new §Agent Execution capability ladder (wakeup / bounded shell wait / resumable handoff) with binding no-silent-ending rule; bounded blocking wait script in §Commands; declared `poll-wait` back-edge (8→6); Step 6/8, Operator Checklist, Completion Criteria, and Portable Operator Prompt wired to the ladder. | Claude Code |
+| 2026-08-16 | FXA-2327 R1 (trinity panel): wait script hardened — gh failures exit 3 instead of false exit 0, empty-OID guard, PENDING/DISMISSED reviews excluded, per-page counts summed, no trailing sleep; rung-A delay corrected to 180–270 s per COR-1620 §Cadence rules; poll-wait round unit defined as one bounded-wait invocation; rung-B exhaustion now terminates in a rung-C note; Change History order restored. | Claude Code |
+| 2026-08-16 | FXA-2327 R2 (trinity panel): Operator Checklist and Portable Operator Prompt aligned with the A-or-C binding rule (rung B waits, only A/C end); wait-time arithmetic corrected to ≈60 min per 10 rounds; exit-3 bounded at 3 consecutive failures then rung-C escalation; script honors pre-set Step-5 `HEAD_OID` baseline and hex-shape-guards the OID before jq interpolation. | Claude Code |
+| 2026-08-16 | FXA-2327 R3 (codex bot on PR #327): wait script gains `SINCE` request-timestamp filter so a pre-existing review of the same unchanged head is not miscounted as the awaited result (P1); exit-1 semantics corrected — not proof of pending; check top-level comments and reactions per Steps 6–7 before re-invoking, since some reviewers complete without a review object (P2). | Claude Code |
+| 2026-08-16 | FXA-2327 R4 (live dogfood on PR #327): wait script gains optional `BOT_USER` reviewer filter — the author's own thread replies are recorded by GitHub as COMMENTED reviews on the current head and, like bookkeeping-bot reviews, registered as candidate results, causing immediate spurious exit 0s. | Claude Code |
+| 2026-08-16 | FXA-2327 R5 (codex bot, head cd07f9a): Step 5 now requires capturing the request timestamp before posting the trigger (a post-trigger timestamp can postdate a fast reviewer's result and starve the `SINCE` filter); rung-A wake prompts must carry a stateless `poll-wait N of 10` counter (COR-1620 Primitive 4) so the Step-8 budget stays enforceable across wakes. | Claude Code |
+| 2026-08-16 | FXA-2327 R6 (codex bot, head 3e3e467): automatic-review path anchors the request timestamp before `git push` (no trigger comment exists to take `created_at` from); contract no-bot reduction now includes COR-1612's top-level conversation surface; contract event rule gains a self-healing version check (`af read COR-1615` must show §Agent Execution, else upgrade). | Claude Code |
+| 2026-08-16 | FXA-2327 R7 (codex bot, head 2f87e28): rung A arms exactly one wake chain per pending request — manual path arms after the Step-5 trigger, automatic path after the push — preventing duplicate wake chains with independent counters. | Claude Code |
+| 2026-08-16 | FXA-2327 R8 (codex bot, head 8bb15b0): Step 3 captures the auto-review request timestamp immediately before the final push (the numbered flow previously made pre-trigger capture impossible on that path); new §Agent Execution subsection generalizes the rungs to CI settling (`gh pr checks --watch` as rung B's equivalent; wake prompts and handoff notes name the awaited signal). | Claude Code |
+| 2026-08-16 | FXA-2327 R9 (codex bot, head 4e49411): CI-settling rung-B wait changed from unbounded `gh pr checks --watch` (no timeout — harness kills the call before the rung-C handoff) to a bounded poll of `gh pr checks` exit codes (0 passed / 8 pending / other failed) in the review-wait script's shape. | Claude Code |
+| 2026-08-16 | FXA-2327 R10 (codex bot, head 6304b96): CI poll uses `--required` so optional checks cannot extend the wait beyond the Step-12 gate; exit-code routing distinguishes auth/CLI failures (4, or non-zero with no check table) from genuinely failed required checks. | Claude Code |
+| 2026-08-16 | FXA-2327 R11 (codex bot, head 5ace93f; operator-extended past the 10-round budget): CI poll requires the review script's per-iteration `headRefOid` recheck (`gh pr checks` cannot pin a commit); contract no-bot reduction preserves the CI-settling ladder until required checks pass. | Claude Code |
+| 2026-08-16 | FXA-2327 R12 (codex bot, head c6f9f3e): CI poll resolves the COR-1622 `<required-check-policy>` first — `--required` only when branch protection names required checks; under the all-non-skipped fallback omit it, since it filters out every check. | Claude Code |
+| 2026-08-16 | FXA-2327 R13 (codex bot, head 04b44ea): `BOT_USER` upgraded from optional to set-whenever-known (empty wildcard burns the poll-wait budget on unrelated same-head reviews); request timestamps prefer GitHub's server-side clock (trigger comment `created_at`), and the automatic path drops the local-clock anchor entirely — a new `headRefOid` cannot carry pre-trigger reviews. | Claude Code |
+| 2026-08-16 | FXA-2327 R14 (codex bot, head f25f5c3): `BOT_USER` documented as the submitting actor, not the request handle (`@copilot` → `copilot-pull-request-reviewer[bot]`); force-push/reset onto a previously reviewed SHA voids the new-SHA guarantee — snapshot pre-trigger review IDs there; reviewer-assignment path takes the `review_requested` timeline event's server-side `created_at`. | Claude Code |
