@@ -54,6 +54,10 @@ jobs:
       - name: Promote CHANGELOG Unreleased section
         if: steps.next.outputs.version != ''
         run: |
+          # Recovery: a rerun checks out the originally pushed SHA; if a prior
+          # attempt already pushed the promotion, fast-forward onto it so our
+          # push below is not non-fast-forward.
+          git pull --ff-only origin main
           python - "${{ steps.next.outputs.version }}" <<'EOF'
           import datetime
           import re
@@ -62,6 +66,9 @@ jobs:
           version = sys.argv[1]
           path = "src/fx_alfred/CHANGELOG.md"
           text = open(path, encoding="utf-8").read()
+          if f"## v{version} (" in text:
+              print(f"v{version} section already present; promotion is idempotent — skipping.")
+              sys.exit(0)
           m = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.M | re.S)
           if not m or not m.group(1).strip():
               print("No curated Unreleased notes; skipping promotion.")
