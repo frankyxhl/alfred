@@ -37,6 +37,12 @@ jobs:
       - name: Compute next version
         id: next
         run: |
+          # Sync to the current tip FIRST so compute, promotion, and
+          # semantic-release all operate on the same head — a release-worthy
+          # push racing this run would otherwise make the promoted version
+          # diverge from the tagged one. Also absorbs a prior run's promotion
+          # commit on rerun (fast-forward, never a merge).
+          git pull --ff-only origin main
           pip install --quiet "python-semantic-release==9.*"
           CURRENT=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           NEXT=$(semantic-release --noop version --print 2>/dev/null | tail -1)
@@ -54,10 +60,6 @@ jobs:
       - name: Promote CHANGELOG Unreleased section
         if: steps.next.outputs.version != ''
         run: |
-          # Recovery: a rerun checks out the originally pushed SHA; if a prior
-          # attempt already pushed the promotion, fast-forward onto it so our
-          # push below is not non-fast-forward.
-          git pull --ff-only origin main
           python - "${{ steps.next.outputs.version }}" <<'EOF'
           import datetime
           import re

@@ -42,12 +42,19 @@ Note: bundled SOP document changes ship in the wheel, so `docs(...)` commits DO 
 
 ## Prerequisites
 
+Common to both paths:
+
 - All tests pass (`.venv/bin/pytest -v`)
 - Ruff lint clean (`.venv/bin/ruff check .`)
 - Ruff format clean (`.venv/bin/ruff format --check .`) — if files need formatting, format + commit first
 - Pyright clean (`.venv/bin/pyright src/`) — catches type errors that the publish CI also runs
 - Dual code review passed (Codex + Gemini both ≥ 9/10)
 - README updated per **Step 2** below (FXA-2136 Update README SOP)
+
+Manual fallback only — do **NOT** do these under the automated path (a
+pre-bumped version makes `cd-release.yml` compute `CURRENT == NEXT`, clear
+the release, and skip the CHANGELOG promotion):
+
 - Version bumped in `pyproject.toml`
 - All changes committed and pushed to `main`
 
