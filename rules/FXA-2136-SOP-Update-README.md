@@ -12,6 +12,7 @@
 
 The process for keeping README.md in sync with the current state of fx-alfred before each release.
 
+
 ## Why
 
 README is the first thing users and AI agents see. An outdated README with missing commands, wrong version numbers, or stale examples creates confusion and wastes onboarding time.
@@ -24,6 +25,7 @@ README is the first thing users and AI agents see. An outdated README with missi
 - After adding new commands or features
 - After changing existing command behavior
 
+
 ## When NOT to Use
 
 - Patch releases with only bugfixes and no user-facing changes
@@ -33,7 +35,7 @@ README is the first thing users and AI agents see. An outdated README with missi
 
 ## Steps
 
-1. **Check version** — Ensure version in README matches `pyproject.toml`
+1. **Check version** — Manual release path: ensure the version in README matches `pyproject.toml`. Automated path (FXA-2102 §Automated Path): README references the **next** version that `cd-release.yml` will compute — `pyproject.toml` intentionally still holds the old version inside the PR, so do not "fix" the mismatch
 
 2. **Check Commands Reference** — Run `af --help` and compare against README's Commands Reference section. Add any missing commands, remove any deprecated ones.
 
@@ -53,6 +55,7 @@ README is the first thing users and AI agents see. An outdated README with missi
 
 8. **Commit** — If changes were made, commit README.md before proceeding with release.
 
+
 ## Examples
 
 ```bash
@@ -68,7 +71,7 @@ af --help                              # compare against README Commands Referen
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-03-21 | Initial version | Frank + Claude Code |
-| 2026-03-21 | Added Examples section | Claude Code |
+| Date       | Change                 | By                  |
+|------------|------------------------|---------------------|
+| 2026-03-21 | Initial version        | Frank + Claude Code |
+| 2026-03-21 | Added Examples section | Claude Code         |

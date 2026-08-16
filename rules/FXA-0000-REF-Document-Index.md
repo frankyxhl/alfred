@@ -238,6 +238,7 @@
 | 2325 | CHG | Declare COR 1617 Loop Back Edges | Completed |
 | 2326 | CHG | Loop Declaration Regression Guard | Completed |
 | 2327 | CHG | COR 1615 Agent Execution Ladder | Completed |
+| 2328 | CHG | Semantic Release Automation | Proposed |
 
 ---
 

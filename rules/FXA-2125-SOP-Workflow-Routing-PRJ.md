@@ -4,7 +4,7 @@
 **Last updated:** 2026-04-04
 **Last reviewed:** 2026-03-20
 **Status:** Active
-**Tags:** routing, plan
+**Tags:** plan, routing
 
 ---
 
@@ -42,8 +42,10 @@ What do you need to do in the FXA project?
 
 1. Release a new version?
    └── FXA-2102 (Release To PyPI)
-       Prerequisites: tests pass + ruff clean + version bump + pushed to main + README up to date (FXA-2136)
-       Steps: gh release create → CI auto-publish → verify on PyPI
+       Primary (automated, FXA-2328): merge a conventional-commit PR to main
+         (do NOT pre-bump the version) → cd-release.yml promotes CHANGELOG,
+         bumps, tags, creates the Release → publish.yml → verify on PyPI
+       Manual fallback: version bump + README (FXA-2136) + gh release create
 
 2. Develop a new feature / modify code?
    └── FXA-2100 (Leader Mediated Development)
@@ -96,6 +98,7 @@ What do you need to do in the FXA project?
         Underlying chain (for drop-down debugging): COR-1617 §1 (Auto-pick) → COR-1618 (consent) → COR-1506 (quality) → scope-rank tree
 ```
 
+
 ## Project Context
 
 ```
@@ -109,10 +112,11 @@ Root:        --root /Users/frank/Projects/alfred/fx_alfred
 Dev install: cd fx_alfred && pip install -e .
 ```
 
+
 ## Project Golden Rules
 
 ```
-FXA-2102: Release = version bump → push → gh release create → CI publishes to PyPI
+FXA-2102: Release = merge conventional-commit PR to main (no pre-bump) → cd-release.yml auto-versions/tags → publish.yml → PyPI; manual bump + gh release create is the fallback only
 FXA-2100: Leader dispatches GLM (Worker), reviews with Codex+Gemini (Reviewer)
 ALF-2300: Incident = record what happened, impact, resolution, follow-up
 COR-1500: Any code change → TDD: failing test first, then green, then refactor
@@ -123,6 +127,7 @@ COR-1501: GitHub issue = blueprint template + stack-type-* / stack-area-* label 
 FXA-2276: "follow FXA-2276" is the alfred entry-point for picking the next open issue (full COR-1618 verify_consent_eligibility on every pick; only `follow FXA-2276 for #N` is bypass-eligible per §Normative Bypass)
 ```
 
+
 ## Steps
 
 This is a routing SOP — no procedural steps. The Project Decision Tree above is the primary content. Follow it to determine which SOP applies to your current task.
@@ -131,14 +136,14 @@ This is a routing SOP — no procedural steps. The Project Decision Tree above i
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-03-20 | Initial version per FXA-2220 | Frank + Claude Code |
-| 2026-03-20 | Rewritten: added project decision tree, project context, expanded golden rules | Frank + Claude Code |
-| 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration) | Claude Code |
-| 2026-03-21 | Added Steps section (routing SOP, no procedural steps) | Claude Code |
-| 2026-03-30 | CHG FXA-2153: Translated decision tree from Chinese to English (COR-0002/COR-1401 compliance) | Claude Code |
-| 2026-04-04 | CHG FXA-2190: Remove deprecated FXA-2127 ref from decision tree, fix stale "no remote" golden rule | Claude Code |
-| 2026-05-10 | issue #126: add branch 9 (Create GitHub issue → COR-1501) to decision tree; add COR-1501 traceability line to Golden Rules | Claude Opus 4.7 |
-| 2026-05-16 | issue #162: add branch 10 (Pick next open issue / autonomous loop → FXA-2276) to decision tree; add FXA-2276 line to Golden Rules | Claude Opus 4.7 |
-| 2026-05-16 | issue #163 (bundled with #162 in PR #164): tighten branch 10 header — clarify that only `follow FXA-2276 for #N` is gate-bypassed; `follow FXA-2276` and `follow FXA-2276 once` apply full COR-1618 verify_consent_eligibility on every pick (aligns with the FXA-2276 §Invocation tightening in the same PR) | Claude Opus 4.7 |
+| Date       | Change                                                                                                                                                                                                                                                                                                        | By                  |
+|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| 2026-03-20 | Initial version per FXA-2220                                                                                                                                                                                                                                                                                  | Frank + Claude Code |
+| 2026-03-20 | Rewritten: added project decision tree, project context, expanded golden rules                                                                                                                                                                                                                                | Frank + Claude Code |
+| 2026-03-20 | FXA-2133: Add Why, When to Use, When NOT to Use sections (5W1H migration)                                                                                                                                                                                                                                     | Claude Code         |
+| 2026-03-21 | Added Steps section (routing SOP, no procedural steps)                                                                                                                                                                                                                                                        | Claude Code         |
+| 2026-03-30 | CHG FXA-2153: Translated decision tree from Chinese to English (COR-0002/COR-1401 compliance)                                                                                                                                                                                                                 | Claude Code         |
+| 2026-04-04 | CHG FXA-2190: Remove deprecated FXA-2127 ref from decision tree, fix stale "no remote" golden rule                                                                                                                                                                                                            | Claude Code         |
+| 2026-05-10 | issue #126: add branch 9 (Create GitHub issue → COR-1501) to decision tree; add COR-1501 traceability line to Golden Rules                                                                                                                                                                                    | Claude Opus 4.7     |
+| 2026-05-16 | issue #162: add branch 10 (Pick next open issue / autonomous loop → FXA-2276) to decision tree; add FXA-2276 line to Golden Rules                                                                                                                                                                             | Claude Opus 4.7     |
+| 2026-05-16 | issue #163 (bundled with #162 in PR #164): tighten branch 10 header — clarify that only `follow FXA-2276 for #N` is gate-bypassed; `follow FXA-2276` and `follow FXA-2276 once` apply full COR-1618 verify_consent_eligibility on every pick (aligns with the FXA-2276 §Invocation tightening in the same PR) | Claude Opus 4.7     |
