@@ -60,9 +60,13 @@ Note: bundled SOP document changes ship in the wheel, so `docs(...)` commits DO 
    → no release). Update CHANGELOG's `## Unreleased` section and the README
    "NEW in vX" line (FXA-2136) inside the PR — semantic-release does not
    write prose.
-2. On merge, `cd-release.yml` runs semantic-release: bumps
+2. On merge, `cd-release.yml` first promotes CHANGELOG's `## Unreleased`
+   notes to a `## v{version} (date)` section (skipped when Unreleased is
+   empty), then runs semantic-release: bumps
    `pyproject.toml:project.version`, commits `chore(release): ...`, tags
    `v{version}`, creates the GitHub Release (via `SEMANTIC_RELEASE_PAT`).
+   The promotion lands before the tag, so the built wheel ships correct
+   version boundaries for `af changelog`.
 3. The Release event triggers `publish.yml`: test gate → build → Trusted
    Publishing to PyPI.
 4. Verify: `gh run list --workflow=publish.yml --limit 1` shows success and

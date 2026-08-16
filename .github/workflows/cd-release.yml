@@ -34,6 +34,53 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Compute next version
+        id: next
+        run: |
+          pip install --quiet "python-semantic-release==9.*"
+          CURRENT=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          NEXT=$(semantic-release --noop version --print 2>/dev/null | tail -1)
+          echo "current=$CURRENT next=$NEXT"
+          if [[ -n "$NEXT" && "$NEXT" != "$CURRENT" ]]; then
+            echo "version=$NEXT" >> $GITHUB_OUTPUT
+          else
+            echo "version=" >> $GITHUB_OUTPUT
+          fi
+
+      # Promote the hand-curated `## Unreleased` section to the computed
+      # version BEFORE semantic-release commits and tags, so the wheel built
+      # from the tag ships a CHANGELOG with correct version boundaries
+      # (`af changelog` reads it). Semantic-release's own changelog stays off.
+      - name: Promote CHANGELOG Unreleased section
+        if: steps.next.outputs.version != ''
+        run: |
+          python - "${{ steps.next.outputs.version }}" <<'EOF'
+          import datetime
+          import re
+          import sys
+
+          version = sys.argv[1]
+          path = "src/fx_alfred/CHANGELOG.md"
+          text = open(path, encoding="utf-8").read()
+          m = re.search(r"^## Unreleased\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+          if not m or not m.group(1).strip():
+              print("No curated Unreleased notes; skipping promotion.")
+              sys.exit(0)
+          today = datetime.date.today().isoformat()
+          promoted = text[: m.start()] + (
+              f"## Unreleased\n\n## v{version} ({today})\n{m.group(1)}"
+          ) + text[m.end():]
+          open(path, "w", encoding="utf-8").write(promoted)
+          print(f"Promoted Unreleased to v{version} ({today}).")
+          EOF
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/fx_alfred/CHANGELOG.md
+            git commit -m "chore(release): promote CHANGELOG Unreleased to v${{ steps.next.outputs.version }}"
+            git push
+          fi
+
       - name: Semantic Release (version + tag + GitHub Release)
         id: semantic-release
         uses: python-semantic-release/python-semantic-release@v9

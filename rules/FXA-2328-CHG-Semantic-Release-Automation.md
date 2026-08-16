@@ -87,6 +87,7 @@ main" the single release action.
 
 ## Change History
 
-| Date       | Change          | By          |
-|------------|-----------------|-------------|
-| 2026-08-16 | Initial version | Claude Code |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                                                   | By          |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| 2026-08-16 | Initial version                                                                                                                                                                                                                                                                                                                                                          | Claude Code |
+| 2026-08-16 | R1 (codex P2 on PR #329): cd-release.yml gains a pre-tag CHANGELOG promotion step — computes the next version with `semantic-release --noop version --print`, promotes `## Unreleased` to `## v{version} (date)` (skip when empty), commits before semantic-release tags, so wheels ship correct version boundaries and Unreleased no longer accumulates shipped changes | Claude Code |
