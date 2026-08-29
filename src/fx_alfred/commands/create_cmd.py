@@ -1,6 +1,8 @@
 import contextlib
+import getpass
 import os
 import re
+import tempfile
 import time
 from datetime import date
 from importlib import resources
@@ -70,11 +72,20 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     USR area), so per-scope locks cannot be made disjoint. `~/.alfred` is
     the one location every process touching the document namespace shares
     (unlike TMPDIR, which varies per environment) and is per-user by
-    construction. Creates are rare and hold the lock for milliseconds.
+    construction. When `~/.alfred` cannot be written (read-only HOME in a
+    container or service account) the lock degrades to the temp dir so a
+    project-layer create still works. Creates are rare and hold the lock
+    for milliseconds.
     """
     user_root = Path.home() / ".alfred"
-    user_root.mkdir(parents=True, exist_ok=True)
-    return user_root / ".af-create.lock"
+    try:
+        user_root.mkdir(parents=True, exist_ok=True)
+        if os.access(user_root, os.W_OK):
+            return user_root / ".af-create.lock"
+    except OSError:
+        pass
+    ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
+    return Path(tempfile.gettempdir()) / f"af-create-{ident}.lock"
 
 
 def _reclaim_stale_marker(marker: Path) -> bool:
@@ -93,12 +104,15 @@ def _reclaim_stale_marker(marker: Path) -> bool:
 
 
 @contextlib.contextmanager
-def _creation_lock(write_base: Path):
+def _creation_lock(write_base: Path, dry_run: bool = False):
     """Serialise allocation + write, so two concurrent `af create` runs cannot
     pick the same next ACID. POSIX: flock on the lock file (released by the
     OS on any exit). Elsewhere: an exclusive-create `.excl` marker holding
     `pid mtime`, reclaimed when stale. Waits up to AF_CREATE_LOCK_TIMEOUT
     seconds (default 10)."""
+    if dry_run:  # a preview writes nothing — not even a lock file
+        yield
+        return
     timeout = float(os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10"))
     deadline = time.monotonic() + timeout
     lock_path = lock_path_for(write_base)
@@ -604,7 +618,7 @@ def create_cmd(
         write_base = _resolve_write_base(ctx, layer, subdir)
 
         # Scan for existing docs to check collisions and auto-assign ACID
-        with _creation_lock(write_base):
+        with _creation_lock(write_base, dry_run=dry_run):
             docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
             # Auto-assign ACID from area if needed
@@ -681,7 +695,7 @@ def create_cmd(
     # Resolve write base early so --root + --layer user conflict is caught first
     write_base = _resolve_write_base(ctx, layer, subdir)
 
-    with _creation_lock(write_base):
+    with _creation_lock(write_base, dry_run=dry_run):
         docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
         if area is not None:

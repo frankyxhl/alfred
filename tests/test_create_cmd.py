@@ -1738,7 +1738,9 @@ def test_create_serialises_allocation_with_a_target_lock(tmp_path, monkeypatch):
     """Allocation + write run under a per-target lock so two concurrent creates
     cannot pick the same next ACID. A held lock makes the second create fail
     fast instead of allocating."""
-    import fcntl
+    fcntl = pytest.importorskip(
+        "fcntl"
+    )  # POSIX-only lock; the fallback has its own test
 
     from fx_alfred.commands.create_cmd import lock_path_for
 
@@ -1886,7 +1888,9 @@ def test_index_regeneration_runs_inside_the_create_lock(tmp_path, monkeypatch):
     """The derived PREFIX-0000 index is written from a scan; if that ran after
     the lock was released, two creates could interleave and lose the newest
     document from the index. Assert the lock is still held during it."""
-    import fcntl
+    fcntl = pytest.importorskip(
+        "fcntl"
+    )  # POSIX-only lock; the fallback has its own test
 
     from fx_alfred.commands import create_cmd
 
@@ -1913,3 +1917,47 @@ def test_index_regeneration_runs_inside_the_create_lock(tmp_path, monkeypatch):
     )
     assert result.exit_code == 0, result.output
     assert seen.get("held") is True
+
+
+def test_dry_run_writes_nothing_not_even_a_lock_file(tmp_path, monkeypatch):
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    alfred = Path.home() / ".alfred"
+    before = sorted(p.name for p in alfred.iterdir()) if alfred.exists() else None
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Preview", "--dry-run"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert not list(rules.glob("TST-*"))
+    after = sorted(p.name for p in alfred.iterdir()) if alfred.exists() else None
+    assert after == before, "dry run must not create ~/.alfred or a lock file"
+
+
+def test_project_create_works_when_user_alfred_dir_is_read_only(tmp_path, monkeypatch):
+    """Read-only HOME (containers, service accounts): the lock degrades to the
+    temp dir and a project-layer create still succeeds."""
+    import os
+
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    alfred.chmod(0o500)
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["create", "sop", "--prefix", "TST", "--title", "Locked Home"],
+            catch_exceptions=False,
+        )
+    finally:
+        alfred.chmod(0o700)
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Locked-Home.md").exists()
