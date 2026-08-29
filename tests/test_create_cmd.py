@@ -279,18 +279,6 @@ def test_create_area_and_acid_mutually_exclusive(tmp_path, monkeypatch):
     assert "Cannot specify both" in result.output
 
 
-def test_create_neither_acid_nor_area_errors(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        ["create", "sop", "--prefix", "TST", "--title", "No ACID"],
-        catch_exceptions=False,
-    )
-    assert result.exit_code != 0
-    assert "Must specify either" in result.output
-
-
 def test_create_auto_indexes_after_create(tmp_path, monkeypatch):
     """After creating a doc, the index file is generated."""
     monkeypatch.chdir(tmp_path)
@@ -1405,3 +1393,46 @@ def test_create_spec_dry_run_rejects_title_that_slugifies_to_empty(
     assert "Created" not in result.output, (
         f"'Created' appeared in output despite failed validation. Output: {result.output}"
     )
+
+
+def test_create_without_acid_or_area_assigns_next_sequential(tmp_path, monkeypatch):
+    """No --acid and no --area: the simplest mode — max existing ACID for the
+    prefix + 1, starting at 0001 on an empty project (0000 is the index)."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "First"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "rules" / "TST-0001-SOP-First.md").exists()
+
+    result = runner.invoke(
+        cli,
+        ["create", "ref", "--prefix", "TST", "--title", "Second"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "rules" / "TST-0002-REF-Second.md").exists()
+
+
+def test_sequential_acid_continues_after_the_highest_existing_number(
+    tmp_path, monkeypatch
+):
+    """Area-numbered documents already in the project set the high-water mark:
+    with TST-2100 present the next sequential number is 2101, never a gap-fill."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Area Doc"],
+        catch_exceptions=False,
+    )
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Next"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "rules" / "TST-2101-SOP-Next.md").exists()

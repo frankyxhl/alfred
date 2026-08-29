@@ -54,6 +54,25 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
+def _next_acid_sequential(docs: list, prefix: str) -> str:
+    """The simplest numbering: the highest ACID already used by ``prefix`` + 1.
+
+    ``0000`` (the document index) counts as used, so an empty project starts at
+    ``0001``; area-numbered documents raise the high-water mark (after
+    ``2100`` comes ``2101``) — no gap-filling, so a number is never reused.
+    """
+    highest = 0
+    for doc in docs:
+        if doc.prefix == prefix:
+            try:
+                highest = max(highest, int(doc.acid))
+            except (TypeError, ValueError):
+                continue
+    if highest >= 9999:
+        raise click.ClickException(f"No ACID left for prefix {prefix} (9999 reached)")
+    return f"{highest + 1:04d}"
+
+
 def _next_acid_in_area(docs: list, prefix: str, area: str) -> str:
     area_int = int(area)
     start = area_int * 100 + (1 if area == "00" else 0)
@@ -193,10 +212,7 @@ def _resolve_spec_fields(
         raise click.ClickException("Prefix required (via --prefix or spec file)")
     if final_title is None:
         raise click.ClickException("Title required (via --title or spec file)")
-    if final_acid is None and final_area is None:
-        raise click.ClickException(
-            "ACID or area required (via --acid/--area or spec file)"
-        )
+    # Neither --acid nor --area: sequential numbering (highest used + 1), assigned below.
 
     # Validate prefix format (reuse callback logic)
     if not re.match(r"^[A-Z]{3}$", final_prefix):
@@ -344,7 +360,7 @@ Examples:
     "--acid",
     default=None,
     callback=validate_acid,
-    help="4-digit ACID number (mutually exclusive with --area)",
+    help="4-digit ACID number (mutually exclusive with --area). Omit both --acid and --area to number sequentially: highest existing ACID for the prefix + 1, starting at 0001",
 )
 @click.option(
     "--area",
@@ -417,6 +433,8 @@ def create_cmd(
         # Auto-assign ACID from area if needed
         if final_acid is None and final_area is not None:
             final_acid = _next_acid_in_area(docs, final_prefix, str(final_area))
+        elif final_acid is None:
+            final_acid = _next_acid_sequential(docs, final_prefix)
 
         if final_acid is None:
             raise click.ClickException(
@@ -470,8 +488,6 @@ def create_cmd(
 
     if acid and area:
         raise click.ClickException("Cannot specify both --acid and --area")
-    if not acid and not area:
-        raise click.ClickException("Must specify either --acid or --area")
 
     # prefix and title are required in CLI mode (validate_prefix returns original value if None passed)
     if prefix is None:
@@ -491,6 +507,8 @@ def create_cmd(
         if not re.match(r"^\d{2}$", area):
             raise click.ClickException("--area must be exactly 2 digits (e.g., 21)")
         acid = _next_acid_in_area(docs, prefix, area)
+    elif acid is None:
+        acid = _next_acid_sequential(docs, prefix)
 
     if acid is None:
         raise click.ClickException(
