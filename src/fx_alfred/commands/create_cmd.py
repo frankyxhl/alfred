@@ -1,5 +1,4 @@
 import contextlib
-import hashlib
 import os
 import tempfile
 import re
@@ -64,36 +63,43 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
-def lock_scope_for(write_base: Path, layer: str | None) -> Path:
-    """The allocation namespace a write belongs to — the directory whose
-    documents `_allocation_docs` numbers against — and therefore the lock
-    domain: `rules/` for the project layer; the registered unit root for a
-    target inside a unit; `~/.alfred` for any global user target."""
-    if layer != "user":
-        return write_base
-    unit_root = _registered_unit_root(write_base, _registered_units())
-    return unit_root if unit_root is not None else Path.home() / ".alfred"
+def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for every target
+    """The single machine-wide `af create` lock, in the system temp dir.
+
+    Allocation scopes overlap (a global user write numbers against every
+    registered unit AND the caller's rules/; a unit write against the global
+    USR area), so per-scope locks cannot be made disjoint. Creates are rare
+    and hold the lock for milliseconds: one lock is the correct trade.
+    """
+    return Path(tempfile.gettempdir()) / "af-create.lock"
 
 
-def lock_path_for(scope: Path) -> Path:
-    """The lock file guarding an allocation scope: in the system temp dir,
-    keyed by the resolved scope path, so no stray file lands in a rules/ dir."""
-    key = hashlib.sha1(str(scope.resolve()).encode("utf-8")).hexdigest()[:16]
-    return Path(tempfile.gettempdir()) / f"af-create-{key}.lock"
+def _reclaim_stale_marker(marker: Path) -> bool:
+    """Remove a fallback marker older than AF_CREATE_LOCK_STALE seconds
+    (default 60): a killed process never reaches its `finally`."""
+    stale_after = float(os.environ.get("AF_CREATE_LOCK_STALE", "60"))
+    try:
+        age = time.time() - marker.stat().st_mtime
+    except FileNotFoundError:
+        return True
+    if age < stale_after:
+        return False
+    with contextlib.suppress(FileNotFoundError):
+        marker.unlink()
+    return True
 
 
 @contextlib.contextmanager
-def _creation_lock(scope: Path):
-    """Serialise allocation + write per allocation scope, so two concurrent
-    `af create` runs cannot pick the same next ACID. POSIX: flock on the lock
-    file. Elsewhere: an exclusive-create `.excl` marker next to it. Waits up
-    to AF_CREATE_LOCK_TIMEOUT seconds (default 10)."""
+def _creation_lock(write_base: Path):
+    """Serialise allocation + write, so two concurrent `af create` runs cannot
+    pick the same next ACID. POSIX: flock on the lock file (released by the
+    OS on any exit). Elsewhere: an exclusive-create `.excl` marker holding
+    `pid mtime`, reclaimed when stale. Waits up to AF_CREATE_LOCK_TIMEOUT
+    seconds (default 10)."""
     timeout = float(os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10"))
     deadline = time.monotonic() + timeout
-    lock_path = lock_path_for(scope)
-    busy = click.ClickException(
-        f"another af create is running for {scope}; retry in a moment"
-    )
+    lock_path = lock_path_for(write_base)
+    busy = click.ClickException("another af create is running; retry in a moment")
     if fcntl is None:
         marker = lock_path.with_suffix(".excl")
         while True:
@@ -101,10 +107,13 @@ def _creation_lock(scope: Path):
                 fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
                 break
             except FileExistsError:
+                if _reclaim_stale_marker(marker):
+                    continue
                 if time.monotonic() >= deadline:
                     raise busy from None
                 time.sleep(0.05)
         try:
+            os.write(fd, f"{os.getpid()} {int(time.time())}".encode())
             os.close(fd)
             yield
         finally:
@@ -131,19 +140,23 @@ def _reject_scanner_invisible(write_base: Path, units: dict[str, Path]) -> None:
     ~/.alfred or of a registered unit, or a rules/.../logs path) would hold
     documents no later scan can see: refuse to create there."""
     user_root = Path.home() / ".alfred"
-    roots = [user_root]
+    roots = [user_root, user_root.resolve()]
     unit_root = _registered_unit_root(write_base, units)
     if unit_root is not None:
-        roots.append(unit_root)
-    for root in roots:
-        try:
-            parts = write_base.relative_to(root).parts
-        except ValueError:
-            continue
-        if (parts and parts[0] == "logs") or ("rules" in parts and "logs" in parts):
-            raise click.ClickException(
-                f"{write_base} is excluded from document scanning (logs path); choose another --subdir"
-            )
+        roots += [unit_root, unit_root.resolve()]
+    # Judge the lexical path AND the resolved one: `~/.alfred/safe` may be a
+    # symlink into the excluded logs tree.
+    for base in (write_base, write_base.resolve()):
+        for root in roots:
+            try:
+                parts = base.relative_to(root).parts
+            except ValueError:
+                continue
+            if (parts and parts[0] == "logs") or ("rules" in parts and "logs" in parts):
+                raise click.ClickException(
+                    f"{write_base} is excluded from document scanning (logs path); "
+                    "choose another --subdir"
+                )
 
 
 def _registered_units() -> dict[str, Path]:
@@ -588,7 +601,7 @@ def create_cmd(
         write_base = _resolve_write_base(ctx, layer, subdir)
 
         # Scan for existing docs to check collisions and auto-assign ACID
-        with _creation_lock(lock_scope_for(write_base, layer)):
+        with _creation_lock(write_base):
             docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
             # Auto-assign ACID from area if needed
@@ -665,7 +678,7 @@ def create_cmd(
     # Resolve write base early so --root + --layer user conflict is caught first
     write_base = _resolve_write_base(ctx, layer, subdir)
 
-    with _creation_lock(lock_scope_for(write_base, layer)):
+    with _creation_lock(write_base):
         docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
         if area is not None:

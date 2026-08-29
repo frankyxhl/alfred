@@ -1746,7 +1746,7 @@ def test_create_serialises_allocation_with_a_target_lock(tmp_path, monkeypatch):
     rules.mkdir()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
-    lock_path = lock_path_for(rules)  # project layer: scope == rules/
+    lock_path = lock_path_for(rules)
     with open(lock_path, "w") as held:
         fcntl.flock(held, fcntl.LOCK_EX)
         runner = CliRunner()
@@ -1767,28 +1767,20 @@ def test_create_serialises_allocation_with_a_target_lock(tmp_path, monkeypatch):
     assert (rules / "TST-0001-SOP-Blocked.md").exists()
 
 
-def test_lock_scope_is_the_allocation_namespace_not_the_exact_directory(
-    tmp_path, monkeypatch
-):
-    """Targets that share an allocation scope must share a lock: two subdirs of
-    one registered unit, or two global ~/.alfred subdirs."""
-    from fx_alfred.commands.create_cmd import lock_scope_for
+def test_every_create_takes_the_same_machine_wide_lock(tmp_path, monkeypatch):
+    """Allocation scopes overlap (a global user create numbers against every
+    registered unit AND the caller's rules/), so there is exactly one lock."""
+    from fx_alfred.commands.create_cmd import lock_path_for
 
-    sub = _register_subproject(tmp_path)  # MYP registered
+    sub = _register_subproject(tmp_path)
     alfred = Path.home() / ".alfred"
-    assert (
-        lock_scope_for(sub / "foo", "user")
-        == lock_scope_for(sub / "bar", "user")
-        == sub
-    )
-    assert (
-        lock_scope_for(alfred / "x", "user")
-        == lock_scope_for(alfred / "y" / "z", "user")
-        == alfred
-    )
-    assert lock_scope_for(alfred, "user") == alfred
     rules = tmp_path / "rules"
-    assert lock_scope_for(rules, "project") == rules
+    assert (
+        lock_path_for(sub / "foo")
+        == lock_path_for(alfred / "x")
+        == lock_path_for(rules)
+    )
+    assert lock_path_for(rules).parent != rules
 
 
 def test_create_lock_falls_back_without_fcntl(tmp_path, monkeypatch):
@@ -1822,3 +1814,60 @@ def test_create_lock_falls_back_without_fcntl(tmp_path, monkeypatch):
     assert result.exit_code == 0, result.output
     assert (rules / "TST-0001-SOP-Blocked.md").exists()
     assert not marker.exists(), "fallback lock file must be released"
+
+
+def test_stale_fallback_lock_marker_is_reclaimed(tmp_path, monkeypatch):
+    """A fallback marker left behind by a killed process must not block
+    creation forever: markers older than AF_CREATE_LOCK_STALE are reclaimed."""
+    import os
+
+    from fx_alfred.commands import create_cmd
+
+    monkeypatch.setattr(create_cmd, "fcntl", None)
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
+    monkeypatch.setenv("AF_CREATE_LOCK_STALE", "1")
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    marker = create_cmd.lock_path_for(rules).with_suffix(".excl")
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("999999 0", encoding="utf-8")
+    old = 1_000_000_000
+    os.utime(marker, (old, old))
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Reclaimed"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Reclaimed.md").exists()
+    assert not marker.exists()
+
+
+def test_symlink_into_scanner_invisible_logs_is_rejected(tmp_path, monkeypatch):
+    """`~/.alfred/safe` → `~/.alfred/logs`: lexically fine, but the write lands
+    in the excluded logs tree. Resolve before judging."""
+    alfred = Path.home() / ".alfred"
+    (alfred / "logs").mkdir(parents=True, exist_ok=True)
+    (alfred / "safe").symlink_to(alfred / "logs", target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "safe",
+            "--title",
+            "Hidden",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "excluded from document scanning" in result.output
+    assert not list((alfred / "logs").glob("TST-*"))
