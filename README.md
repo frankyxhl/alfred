@@ -212,7 +212,8 @@ Checks:
 
 ```bash
 # Create
-af create sop --prefix FXA --area 21 --title "My SOP"
+af create sop --prefix FXA --title "My SOP"              # sequential: highest ACID + 1 (0001, 0002, ...)
+af create sop --prefix FXA --area 21 --title "My SOP"    # area-based: next free ACID in 21xx
 af create prp --prefix FXA --area 21 --title "My Proposal"
 af create sop --prefix FXA --area 21 --title "My SOP" --spec fields.yaml  # from spec file
 
@@ -431,7 +432,7 @@ af tag ls [--json] | af tag show TAG [--json]
 af tag add IDENTIFIER TAG... | af tag rm IDENTIFIER TAG...
 af tag vocab ls | af tag vocab add TAG... | af tag vocab rm TAG...
 af read IDENTIFIER [--json]
-af create TYPE --prefix P --acid N|--area N --title T [--layer project|user] [--subdir DIR] [--spec FILE] [--dry-run]
+af create TYPE --prefix P [--acid N|--area N] --title T [--layer project|user] [--subdir DIR] [--spec FILE] [--dry-run]
 af update IDENTIFIER [--status STATUS] [--field KEY VALUE] [--history TEXT] [--by NAME] [--title TITLE] [-y|--yes] [--dry-run] [--spec FILE]
 af fmt [DOC_IDS...] [--write] [--check]
 af where IDENTIFIER [--json]
