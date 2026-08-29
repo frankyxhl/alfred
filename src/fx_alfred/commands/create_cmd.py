@@ -71,7 +71,8 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     USR area), so per-scope locks cannot be made disjoint. Creates are rare
     and hold the lock for milliseconds: one lock is the correct trade.
     """
-    return Path(tempfile.gettempdir()) / "af-create.lock"
+    ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
+    return Path(tempfile.gettempdir()) / f"af-create-{ident}.lock"
 
 
 def _reclaim_stale_marker(marker: Path) -> bool:
@@ -651,10 +652,10 @@ def create_cmd(
 
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(content, encoding="utf-8")
-        click.echo(f"Created {output_path}")
+            click.echo(f"Created {output_path}")
 
-        if layer != "user":
-            invoke_index_update(ctx)
+            if layer != "user":
+                invoke_index_update(ctx)
         return
 
     # ── Mode 2: CLI args mode (original behavior) ──────────────────────────────
@@ -727,7 +728,7 @@ def create_cmd(
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
-    click.echo(f"Created {output_path}")
+        click.echo(f"Created {output_path}")
 
-    if layer != "user":
-        invoke_index_update(ctx)
+        if layer != "user":
+            invoke_index_update(ctx)

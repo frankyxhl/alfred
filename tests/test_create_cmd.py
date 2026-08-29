@@ -1871,3 +1871,48 @@ def test_symlink_into_scanner_invisible_logs_is_rejected(tmp_path, monkeypatch):
     assert result.exit_code != 0
     assert "excluded from document scanning" in result.output
     assert not list((alfred / "logs").glob("TST-*"))
+
+
+def test_lock_file_is_scoped_to_the_current_user(tmp_path):
+    """On a shared host /tmp is common; a fixed lock name owned by another
+    account would raise PermissionError. The name carries the uid/user."""
+    import getpass
+    import os
+
+    from fx_alfred.commands.create_cmd import lock_path_for
+
+    ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
+    assert ident in lock_path_for(tmp_path).name
+
+
+def test_index_regeneration_runs_inside_the_create_lock(tmp_path, monkeypatch):
+    """The derived PREFIX-0000 index is written from a scan; if that ran after
+    the lock was released, two creates could interleave and lose the newest
+    document from the index. Assert the lock is still held during it."""
+    import fcntl
+
+    from fx_alfred.commands import create_cmd
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    seen = {}
+
+    def fake_index_update(ctx):
+        with open(create_cmd.lock_path_for(rules), "a+") as probe:
+            try:
+                fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                seen["held"] = False
+                fcntl.flock(probe, fcntl.LOCK_UN)
+            except OSError:
+                seen["held"] = True
+
+    monkeypatch.setattr(create_cmd, "invoke_index_update", fake_index_update)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Indexed"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert seen.get("held") is True
