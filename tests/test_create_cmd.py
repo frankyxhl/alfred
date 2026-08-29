@@ -1746,7 +1746,7 @@ def test_create_serialises_allocation_with_a_target_lock(tmp_path, monkeypatch):
     rules.mkdir()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
-    lock_path = lock_path_for(rules)
+    lock_path = lock_path_for(rules)  # project layer: scope == rules/
     with open(lock_path, "w") as held:
         fcntl.flock(held, fcntl.LOCK_EX)
         runner = CliRunner()
@@ -1765,3 +1765,60 @@ def test_create_serialises_allocation_with_a_target_lock(tmp_path, monkeypatch):
     )
     assert result.exit_code == 0, result.output
     assert (rules / "TST-0001-SOP-Blocked.md").exists()
+
+
+def test_lock_scope_is_the_allocation_namespace_not_the_exact_directory(
+    tmp_path, monkeypatch
+):
+    """Targets that share an allocation scope must share a lock: two subdirs of
+    one registered unit, or two global ~/.alfred subdirs."""
+    from fx_alfred.commands.create_cmd import lock_scope_for
+
+    sub = _register_subproject(tmp_path)  # MYP registered
+    alfred = Path.home() / ".alfred"
+    assert (
+        lock_scope_for(sub / "foo", "user")
+        == lock_scope_for(sub / "bar", "user")
+        == sub
+    )
+    assert (
+        lock_scope_for(alfred / "x", "user")
+        == lock_scope_for(alfred / "y" / "z", "user")
+        == alfred
+    )
+    assert lock_scope_for(alfred, "user") == alfred
+    rules = tmp_path / "rules"
+    assert lock_scope_for(rules, "project") == rules
+
+
+def test_create_lock_falls_back_without_fcntl(tmp_path, monkeypatch):
+    """Without the POSIX fcntl module (Windows) the lock must still work via an
+    exclusive-create lock file, and `af create` must stay importable."""
+    from fx_alfred.commands import create_cmd
+
+    monkeypatch.setattr(create_cmd, "fcntl", None)
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
+    marker = create_cmd.lock_path_for(rules).with_suffix(".excl")
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text("held", encoding="utf-8")
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Blocked"]
+        )
+        assert result.exit_code != 0
+        assert "another af create" in result.output
+        assert not list(rules.glob("TST-*"))
+    finally:
+        marker.unlink()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Blocked"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Blocked.md").exists()
+    assert not marker.exists(), "fallback lock file must be released"

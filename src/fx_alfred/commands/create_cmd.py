@@ -1,5 +1,4 @@
 import contextlib
-import fcntl
 import hashlib
 import os
 import tempfile
@@ -12,6 +11,11 @@ from typing import Any
 
 import click
 import yaml
+
+try:
+    import fcntl
+except ModuleNotFoundError:  # pragma: no cover - non-POSIX platforms (Windows)
+    fcntl = None  # type: ignore[assignment]
 
 from fx_alfred.commands._helpers import (
     invoke_index_update,
@@ -60,30 +64,61 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
-def lock_path_for(write_base: Path) -> Path:
-    """The lock file guarding `write_base`: in the system temp dir, keyed by
-    the resolved target path, so no stray file lands in a rules/ directory."""
-    key = hashlib.sha1(str(write_base.resolve()).encode("utf-8")).hexdigest()[:16]
+def lock_scope_for(write_base: Path, layer: str | None) -> Path:
+    """The allocation namespace a write belongs to — the directory whose
+    documents `_allocation_docs` numbers against — and therefore the lock
+    domain: `rules/` for the project layer; the registered unit root for a
+    target inside a unit; `~/.alfred` for any global user target."""
+    if layer != "user":
+        return write_base
+    unit_root = _registered_unit_root(write_base, _registered_units())
+    return unit_root if unit_root is not None else Path.home() / ".alfred"
+
+
+def lock_path_for(scope: Path) -> Path:
+    """The lock file guarding an allocation scope: in the system temp dir,
+    keyed by the resolved scope path, so no stray file lands in a rules/ dir."""
+    key = hashlib.sha1(str(scope.resolve()).encode("utf-8")).hexdigest()[:16]
     return Path(tempfile.gettempdir()) / f"af-create-{key}.lock"
 
 
 @contextlib.contextmanager
-def _creation_lock(write_base: Path):
-    """Serialise allocation + write per target directory (flock), so two
-    concurrent `af create` runs cannot pick the same next ACID. Waits up to
-    AF_CREATE_LOCK_TIMEOUT seconds (default 10)."""
+def _creation_lock(scope: Path):
+    """Serialise allocation + write per allocation scope, so two concurrent
+    `af create` runs cannot pick the same next ACID. POSIX: flock on the lock
+    file. Elsewhere: an exclusive-create `.excl` marker next to it. Waits up
+    to AF_CREATE_LOCK_TIMEOUT seconds (default 10)."""
     timeout = float(os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10"))
     deadline = time.monotonic() + timeout
-    with open(lock_path_for(write_base), "a+") as handle:
+    lock_path = lock_path_for(scope)
+    busy = click.ClickException(
+        f"another af create is running for {scope}; retry in a moment"
+    )
+    if fcntl is None:
+        marker = lock_path.with_suffix(".excl")
+        while True:
+            try:
+                fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                break
+            except FileExistsError:
+                if time.monotonic() >= deadline:
+                    raise busy from None
+                time.sleep(0.05)
+        try:
+            os.close(fd)
+            yield
+        finally:
+            with contextlib.suppress(FileNotFoundError):
+                marker.unlink()
+        return
+    with open(lock_path, "a+") as handle:
         while True:
             try:
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 break
             except OSError:
                 if time.monotonic() >= deadline:
-                    raise click.ClickException(
-                        f"another af create is running in {write_base}; retry in a moment"
-                    ) from None
+                    raise busy from None
                 time.sleep(0.05)
         try:
             yield
@@ -553,7 +588,7 @@ def create_cmd(
         write_base = _resolve_write_base(ctx, layer, subdir)
 
         # Scan for existing docs to check collisions and auto-assign ACID
-        with _creation_lock(write_base):
+        with _creation_lock(lock_scope_for(write_base, layer)):
             docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
             # Auto-assign ACID from area if needed
@@ -630,7 +665,7 @@ def create_cmd(
     # Resolve write base early so --root + --layer user conflict is caught first
     write_base = _resolve_write_base(ctx, layer, subdir)
 
-    with _creation_lock(write_base):
+    with _creation_lock(lock_scope_for(write_base, layer)):
         docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
         if area is not None:
