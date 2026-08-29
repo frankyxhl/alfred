@@ -1,4 +1,10 @@
+import contextlib
+import fcntl
+import hashlib
+import os
+import tempfile
 import re
+import time
 from datetime import date
 from importlib import resources
 from pathlib import Path
@@ -52,6 +58,57 @@ def _validate_generated_filename(filename: str, title: str) -> str:
             "Choose a title with at least one alphanumeric character so the slug is not empty."
         )
     return filename
+
+
+def lock_path_for(write_base: Path) -> Path:
+    """The lock file guarding `write_base`: in the system temp dir, keyed by
+    the resolved target path, so no stray file lands in a rules/ directory."""
+    key = hashlib.sha1(str(write_base.resolve()).encode("utf-8")).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / f"af-create-{key}.lock"
+
+
+@contextlib.contextmanager
+def _creation_lock(write_base: Path):
+    """Serialise allocation + write per target directory (flock), so two
+    concurrent `af create` runs cannot pick the same next ACID. Waits up to
+    AF_CREATE_LOCK_TIMEOUT seconds (default 10)."""
+    timeout = float(os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10"))
+    deadline = time.monotonic() + timeout
+    with open(lock_path_for(write_base), "a+") as handle:
+        while True:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise click.ClickException(
+                        f"another af create is running in {write_base}; retry in a moment"
+                    ) from None
+                time.sleep(0.05)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
+def _reject_scanner_invisible(write_base: Path, units: dict[str, Path]) -> None:
+    """A user-layer destination the scanner skips (`logs/` at the top of
+    ~/.alfred or of a registered unit, or a rules/.../logs path) would hold
+    documents no later scan can see: refuse to create there."""
+    user_root = Path.home() / ".alfred"
+    roots = [user_root]
+    unit_root = _registered_unit_root(write_base, units)
+    if unit_root is not None:
+        roots.append(unit_root)
+    for root in roots:
+        try:
+            parts = write_base.relative_to(root).parts
+        except ValueError:
+            continue
+        if (parts and parts[0] == "logs") or ("rules" in parts and "logs" in parts):
+            raise click.ClickException(
+                f"{write_base} is excluded from document scanning (logs path); choose another --subdir"
+            )
 
 
 def _registered_units() -> dict[str, Path]:
@@ -115,6 +172,7 @@ def _allocation_docs(docs: list, write_base: Path, layer: str | None) -> list:
     if layer != "user":
         return docs
     units = _registered_units()
+    _reject_scanner_invisible(write_base, units)
     unit_root = _registered_unit_root(write_base, units)
     if unit_root is not None:
         return _scan_units_into([d for d in docs if d.source != "prj"], [unit_root])
@@ -495,52 +553,56 @@ def create_cmd(
         write_base = _resolve_write_base(ctx, layer, subdir)
 
         # Scan for existing docs to check collisions and auto-assign ACID
-        docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
+        with _creation_lock(write_base):
+            docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
-        # Auto-assign ACID from area if needed
-        if final_acid is None and final_area is not None:
-            final_acid = _next_acid_in_area(docs, final_prefix, str(final_area))
-        elif final_acid is None:
-            final_acid = _next_acid_sequential(docs, final_prefix)
+            # Auto-assign ACID from area if needed
+            if final_acid is None and final_area is not None:
+                final_acid = _next_acid_in_area(docs, final_prefix, str(final_area))
+            elif final_acid is None:
+                final_acid = _next_acid_sequential(docs, final_prefix)
 
-        if final_acid is None:
-            raise click.ClickException(
-                "ACID resolution failed for spec-file mode "
-                "(neither acid nor area resolved to a valid ACID)"
-            )
-
-        # Check for duplicate
-        for existing_doc in docs:
-            if existing_doc.prefix == final_prefix and existing_doc.acid == final_acid:
+            if final_acid is None:
                 raise click.ClickException(
-                    f"{final_prefix}-{final_acid} already exists in {existing_doc.source.upper()} layer: "
-                    f"{existing_doc.filename}. "
-                    "Try --area to auto-assign the next available ACID."
+                    "ACID resolution failed for spec-file mode "
+                    "(neither acid nor area resolved to a valid ACID)"
                 )
 
-        # Generate document content
-        content = _generate_spec_document(
-            doc_type_enum,
-            final_prefix,
-            str(final_acid),
-            final_title,
-            spec_metadata,
-            spec_sections,
-        )
+            # Check for duplicate
+            for existing_doc in docs:
+                if (
+                    existing_doc.prefix == final_prefix
+                    and existing_doc.acid == final_acid
+                ):
+                    raise click.ClickException(
+                        f"{final_prefix}-{final_acid} already exists in {existing_doc.source.upper()} layer: "
+                        f"{existing_doc.filename}. "
+                        "Try --area to auto-assign the next available ACID."
+                    )
 
-        filename = _validate_generated_filename(
-            f"{final_prefix}-{final_acid}-{doc_type_enum.value}-{slugify(final_title)}.md",
-            final_title,
-        )
-        output_path = write_base / filename
+            # Generate document content
+            content = _generate_spec_document(
+                doc_type_enum,
+                final_prefix,
+                str(final_acid),
+                final_title,
+                spec_metadata,
+                spec_sections,
+            )
 
-        if dry_run:
-            click.echo("Dry run — no file written.\n")
-            click.echo(content)
-            return
+            filename = _validate_generated_filename(
+                f"{final_prefix}-{final_acid}-{doc_type_enum.value}-{slugify(final_title)}.md",
+                final_title,
+            )
+            output_path = write_base / filename
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(content, encoding="utf-8")
+            if dry_run:
+                click.echo("Dry run — no file written.\n")
+                click.echo(content)
+                return
+
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(content, encoding="utf-8")
         click.echo(f"Created {output_path}")
 
         if layer != "user":
@@ -568,54 +630,55 @@ def create_cmd(
     # Resolve write base early so --root + --layer user conflict is caught first
     write_base = _resolve_write_base(ctx, layer, subdir)
 
-    docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
+    with _creation_lock(write_base):
+        docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
-    if area is not None:
-        if not re.match(r"^\d{2}$", area):
-            raise click.ClickException("--area must be exactly 2 digits (e.g., 21)")
-        acid = _next_acid_in_area(docs, prefix, area)
-    elif acid is None:
-        acid = _next_acid_sequential(docs, prefix)
+        if area is not None:
+            if not re.match(r"^\d{2}$", area):
+                raise click.ClickException("--area must be exactly 2 digits (e.g., 21)")
+            acid = _next_acid_in_area(docs, prefix, area)
+        elif acid is None:
+            acid = _next_acid_sequential(docs, prefix)
 
-    if acid is None:
-        raise click.ClickException(
-            "ACID resolution failed for CLI mode "
-            "(neither --acid nor --area resolved to a valid ACID)"
+        if acid is None:
+            raise click.ClickException(
+                "ACID resolution failed for CLI mode "
+                "(neither --acid nor --area resolved to a valid ACID)"
+            )
+
+        doc_type_lower = doc_type.lower()
+
+        for doc in docs:
+            if doc.prefix == prefix and doc.acid == acid:
+                raise click.ClickException(
+                    f"{prefix}-{acid} already exists in {doc.source.upper()} layer: "
+                    f"{doc.filename}. "
+                    "Try --area to auto-assign the next available ACID."
+                )
+        filename = _validate_generated_filename(
+            f"{prefix}-{acid}-{doc_type_lower.upper()}-{slugify(title)}.md", title
+        )
+        output_path = write_base / filename
+
+        template_file = resources.files("fx_alfred.templates").joinpath(
+            f"{doc_type_lower}.md"
+        )
+        template = template_file.read_text(encoding="utf-8")
+
+        content = (
+            template.replace("{{ACID}}", acid)
+            .replace("{{TITLE}}", title)
+            .replace("{{DATE}}", date.today().isoformat())
+            .replace("{{PREFIX}}", prefix)
         )
 
-    doc_type_lower = doc_type.lower()
+        if dry_run:
+            click.echo("Dry run — no file written.\n")
+            click.echo(content)
+            return
 
-    for doc in docs:
-        if doc.prefix == prefix and doc.acid == acid:
-            raise click.ClickException(
-                f"{prefix}-{acid} already exists in {doc.source.upper()} layer: "
-                f"{doc.filename}. "
-                "Try --area to auto-assign the next available ACID."
-            )
-    filename = _validate_generated_filename(
-        f"{prefix}-{acid}-{doc_type_lower.upper()}-{slugify(title)}.md", title
-    )
-    output_path = write_base / filename
-
-    template_file = resources.files("fx_alfred.templates").joinpath(
-        f"{doc_type_lower}.md"
-    )
-    template = template_file.read_text(encoding="utf-8")
-
-    content = (
-        template.replace("{{ACID}}", acid)
-        .replace("{{TITLE}}", title)
-        .replace("{{DATE}}", date.today().isoformat())
-        .replace("{{PREFIX}}", prefix)
-    )
-
-    if dry_run:
-        click.echo("Dry run — no file written.\n")
-        click.echo(content)
-        return
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(content, encoding="utf-8")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(content, encoding="utf-8")
     click.echo(f"Created {output_path}")
 
     if layer != "user":

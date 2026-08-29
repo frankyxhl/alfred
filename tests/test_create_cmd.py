@@ -1705,3 +1705,63 @@ def test_symlinked_registered_unit_is_recognised(tmp_path, monkeypatch):
     assert (external / "TST-0006-SOP-Via-Link.md").exists(), sorted(
         p.name for p in external.iterdir()
     )
+
+
+def test_create_refuses_scanner_invisible_user_destination(tmp_path, monkeypatch):
+    """`logs/` under ~/.alfred (or under a registered unit) is skipped by the
+    scanner, so documents written there could never be seen again: reject."""
+    _register_subproject(tmp_path)  # MYP
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    for subdir in ("logs", "logs/x", "MYP/logs"):
+        result = runner.invoke(
+            cli,
+            [
+                "create",
+                "sop",
+                "--prefix",
+                "TST",
+                "--layer",
+                "user",
+                "--subdir",
+                subdir,
+                "--title",
+                "Lost",
+            ],
+        )
+        assert result.exit_code != 0, subdir
+        assert "excluded from document scanning" in result.output, subdir
+    assert not list((Path.home() / ".alfred").rglob("TST-*"))
+
+
+def test_create_serialises_allocation_with_a_target_lock(tmp_path, monkeypatch):
+    """Allocation + write run under a per-target lock so two concurrent creates
+    cannot pick the same next ACID. A held lock makes the second create fail
+    fast instead of allocating."""
+    import fcntl
+
+    from fx_alfred.commands.create_cmd import lock_path_for
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
+    lock_path = lock_path_for(rules)
+    with open(lock_path, "w") as held:
+        fcntl.flock(held, fcntl.LOCK_EX)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Blocked"]
+        )
+        assert result.exit_code != 0
+        assert "another af create" in result.output
+        assert not list(rules.glob("TST-*"))
+    assert not list(rules.glob(".*")), "no lock file inside the target"
+    # Lock released → the same create succeeds.
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Blocked"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Blocked.md").exists()
