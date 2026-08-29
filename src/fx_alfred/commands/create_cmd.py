@@ -54,28 +54,49 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
+def _registered_unit_root(write_base: Path) -> Path | None:
+    """`~/.alfred/<NAME>` when `write_base` lies inside a subproject directory
+    registered in projects.json (any depth), else None."""
+    from fx_alfred.core.projects import load_projects
+
+    user_root = (Path.home() / ".alfred").resolve()
+    try:
+        rel = write_base.resolve().relative_to(user_root)
+    except ValueError:
+        return None
+    if not rel.parts or rel.parts[0] not in set(load_projects().values()):
+        return None
+    return user_root / rel.parts[0]
+
+
 def _allocation_docs(docs: list, write_base: Path, layer: str | None) -> list:
     """The documents ACID allocation and the collision check must see.
 
     Project layer: `scan_documents` already scanned the target (non-recursively,
     on purpose — `rules/archive/` is invisible), so the scan is used as is.
 
-    User layer (`--layer user [--subdir NAME]`): two corrections —
-    * the caller's own PRJ documents are dropped: numbering inside `~/.alfred`
-      must not be shaped by whichever project the command happens to run from;
-    * the target directory is scanned directly and unioned in, because a
-      registered subproject directory is hidden from the USR scan when the
-      command runs outside that subproject's mapped project.
-    Deduplicated by (prefix, ACID, directory).
+    User layer, target inside a registered subproject `~/.alfred/<NAME>/…`
+    (any depth): that whole subproject is one PRJ unit, so the scan is
+    replaced by PKG + USR + a recursive scan of `<NAME>` — the caller's own
+    PRJ documents (a different unit) are dropped, and the unit is scanned
+    directly because the USR scan hides registered directories.
+
+    User layer, target in the global `~/.alfred` area: the scan is used as
+    is — the USR pass already covers the target recursively, and the
+    caller's PRJ documents must stay in range because a USR document that
+    duplicates a PRJ ACID fails the next `_validate_layers()`.
     """
     if layer != "user":
+        return docs
+    unit_root = _registered_unit_root(write_base)
+    if unit_root is None:
         return docs
     from fx_alfred.core.scanner import _scan_path_dir
 
     merged = [d for d in docs if d.source != "prj"]
     seen = {(d.prefix, d.acid, str(d.directory)) for d in merged}
-    if write_base.is_dir():
-        for doc in _scan_path_dir(write_base, source="usr", recursive=True):
+    if unit_root.is_dir():
+        for doc in _scan_path_dir(unit_root, source="usr", recursive=True):
             key = (doc.prefix, doc.acid, str(doc.directory))
             if key not in seen:
                 seen.add(key)

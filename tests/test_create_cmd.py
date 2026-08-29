@@ -1558,8 +1558,15 @@ def test_user_subdir_allocation_excludes_the_callers_project_layer(
     b.mkdir(parents=True, exist_ok=True)
     repo_b = tmp_path / "repo_b"
     repo_b.mkdir()
+    repo_a = tmp_path / "repo_a"
+    repo_a.mkdir()
+    # Both A and B are registered units. (An UNREGISTERED A would be global
+    # USR, where B's IDs must stay in range — see the global-write test.)
     (alfred / "projects.json").write_text(
-        json.dumps({"projects": {str(repo_b.resolve()): "B"}}), encoding="utf-8"
+        json.dumps(
+            {"projects": {str(repo_b.resolve()): "B", str(repo_a.resolve()): "A"}}
+        ),
+        encoding="utf-8",
     )
     (b / "TST-0500-SOP-In-B.md").write_text("# SOP-0500: In B\n", encoding="utf-8")
     (a / "TST-0005-SOP-In-A.md").write_text("# SOP-0005: In A\n", encoding="utf-8")
@@ -1584,4 +1591,61 @@ def test_user_subdir_allocation_excludes_the_callers_project_layer(
     assert result.exit_code == 0, result.output
     assert (a / "TST-0006-SOP-Next-In-A.md").exists(), sorted(
         p.name for p in a.iterdir()
+    )
+
+
+def test_global_user_write_keeps_caller_project_ids_out_of_the_range(
+    tmp_path, monkeypatch
+):
+    """`--layer user` from an ordinary (unmapped) project: the new document is
+    globally visible USR, so it must not reuse an ACID the caller's rules/
+    already holds (a USR/PRJ duplicate breaks the next scan)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-0001-SOP-Local.md").write_text(
+        "# SOP-0001: Local\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--layer", "user", "--title", "Global"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (Path.home() / ".alfred" / "TST-0002-SOP-Global.md").exists()
+
+
+def test_nested_subdir_of_registered_project_allocates_across_the_whole_project(
+    tmp_path, monkeypatch
+):
+    """`--subdir A/foo` with A registered: A is one PRJ unit scanned recursively,
+    so allocation must see A/ and its siblings, not only A/foo."""
+    sub = _register_subproject(tmp_path)  # registers MYP
+    (sub / "TST-0005-SOP-Top.md").write_text("# SOP-0005: Top\n", encoding="utf-8")
+    (sub / "bar").mkdir()
+    (sub / "bar" / "TST-0007-SOP-Sibling.md").write_text(
+        "# SOP-0007: Sibling\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP/foo",
+            "--title",
+            "Nested",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (sub / "foo" / "TST-0008-SOP-Nested.md").exists(), sorted(
+        str(p.relative_to(sub)) for p in sub.rglob("*.md")
     )
