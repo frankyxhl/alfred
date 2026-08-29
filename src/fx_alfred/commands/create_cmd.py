@@ -54,26 +54,32 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
-def _allocation_docs(docs: list, write_base: Path) -> list:
+def _allocation_docs(docs: list, write_base: Path, layer: str | None) -> list:
     """The documents ACID allocation and the collision check must see.
 
-    `scan_documents` hides a registered subproject directory from the USR
-    layer, so `--layer user --subdir NAME` run outside NAME's mapped project
-    would allocate and collision-check against a set that omits the very
-    directory being written to. Union the scan with a direct scan of
-    `write_base` (deduplicated by prefix, ACID and directory).
+    Project layer: `scan_documents` already scanned the target (non-recursively,
+    on purpose — `rules/archive/` is invisible), so the scan is used as is.
+
+    User layer (`--layer user [--subdir NAME]`): two corrections —
+    * the caller's own PRJ documents are dropped: numbering inside `~/.alfred`
+      must not be shaped by whichever project the command happens to run from;
+    * the target directory is scanned directly and unioned in, because a
+      registered subproject directory is hidden from the USR scan when the
+      command runs outside that subproject's mapped project.
+    Deduplicated by (prefix, ACID, directory).
     """
-    if not write_base.is_dir():
+    if layer != "user":
         return docs
     from fx_alfred.core.scanner import _scan_path_dir
 
-    seen = {(d.prefix, d.acid, str(d.directory)) for d in docs}
-    merged = list(docs)
-    for doc in _scan_path_dir(write_base, source="usr", recursive=True):
-        key = (doc.prefix, doc.acid, str(doc.directory))
-        if key not in seen:
-            seen.add(key)
-            merged.append(doc)
+    merged = [d for d in docs if d.source != "prj"]
+    seen = {(d.prefix, d.acid, str(d.directory)) for d in merged}
+    if write_base.is_dir():
+        for doc in _scan_path_dir(write_base, source="usr", recursive=True):
+            key = (doc.prefix, doc.acid, str(doc.directory))
+            if key not in seen:
+                seen.add(key)
+                merged.append(doc)
     return merged
 
 
@@ -451,7 +457,7 @@ def create_cmd(
         write_base = _resolve_write_base(ctx, layer, subdir)
 
         # Scan for existing docs to check collisions and auto-assign ACID
-        docs = _allocation_docs(scan_or_fail(ctx), write_base)
+        docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
         # Auto-assign ACID from area if needed
         if final_acid is None and final_area is not None:
@@ -524,7 +530,7 @@ def create_cmd(
     # Resolve write base early so --root + --layer user conflict is caught first
     write_base = _resolve_write_base(ctx, layer, subdir)
 
-    docs = _allocation_docs(scan_or_fail(ctx), write_base)
+    docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
     if area is not None:
         if not re.match(r"^\d{2}$", area):

@@ -1523,3 +1523,65 @@ def test_explicit_acid_collision_is_detected_in_registered_user_subdir(
     assert result.exit_code != 0
     assert "already exists" in result.output
     assert not (sub / "TST-0006-SOP-Dup.md").exists()
+
+
+def test_project_layer_allocation_ignores_archived_docs_in_nested_dirs(
+    tmp_path, monkeypatch
+):
+    """Project layer scans rules/ non-recursively; allocation must not pick up
+    rules/archive/ (an archived TST-9999 would otherwise exhaust the range)."""
+    rules = tmp_path / "rules"
+    (rules / "archive").mkdir(parents=True)
+    (rules / "archive" / "TST-9999-SOP-Archived.md").write_text(
+        "# SOP-9999: Archived\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Fresh"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Fresh.md").exists()
+
+
+def test_user_subdir_allocation_excludes_the_callers_project_layer(
+    tmp_path, monkeypatch
+):
+    """Run from registered project B (PRJ docs live in ~/.alfred/B) writing to
+    --layer user --subdir A: B's documents must not shape A's numbering."""
+    alfred = Path.home() / ".alfred"
+    a = alfred / "A"
+    b = alfred / "B"
+    a.mkdir(parents=True, exist_ok=True)
+    b.mkdir(parents=True, exist_ok=True)
+    repo_b = tmp_path / "repo_b"
+    repo_b.mkdir()
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(repo_b.resolve()): "B"}}), encoding="utf-8"
+    )
+    (b / "TST-0500-SOP-In-B.md").write_text("# SOP-0500: In B\n", encoding="utf-8")
+    (a / "TST-0005-SOP-In-A.md").write_text("# SOP-0005: In A\n", encoding="utf-8")
+    monkeypatch.chdir(repo_b)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "A",
+            "--title",
+            "Next In A",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (a / "TST-0006-SOP-Next-In-A.md").exists(), sorted(
+        p.name for p in a.iterdir()
+    )
