@@ -54,19 +54,44 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
-def _registered_unit_root(write_base: Path) -> Path | None:
-    """`~/.alfred/<NAME>` when `write_base` lies inside a subproject directory
-    registered in projects.json (any depth), else None."""
+def _registered_units() -> dict[str, Path]:
+    """NAME -> `~/.alfred/NAME` for every subproject registered in projects.json."""
     from fx_alfred.core.projects import load_projects
 
-    user_root = (Path.home() / ".alfred").resolve()
-    try:
-        rel = write_base.resolve().relative_to(user_root)
-    except ValueError:
-        return None
-    if not rel.parts or rel.parts[0] not in set(load_projects().values()):
-        return None
-    return user_root / rel.parts[0]
+    user_root = Path.home() / ".alfred"
+    return {name: user_root / name for name in set(load_projects().values())}
+
+
+def _registered_unit_root(write_base: Path, units: dict[str, Path]) -> Path | None:
+    """`~/.alfred/<NAME>` when `write_base` lies inside a registered unit (any
+    depth). Lexical first — `<NAME>` may be a symlink to external storage, so
+    resolving before the containment check would move the path outside the
+    user root; the resolved comparison is only a fallback."""
+    user_root = Path.home() / ".alfred"
+    for base in (write_base, write_base.resolve()):
+        for root in (user_root, user_root.resolve()):
+            try:
+                rel = base.relative_to(root)
+            except ValueError:
+                continue
+            if rel.parts and rel.parts[0] in units:
+                return units[rel.parts[0]]
+    return None
+
+
+def _scan_units_into(merged: list, dirs) -> list:
+    from fx_alfred.core.scanner import _scan_path_dir
+
+    seen = {(d.prefix, d.acid, str(d.directory)) for d in merged}
+    for directory in dirs:
+        if not directory.is_dir():
+            continue
+        for doc in _scan_path_dir(directory, source="usr", recursive=True):
+            key = (doc.prefix, doc.acid, str(doc.directory))
+            if key not in seen:
+                seen.add(key)
+                merged.append(doc)
+    return merged
 
 
 def _allocation_docs(docs: list, write_base: Path, layer: str | None) -> list:
@@ -75,33 +100,25 @@ def _allocation_docs(docs: list, write_base: Path, layer: str | None) -> list:
     Project layer: `scan_documents` already scanned the target (non-recursively,
     on purpose — `rules/archive/` is invisible), so the scan is used as is.
 
-    User layer, target inside a registered subproject `~/.alfred/<NAME>/…`
-    (any depth): that whole subproject is one PRJ unit, so the scan is
-    replaced by PKG + USR + a recursive scan of `<NAME>` — the caller's own
-    PRJ documents (a different unit) are dropped, and the unit is scanned
-    directly because the USR scan hides registered directories.
+    User layer, target inside a registered unit `~/.alfred/<NAME>/…` (any
+    depth): that whole unit is one PRJ layer, so the scope is PKG + USR + a
+    recursive scan of `<NAME>`; the caller's own PRJ documents (a different
+    unit, or the same one — rescanned anyway) are dropped, and the unit is
+    scanned directly because the USR scan hides registered directories.
 
-    User layer, target in the global `~/.alfred` area: the scan is used as
-    is — the USR pass already covers the target recursively, and the
-    caller's PRJ documents must stay in range because a USR document that
-    duplicates a PRJ ACID fails the next `_validate_layers()`.
+    User layer, target in the global `~/.alfred` area: the document becomes
+    visible to EVERY later scan, so the scope is the scan as is (PKG + USR +
+    the caller's PRJ) plus a recursive scan of every registered unit — a USR
+    document duplicating any unit's ACID would fail `_validate_layers()`
+    the next time that unit is scanned.
     """
     if layer != "user":
         return docs
-    unit_root = _registered_unit_root(write_base)
-    if unit_root is None:
-        return docs
-    from fx_alfred.core.scanner import _scan_path_dir
-
-    merged = [d for d in docs if d.source != "prj"]
-    seen = {(d.prefix, d.acid, str(d.directory)) for d in merged}
-    if unit_root.is_dir():
-        for doc in _scan_path_dir(unit_root, source="usr", recursive=True):
-            key = (doc.prefix, doc.acid, str(doc.directory))
-            if key not in seen:
-                seen.add(key)
-                merged.append(doc)
-    return merged
+    units = _registered_units()
+    unit_root = _registered_unit_root(write_base, units)
+    if unit_root is not None:
+        return _scan_units_into([d for d in docs if d.source != "prj"], [unit_root])
+    return _scan_units_into(list(docs), units.values())
 
 
 def _next_acid_sequential(docs: list, prefix: str) -> str:

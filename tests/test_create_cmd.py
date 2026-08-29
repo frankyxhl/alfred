@@ -1649,3 +1649,59 @@ def test_nested_subdir_of_registered_project_allocates_across_the_whole_project(
     assert (sub / "foo" / "TST-0008-SOP-Nested.md").exists(), sorted(
         str(p.relative_to(sub)) for p in sub.rglob("*.md")
     )
+
+
+def test_global_user_write_sees_ids_in_every_registered_unit(tmp_path, monkeypatch):
+    """A global USR document must not reuse an ACID held by ANY registered unit
+    (a later scan from that unit would combine both and fail layer validation)."""
+    sub = _register_subproject(tmp_path)  # MYP registered, caller unmapped
+    (sub / "TST-0001-SOP-In-Unit.md").write_text(
+        "# SOP-0001: In Unit\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--layer", "user", "--title", "Global"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (Path.home() / ".alfred" / "TST-0002-SOP-Global.md").exists()
+
+
+def test_symlinked_registered_unit_is_recognised(tmp_path, monkeypatch):
+    """`~/.alfred/<NAME>` may be a symlink to external storage; the unit must
+    still be recognised (lexically) and scanned before allocating."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    external = tmp_path / "external_store"
+    external.mkdir()
+    (alfred / "LNK").symlink_to(external, target_is_directory=True)
+    other_repo = tmp_path / "other_repo"
+    other_repo.mkdir()
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(other_repo.resolve()): "LNK"}}), encoding="utf-8"
+    )
+    (external / "TST-0005-SOP-Old.md").write_text("# SOP-0005: Old\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "LNK",
+            "--title",
+            "Via Link",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (external / "TST-0006-SOP-Via-Link.md").exists(), sorted(
+        p.name for p in external.iterdir()
+    )
