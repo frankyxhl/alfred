@@ -54,6 +54,29 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
+def _allocation_docs(docs: list, write_base: Path) -> list:
+    """The documents ACID allocation and the collision check must see.
+
+    `scan_documents` hides a registered subproject directory from the USR
+    layer, so `--layer user --subdir NAME` run outside NAME's mapped project
+    would allocate and collision-check against a set that omits the very
+    directory being written to. Union the scan with a direct scan of
+    `write_base` (deduplicated by prefix, ACID and directory).
+    """
+    if not write_base.is_dir():
+        return docs
+    from fx_alfred.core.scanner import _scan_path_dir
+
+    seen = {(d.prefix, d.acid, str(d.directory)) for d in docs}
+    merged = list(docs)
+    for doc in _scan_path_dir(write_base, source="usr", recursive=True):
+        key = (doc.prefix, doc.acid, str(doc.directory))
+        if key not in seen:
+            seen.add(key)
+            merged.append(doc)
+    return merged
+
+
 def _next_acid_sequential(docs: list, prefix: str) -> str:
     """The simplest numbering: the highest ACID already used by ``prefix`` + 1.
 
@@ -428,7 +451,7 @@ def create_cmd(
         write_base = _resolve_write_base(ctx, layer, subdir)
 
         # Scan for existing docs to check collisions and auto-assign ACID
-        docs = scan_or_fail(ctx)
+        docs = _allocation_docs(scan_or_fail(ctx), write_base)
 
         # Auto-assign ACID from area if needed
         if final_acid is None and final_area is not None:
@@ -501,9 +524,9 @@ def create_cmd(
     # Resolve write base early so --root + --layer user conflict is caught first
     write_base = _resolve_write_base(ctx, layer, subdir)
 
-    docs = scan_or_fail(ctx)
+    docs = _allocation_docs(scan_or_fail(ctx), write_base)
 
-    if area:
+    if area is not None:
         if not re.match(r"^\d{2}$", area):
             raise click.ClickException("--area must be exactly 2 digits (e.g., 21)")
         acid = _next_acid_in_area(docs, prefix, area)

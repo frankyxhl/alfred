@@ -1436,3 +1436,90 @@ def test_sequential_acid_continues_after_the_highest_existing_number(
     )
     assert result.exit_code == 0, result.output
     assert (tmp_path / "rules" / "TST-2101-SOP-Next.md").exists()
+
+
+def test_create_empty_area_is_rejected_not_treated_as_sequential(tmp_path, monkeypatch):
+    """`--area ""` (an unset shell variable) must fail validation, not silently
+    switch to sequential numbering."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["create", "sop", "--prefix", "TST", "--area", "", "--title", "Empty Area"]
+    )
+    assert result.exit_code != 0
+    assert "--area must be exactly 2 digits" in result.output
+    assert (
+        not list((tmp_path / "rules").glob("TST-*"))
+        if (tmp_path / "rules").exists()
+        else True
+    )
+
+
+def _register_subproject(tmp_path):
+    alfred = Path.home() / ".alfred"
+    sub = alfred / "MYP"
+    sub.mkdir(parents=True, exist_ok=True)
+    other_repo = tmp_path / "other_repo"
+    other_repo.mkdir()
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(other_repo.resolve()): "MYP"}}), encoding="utf-8"
+    )
+    return sub
+
+
+def test_sequential_acid_sees_registered_user_subdir_from_outside_its_project(
+    tmp_path, monkeypatch
+):
+    """`--layer user --subdir MYP` run outside MYP's mapped project: the USR scan
+    hides MYP, so allocation must scan the write target itself (max 0005 → 0006)."""
+    sub = _register_subproject(tmp_path)
+    (sub / "TST-0005-SOP-Old.md").write_text("# SOP-0005: Old\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP",
+            "--title",
+            "New",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (sub / "TST-0006-SOP-New.md").exists()
+
+
+def test_explicit_acid_collision_is_detected_in_registered_user_subdir(
+    tmp_path, monkeypatch
+):
+    sub = _register_subproject(tmp_path)
+    (sub / "TST-0006-SOP-Taken.md").write_text("# SOP-0006: Taken\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "0006",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP",
+            "--title",
+            "Dup",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "already exists" in result.output
+    assert not (sub / "TST-0006-SOP-Dup.md").exists()
