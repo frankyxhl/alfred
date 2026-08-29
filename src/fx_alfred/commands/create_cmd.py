@@ -1,7 +1,5 @@
 import contextlib
-import getpass
 import os
-import tempfile
 import re
 import time
 from datetime import date
@@ -65,15 +63,18 @@ def _validate_generated_filename(filename: str, title: str) -> str:
 
 
 def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for every target
-    """The single machine-wide `af create` lock, in the system temp dir.
+    """The single per-user `af create` lock: `~/.alfred/.af-create.lock`.
 
     Allocation scopes overlap (a global user write numbers against every
     registered unit AND the caller's rules/; a unit write against the global
-    USR area), so per-scope locks cannot be made disjoint. Creates are rare
-    and hold the lock for milliseconds: one lock is the correct trade.
+    USR area), so per-scope locks cannot be made disjoint. `~/.alfred` is
+    the one location every process touching the document namespace shares
+    (unlike TMPDIR, which varies per environment) and is per-user by
+    construction. Creates are rare and hold the lock for milliseconds.
     """
-    ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
-    return Path(tempfile.gettempdir()) / f"af-create-{ident}.lock"
+    user_root = Path.home() / ".alfred"
+    user_root.mkdir(parents=True, exist_ok=True)
+    return user_root / ".af-create.lock"
 
 
 def _reclaim_stale_marker(marker: Path) -> bool:

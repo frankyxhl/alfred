@@ -1873,16 +1873,13 @@ def test_symlink_into_scanner_invisible_logs_is_rejected(tmp_path, monkeypatch):
     assert not list((alfred / "logs").glob("TST-*"))
 
 
-def test_lock_file_is_scoped_to_the_current_user(tmp_path):
-    """On a shared host /tmp is common; a fixed lock name owned by another
-    account would raise PermissionError. The name carries the uid/user."""
-    import getpass
-    import os
-
+def test_lock_file_lives_in_the_users_alfred_dir_not_tmpdir(tmp_path, monkeypatch):
+    """TMPDIR varies per process/service; ~/.alfred is the one per-user place
+    every process touching the namespace shares, so the lock lives there."""
     from fx_alfred.commands.create_cmd import lock_path_for
 
-    ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
-    assert ident in lock_path_for(tmp_path).name
+    monkeypatch.setenv("TMPDIR", str(tmp_path / "private-tmp"))
+    assert lock_path_for(tmp_path) == Path.home() / ".alfred" / ".af-create.lock"
 
 
 def test_index_regeneration_runs_inside_the_create_lock(tmp_path, monkeypatch):
