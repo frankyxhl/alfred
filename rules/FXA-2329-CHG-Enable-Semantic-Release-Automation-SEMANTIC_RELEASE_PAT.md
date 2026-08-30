@@ -65,6 +65,7 @@ Executable step by step by Frank's local Codex session (or Frank himself).
    show an older run before the new one is dispatched, which would let
    FXA-2328 close without validating this chain:
    ```bash
+   set -e   # a failed watch/lookup must terminate verification, not fall through
    MERGE_SHA=$(gh pr view <PR#> --repo frankyxhl/alfred --json mergeCommit --jq .mergeCommit.oid)
 
    # cd run — poll until dispatch lists it (bounded: 30 × 10 s), then watch
@@ -74,13 +75,17 @@ Executable step by step by Frank's local Codex session (or Frank himself).
    [ -n "$CD_RUN" ] || { echo "cd-release run for $MERGE_SHA never appeared"; exit 1; }
    gh run watch "$CD_RUN" --repo frankyxhl/alfred --exit-status   # green → version-bump commit + tag + GitHub Release
 
-   # the release THIS cd run created — createdAt after the run started (the
-   # release concurrency group serialises cd runs); NOT the repo-global latest,
-   # so a non-release-worthy merge fails loudly instead of re-verifying an old release
+   # the release THIS cd run created — createdAt after the run started, and
+   # EXACTLY ONE such release (the release concurrency group serialises cd
+   # runs): a second, e.g. manual, release in the window makes the binding
+   # ambiguous and fails loudly instead of guessing; zero means the merge
+   # was not release-worthy (cd's explicit No-release path)
    CD_START=$(gh run view "$CD_RUN" --repo frankyxhl/alfred --json createdAt --jq .createdAt)
-   TAG=$(gh release list --repo frankyxhl/alfred --limit 20 --json tagName,createdAt \
-       --jq ".[] | select(.createdAt > \"$CD_START\") | .tagName" | head -n1)
-   [ -n "$TAG" ] || { echo "cd-release green but created no release (merge not release-worthy?)"; exit 1; }
+   REL_IN_WINDOW=$(gh release list --repo frankyxhl/alfred --limit 20 --json tagName,createdAt \
+       --jq ".[] | select(.createdAt > \"$CD_START\") | .tagName")
+   [ "$(printf '%s\n' "$REL_IN_WINDOW" | grep -c .)" -eq 1 ] \
+     || { echo "expected exactly 1 release after the cd run started, got: [$REL_IN_WINDOW]"; exit 1; }
+   TAG=$REL_IN_WINDOW
 
    # publish run — dispatched by the release event on the tagged release commit;
    # poll until discoverable (bounded: 30 × 10 s), then watch
@@ -117,3 +122,4 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 | 2026-08-30 | R1 (codex P2 on PR #335): step 4 now binds the merge's exact run IDs (`gh run list --commit "$MERGE_SHA"` + `gh run watch --exit-status`) instead of `--limit 1` listings, which could show an older run and let FXA-2328 close unvalidated | alfred (pi/GLM) |
 | 2026-08-30 | R2 (codex P2 on PR #335): the publish run's head SHA is the tagged release commit (CHANGELOG promotion + version-bump commits precede the tag on the automated path), not MERGE_SHA — publish binding switched from `--commit "$MERGE_SHA"` to `--event release` + `displayTitle == "$TAG"` | alfred (pi/GLM) |
 | 2026-08-30 | R3 (codex P2 ×2 on PR #335): both run lookups now poll until the run is listed (bounded 30 × 10 s loops) instead of one instantaneous query; TAG is derived from the cd run's own time window (`createdAt` after `gh run view $CD_RUN --json createdAt`), so a non-release-worthy merge fails loudly instead of re-verifying the repo-global latest release | alfred (pi/GLM) |
+| 2026-08-30 | R4 (codex P2 ×2 on PR #335): block opens with `set -e` so a failed `gh run watch --exit-status` terminates verification instead of falling through to the PyPI check; the tag window now requires EXACTLY ONE release after the cd run started — a concurrent (e.g. manual) release in the window is an ambiguous binding and fails loudly | alfred (pi/GLM) |
