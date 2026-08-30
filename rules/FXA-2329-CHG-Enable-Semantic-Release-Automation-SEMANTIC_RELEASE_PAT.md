@@ -66,22 +66,38 @@ Executable step by step by Frank's local Codex session (or Frank himself).
    FXA-2328 close without validating this chain:
    ```bash
    MERGE_SHA=$(gh pr view <PR#> --repo frankyxhl/alfred --json mergeCommit --jq .mergeCommit.oid)
-   gh run watch "$(gh run list --repo frankyxhl/alfred --workflow=cd-release.yml \
-     --commit "$MERGE_SHA" --json databaseId --jq '.[0].databaseId')" \
-     --repo frankyxhl/alfred --exit-status   # green → version-bump commit, tag vX.Y.Z, GitHub Release
-   TAG=$(gh release list --repo frankyxhl/alfred --limit 1 --json tagName --jq '.[0].tagName')
-   gh run watch "$(gh run list --repo frankyxhl/alfred --workflow=publish.yml \
-     --event release --limit 10 --json databaseId,displayTitle \
-     --jq ".[] | select(.displayTitle == \"$TAG\") | .databaseId")" \
-     --repo frankyxhl/alfred --exit-status   # publish.yml for THAT release
+
+   # cd run — poll until dispatch lists it (bounded: 30 × 10 s), then watch
+   CD_RUN=""
+   for i in $(seq 30); do CD_RUN=$(gh run list --repo frankyxhl/alfred --workflow=cd-release.yml \
+       --commit "$MERGE_SHA" --json databaseId --jq '.[0].databaseId'); [ -n "$CD_RUN" ] && break; sleep 10; done
+   [ -n "$CD_RUN" ] || { echo "cd-release run for $MERGE_SHA never appeared"; exit 1; }
+   gh run watch "$CD_RUN" --repo frankyxhl/alfred --exit-status   # green → version-bump commit + tag + GitHub Release
+
+   # the release THIS cd run created — createdAt after the run started (the
+   # release concurrency group serialises cd runs); NOT the repo-global latest,
+   # so a non-release-worthy merge fails loudly instead of re-verifying an old release
+   CD_START=$(gh run view "$CD_RUN" --repo frankyxhl/alfred --json createdAt --jq .createdAt)
+   TAG=$(gh release list --repo frankyxhl/alfred --limit 20 --json tagName,createdAt \
+       --jq ".[] | select(.createdAt > \"$CD_START\") | .tagName" | head -n1)
+   [ -n "$TAG" ] || { echo "cd-release green but created no release (merge not release-worthy?)"; exit 1; }
+
+   # publish run — dispatched by the release event on the tagged release commit;
+   # poll until discoverable (bounded: 30 × 10 s), then watch
+   PUB_RUN=""
+   for i in $(seq 30); do PUB_RUN=$(gh run list --repo frankyxhl/alfred --workflow=publish.yml \
+       --event release --limit 10 --json databaseId,displayTitle \
+       --jq ".[] | select(.displayTitle == \"$TAG\") | .databaseId"); [ -n "$PUB_RUN" ] && break; sleep 10; done
+   [ -n "$PUB_RUN" ] || { echo "publish run for $TAG never appeared"; exit 1; }
+   gh run watch "$PUB_RUN" --repo frankyxhl/alfred --exit-status
    pip index versions fx-alfred             # (or the PyPI JSON API) shows the TAG version
    ```
-   The cd run appears within seconds of the merge. The publish run's head
-   SHA is **not** `MERGE_SHA` on this path: cd-release commits the CHANGELOG
-   promotion and semantic-release commits the version bump, and the tag
-   lands on that release commit — so bind the publish run by its `release`
-   event and the tag title (`displayTitle` equals the tag name), not by
-   SHA. Re-running the old failed
+   Both run lookups poll until the run is listed instead of one
+   instantaneous query. The publish run's head SHA is **not** `MERGE_SHA`
+   on this path: cd-release commits the CHANGELOG promotion and
+   semantic-release commits the version bump, and the tag lands on that
+   release commit — hence the `release`-event + tag-title binding. Re-running
+   the old failed
    run (`gh run rerun 33302010976`) replays the #330 commit — prefer the
    branch→merge trigger, which exercises the chain as designed.
 5. **Close out** — once step 4 passes end to end, the owner flips
@@ -100,3 +116,4 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 | 2026-08-30 | Initial version — operator runbook (owner request via pfc); FXA-2328 flipped Proposed → In Progress (implemented, awaiting the secret) | alfred (pi/GLM) |
 | 2026-08-30 | R1 (codex P2 on PR #335): step 4 now binds the merge's exact run IDs (`gh run list --commit "$MERGE_SHA"` + `gh run watch --exit-status`) instead of `--limit 1` listings, which could show an older run and let FXA-2328 close unvalidated | alfred (pi/GLM) |
 | 2026-08-30 | R2 (codex P2 on PR #335): the publish run's head SHA is the tagged release commit (CHANGELOG promotion + version-bump commits precede the tag on the automated path), not MERGE_SHA — publish binding switched from `--commit "$MERGE_SHA"` to `--event release` + `displayTitle == "$TAG"` | alfred (pi/GLM) |
+| 2026-08-30 | R3 (codex P2 ×2 on PR #335): both run lookups now poll until the run is listed (bounded 30 × 10 s loops) instead of one instantaneous query; TAG is derived from the cd run's own time window (`createdAt` after `gh run view $CD_RUN --json createdAt`), so a non-release-worthy merge fails loudly instead of re-verifying the repo-global latest release | alfred (pi/GLM) |
