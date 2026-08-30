@@ -88,18 +88,48 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     return Path(tempfile.gettempdir()) / f"af-create-{ident}.lock"
 
 
-def _reclaim_stale_marker(marker: Path) -> bool:
-    """Remove a fallback marker older than AF_CREATE_LOCK_STALE seconds
-    (default 60): a killed process never reaches its `finally`."""
-    stale_after = float(os.environ.get("AF_CREATE_LOCK_STALE", "60"))
+def _pid_alive(pid: int) -> bool:
     try:
-        age = time.time() - marker.stat().st_mtime
-    except FileNotFoundError:
-        return True
-    if age < stale_after:
+        os.kill(pid, 0)
+    except ProcessLookupError:
         return False
+    except PermissionError:
+        return True  # exists, owned by someone else
+    except OSError:
+        return False
+    return True
+
+
+def _reclaim_stale_marker(marker: Path) -> bool:
+    """Reclaim a fallback marker whose recorded owner is dead, or — when the
+    owner cannot be read — that is older than AF_CREATE_LOCK_STALE seconds
+    (default 60). A live owner is never reclaimed, however long it holds the
+    lock. The reclaim itself is an atomic rename, so two waiters that both
+    judge the same marker stale cannot both proceed: only the one whose
+    rename succeeds may retry the create, and it never unlinks a marker a
+    new owner has just written."""
+    try:
+        text = marker.read_text(encoding="utf-8").split()
+        pid = int(text[0])
+    except (OSError, ValueError, IndexError):
+        pid = None
+    if pid is not None:
+        if _pid_alive(pid):
+            return False
+    else:
+        stale_after = float(os.environ.get("AF_CREATE_LOCK_STALE", "60"))
+        try:
+            if time.time() - marker.stat().st_mtime < stale_after:
+                return False
+        except FileNotFoundError:
+            return True
+    claimed = marker.with_name(f"{marker.name}.reclaim-{os.getpid()}")
+    try:
+        os.rename(marker, claimed)
+    except FileNotFoundError:
+        return True  # someone else reclaimed it; retry the create
     with contextlib.suppress(FileNotFoundError):
-        marker.unlink()
+        claimed.unlink()
     return True
 
 

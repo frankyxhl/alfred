@@ -1821,7 +1821,6 @@ def test_create_lock_falls_back_without_fcntl(tmp_path, monkeypatch):
 def test_stale_fallback_lock_marker_is_reclaimed(tmp_path, monkeypatch):
     """A fallback marker left behind by a killed process must not block
     creation forever: markers older than AF_CREATE_LOCK_STALE are reclaimed."""
-    import os
 
     from fx_alfred.commands import create_cmd
 
@@ -1833,9 +1832,7 @@ def test_stale_fallback_lock_marker_is_reclaimed(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     marker = create_cmd.lock_path_for(rules).with_suffix(".excl")
     marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text("999999 0", encoding="utf-8")
-    old = 1_000_000_000
-    os.utime(marker, (old, old))
+    marker.write_text("999999 0", encoding="utf-8")  # pid 999999: not alive
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -1961,3 +1958,52 @@ def test_project_create_works_when_user_alfred_dir_is_read_only(tmp_path, monkey
         alfred.chmod(0o700)
     assert result.exit_code == 0, result.output
     assert (rules / "TST-0001-SOP-Locked-Home.md").exists()
+
+
+def test_live_fallback_lock_owner_is_never_reclaimed(tmp_path, monkeypatch):
+    """A marker whose recorded pid is alive is not reclaimed, however old."""
+    import os
+
+    from fx_alfred.commands import create_cmd
+
+    monkeypatch.setattr(create_cmd, "fcntl", None)
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
+    monkeypatch.setenv("AF_CREATE_LOCK_STALE", "0")
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    marker = create_cmd.lock_path_for(rules).with_suffix(".excl")
+    marker.write_text(f"{os.getpid()} 0", encoding="utf-8")  # this process: alive
+    old = 1_000_000_000
+    os.utime(marker, (old, old))
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Held"]
+        )
+        assert result.exit_code != 0
+        assert "another af create" in result.output
+        assert marker.exists(), "live owner's marker must survive"
+    finally:
+        marker.unlink()
+
+
+def test_stale_marker_reclaim_is_atomic_between_two_waiters(tmp_path, monkeypatch):
+    """Two waiters judging the same dead marker: reclaim is a rename, so only
+    one wins; the loser sees the file gone and retries the create."""
+    import os
+
+    from fx_alfred.commands import create_cmd
+
+    marker = tmp_path / "m.excl"
+    marker.write_text("999999 0", encoding="utf-8")
+    # Simulate the loser: the marker was already renamed away by the winner.
+    real_rename = os.rename
+
+    def racing_rename(src, dst):
+        real_rename(src, str(src) + ".winner")  # the other waiter got there first
+        return real_rename(src, dst)  # raises FileNotFoundError for us
+
+    monkeypatch.setattr(os, "rename", racing_rename)
+    assert create_cmd._reclaim_stale_marker(marker) is True
+    assert not marker.exists()
