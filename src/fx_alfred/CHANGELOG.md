@@ -18,8 +18,8 @@
   release commit, not the merge) with `gh run watch --exit-status`, so an
   older run can't read as success.
   FXA-2328 status:
-  Proposed → **In Progress — implemented, awaiting the secret**; the owner
-  flips it to Completed once the verification chain passes.
+  **In Progress — secret installed; end-to-end verification pending**. The
+  owner flips it to Completed once the verification chain passes.
 
 ## v1.29.0 (2026-08-30)
 
