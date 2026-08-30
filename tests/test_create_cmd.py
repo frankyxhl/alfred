@@ -1909,6 +1909,7 @@ def test_global_destination_symlinked_outside_alfred_is_rejected(tmp_path, monke
 def test_create_lock_uses_msvcrt_when_fcntl_is_missing(tmp_path, monkeypatch):
     """Windows: the lock is msvcrt.locking on the same lock file (OS-released,
     no marker files, no owner probing). Verified with a fake msvcrt."""
+    import errno
     import types
 
     from fx_alfred.commands import create_cmd
@@ -1920,7 +1921,9 @@ def test_create_lock_uses_msvcrt_when_fcntl_is_missing(tmp_path, monkeypatch):
     def locking(fd, mode, nbytes):
         calls.append(mode)
         if mode == fake.LK_NBLCK and state["held"]:
-            raise OSError("locked by another process")
+            raise OSError(
+                errno.EACCES, "Permission denied"
+            )  # msvcrt's contention errno
 
     fake.locking = locking
     monkeypatch.setattr(create_cmd, "fcntl", None)
