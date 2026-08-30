@@ -16,6 +16,10 @@ try:
     import fcntl
 except ModuleNotFoundError:  # pragma: no cover - non-POSIX platforms (Windows)
     fcntl = None  # type: ignore[assignment]
+try:
+    import msvcrt
+except ModuleNotFoundError:  # pragma: no cover - POSIX platforms
+    msvcrt = None  # type: ignore[assignment]
 
 from fx_alfred.commands._helpers import (
     invoke_index_update,
@@ -91,98 +95,56 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     return shared / f"af-create-{ident}.lock"
 
 
-def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True  # exists, owned by someone else
-    except OSError:
-        return False
-    return True
-
-
-def _reclaim_stale_marker(marker: Path) -> bool:
-    """Reclaim a fallback marker whose recorded owner is dead, or — when the
-    owner cannot be read — that is older than AF_CREATE_LOCK_STALE seconds
-    (default 60). A live owner is never reclaimed, however long it holds the
-    lock. The reclaim itself is an atomic rename, so two waiters that both
-    judge the same marker stale cannot both proceed: only the one whose
-    rename succeeds may retry the create, and it never unlinks a marker a
-    new owner has just written."""
-    try:
-        text = marker.read_text(encoding="utf-8").split()
-        pid = int(text[0])
-    except (OSError, ValueError, IndexError):
-        pid = None
-    if pid is not None:
-        if _pid_alive(pid):
-            return False
-    else:
-        stale_after = float(os.environ.get("AF_CREATE_LOCK_STALE", "60"))
+def _try_lock(handle) -> bool:
+    """One non-blocking attempt on the OS lock: flock on POSIX, msvcrt.locking
+    on Windows. Both are released by the OS when the process ends, so there
+    is no marker to reclaim and no owner to probe. Without either module the
+    call succeeds unlocked (the same honest degradation core/activity_log
+    makes)."""
+    if fcntl is not None:
         try:
-            if time.time() - marker.stat().st_mtime < stale_after:
-                return False
-        except FileNotFoundError:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             return True
-    claimed = marker.with_name(f"{marker.name}.reclaim-{os.getpid()}")
-    try:
-        os.rename(marker, claimed)
-    except FileNotFoundError:
-        return True  # someone else reclaimed it; retry the create
-    with contextlib.suppress(FileNotFoundError):
-        claimed.unlink()
+        except OSError:
+            return False
+    if msvcrt is not None:
+        try:
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            return True
+        except OSError:
+            return False
     return True
+
+
+def _unlock(handle) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle, fcntl.LOCK_UN)
+    elif msvcrt is not None:
+        with contextlib.suppress(OSError):
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 @contextlib.contextmanager
 def _creation_lock(write_base: Path, dry_run: bool = False):
     """Serialise allocation + write, so two concurrent `af create` runs cannot
-    pick the same next ACID. POSIX: flock on the lock file (released by the
-    OS on any exit). Elsewhere: an exclusive-create `.excl` marker holding
-    `pid mtime`, reclaimed when stale. Waits up to AF_CREATE_LOCK_TIMEOUT
-    seconds (default 10)."""
+    pick the same next ACID. Waits up to AF_CREATE_LOCK_TIMEOUT seconds
+    (default 10) for the OS lock; a dry run takes no lock and touches no file."""
     if dry_run:  # a preview writes nothing — not even a lock file
         yield
         return
     timeout = float(os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10"))
     deadline = time.monotonic() + timeout
-    lock_path = lock_path_for(write_base)
-    busy = click.ClickException("another af create is running; retry in a moment")
-    if fcntl is None:
-        marker = lock_path.with_suffix(".excl")
-        while True:
-            try:
-                fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                break
-            except FileExistsError:
-                if _reclaim_stale_marker(marker):
-                    continue
-                if time.monotonic() >= deadline:
-                    raise busy from None
-                time.sleep(0.05)
-        try:
-            os.write(fd, f"{os.getpid()} {int(time.time())}".encode())
-            os.close(fd)
-            yield
-        finally:
-            with contextlib.suppress(FileNotFoundError):
-                marker.unlink()
-        return
-    with open(lock_path, "a+") as handle:
-        while True:
-            try:
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                break
-            except OSError:
-                if time.monotonic() >= deadline:
-                    raise busy from None
-                time.sleep(0.05)
+    with open(lock_path_for(write_base), "a+") as handle:
+        while not _try_lock(handle):
+            if time.monotonic() >= deadline:
+                raise click.ClickException(
+                    "another af create is running; retry in a moment"
+                )
+            time.sleep(0.05)
         try:
             yield
         finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            _unlock(handle)
 
 
 def _reject_scanner_invisible(write_base: Path, units: dict[str, Path]) -> None:
@@ -207,18 +169,19 @@ def _reject_scanner_invisible(write_base: Path, units: dict[str, Path]) -> None:
                     f"{write_base} is excluded from document scanning (logs path); "
                     "choose another --subdir"
                 )
-    if unit_root is None:
-        # A global destination must stay inside the scanned ~/.alfred tree once
-        # resolved: `~/.alfred/safe` → `/external` would hold documents the
-        # recursive USR scan never descends into.
-        try:
-            write_base.resolve().relative_to(user_root.resolve())
-        except ValueError:
-            raise click.ClickException(
-                f"{write_base} resolves outside ~/.alfred (symlink to an unscanned "
-                "location); choose a destination inside ~/.alfred or register it "
-                "in projects.json"
-            ) from None
+    # Once resolved, the destination must stay inside the tree its scan walks:
+    # `~/.alfred` for a global write, the unit root for a unit write. A nested
+    # symlink (`~/.alfred/safe` or `~/.alfred/A/safe` → `/external`) would hold
+    # documents the recursive scan never descends into.
+    scan_root = user_root if unit_root is None else unit_root
+    try:
+        write_base.resolve().relative_to(scan_root.resolve())
+    except ValueError:
+        raise click.ClickException(
+            f"{write_base} resolves outside {scan_root} (symlink to an unscanned "
+            "location); choose a destination inside it or register the target "
+            "in projects.json"
+        ) from None
 
 
 def _registered_units() -> dict[str, Path]:

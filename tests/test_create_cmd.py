@@ -1785,65 +1785,6 @@ def test_every_create_takes_the_same_machine_wide_lock(tmp_path, monkeypatch):
     assert lock_path_for(rules).parent != rules
 
 
-def test_create_lock_falls_back_without_fcntl(tmp_path, monkeypatch):
-    """Without the POSIX fcntl module (Windows) the lock must still work via an
-    exclusive-create lock file, and `af create` must stay importable."""
-    from fx_alfred.commands import create_cmd
-
-    monkeypatch.setattr(create_cmd, "fcntl", None)
-    rules = tmp_path / "rules"
-    rules.mkdir()
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
-    marker = create_cmd.lock_path_for(rules).with_suffix(".excl")
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text("held", encoding="utf-8")
-    try:
-        runner = CliRunner()
-        result = runner.invoke(
-            cli, ["create", "sop", "--prefix", "TST", "--title", "Blocked"]
-        )
-        assert result.exit_code != 0
-        assert "another af create" in result.output
-        assert not list(rules.glob("TST-*"))
-    finally:
-        marker.unlink()
-    result = runner.invoke(
-        cli,
-        ["create", "sop", "--prefix", "TST", "--title", "Blocked"],
-        catch_exceptions=False,
-    )
-    assert result.exit_code == 0, result.output
-    assert (rules / "TST-0001-SOP-Blocked.md").exists()
-    assert not marker.exists(), "fallback lock file must be released"
-
-
-def test_stale_fallback_lock_marker_is_reclaimed(tmp_path, monkeypatch):
-    """A fallback marker left behind by a killed process must not block
-    creation forever: markers older than AF_CREATE_LOCK_STALE are reclaimed."""
-
-    from fx_alfred.commands import create_cmd
-
-    monkeypatch.setattr(create_cmd, "fcntl", None)
-    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
-    monkeypatch.setenv("AF_CREATE_LOCK_STALE", "1")
-    rules = tmp_path / "rules"
-    rules.mkdir()
-    monkeypatch.chdir(tmp_path)
-    marker = create_cmd.lock_path_for(rules).with_suffix(".excl")
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text("999999 0", encoding="utf-8")  # pid 999999: not alive
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        ["create", "sop", "--prefix", "TST", "--title", "Reclaimed"],
-        catch_exceptions=False,
-    )
-    assert result.exit_code == 0, result.output
-    assert (rules / "TST-0001-SOP-Reclaimed.md").exists()
-    assert not marker.exists()
-
-
 def test_symlink_into_scanner_invisible_logs_is_rejected(tmp_path, monkeypatch):
     """`~/.alfred/safe` → `~/.alfred/logs`: lexically fine, but the write lands
     in the excluded logs tree. Resolve before judging."""
@@ -1960,55 +1901,6 @@ def test_project_create_works_when_user_alfred_dir_is_read_only(tmp_path, monkey
     assert (rules / "TST-0001-SOP-Locked-Home.md").exists()
 
 
-def test_live_fallback_lock_owner_is_never_reclaimed(tmp_path, monkeypatch):
-    """A marker whose recorded pid is alive is not reclaimed, however old."""
-    import os
-
-    from fx_alfred.commands import create_cmd
-
-    monkeypatch.setattr(create_cmd, "fcntl", None)
-    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
-    monkeypatch.setenv("AF_CREATE_LOCK_STALE", "0")
-    rules = tmp_path / "rules"
-    rules.mkdir()
-    monkeypatch.chdir(tmp_path)
-    marker = create_cmd.lock_path_for(rules).with_suffix(".excl")
-    marker.write_text(f"{os.getpid()} 0", encoding="utf-8")  # this process: alive
-    old = 1_000_000_000
-    os.utime(marker, (old, old))
-    try:
-        runner = CliRunner()
-        result = runner.invoke(
-            cli, ["create", "sop", "--prefix", "TST", "--title", "Held"]
-        )
-        assert result.exit_code != 0
-        assert "another af create" in result.output
-        assert marker.exists(), "live owner's marker must survive"
-    finally:
-        marker.unlink()
-
-
-def test_stale_marker_reclaim_is_atomic_between_two_waiters(tmp_path, monkeypatch):
-    """Two waiters judging the same dead marker: reclaim is a rename, so only
-    one wins; the loser sees the file gone and retries the create."""
-    import os
-
-    from fx_alfred.commands import create_cmd
-
-    marker = tmp_path / "m.excl"
-    marker.write_text("999999 0", encoding="utf-8")
-    # Simulate the loser: the marker was already renamed away by the winner.
-    real_rename = os.rename
-
-    def racing_rename(src, dst):
-        real_rename(src, str(src) + ".winner")  # the other waiter got there first
-        return real_rename(src, dst)  # raises FileNotFoundError for us
-
-    monkeypatch.setattr(os, "rename", racing_rename)
-    assert create_cmd._reclaim_stale_marker(marker) is True
-    assert not marker.exists()
-
-
 def test_global_destination_symlinked_outside_alfred_is_rejected(tmp_path, monkeypatch):
     """`~/.alfred/safe` → /external: the USR scan never sees documents written
     there, so sequential numbering would repeat. Reject the escape."""
@@ -2035,7 +1927,7 @@ def test_global_destination_symlinked_outside_alfred_is_rejected(tmp_path, monke
         ],
     )
     assert result.exit_code != 0
-    assert "resolves outside ~/.alfred" in result.output
+    assert "resolves outside" in result.output
     assert not list(external.glob("TST-*"))
 
 
@@ -2059,3 +1951,71 @@ def test_degraded_lock_location_ignores_tmpdir_on_posix(tmp_path, monkeypatch):
     finally:
         alfred.chmod(0o700)
     assert a == b and a.parent == Path("/tmp")
+
+
+def test_create_lock_uses_msvcrt_when_fcntl_is_missing(tmp_path, monkeypatch):
+    """Windows: the lock is msvcrt.locking on the same lock file (OS-released,
+    no marker files, no owner probing). Verified with a fake msvcrt."""
+    import types
+
+    from fx_alfred.commands import create_cmd
+
+    calls = []
+    fake = types.SimpleNamespace(LK_NBLCK=1, LK_UNLCK=0)
+    state = {"held": True}
+
+    def locking(fd, mode, nbytes):
+        calls.append(mode)
+        if mode == fake.LK_NBLCK and state["held"]:
+            raise OSError("locked by another process")
+
+    fake.locking = locking
+    monkeypatch.setattr(create_cmd, "fcntl", None)
+    monkeypatch.setattr(create_cmd, "msvcrt", fake)
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["create", "sop", "--prefix", "TST", "--title", "Win"])
+    assert result.exit_code != 0 and "another af create" in result.output
+    assert not list(rules.glob("TST-*"))
+    state["held"] = False
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Win"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Win.md").exists()
+    assert calls[-1] == fake.LK_UNLCK, "lock released after the write"
+    assert not list(rules.glob(".*")) and not list(rules.glob("*.excl"))
+
+
+def test_nested_symlink_inside_registered_unit_is_rejected(tmp_path, monkeypatch):
+    """`~/.alfred/A/safe → /external` with A registered: the unit scan never
+    descends the link, so writes there would be invisible. Reject."""
+    sub = _register_subproject(tmp_path)  # MYP
+    external = tmp_path / "external"
+    external.mkdir()
+    (sub / "safe").symlink_to(external, target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP/safe",
+            "--title",
+            "Escaped",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "resolves outside" in result.output
+    assert not list(external.glob("TST-*"))
