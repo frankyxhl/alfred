@@ -60,12 +60,26 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 4. **Verify** — `gh secret list --repo frankyxhl/alfred` lists
    `SEMANTIC_RELEASE_PAT`. Then trigger the chain with a trivial
    conventional-commit PR (branch → merge — e.g. a one-line `docs:`
-   touch-up; `docs` maps to a patch bump per FXA-2328) and watch:
-   `gh run list --workflow=cd-release.yml --limit 1` goes green and creates
-   the tag + GitHub Release, then `gh run list --workflow=publish.yml
-   --limit 1` goes green, then `pip index versions fx-alfred` (or the PyPI
-   JSON API) shows the new version. Re-running the old failed run
-   (`gh run rerun 33302010976`) replays the #330 commit — prefer the
+   touch-up; `docs` maps to a patch bump per FXA-2328). Bind every check
+   to **that merge's exact runs** — a bare `gh run list --limit 1` can
+   show an older run before the new one is dispatched, which would let
+   FXA-2328 close without validating this chain:
+   ```bash
+   MERGE_SHA=$(gh pr view <PR#> --repo frankyxhl/alfred --json mergeCommit --jq .mergeCommit.oid)
+   gh run watch "$(gh run list --repo frankyxhl/alfred --workflow=cd-release.yml \
+     --commit "$MERGE_SHA" --json databaseId --jq '.[0].databaseId')" \
+     --repo frankyxhl/alfred --exit-status   # green → tag vX.Y.Z + GitHub Release created
+   gh release list --repo frankyxhl/alfred --limit 1   # the new vX.Y.Z is present
+   gh run watch "$(gh run list --repo frankyxhl/alfred --workflow=publish.yml \
+     --commit "$MERGE_SHA" --json databaseId --jq '.[0].databaseId')" \
+     --repo frankyxhl/alfred --exit-status   # publish.yml for that release
+   pip index versions fx-alfred             # (or the PyPI JSON API) shows vX.Y.Z
+   ```
+   The cd run appears within seconds of the merge; the publish run is
+   dispatched only after cd-release creates the release, so query it after
+   the first watch returns (`publish.yml` carries the tagged commit as its
+   head SHA — the same `MERGE_SHA` binds both). Re-running the old failed
+   run (`gh run rerun 33302010976`) replays the #330 commit — prefer the
    branch→merge trigger, which exercises the chain as designed.
 5. **Close out** — once step 4 passes end to end, the owner flips
    **FXA-2328 → Completed** (and its REF-0000 index row), noting the
@@ -81,3 +95,4 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 | Date | Change | By |
 |------|--------|----|
 | 2026-08-30 | Initial version — operator runbook (owner request via pfc); FXA-2328 flipped Proposed → In Progress (implemented, awaiting the secret) | alfred (pi/GLM) |
+| 2026-08-30 | R1 (codex P2 on PR #335): step 4 now binds the merge's exact run IDs (`gh run list --commit "$MERGE_SHA"` + `gh run watch --exit-status`) instead of `--limit 1` listings, which could show an older run and let FXA-2328 close unvalidated | alfred (pi/GLM) |
