@@ -1,4 +1,6 @@
 import json
+
+import click
 from pathlib import Path
 from unittest.mock import patch
 
@@ -2019,3 +2021,63 @@ def test_nested_symlink_inside_registered_unit_is_rejected(tmp_path, monkeypatch
     assert result.exit_code != 0
     assert "resolves outside" in result.output
     assert not list(external.glob("TST-*"))
+
+
+def test_degraded_lock_prefers_xdg_runtime_dir(tmp_path, monkeypatch):
+    import os
+
+    if os.name != "posix" or (hasattr(os, "geteuid") and os.geteuid() == 0):
+        pytest.skip("POSIX non-root only")
+    from fx_alfred.commands.create_cmd import lock_path_for
+
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    alfred.chmod(0o500)
+    try:
+        assert lock_path_for(tmp_path) == runtime / "af-create.lock"
+    finally:
+        alfred.chmod(0o700)
+
+
+def test_degraded_shared_lock_owned_by_another_account_is_refused(
+    tmp_path, monkeypatch
+):
+    """A squatted /tmp lock (other uid) must fail loudly, not silently block."""
+    import os
+
+    if os.name != "posix" or (hasattr(os, "geteuid") and os.geteuid() == 0):
+        pytest.skip("POSIX non-root only")
+    from fx_alfred.commands import create_cmd
+
+    monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    alfred.chmod(0o500)
+    real_stat = Path.stat
+
+    class ForeignStat:
+        st_uid = os.getuid() + 1
+
+    def fake_stat(self, *a, **k):
+        if self.name.startswith("af-create-"):
+            return ForeignStat()
+        return real_stat(self, *a, **k)
+
+    monkeypatch.setattr(Path, "stat", fake_stat)
+    monkeypatch.setattr(
+        Path,
+        "exists",
+        lambda self: (
+            True
+            if self.name.startswith("af-create-")
+            else real_stat and os.path.exists(self)
+        ),
+    )
+    try:
+        with pytest.raises(click.ClickException, match="owned by another account"):
+            create_cmd.lock_path_for(tmp_path)
+    finally:
+        alfred.chmod(0o700)

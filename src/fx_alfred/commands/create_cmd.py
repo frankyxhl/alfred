@@ -89,10 +89,22 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     except OSError:
         pass
     ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
-    # Degraded location: a FIXED shared directory on POSIX (TMPDIR varies per
-    # process, which would give concurrent creates different locks).
+    # Degraded location, in order: the OS's securely owned per-user runtime dir
+    # ($XDG_RUNTIME_DIR), else a FIXED shared directory (TMPDIR varies per
+    # process, which would give concurrent creates different locks). In the
+    # shared directory the predictable name could be squatted by another
+    # account, so an existing file must be ours.
+    runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if runtime and os.access(runtime, os.W_OK):
+        return Path(runtime) / "af-create.lock"
     shared = Path("/tmp") if os.name == "posix" else Path(tempfile.gettempdir())
-    return shared / f"af-create-{ident}.lock"
+    lock = shared / f"af-create-{ident}.lock"
+    if hasattr(os, "getuid") and lock.exists() and lock.stat().st_uid != os.getuid():
+        raise click.ClickException(
+            f"{lock} exists but is owned by another account; remove it or make "
+            "~/.alfred writable so af can use its own lock"
+        )
+    return lock
 
 
 def _try_lock(handle) -> bool:
