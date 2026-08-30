@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## v1.29.0 (2026-08-30)
+
+The sequential-create release: `af create` without `--acid`/`--area` now
+allocates the next ACID itself — under a single per-user create lock, with
+layer-aware allocation scopes and destination guards that close every path
+where a created document could duplicate an ACID another scope already held
+or land where later scans would never see it. Also ships FXA-2328's
+automated release pipeline. The new create behavior justifies the minor
+bump; no breaking changes. Delivery PR #330 carried 26 new tests pinning
+numbering, scope, locking and guards (1548 passing total) through the codex
+and iterwheel-clearance review loops.
+
+### New Features
+
+- **`af create`: sequential ACID numbering** (#330) — when neither `--acid`
+  nor `--area` is given, create allocates the highest existing ACID for the
+  prefix + 1 (the 0000 index counts, so an empty project starts at 0001;
+  after TST-2100 comes 2101 — never a gap-fill), replacing the "Must specify
+  either --acid or --area" error in both the CLI-args and spec-file paths.
+  An empty `--area ""` now fails the two-digit validation instead of silently
+  selecting sequential numbering.
+
 ### Improvements
 
 - **Automated releases** (FXA-2328) — new `cd-release.yml` runs
@@ -13,6 +35,29 @@
   changelog generation disabled). FXA-2102 now documents the automated path
   as primary with the manual flow as fallback. Requires the
   `SEMANTIC_RELEASE_PAT` repository secret.
+- **`af create`: layer-aware allocation scope** (#330) — project-layer writes
+  number against the scan unchanged; a user-layer write into a registered
+  `~/.alfred/<NAME>` unit treats the whole unit as one PRJ document set
+  (recursive scan, caller's PRJ documents dropped); a global user write
+  numbers against every registered unit plus the caller's `rules/` — so a
+  created document can never duplicate an ACID another scope already holds.
+  Unit detection compares paths lexically before resolving, so a symlinked
+  unit is still recognised and scanned.
+- **`af create`: one create lock** (#330) — allocation, duplicate check,
+  index regeneration and the write run under a single per-user lock
+  (`~/.alfred/.af-create.lock`; flock on POSIX, msvcrt.locking on Windows —
+  native OS locks only, released by the OS on exit, no marker files), so
+  two concurrent creates can no longer pick the same next ACID. Contention
+  waits up to `AF_CREATE_LOCK_TIMEOUT` (default 10 s, validated) then fails
+  fast; dry runs take no lock. The lock file's name is reserved — creating
+  a document at that path is refused.
+- **`af create`: destination guards** (#330) — user-layer destinations the
+  scanner can never see are rejected up front: `logs/` at the top of
+  `~/.alfred` or of a registered unit (judged relative to the scan root, so
+  a unit actually named `logs` stays valid) and `rules/.../logs`; and every
+  destination must resolve inside the tree its scan walks, so a symlink
+  into the logs tree, a destination resolving outside `~/.alfred`, or a
+  nested symlink inside a unit is refused.
 
 ## v1.28.0 (2026-08-16)
 
