@@ -109,7 +109,7 @@ def _try_lock(handle) -> bool:
             return False
     if msvcrt is not None:
         try:
-            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)  # pyright: ignore[reportAttributeAccessIssue]
             return True
         except OSError:
             return False
@@ -121,7 +121,7 @@ def _unlock(handle) -> None:
         fcntl.flock(handle, fcntl.LOCK_UN)
     elif msvcrt is not None:
         with contextlib.suppress(OSError):
-            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 @contextlib.contextmanager
