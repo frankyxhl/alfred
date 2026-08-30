@@ -1,5 +1,6 @@
 import contextlib
 import errno
+import math
 import os
 import re
 import time
@@ -67,6 +68,9 @@ def _validate_generated_filename(filename: str, title: str) -> str:
     return filename
 
 
+LOCK_FILENAME = ".af-create.lock"
+
+
 def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for every target
     """The single per-user `af create` lock: `~/.alfred/.af-create.lock`.
 
@@ -90,7 +94,12 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
             f"{user_root} is not writable; af create needs it for its lock file "
             "(and for user-layer documents)"
         )
-    return user_root / ".af-create.lock"
+    lock = user_root / LOCK_FILENAME
+    if lock.is_dir():
+        raise click.ClickException(
+            f"{lock} is a directory but the name is reserved for af's lock file"
+        )
+    return lock
 
 
 _WOULD_BLOCK = {
@@ -139,7 +148,15 @@ def _creation_lock(write_base: Path, dry_run: bool = False):
     if dry_run:  # a preview writes nothing — not even a lock file
         yield
         return
-    timeout = float(os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10"))
+    raw = os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10")
+    try:
+        timeout = float(raw)
+    except ValueError:
+        timeout = math.nan
+    if not math.isfinite(timeout) or timeout < 0:
+        raise click.ClickException(
+            f"AF_CREATE_LOCK_TIMEOUT={raw!r} is not a finite non-negative number of seconds"
+        )
     deadline = time.monotonic() + timeout
     with open(lock_path_for(write_base), "a+") as handle:
         while not _try_lock(handle):
@@ -337,6 +354,8 @@ def _resolve_write_base(
         raise click.ClickException(
             "--subdir must be a safe relative path (no absolute paths or '..')"
         )
+    if LOCK_FILENAME in rel.parts:
+        raise click.ClickException(f"{LOCK_FILENAME!r} is reserved for af's lock file")
     return user_root / rel
 
 

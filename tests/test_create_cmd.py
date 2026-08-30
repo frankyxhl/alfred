@@ -2062,3 +2062,46 @@ def test_permanent_lock_failure_surfaces_immediately(tmp_path, monkeypatch):
     assert result.exit_code != 0
     assert "cannot lock" in result.output and "another af create" not in result.output
     assert time.monotonic() - started < 2, "must not wait out the contention timeout"
+
+
+def test_lock_file_name_is_reserved_as_a_destination(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    for subdir in (".af-create.lock", "x/.af-create.lock"):
+        result = runner.invoke(
+            cli,
+            [
+                "create",
+                "sop",
+                "--prefix",
+                "TST",
+                "--layer",
+                "user",
+                "--subdir",
+                subdir,
+                "--title",
+                "Clash",
+            ],
+        )
+        assert result.exit_code != 0, subdir
+        assert "reserved" in result.output, subdir
+    assert not (Path.home() / ".alfred" / ".af-create.lock").is_dir()
+
+
+def test_invalid_lock_timeout_is_rejected_before_polling(tmp_path, monkeypatch):
+    import time
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    for bad in ("nan", "inf", "-1", "soon"):
+        monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", bad)
+        started = time.monotonic()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Bad Timeout"]
+        )
+        assert result.exit_code != 0, bad
+        assert "AF_CREATE_LOCK_TIMEOUT" in result.output, bad
+        assert time.monotonic() - started < 1, bad
+    assert not list(rules.glob("TST-*"))
