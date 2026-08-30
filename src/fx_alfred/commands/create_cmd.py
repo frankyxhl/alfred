@@ -149,10 +149,11 @@ def _reject_scanner_invisible(write_base: Path, units: dict[str, Path]) -> None:
     ~/.alfred or of a registered unit, or a rules/.../logs path) would hold
     documents no later scan can see: refuse to create there."""
     user_root = Path.home() / ".alfred"
-    roots = [user_root, user_root.resolve()]
     unit_root = _registered_unit_root(write_base, units)
-    if unit_root is not None:
-        roots += [unit_root, unit_root.resolve()]
+    # A unit is scanned relative to ITS root (so a unit legitimately named
+    # `logs` is fine); only a global destination is judged against ~/.alfred.
+    scan_root_for_logs = user_root if unit_root is None else unit_root
+    roots = [scan_root_for_logs, scan_root_for_logs.resolve()]
     # Judge the lexical path AND the resolved one: `~/.alfred/safe` may be a
     # symlink into the excluded logs tree.
     for base in (write_base, write_base.resolve()):

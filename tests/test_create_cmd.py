@@ -1999,3 +1999,36 @@ def test_create_refuses_clearly_when_user_alfred_dir_is_read_only(
     assert result.exit_code != 0
     assert "is not writable" in result.output
     assert not list(rules.glob("TST-*"))
+
+
+def test_registered_unit_named_logs_is_a_valid_destination(tmp_path, monkeypatch):
+    """The logs rule applies relative to the scan root: a unit registered as
+    `logs` is scanned from its own root, so writing into it is fine."""
+    alfred = Path.home() / ".alfred"
+    unit = alfred / "logs"
+    unit.mkdir(parents=True, exist_ok=True)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(repo.resolve()): "logs"}}), encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "logs",
+            "--title",
+            "In Unit",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (unit / "TST-0001-SOP-In-Unit.md").exists()
