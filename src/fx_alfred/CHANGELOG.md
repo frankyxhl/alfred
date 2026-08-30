@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.29.1 (2026-08-30)
+
 ### New
 
 - **FXA-2329 (CHG): operator runbook for `SEMANTIC_RELEASE_PAT`** — the
