@@ -1,9 +1,9 @@
 # CHG-2329: Enable Semantic-Release Automation: SEMANTIC_RELEASE_PAT
 
 **Applies to:** FXA project
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 **Last reviewed:** 2026-08-30
-**Status:** Approved
+**Status:** Completed
 **Date:** 2026-08-30
 **Requested by:** Frank Xu (owner request via pfc, 2026-08-30)
 **Priority:** High
@@ -136,3 +136,4 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 | 2026-08-30 | Installed one-year SEMANTIC_RELEASE_PAT; end-to-end branch-to-merge verification pending                                                                                                                                                                                                                                                                           | Codex           |
 | 2026-08-30 | R6 (codex P2 on PR #336, thread 3889616594): replaced stale awaiting-secret and harmless checkout-failure language with installed-secret / verification-pending state; any checkout failure is now blocking                                                                                                                                                        | Codex           |
 | 2026-08-30 | R7 (codex P2 on PR #336, thread 3889652548): synchronized FXA-2328's latest Change History entry and the Unreleased CHANGELOG with the installed-secret / verification-pending state                                                                                                                                                                               | Codex           |
+| 2026-08-31 | Completed: direct-captured classic PAT passed GitHub API 200 with repo push/admin; gh secret set updated SEMANTIC_RELEASE_PAT at 2026-08-30T19:19:14Z; CD run 33317846357 attempt #4 and publish run 33330725385 succeeded; PyPI shows 1.29.1.                                                                                                                     | Codex           |

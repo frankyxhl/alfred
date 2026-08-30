@@ -1,9 +1,9 @@
 # CHG-2328: Semantic Release Automation
 
 **Applies to:** FXA project
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 **Last reviewed:** 2026-08-30
-**Status:** In Progress
+**Status:** Completed
 **Date:** 2026-08-16
 **Requested by:** Frank Xu (session request: automate releases; borrow fx_bin's cd-release.yml pattern)
 **Priority:** Medium
@@ -94,3 +94,4 @@ main" the single release action.
 | 2026-08-30 | First merge under the pipeline (alfred#330) failed at checkout: the `SEMANTIC_RELEASE_PAT` repository secret has not been created yet (the one-time operator action). v1.29.0 shipped via the FXA-2102 manual fallback; Status stays Proposed until one release goes through the automated path end-to-end.                                                              | alfred (pi/GLM) |
 | 2026-08-30 | Status Proposed → **In Progress — implemented, awaiting the secret**: the pipeline is merged and live (v1.29.0, #334); only the `SEMANTIC_RELEASE_PAT` operator action remains, runbook now FXA-2329. Owner flips to **Completed** once FXA-2329 §Implementation Plan step 4 passes end to end.                                                                          | alfred (pi/GLM) |
 | 2026-08-30 | FXA-2329 operator step complete: a one-year classic PAT with `repo` scope is stored as `SEMANTIC_RELEASE_PAT`. Status remains **In Progress — secret installed; end-to-end verification pending**; only PR #336's exact-run verification remains before completion.                                                                                                      | Codex           |
+| 2026-08-31 | Completed after FXA-2329 end-to-end verification: CD run 33317846357 attempt #4 released v1.29.1; publish run 33330725385 passed test and publish; PyPI shows fx-alfred 1.29.1.                                                                                                                                                                                          | Codex           |
