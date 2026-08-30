@@ -2032,3 +2032,30 @@ def test_registered_unit_named_logs_is_a_valid_destination(tmp_path, monkeypatch
     )
     assert result.exit_code == 0, result.output
     assert (unit / "TST-0001-SOP-In-Unit.md").exists()
+
+
+def test_permanent_lock_failure_surfaces_immediately(tmp_path, monkeypatch):
+    """ENOSYS from flock is not contention: fail at once with the real error,
+    not 'another af create is running' after the full timeout."""
+    import errno
+    import time
+
+    fcntl = pytest.importorskip("fcntl")
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "5")
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    def broken_flock(fd, op):
+        if op & fcntl.LOCK_NB:
+            raise OSError(errno.ENOSYS, "Function not implemented")
+
+    monkeypatch.setattr(fcntl, "flock", broken_flock)
+    started = time.monotonic()
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["create", "sop", "--prefix", "TST", "--title", "NoLocks"]
+    )
+    assert result.exit_code != 0
+    assert "cannot lock" in result.output and "another af create" not in result.output
+    assert time.monotonic() - started < 2, "must not wait out the contention timeout"

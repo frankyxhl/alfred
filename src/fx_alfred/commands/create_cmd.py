@@ -1,4 +1,5 @@
 import contextlib
+import errno
 import os
 import re
 import time
@@ -92,25 +93,34 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     return user_root / ".af-create.lock"
 
 
+_WOULD_BLOCK = {
+    errno.EWOULDBLOCK,
+    errno.EAGAIN,
+    errno.EACCES,
+}  # EACCES: Windows/msvcrt contention
+
+
 def _try_lock(handle) -> bool:
     """One non-blocking attempt on the OS lock: flock on POSIX, msvcrt.locking
     on Windows. Both are released by the OS when the process ends, so there
-    is no marker to reclaim and no owner to probe. Without either module the
-    call succeeds unlocked (the same honest degradation core/activity_log
-    makes)."""
-    if fcntl is not None:
-        try:
+    is no marker to reclaim and no owner to probe. Returns False only for
+    CONTENTION (would-block); any other failure — ENOSYS/EOPNOTSUPP on a
+    filesystem without locks, EBADF, … — is permanent and surfaces at once.
+    Without either module the call succeeds unlocked (the same honest
+    degradation core/activity_log makes)."""
+    try:
+        if fcntl is not None:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return True
-        except OSError:
-            return False
-    if msvcrt is not None:
-        try:
+        elif msvcrt is not None:
             msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)  # pyright: ignore[reportAttributeAccessIssue]
-            return True
-        except OSError:
+        return True
+    except OSError as exc:
+        if exc.errno in _WOULD_BLOCK:
             return False
-    return True
+        raise click.ClickException(
+            f"cannot lock {handle.name}: {exc.strerror or exc} (errno {exc.errno}); "
+            "the filesystem may not support locks"
+        ) from exc
 
 
 def _unlock(handle) -> None:
