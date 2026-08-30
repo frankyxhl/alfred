@@ -19,7 +19,7 @@ af plan --task "DESC" [SOP_ID ...]          # auto-compose SOPs via Task tags
 af setup                                    # suggested prompts for agent config
 af list [--type TYPE] [--prefix PREFIX] [--source SOURCE] [--tag TAG] [--json]
 af read IDENTIFIER [--json]                 # read by PREFIX-ACID or ACID only
-af create [TYPE] --prefix PREFIX --acid ACID|--area AREA --title TITLE [--layer project|user] [--subdir] [--spec FILE] [--dry-run]
+af create [TYPE] --prefix PREFIX [--acid ACID|--area AREA] --title TITLE [--layer project|user] [--subdir] [--spec FILE] [--dry-run]
 af update IDENTIFIER [--status] [--field KEY VALUE] [--history TEXT] [--by TEXT] [--title TEXT] [--dry-run] [-y] [--spec FILE]
 af where IDENTIFIER [--json]               # print absolute file path of a document
 af fmt [DOC_IDS...] [--write] [--check]     # format documents to canonical style

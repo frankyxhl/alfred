@@ -1,4 +1,9 @@
+import contextlib
+import errno
+import math
+import os
 import re
+import time
 from datetime import date
 from importlib import resources
 from pathlib import Path
@@ -6,6 +11,15 @@ from typing import Any
 
 import click
 import yaml
+
+try:
+    import fcntl
+except ModuleNotFoundError:  # pragma: no cover - non-POSIX platforms (Windows)
+    fcntl = None  # type: ignore[assignment]
+try:
+    import msvcrt
+except ModuleNotFoundError:  # pragma: no cover - POSIX platforms
+    msvcrt = None  # type: ignore[assignment]
 
 from fx_alfred.commands._helpers import (
     invoke_index_update,
@@ -52,6 +66,234 @@ def _validate_generated_filename(filename: str, title: str) -> str:
             "Choose a title with at least one alphanumeric character so the slug is not empty."
         )
     return filename
+
+
+LOCK_FILENAME = ".af-create.lock"
+
+
+def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for every target
+    """The single per-user `af create` lock: `~/.alfred/.af-create.lock`.
+
+    Allocation scopes overlap (a global user write numbers against every
+    registered unit AND the caller's rules/; a unit write against the global
+    USR area), so per-scope locks cannot be made disjoint. `~/.alfred` is
+    the one location every process touching the document namespace shares
+    and is per-user by construction; there is deliberately NO degraded
+    location (TMPDIR / XDG_RUNTIME_DIR / a shared /tmp name) — each of those
+    is either unstable across processes or squattable, and `~/.alfred` must
+    be writable for af to function anyway. Creates are rare and hold the
+    lock for milliseconds.
+    """
+    user_root = Path.home() / ".alfred"
+    try:
+        user_root.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+    if not os.access(user_root, os.W_OK):
+        raise click.ClickException(
+            f"{user_root} is not writable; af create needs it for its lock file "
+            "(and for user-layer documents)"
+        )
+    lock = user_root / LOCK_FILENAME
+    if lock.is_dir():
+        raise click.ClickException(
+            f"{lock} is a directory but the name is reserved for af's lock file"
+        )
+    return lock
+
+
+_WOULD_BLOCK = {
+    errno.EWOULDBLOCK,
+    errno.EAGAIN,
+    errno.EACCES,
+}  # EACCES: Windows/msvcrt contention
+
+
+def _try_lock(handle) -> bool:
+    """One non-blocking attempt on the OS lock: flock on POSIX, msvcrt.locking
+    on Windows. Both are released by the OS when the process ends, so there
+    is no marker to reclaim and no owner to probe. Returns False only for
+    CONTENTION (would-block); any other failure — ENOSYS/EOPNOTSUPP on a
+    filesystem without locks, EBADF, … — is permanent and surfaces at once.
+    Without either module the call succeeds unlocked (the same honest
+    degradation core/activity_log makes)."""
+    try:
+        if fcntl is not None:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        elif msvcrt is not None:
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)  # pyright: ignore[reportAttributeAccessIssue]
+        return True
+    except OSError as exc:
+        if exc.errno in _WOULD_BLOCK:
+            return False
+        raise click.ClickException(
+            f"cannot lock {handle.name}: {exc.strerror or exc} (errno {exc.errno}); "
+            "the filesystem may not support locks"
+        ) from exc
+
+
+def _unlock(handle) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle, fcntl.LOCK_UN)
+    elif msvcrt is not None:
+        with contextlib.suppress(OSError):
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)  # pyright: ignore[reportAttributeAccessIssue]
+
+
+@contextlib.contextmanager
+def _creation_lock(write_base: Path, dry_run: bool = False):
+    """Serialise allocation + write, so two concurrent `af create` runs cannot
+    pick the same next ACID. Waits up to AF_CREATE_LOCK_TIMEOUT seconds
+    (default 10) for the OS lock; a dry run takes no lock and touches no file."""
+    if dry_run:  # a preview writes nothing — not even a lock file
+        yield
+        return
+    raw = os.environ.get("AF_CREATE_LOCK_TIMEOUT", "10")
+    try:
+        timeout = float(raw)
+    except ValueError:
+        timeout = math.nan
+    if not math.isfinite(timeout) or timeout < 0:
+        raise click.ClickException(
+            f"AF_CREATE_LOCK_TIMEOUT={raw!r} is not a finite non-negative number of seconds"
+        )
+    deadline = time.monotonic() + timeout
+    with open(lock_path_for(write_base), "a+") as handle:
+        while not _try_lock(handle):
+            if time.monotonic() >= deadline:
+                raise click.ClickException(
+                    "another af create is running; retry in a moment"
+                )
+            time.sleep(0.05)
+        try:
+            yield
+        finally:
+            _unlock(handle)
+
+
+def _reject_scanner_invisible(write_base: Path, units: dict[str, Path]) -> None:
+    """A user-layer destination the scanner skips (`logs/` at the top of
+    ~/.alfred or of a registered unit, or a rules/.../logs path) would hold
+    documents no later scan can see: refuse to create there."""
+    user_root = Path.home() / ".alfred"
+    unit_root = _registered_unit_root(write_base, units)
+    # A unit is scanned relative to ITS root (so a unit legitimately named
+    # `logs` is fine); only a global destination is judged against ~/.alfred.
+    scan_root_for_logs = user_root if unit_root is None else unit_root
+    roots = [scan_root_for_logs, scan_root_for_logs.resolve()]
+    # Judge the lexical path AND the resolved one: `~/.alfred/safe` may be a
+    # symlink into the excluded logs tree.
+    for base in (write_base, write_base.resolve()):
+        for root in roots:
+            try:
+                parts = base.relative_to(root).parts
+            except ValueError:
+                continue
+            if (parts and parts[0] == "logs") or ("rules" in parts and "logs" in parts):
+                raise click.ClickException(
+                    f"{write_base} is excluded from document scanning (logs path); "
+                    "choose another --subdir"
+                )
+    # Once resolved, the destination must stay inside the tree its scan walks:
+    # `~/.alfred` for a global write, the unit root for a unit write. A nested
+    # symlink (`~/.alfred/safe` or `~/.alfred/A/safe` → `/external`) would hold
+    # documents the recursive scan never descends into.
+    scan_root = user_root if unit_root is None else unit_root
+    try:
+        write_base.resolve().relative_to(scan_root.resolve())
+    except ValueError:
+        raise click.ClickException(
+            f"{write_base} resolves outside {scan_root} (symlink to an unscanned "
+            "location); choose a destination inside it or register the target "
+            "in projects.json"
+        ) from None
+
+
+def _registered_units() -> dict[str, Path]:
+    """NAME -> `~/.alfred/NAME` for every subproject registered in projects.json."""
+    from fx_alfred.core.projects import load_projects
+
+    user_root = Path.home() / ".alfred"
+    return {name: user_root / name for name in set(load_projects().values())}
+
+
+def _registered_unit_root(write_base: Path, units: dict[str, Path]) -> Path | None:
+    """`~/.alfred/<NAME>` when `write_base` lies inside a registered unit (any
+    depth). Lexical first — `<NAME>` may be a symlink to external storage, so
+    resolving before the containment check would move the path outside the
+    user root; the resolved comparison is only a fallback."""
+    user_root = Path.home() / ".alfred"
+    for base in (write_base, write_base.resolve()):
+        for root in (user_root, user_root.resolve()):
+            try:
+                rel = base.relative_to(root)
+            except ValueError:
+                continue
+            if rel.parts and rel.parts[0] in units:
+                return units[rel.parts[0]]
+    return None
+
+
+def _scan_units_into(merged: list, dirs) -> list:
+    from fx_alfred.core.scanner import _scan_path_dir
+
+    seen = {(d.prefix, d.acid, str(d.directory)) for d in merged}
+    for directory in dirs:
+        if not directory.is_dir():
+            continue
+        for doc in _scan_path_dir(directory, source="usr", recursive=True):
+            key = (doc.prefix, doc.acid, str(doc.directory))
+            if key not in seen:
+                seen.add(key)
+                merged.append(doc)
+    return merged
+
+
+def _allocation_docs(docs: list, write_base: Path, layer: str | None) -> list:
+    """The documents ACID allocation and the collision check must see.
+
+    Project layer: `scan_documents` already scanned the target (non-recursively,
+    on purpose — `rules/archive/` is invisible), so the scan is used as is.
+
+    User layer, target inside a registered unit `~/.alfred/<NAME>/…` (any
+    depth): that whole unit is one PRJ layer, so the scope is PKG + USR + a
+    recursive scan of `<NAME>`; the caller's own PRJ documents (a different
+    unit, or the same one — rescanned anyway) are dropped, and the unit is
+    scanned directly because the USR scan hides registered directories.
+
+    User layer, target in the global `~/.alfred` area: the document becomes
+    visible to EVERY later scan, so the scope is the scan as is (PKG + USR +
+    the caller's PRJ) plus a recursive scan of every registered unit — a USR
+    document duplicating any unit's ACID would fail `_validate_layers()`
+    the next time that unit is scanned.
+    """
+    if layer != "user":
+        return docs
+    units = _registered_units()
+    _reject_scanner_invisible(write_base, units)
+    unit_root = _registered_unit_root(write_base, units)
+    if unit_root is not None:
+        return _scan_units_into([d for d in docs if d.source != "prj"], [unit_root])
+    return _scan_units_into(list(docs), units.values())
+
+
+def _next_acid_sequential(docs: list, prefix: str) -> str:
+    """The simplest numbering: the highest ACID already used by ``prefix`` + 1.
+
+    ``0000`` (the document index) counts as used, so an empty project starts at
+    ``0001``; area-numbered documents raise the high-water mark (after
+    ``2100`` comes ``2101``) — no gap-filling, so a number is never reused.
+    """
+    highest = 0
+    for doc in docs:
+        if doc.prefix == prefix:
+            try:
+                highest = max(highest, int(doc.acid))
+            except (TypeError, ValueError):
+                continue
+    if highest >= 9999:
+        raise click.ClickException(f"No ACID left for prefix {prefix} (9999 reached)")
+    return f"{highest + 1:04d}"
 
 
 def _next_acid_in_area(docs: list, prefix: str, area: str) -> str:
@@ -112,6 +354,8 @@ def _resolve_write_base(
         raise click.ClickException(
             "--subdir must be a safe relative path (no absolute paths or '..')"
         )
+    if LOCK_FILENAME in rel.parts:
+        raise click.ClickException(f"{LOCK_FILENAME!r} is reserved for af's lock file")
     return user_root / rel
 
 
@@ -193,10 +437,7 @@ def _resolve_spec_fields(
         raise click.ClickException("Prefix required (via --prefix or spec file)")
     if final_title is None:
         raise click.ClickException("Title required (via --title or spec file)")
-    if final_acid is None and final_area is None:
-        raise click.ClickException(
-            "ACID or area required (via --acid/--area or spec file)"
-        )
+    # Neither --acid nor --area: sequential numbering (highest used + 1), assigned below.
 
     # Validate prefix format (reuse callback logic)
     if not re.match(r"^[A-Z]{3}$", final_prefix):
@@ -344,7 +585,7 @@ Examples:
     "--acid",
     default=None,
     callback=validate_acid,
-    help="4-digit ACID number (mutually exclusive with --area)",
+    help="4-digit ACID number (mutually exclusive with --area). Omit both --acid and --area to number sequentially: highest existing ACID for the prefix + 1, starting at 0001",
 )
 @click.option(
     "--area",
@@ -412,54 +653,60 @@ def create_cmd(
         write_base = _resolve_write_base(ctx, layer, subdir)
 
         # Scan for existing docs to check collisions and auto-assign ACID
-        docs = scan_or_fail(ctx)
+        with _creation_lock(write_base, dry_run=dry_run):
+            docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
-        # Auto-assign ACID from area if needed
-        if final_acid is None and final_area is not None:
-            final_acid = _next_acid_in_area(docs, final_prefix, str(final_area))
+            # Auto-assign ACID from area if needed
+            if final_acid is None and final_area is not None:
+                final_acid = _next_acid_in_area(docs, final_prefix, str(final_area))
+            elif final_acid is None:
+                final_acid = _next_acid_sequential(docs, final_prefix)
 
-        if final_acid is None:
-            raise click.ClickException(
-                "ACID resolution failed for spec-file mode "
-                "(neither acid nor area resolved to a valid ACID)"
-            )
-
-        # Check for duplicate
-        for existing_doc in docs:
-            if existing_doc.prefix == final_prefix and existing_doc.acid == final_acid:
+            if final_acid is None:
                 raise click.ClickException(
-                    f"{final_prefix}-{final_acid} already exists in {existing_doc.source.upper()} layer: "
-                    f"{existing_doc.filename}. "
-                    "Try --area to auto-assign the next available ACID."
+                    "ACID resolution failed for spec-file mode "
+                    "(neither acid nor area resolved to a valid ACID)"
                 )
 
-        # Generate document content
-        content = _generate_spec_document(
-            doc_type_enum,
-            final_prefix,
-            str(final_acid),
-            final_title,
-            spec_metadata,
-            spec_sections,
-        )
+            # Check for duplicate
+            for existing_doc in docs:
+                if (
+                    existing_doc.prefix == final_prefix
+                    and existing_doc.acid == final_acid
+                ):
+                    raise click.ClickException(
+                        f"{final_prefix}-{final_acid} already exists in {existing_doc.source.upper()} layer: "
+                        f"{existing_doc.filename}. "
+                        "Try --area to auto-assign the next available ACID."
+                    )
 
-        filename = _validate_generated_filename(
-            f"{final_prefix}-{final_acid}-{doc_type_enum.value}-{slugify(final_title)}.md",
-            final_title,
-        )
-        output_path = write_base / filename
+            # Generate document content
+            content = _generate_spec_document(
+                doc_type_enum,
+                final_prefix,
+                str(final_acid),
+                final_title,
+                spec_metadata,
+                spec_sections,
+            )
 
-        if dry_run:
-            click.echo("Dry run — no file written.\n")
-            click.echo(content)
-            return
+            filename = _validate_generated_filename(
+                f"{final_prefix}-{final_acid}-{doc_type_enum.value}-{slugify(final_title)}.md",
+                final_title,
+            )
+            output_path = write_base / filename
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(content, encoding="utf-8")
-        click.echo(f"Created {output_path}")
+            if dry_run:
+                click.echo("Dry run — no file written.\n")
+                click.echo(content)
+                return
 
-        if layer != "user":
-            invoke_index_update(ctx)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(content, encoding="utf-8")
+            click.echo(f"Created {output_path}")
+
+            if layer != "user":
+                invoke_index_update(ctx)
         return
 
     # ── Mode 2: CLI args mode (original behavior) ──────────────────────────────
@@ -470,8 +717,6 @@ def create_cmd(
 
     if acid and area:
         raise click.ClickException("Cannot specify both --acid and --area")
-    if not acid and not area:
-        raise click.ClickException("Must specify either --acid or --area")
 
     # prefix and title are required in CLI mode (validate_prefix returns original value if None passed)
     if prefix is None:
@@ -485,53 +730,56 @@ def create_cmd(
     # Resolve write base early so --root + --layer user conflict is caught first
     write_base = _resolve_write_base(ctx, layer, subdir)
 
-    docs = scan_or_fail(ctx)
+    with _creation_lock(write_base, dry_run=dry_run):
+        docs = _allocation_docs(scan_or_fail(ctx), write_base, layer)
 
-    if area:
-        if not re.match(r"^\d{2}$", area):
-            raise click.ClickException("--area must be exactly 2 digits (e.g., 21)")
-        acid = _next_acid_in_area(docs, prefix, area)
+        if area is not None:
+            if not re.match(r"^\d{2}$", area):
+                raise click.ClickException("--area must be exactly 2 digits (e.g., 21)")
+            acid = _next_acid_in_area(docs, prefix, area)
+        elif acid is None:
+            acid = _next_acid_sequential(docs, prefix)
 
-    if acid is None:
-        raise click.ClickException(
-            "ACID resolution failed for CLI mode "
-            "(neither --acid nor --area resolved to a valid ACID)"
+        if acid is None:
+            raise click.ClickException(
+                "ACID resolution failed for CLI mode "
+                "(neither --acid nor --area resolved to a valid ACID)"
+            )
+
+        doc_type_lower = doc_type.lower()
+
+        for doc in docs:
+            if doc.prefix == prefix and doc.acid == acid:
+                raise click.ClickException(
+                    f"{prefix}-{acid} already exists in {doc.source.upper()} layer: "
+                    f"{doc.filename}. "
+                    "Try --area to auto-assign the next available ACID."
+                )
+        filename = _validate_generated_filename(
+            f"{prefix}-{acid}-{doc_type_lower.upper()}-{slugify(title)}.md", title
+        )
+        output_path = write_base / filename
+
+        template_file = resources.files("fx_alfred.templates").joinpath(
+            f"{doc_type_lower}.md"
+        )
+        template = template_file.read_text(encoding="utf-8")
+
+        content = (
+            template.replace("{{ACID}}", acid)
+            .replace("{{TITLE}}", title)
+            .replace("{{DATE}}", date.today().isoformat())
+            .replace("{{PREFIX}}", prefix)
         )
 
-    doc_type_lower = doc_type.lower()
+        if dry_run:
+            click.echo("Dry run — no file written.\n")
+            click.echo(content)
+            return
 
-    for doc in docs:
-        if doc.prefix == prefix and doc.acid == acid:
-            raise click.ClickException(
-                f"{prefix}-{acid} already exists in {doc.source.upper()} layer: "
-                f"{doc.filename}. "
-                "Try --area to auto-assign the next available ACID."
-            )
-    filename = _validate_generated_filename(
-        f"{prefix}-{acid}-{doc_type_lower.upper()}-{slugify(title)}.md", title
-    )
-    output_path = write_base / filename
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(content, encoding="utf-8")
+        click.echo(f"Created {output_path}")
 
-    template_file = resources.files("fx_alfred.templates").joinpath(
-        f"{doc_type_lower}.md"
-    )
-    template = template_file.read_text(encoding="utf-8")
-
-    content = (
-        template.replace("{{ACID}}", acid)
-        .replace("{{TITLE}}", title)
-        .replace("{{DATE}}", date.today().isoformat())
-        .replace("{{PREFIX}}", prefix)
-    )
-
-    if dry_run:
-        click.echo("Dry run — no file written.\n")
-        click.echo(content)
-        return
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(content, encoding="utf-8")
-    click.echo(f"Created {output_path}")
-
-    if layer != "user":
-        invoke_index_update(ctx)
+        if layer != "user":
+            invoke_index_update(ctx)

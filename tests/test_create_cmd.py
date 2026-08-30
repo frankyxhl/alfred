@@ -1,4 +1,5 @@
 import json
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -277,18 +278,6 @@ def test_create_area_and_acid_mutually_exclusive(tmp_path, monkeypatch):
     )
     assert result.exit_code != 0
     assert "Cannot specify both" in result.output
-
-
-def test_create_neither_acid_nor_area_errors(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        ["create", "sop", "--prefix", "TST", "--title", "No ACID"],
-        catch_exceptions=False,
-    )
-    assert result.exit_code != 0
-    assert "Must specify either" in result.output
 
 
 def test_create_auto_indexes_after_create(tmp_path, monkeypatch):
@@ -1405,3 +1394,714 @@ def test_create_spec_dry_run_rejects_title_that_slugifies_to_empty(
     assert "Created" not in result.output, (
         f"'Created' appeared in output despite failed validation. Output: {result.output}"
     )
+
+
+def test_create_without_acid_or_area_assigns_next_sequential(tmp_path, monkeypatch):
+    """No --acid and no --area: the simplest mode — max existing ACID for the
+    prefix + 1, starting at 0001 on an empty project (0000 is the index)."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "First"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "rules" / "TST-0001-SOP-First.md").exists()
+
+    result = runner.invoke(
+        cli,
+        ["create", "ref", "--prefix", "TST", "--title", "Second"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "rules" / "TST-0002-REF-Second.md").exists()
+
+
+def test_sequential_acid_continues_after_the_highest_existing_number(
+    tmp_path, monkeypatch
+):
+    """Area-numbered documents already in the project set the high-water mark:
+    with TST-2100 present the next sequential number is 2101, never a gap-fill."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--acid", "2100", "--title", "Area Doc"],
+        catch_exceptions=False,
+    )
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Next"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "rules" / "TST-2101-SOP-Next.md").exists()
+
+
+def test_create_empty_area_is_rejected_not_treated_as_sequential(tmp_path, monkeypatch):
+    """`--area ""` (an unset shell variable) must fail validation, not silently
+    switch to sequential numbering."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["create", "sop", "--prefix", "TST", "--area", "", "--title", "Empty Area"]
+    )
+    assert result.exit_code != 0
+    assert "--area must be exactly 2 digits" in result.output
+    assert (
+        not list((tmp_path / "rules").glob("TST-*"))
+        if (tmp_path / "rules").exists()
+        else True
+    )
+
+
+def _register_subproject(tmp_path):
+    alfred = Path.home() / ".alfred"
+    sub = alfred / "MYP"
+    sub.mkdir(parents=True, exist_ok=True)
+    other_repo = tmp_path / "other_repo"
+    other_repo.mkdir()
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(other_repo.resolve()): "MYP"}}), encoding="utf-8"
+    )
+    return sub
+
+
+def test_sequential_acid_sees_registered_user_subdir_from_outside_its_project(
+    tmp_path, monkeypatch
+):
+    """`--layer user --subdir MYP` run outside MYP's mapped project: the USR scan
+    hides MYP, so allocation must scan the write target itself (max 0005 → 0006)."""
+    sub = _register_subproject(tmp_path)
+    (sub / "TST-0005-SOP-Old.md").write_text("# SOP-0005: Old\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP",
+            "--title",
+            "New",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (sub / "TST-0006-SOP-New.md").exists()
+
+
+def test_explicit_acid_collision_is_detected_in_registered_user_subdir(
+    tmp_path, monkeypatch
+):
+    sub = _register_subproject(tmp_path)
+    (sub / "TST-0006-SOP-Taken.md").write_text("# SOP-0006: Taken\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--acid",
+            "0006",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP",
+            "--title",
+            "Dup",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "already exists" in result.output
+    assert not (sub / "TST-0006-SOP-Dup.md").exists()
+
+
+def test_project_layer_allocation_ignores_archived_docs_in_nested_dirs(
+    tmp_path, monkeypatch
+):
+    """Project layer scans rules/ non-recursively; allocation must not pick up
+    rules/archive/ (an archived TST-9999 would otherwise exhaust the range)."""
+    rules = tmp_path / "rules"
+    (rules / "archive").mkdir(parents=True)
+    (rules / "archive" / "TST-9999-SOP-Archived.md").write_text(
+        "# SOP-9999: Archived\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Fresh"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Fresh.md").exists()
+
+
+def test_user_subdir_allocation_excludes_the_callers_project_layer(
+    tmp_path, monkeypatch
+):
+    """Run from registered project B (PRJ docs live in ~/.alfred/B) writing to
+    --layer user --subdir A: B's documents must not shape A's numbering."""
+    alfred = Path.home() / ".alfred"
+    a = alfred / "A"
+    b = alfred / "B"
+    a.mkdir(parents=True, exist_ok=True)
+    b.mkdir(parents=True, exist_ok=True)
+    repo_b = tmp_path / "repo_b"
+    repo_b.mkdir()
+    repo_a = tmp_path / "repo_a"
+    repo_a.mkdir()
+    # Both A and B are registered units. (An UNREGISTERED A would be global
+    # USR, where B's IDs must stay in range — see the global-write test.)
+    (alfred / "projects.json").write_text(
+        json.dumps(
+            {"projects": {str(repo_b.resolve()): "B", str(repo_a.resolve()): "A"}}
+        ),
+        encoding="utf-8",
+    )
+    (b / "TST-0500-SOP-In-B.md").write_text("# SOP-0500: In B\n", encoding="utf-8")
+    (a / "TST-0005-SOP-In-A.md").write_text("# SOP-0005: In A\n", encoding="utf-8")
+    monkeypatch.chdir(repo_b)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "A",
+            "--title",
+            "Next In A",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (a / "TST-0006-SOP-Next-In-A.md").exists(), sorted(
+        p.name for p in a.iterdir()
+    )
+
+
+def test_global_user_write_keeps_caller_project_ids_out_of_the_range(
+    tmp_path, monkeypatch
+):
+    """`--layer user` from an ordinary (unmapped) project: the new document is
+    globally visible USR, so it must not reuse an ACID the caller's rules/
+    already holds (a USR/PRJ duplicate breaks the next scan)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-0001-SOP-Local.md").write_text(
+        "# SOP-0001: Local\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--layer", "user", "--title", "Global"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (Path.home() / ".alfred" / "TST-0002-SOP-Global.md").exists()
+
+
+def test_nested_subdir_of_registered_project_allocates_across_the_whole_project(
+    tmp_path, monkeypatch
+):
+    """`--subdir A/foo` with A registered: A is one PRJ unit scanned recursively,
+    so allocation must see A/ and its siblings, not only A/foo."""
+    sub = _register_subproject(tmp_path)  # registers MYP
+    (sub / "TST-0005-SOP-Top.md").write_text("# SOP-0005: Top\n", encoding="utf-8")
+    (sub / "bar").mkdir()
+    (sub / "bar" / "TST-0007-SOP-Sibling.md").write_text(
+        "# SOP-0007: Sibling\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP/foo",
+            "--title",
+            "Nested",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (sub / "foo" / "TST-0008-SOP-Nested.md").exists(), sorted(
+        str(p.relative_to(sub)) for p in sub.rglob("*.md")
+    )
+
+
+def test_global_user_write_sees_ids_in_every_registered_unit(tmp_path, monkeypatch):
+    """A global USR document must not reuse an ACID held by ANY registered unit
+    (a later scan from that unit would combine both and fail layer validation)."""
+    sub = _register_subproject(tmp_path)  # MYP registered, caller unmapped
+    (sub / "TST-0001-SOP-In-Unit.md").write_text(
+        "# SOP-0001: In Unit\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--layer", "user", "--title", "Global"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (Path.home() / ".alfred" / "TST-0002-SOP-Global.md").exists()
+
+
+def test_symlinked_registered_unit_is_recognised(tmp_path, monkeypatch):
+    """`~/.alfred/<NAME>` may be a symlink to external storage; the unit must
+    still be recognised (lexically) and scanned before allocating."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    external = tmp_path / "external_store"
+    external.mkdir()
+    (alfred / "LNK").symlink_to(external, target_is_directory=True)
+    other_repo = tmp_path / "other_repo"
+    other_repo.mkdir()
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(other_repo.resolve()): "LNK"}}), encoding="utf-8"
+    )
+    (external / "TST-0005-SOP-Old.md").write_text("# SOP-0005: Old\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "LNK",
+            "--title",
+            "Via Link",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (external / "TST-0006-SOP-Via-Link.md").exists(), sorted(
+        p.name for p in external.iterdir()
+    )
+
+
+def test_create_refuses_scanner_invisible_user_destination(tmp_path, monkeypatch):
+    """`logs/` under ~/.alfred (or under a registered unit) is skipped by the
+    scanner, so documents written there could never be seen again: reject."""
+    _register_subproject(tmp_path)  # MYP
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    for subdir in ("logs", "logs/x", "MYP/logs"):
+        result = runner.invoke(
+            cli,
+            [
+                "create",
+                "sop",
+                "--prefix",
+                "TST",
+                "--layer",
+                "user",
+                "--subdir",
+                subdir,
+                "--title",
+                "Lost",
+            ],
+        )
+        assert result.exit_code != 0, subdir
+        assert "excluded from document scanning" in result.output, subdir
+    assert not list((Path.home() / ".alfred").rglob("TST-*"))
+
+
+def test_create_serialises_allocation_with_a_target_lock(tmp_path, monkeypatch):
+    """Allocation + write run under a per-target lock so two concurrent creates
+    cannot pick the same next ACID. A held lock makes the second create fail
+    fast instead of allocating."""
+    fcntl = pytest.importorskip(
+        "fcntl"
+    )  # POSIX-only lock; the fallback has its own test
+
+    from fx_alfred.commands.create_cmd import lock_path_for
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
+    lock_path = lock_path_for(rules)
+    with open(lock_path, "w") as held:
+        fcntl.flock(held, fcntl.LOCK_EX)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Blocked"]
+        )
+        assert result.exit_code != 0
+        assert "another af create" in result.output
+        assert not list(rules.glob("TST-*"))
+    assert not list(rules.glob(".*")), "no lock file inside the target"
+    # Lock released → the same create succeeds.
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Blocked"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Blocked.md").exists()
+
+
+def test_every_create_takes_the_same_machine_wide_lock(tmp_path, monkeypatch):
+    """Allocation scopes overlap (a global user create numbers against every
+    registered unit AND the caller's rules/), so there is exactly one lock."""
+    from fx_alfred.commands.create_cmd import lock_path_for
+
+    sub = _register_subproject(tmp_path)
+    alfred = Path.home() / ".alfred"
+    rules = tmp_path / "rules"
+    assert (
+        lock_path_for(sub / "foo")
+        == lock_path_for(alfred / "x")
+        == lock_path_for(rules)
+    )
+    assert lock_path_for(rules).parent != rules
+
+
+def test_symlink_into_scanner_invisible_logs_is_rejected(tmp_path, monkeypatch):
+    """`~/.alfred/safe` → `~/.alfred/logs`: lexically fine, but the write lands
+    in the excluded logs tree. Resolve before judging."""
+    alfred = Path.home() / ".alfred"
+    (alfred / "logs").mkdir(parents=True, exist_ok=True)
+    (alfred / "safe").symlink_to(alfred / "logs", target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "safe",
+            "--title",
+            "Hidden",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "excluded from document scanning" in result.output
+    assert not list((alfred / "logs").glob("TST-*"))
+
+
+def test_lock_file_lives_in_the_users_alfred_dir_not_tmpdir(tmp_path, monkeypatch):
+    """TMPDIR varies per process/service; ~/.alfred is the one per-user place
+    every process touching the namespace shares, so the lock lives there."""
+    from fx_alfred.commands.create_cmd import lock_path_for
+
+    monkeypatch.setenv("TMPDIR", str(tmp_path / "private-tmp"))
+    assert lock_path_for(tmp_path) == Path.home() / ".alfred" / ".af-create.lock"
+
+
+def test_index_regeneration_runs_inside_the_create_lock(tmp_path, monkeypatch):
+    """The derived PREFIX-0000 index is written from a scan; if that ran after
+    the lock was released, two creates could interleave and lose the newest
+    document from the index. Assert the lock is still held during it."""
+    fcntl = pytest.importorskip(
+        "fcntl"
+    )  # POSIX-only lock; the fallback has its own test
+
+    from fx_alfred.commands import create_cmd
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    seen = {}
+
+    def fake_index_update(ctx):
+        with open(create_cmd.lock_path_for(rules), "a+") as probe:
+            try:
+                fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                seen["held"] = False
+                fcntl.flock(probe, fcntl.LOCK_UN)
+            except OSError:
+                seen["held"] = True
+
+    monkeypatch.setattr(create_cmd, "invoke_index_update", fake_index_update)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Indexed"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert seen.get("held") is True
+
+
+def test_dry_run_writes_nothing_not_even_a_lock_file(tmp_path, monkeypatch):
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    alfred = Path.home() / ".alfred"
+    before = sorted(p.name for p in alfred.iterdir()) if alfred.exists() else None
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Preview", "--dry-run"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert not list(rules.glob("TST-*"))
+    after = sorted(p.name for p in alfred.iterdir()) if alfred.exists() else None
+    assert after == before, "dry run must not create ~/.alfred or a lock file"
+
+
+def test_global_destination_symlinked_outside_alfred_is_rejected(tmp_path, monkeypatch):
+    """`~/.alfred/safe` → /external: the USR scan never sees documents written
+    there, so sequential numbering would repeat. Reject the escape."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    external = tmp_path / "external"
+    external.mkdir()
+    (alfred / "safe").symlink_to(external, target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "safe",
+            "--title",
+            "Escaped",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "resolves outside" in result.output
+    assert not list(external.glob("TST-*"))
+
+
+def test_create_lock_uses_msvcrt_when_fcntl_is_missing(tmp_path, monkeypatch):
+    """Windows: the lock is msvcrt.locking on the same lock file (OS-released,
+    no marker files, no owner probing). Verified with a fake msvcrt."""
+    import errno
+    import types
+
+    from fx_alfred.commands import create_cmd
+
+    calls = []
+    fake = types.SimpleNamespace(LK_NBLCK=1, LK_UNLCK=0)
+    state = {"held": True}
+
+    def locking(fd, mode, nbytes):
+        calls.append(mode)
+        if mode == fake.LK_NBLCK and state["held"]:
+            raise OSError(
+                errno.EACCES, "Permission denied"
+            )  # msvcrt's contention errno
+
+    fake.locking = locking
+    monkeypatch.setattr(create_cmd, "fcntl", None)
+    monkeypatch.setattr(create_cmd, "msvcrt", fake)
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "0.2")
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["create", "sop", "--prefix", "TST", "--title", "Win"])
+    assert result.exit_code != 0 and "another af create" in result.output
+    assert not list(rules.glob("TST-*"))
+    state["held"] = False
+    result = runner.invoke(
+        cli,
+        ["create", "sop", "--prefix", "TST", "--title", "Win"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (rules / "TST-0001-SOP-Win.md").exists()
+    assert calls[-1] == fake.LK_UNLCK, "lock released after the write"
+    assert not list(rules.glob(".*")) and not list(rules.glob("*.excl"))
+
+
+def test_nested_symlink_inside_registered_unit_is_rejected(tmp_path, monkeypatch):
+    """`~/.alfred/A/safe → /external` with A registered: the unit scan never
+    descends the link, so writes there would be invisible. Reject."""
+    sub = _register_subproject(tmp_path)  # MYP
+    external = tmp_path / "external"
+    external.mkdir()
+    (sub / "safe").symlink_to(external, target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "MYP/safe",
+            "--title",
+            "Escaped",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "resolves outside" in result.output
+    assert not list(external.glob("TST-*"))
+
+
+def test_create_refuses_clearly_when_user_alfred_dir_is_read_only(
+    tmp_path, monkeypatch
+):
+    """No degraded lock location: an unwritable ~/.alfred is a clear error,
+    not a silently different lock."""
+    import os
+
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    alfred.chmod(0o500)
+    try:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Locked Home"]
+        )
+    finally:
+        alfred.chmod(0o700)
+    assert result.exit_code != 0
+    assert "is not writable" in result.output
+    assert not list(rules.glob("TST-*"))
+
+
+def test_registered_unit_named_logs_is_a_valid_destination(tmp_path, monkeypatch):
+    """The logs rule applies relative to the scan root: a unit registered as
+    `logs` is scanned from its own root, so writing into it is fine."""
+    alfred = Path.home() / ".alfred"
+    unit = alfred / "logs"
+    unit.mkdir(parents=True, exist_ok=True)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (alfred / "projects.json").write_text(
+        json.dumps({"projects": {str(repo.resolve()): "logs"}}), encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "logs",
+            "--title",
+            "In Unit",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    assert (unit / "TST-0001-SOP-In-Unit.md").exists()
+
+
+def test_permanent_lock_failure_surfaces_immediately(tmp_path, monkeypatch):
+    """ENOSYS from flock is not contention: fail at once with the real error,
+    not 'another af create is running' after the full timeout."""
+    import errno
+    import time
+
+    fcntl = pytest.importorskip("fcntl")
+    monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", "5")
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    def broken_flock(fd, op):
+        if op & fcntl.LOCK_NB:
+            raise OSError(errno.ENOSYS, "Function not implemented")
+
+    monkeypatch.setattr(fcntl, "flock", broken_flock)
+    started = time.monotonic()
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["create", "sop", "--prefix", "TST", "--title", "NoLocks"]
+    )
+    assert result.exit_code != 0
+    assert "cannot lock" in result.output and "another af create" not in result.output
+    assert time.monotonic() - started < 2, "must not wait out the contention timeout"
+
+
+def test_lock_file_name_is_reserved_as_a_destination(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    for subdir in (".af-create.lock", "x/.af-create.lock"):
+        result = runner.invoke(
+            cli,
+            [
+                "create",
+                "sop",
+                "--prefix",
+                "TST",
+                "--layer",
+                "user",
+                "--subdir",
+                subdir,
+                "--title",
+                "Clash",
+            ],
+        )
+        assert result.exit_code != 0, subdir
+        assert "reserved" in result.output, subdir
+    assert not (Path.home() / ".alfred" / ".af-create.lock").is_dir()
+
+
+def test_invalid_lock_timeout_is_rejected_before_polling(tmp_path, monkeypatch):
+    import time
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    for bad in ("nan", "inf", "-1", "soon"):
+        monkeypatch.setenv("AF_CREATE_LOCK_TIMEOUT", bad)
+        started = time.monotonic()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Bad Timeout"]
+        )
+        assert result.exit_code != 0, bad
+        assert "AF_CREATE_LOCK_TIMEOUT" in result.output, bad
+        assert time.monotonic() - started < 1, bad
+    assert not list(rules.glob("TST-*"))
