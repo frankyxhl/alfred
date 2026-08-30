@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### New
+
+- **FXA-2329 (CHG): operator runbook for `SEMANTIC_RELEASE_PAT`** — the
+  last missing piece of the FXA-2328 pipeline as a step-by-step CHG: why a
+  real-account PAT is required (events from the default `GITHUB_TOKEN`
+  never fire downstream workflows, so its releases would leave `publish.yml`
+  dead), the HUMAN-ONLY UI step (classic PAT, `repo` scope, explicit expiry
+  choice, value shown once), storage via `gh secret set` straight from the
+  clipboard (never a file or commit), verification by a trivial
+  branch→merge watching `cd-release.yml` go green and `publish.yml` fire,
+  and rollback (delete the secret → FXA-2102 manual flow). FXA-2328 status:
+  Proposed → **In Progress — implemented, awaiting the secret**; the owner
+  flips it to Completed once the verification chain passes.
+
 ## v1.29.0 (2026-08-30)
 
 The sequential-create release: `af create` without `--acid`/`--area` now
