@@ -13,8 +13,10 @@
   clipboard (never a file or commit), verification by a trivial
   branch→merge watching `cd-release.yml` go green and `publish.yml` fire,
   and rollback (delete the secret → FXA-2102 manual flow). Verification
-  binds the merge's exact run IDs (`gh run list --commit <merge-sha>` +
-  `gh run watch --exit-status`) so an older run can't read as success.
+  binds the exact runs (cd by `--commit <merge-sha>`; publish by
+  `--event release` + tag title, because the automated path tags the
+  release commit, not the merge) with `gh run watch --exit-status`, so an
+  older run can't read as success.
   FXA-2328 status:
   Proposed → **In Progress — implemented, awaiting the secret**; the owner
   flips it to Completed once the verification chain passes.
