@@ -1,8 +1,6 @@
 import contextlib
-import getpass
 import os
 import re
-import tempfile
 import time
 from datetime import date
 from importlib import resources
@@ -75,36 +73,23 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     registered unit AND the caller's rules/; a unit write against the global
     USR area), so per-scope locks cannot be made disjoint. `~/.alfred` is
     the one location every process touching the document namespace shares
-    (unlike TMPDIR, which varies per environment) and is per-user by
-    construction. When `~/.alfred` cannot be written (read-only HOME in a
-    container or service account) the lock degrades to the temp dir so a
-    project-layer create still works. Creates are rare and hold the lock
-    for milliseconds.
+    and is per-user by construction; there is deliberately NO degraded
+    location (TMPDIR / XDG_RUNTIME_DIR / a shared /tmp name) — each of those
+    is either unstable across processes or squattable, and `~/.alfred` must
+    be writable for af to function anyway. Creates are rare and hold the
+    lock for milliseconds.
     """
     user_root = Path.home() / ".alfred"
     try:
         user_root.mkdir(parents=True, exist_ok=True)
-        if os.access(user_root, os.W_OK):
-            return user_root / ".af-create.lock"
     except OSError:
         pass
-    ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
-    # Degraded location, in order: the OS's securely owned per-user runtime dir
-    # ($XDG_RUNTIME_DIR), else a FIXED shared directory (TMPDIR varies per
-    # process, which would give concurrent creates different locks). In the
-    # shared directory the predictable name could be squatted by another
-    # account, so an existing file must be ours.
-    runtime = os.environ.get("XDG_RUNTIME_DIR")
-    if runtime and os.access(runtime, os.W_OK):
-        return Path(runtime) / "af-create.lock"
-    shared = Path("/tmp") if os.name == "posix" else Path(tempfile.gettempdir())
-    lock = shared / f"af-create-{ident}.lock"
-    if hasattr(os, "getuid") and lock.exists() and lock.stat().st_uid != os.getuid():
+    if not os.access(user_root, os.W_OK):
         raise click.ClickException(
-            f"{lock} exists but is owned by another account; remove it or make "
-            "~/.alfred writable so af can use its own lock"
+            f"{user_root} is not writable; af create needs it for its lock file "
+            "(and for user-layer documents)"
         )
-    return lock
+    return user_root / ".af-create.lock"
 
 
 def _try_lock(handle) -> bool:

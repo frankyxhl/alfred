@@ -1,6 +1,5 @@
 import json
 
-import click
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1877,32 +1876,6 @@ def test_dry_run_writes_nothing_not_even_a_lock_file(tmp_path, monkeypatch):
     assert after == before, "dry run must not create ~/.alfred or a lock file"
 
 
-def test_project_create_works_when_user_alfred_dir_is_read_only(tmp_path, monkeypatch):
-    """Read-only HOME (containers, service accounts): the lock degrades to the
-    temp dir and a project-layer create still succeeds."""
-    import os
-
-    if hasattr(os, "geteuid") and os.geteuid() == 0:
-        pytest.skip("root ignores directory permissions")
-    alfred = Path.home() / ".alfred"
-    alfred.mkdir(parents=True, exist_ok=True)
-    rules = tmp_path / "rules"
-    rules.mkdir()
-    monkeypatch.chdir(tmp_path)
-    alfred.chmod(0o500)
-    try:
-        runner = CliRunner()
-        result = runner.invoke(
-            cli,
-            ["create", "sop", "--prefix", "TST", "--title", "Locked Home"],
-            catch_exceptions=False,
-        )
-    finally:
-        alfred.chmod(0o700)
-    assert result.exit_code == 0, result.output
-    assert (rules / "TST-0001-SOP-Locked-Home.md").exists()
-
-
 def test_global_destination_symlinked_outside_alfred_is_rejected(tmp_path, monkeypatch):
     """`~/.alfred/safe` → /external: the USR scan never sees documents written
     there, so sequential numbering would repeat. Reject the escape."""
@@ -1931,28 +1904,6 @@ def test_global_destination_symlinked_outside_alfred_is_rejected(tmp_path, monke
     assert result.exit_code != 0
     assert "resolves outside" in result.output
     assert not list(external.glob("TST-*"))
-
-
-def test_degraded_lock_location_ignores_tmpdir_on_posix(tmp_path, monkeypatch):
-    import os
-
-    if os.name != "posix":
-        pytest.skip("POSIX shared /tmp only")
-    if hasattr(os, "geteuid") and os.geteuid() == 0:
-        pytest.skip("root ignores directory permissions")
-    from fx_alfred.commands.create_cmd import lock_path_for
-
-    alfred = Path.home() / ".alfred"
-    alfred.mkdir(parents=True, exist_ok=True)
-    alfred.chmod(0o500)
-    try:
-        monkeypatch.setenv("TMPDIR", str(tmp_path / "private-a"))
-        a = lock_path_for(tmp_path)
-        monkeypatch.setenv("TMPDIR", str(tmp_path / "private-b"))
-        b = lock_path_for(tmp_path)
-    finally:
-        alfred.chmod(0o700)
-    assert a == b and a.parent == Path("/tmp")
 
 
 def test_create_lock_uses_msvcrt_when_fcntl_is_missing(tmp_path, monkeypatch):
@@ -2023,61 +1974,28 @@ def test_nested_symlink_inside_registered_unit_is_rejected(tmp_path, monkeypatch
     assert not list(external.glob("TST-*"))
 
 
-def test_degraded_lock_prefers_xdg_runtime_dir(tmp_path, monkeypatch):
-    import os
-
-    if os.name != "posix" or (hasattr(os, "geteuid") and os.geteuid() == 0):
-        pytest.skip("POSIX non-root only")
-    from fx_alfred.commands.create_cmd import lock_path_for
-
-    runtime = tmp_path / "runtime"
-    runtime.mkdir()
-    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
-    alfred = Path.home() / ".alfred"
-    alfred.mkdir(parents=True, exist_ok=True)
-    alfred.chmod(0o500)
-    try:
-        assert lock_path_for(tmp_path) == runtime / "af-create.lock"
-    finally:
-        alfred.chmod(0o700)
-
-
-def test_degraded_shared_lock_owned_by_another_account_is_refused(
+def test_create_refuses_clearly_when_user_alfred_dir_is_read_only(
     tmp_path, monkeypatch
 ):
-    """A squatted /tmp lock (other uid) must fail loudly, not silently block."""
+    """No degraded lock location: an unwritable ~/.alfred is a clear error,
+    not a silently different lock."""
     import os
 
-    if os.name != "posix" or (hasattr(os, "geteuid") and os.geteuid() == 0):
-        pytest.skip("POSIX non-root only")
-    from fx_alfred.commands import create_cmd
-
-    monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
     alfred = Path.home() / ".alfred"
     alfred.mkdir(parents=True, exist_ok=True)
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    monkeypatch.chdir(tmp_path)
     alfred.chmod(0o500)
-    real_stat = Path.stat
-
-    class ForeignStat:
-        st_uid = os.getuid() + 1
-
-    def fake_stat(self, *a, **k):
-        if self.name.startswith("af-create-"):
-            return ForeignStat()
-        return real_stat(self, *a, **k)
-
-    monkeypatch.setattr(Path, "stat", fake_stat)
-    monkeypatch.setattr(
-        Path,
-        "exists",
-        lambda self: (
-            True
-            if self.name.startswith("af-create-")
-            else real_stat and os.path.exists(self)
-        ),
-    )
     try:
-        with pytest.raises(click.ClickException, match="owned by another account"):
-            create_cmd.lock_path_for(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["create", "sop", "--prefix", "TST", "--title", "Locked Home"]
+        )
     finally:
         alfred.chmod(0o700)
+    assert result.exit_code != 0
+    assert "is not writable" in result.output
+    assert not list(rules.glob("TST-*"))
