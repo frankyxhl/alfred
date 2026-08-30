@@ -18,8 +18,9 @@ An operator runbook that turns FXA-2328's automated release pipeline on:
 create a GitHub classic PAT, store it as the `frankyxhl/alfred` repository
 secret `SEMANTIC_RELEASE_PAT`, and verify the merge-to-main →
 `cd-release.yml` → `publish.yml` → PyPI chain fires end to end. No code
-changes — one secret plus this runbook. FXA-2328's status moves from
-Proposed to In Progress (implemented, awaiting the secret).
+changes — one secret plus this runbook. FXA-2328 is now In Progress
+(secret installed; end-to-end verification pending).
+
 
 ## Why
 
@@ -32,11 +33,13 @@ a release it made would leave the PyPI publish step dead. v1.29.0
 reason: the pipeline's first automated run (the #330 merge) failed at
 checkout with `Input required and not supplied: token`.
 
+
 ## Impact Analysis
 
 - **Systems affected:** one repository secret plus documents (this runbook, FXA-2328 status, REF-0000 index row). No runtime code.
 - **Security:** the PAT value never touches a file, a commit, or a chat — `gh secret set` takes it from the clipboard straight into GitHub's encrypted secret store. Expiry is chosen at creation; rotating is just steps 2–3 again.
 - **Rollback plan:** `gh secret delete SEMANTIC_RELEASE_PAT --repo frankyxhl/alfred`. Releases fall back to the FXA-2102 manual flow (proven by v1.29.0); retire this runbook if it stays unused.
+
 
 ## Implementation Plan
 
@@ -113,19 +116,23 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 5. **Close out** — once step 4 passes end to end, the owner flips
    **FXA-2328 → Completed** (and its REF-0000 index row), noting the
    passing run in FXA-2328's Change History. Until then FXA-2328 stays
-   **In Progress — implemented, awaiting the secret**, and merges to
-   `main` keep a harmless red ✗ on `cd-release.yml` (checkout fails; the
-   FXA-2102 manual flow remains the shipping path).
+   **In Progress — secret installed; end-to-end verification pending**.
+   Every merge to `main` is now a real validation run; any checkout
+   failure is blocking and must not be dismissed as the former
+   missing-secret condition.
 
 ---
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
-| 2026-08-30 | Initial version — operator runbook (owner request via pfc); FXA-2328 flipped Proposed → In Progress (implemented, awaiting the secret) | alfred (pi/GLM) |
-| 2026-08-30 | R1 (codex P2 on PR #335): step 4 now binds the merge's exact run IDs (`gh run list --commit "$MERGE_SHA"` + `gh run watch --exit-status`) instead of `--limit 1` listings, which could show an older run and let FXA-2328 close unvalidated | alfred (pi/GLM) |
-| 2026-08-30 | R2 (codex P2 on PR #335): the publish run's head SHA is the tagged release commit (CHANGELOG promotion + version-bump commits precede the tag on the automated path), not MERGE_SHA — publish binding switched from `--commit "$MERGE_SHA"` to `--event release` + `displayTitle == "$TAG"` | alfred (pi/GLM) |
-| 2026-08-30 | R3 (codex P2 ×2 on PR #335): both run lookups now poll until the run is listed (bounded 30 × 10 s loops) instead of one instantaneous query; TAG is derived from the cd run's own time window (`createdAt` after `gh run view $CD_RUN --json createdAt`), so a non-release-worthy merge fails loudly instead of re-verifying the repo-global latest release | alfred (pi/GLM) |
-| 2026-08-30 | R4 (codex P2 ×2 on PR #335): block opens with `set -e` so a failed `gh run watch --exit-status` terminates verification instead of falling through to the PyPI check; the tag window then required EXACTLY ONE release after the cd run started | alfred (pi/GLM) |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                                             | By              |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| 2026-08-30 | Initial version — operator runbook (owner request via pfc); FXA-2328 flipped Proposed → In Progress (implemented, awaiting the secret)                                                                                                                                                                                                                             | alfred (pi/GLM) |
+| 2026-08-30 | R1 (codex P2 on PR #335): step 4 now binds the merge's exact run IDs (`gh run list --commit "$MERGE_SHA"` + `gh run watch --exit-status`) instead of `--limit 1` listings, which could show an older run and let FXA-2328 close unvalidated                                                                                                                        | alfred (pi/GLM) |
+| 2026-08-30 | R2 (codex P2 on PR #335): the publish run's head SHA is the tagged release commit (CHANGELOG promotion + version-bump commits precede the tag on the automated path), not MERGE_SHA — publish binding switched from `--commit "$MERGE_SHA"` to `--event release` + `displayTitle == "$TAG"`                                                                        | alfred (pi/GLM) |
+| 2026-08-30 | R3 (codex P2 ×2 on PR #335): both run lookups now poll until the run is listed (bounded 30 × 10 s loops) instead of one instantaneous query; TAG is derived from the cd run's own time window (`createdAt` after `gh run view $CD_RUN --json createdAt`), so a non-release-worthy merge fails loudly instead of re-verifying the repo-global latest release        | alfred (pi/GLM) |
+| 2026-08-30 | R4 (codex P2 ×2 on PR #335): block opens with `set -e` so a failed `gh run watch --exit-status` terminates verification instead of falling through to the PyPI check; the tag window then required EXACTLY ONE release after the cd run started                                                                                                                    | alfred (pi/GLM) |
 | 2026-08-30 | R5 (clearance on PR #335, thread 3889374151): exactly-one window still admitted a lone concurrent manual release; TAG is now parsed from the watched run's own log (`current=… next=…` from cd-release.yml's Compute-next-version step) and cross-checked only for that tag's existence + createdAt after the run started — no repository-wide window scan remains | alfred (pi/GLM) |
+| 2026-08-30 | Installed one-year SEMANTIC_RELEASE_PAT; end-to-end branch-to-merge verification pending                                                                                                                                                                                                                                                                           | Codex           |
+| 2026-08-30 | R6 (codex P2 on PR #336, thread 3889616594): replaced stale awaiting-secret and harmless checkout-failure language with installed-secret / verification-pending state; any checkout failure is now blocking                                                                                                                                                        | Codex           |
+| 2026-08-30 | R7 (codex P2 on PR #336, thread 3889652548): synchronized FXA-2328's latest Change History entry and the Unreleased CHANGELOG with the installed-secret / verification-pending state                                                                                                                                                                               | Codex           |
