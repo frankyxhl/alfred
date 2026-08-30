@@ -75,17 +75,19 @@ Executable step by step by Frank's local Codex session (or Frank himself).
    [ -n "$CD_RUN" ] || { echo "cd-release run for $MERGE_SHA never appeared"; exit 1; }
    gh run watch "$CD_RUN" --repo frankyxhl/alfred --exit-status   # green → version-bump commit + tag + GitHub Release
 
-   # the release THIS cd run created — createdAt after the run started, and
-   # EXACTLY ONE such release (the release concurrency group serialises cd
-   # runs): a second, e.g. manual, release in the window makes the binding
-   # ambiguous and fails loudly instead of guessing; zero means the merge
-   # was not release-worthy (cd's explicit No-release path)
+   # the tag THIS cd run released — parsed from the watched run's own logs
+   # (cd-release.yml's "Compute next version" step logs `current=… next=…`,
+   # and semantic-release tags exactly that version), then cross-checked
+   # against the release list: no computed version, no such release, or a
+   # release that predates the run all fail loudly. A concurrent manual
+   # release cannot satisfy this — TAG never comes from a window scan.
    CD_START=$(gh run view "$CD_RUN" --repo frankyxhl/alfred --json createdAt --jq .createdAt)
-   REL_IN_WINDOW=$(gh release list --repo frankyxhl/alfred --limit 20 --json tagName,createdAt \
-       --jq ".[] | select(.createdAt > \"$CD_START\") | .tagName")
-   [ "$(printf '%s\n' "$REL_IN_WINDOW" | grep -c .)" -eq 1 ] \
-     || { echo "expected exactly 1 release after the cd run started, got: [$REL_IN_WINDOW]"; exit 1; }
-   TAG=$REL_IN_WINDOW
+   NEXT_V=$(gh run view "$CD_RUN" --repo frankyxhl/alfred --log \
+       | sed -n 's/.*current=[0-9][0-9.]* next=\([0-9][0-9.]*\).*/\1/p' | tail -n1)
+   TAG="v${NEXT_V}"
+   REL_AT=$(gh release view "$TAG" --repo frankyxhl/alfred --json createdAt --jq .createdAt 2>/dev/null || true)
+   { [[ -n "$NEXT_V" ]] && [[ -n "$REL_AT" ]] && [[ "$REL_AT" > "$CD_START" ]]; } \
+     || { echo "cd run did not release a verifiable tag (computed '${TAG}', release createdAt '${REL_AT}', run started '${CD_START}')"; exit 1; }
 
    # publish run — dispatched by the release event on the tagged release commit;
    # poll until discoverable (bounded: 30 × 10 s), then watch
@@ -98,7 +100,10 @@ Executable step by step by Frank's local Codex session (or Frank himself).
    pip index versions fx-alfred             # (or the PyPI JSON API) shows the TAG version
    ```
    Both run lookups poll until the run is listed instead of one
-   instantaneous query. The publish run's head SHA is **not** `MERGE_SHA`
+   instantaneous query. TAG is parsed from the watched run's own log line
+   (`current=… next=…`), so it is the version that run released — not an
+   inference from the repository-wide release list. The publish run's head
+   SHA is **not** `MERGE_SHA`
    on this path: cd-release commits the CHANGELOG promotion and
    semantic-release commits the version bump, and the tag lands on that
    release commit — hence the `release`-event + tag-title binding. Re-running
@@ -122,4 +127,5 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 | 2026-08-30 | R1 (codex P2 on PR #335): step 4 now binds the merge's exact run IDs (`gh run list --commit "$MERGE_SHA"` + `gh run watch --exit-status`) instead of `--limit 1` listings, which could show an older run and let FXA-2328 close unvalidated | alfred (pi/GLM) |
 | 2026-08-30 | R2 (codex P2 on PR #335): the publish run's head SHA is the tagged release commit (CHANGELOG promotion + version-bump commits precede the tag on the automated path), not MERGE_SHA — publish binding switched from `--commit "$MERGE_SHA"` to `--event release` + `displayTitle == "$TAG"` | alfred (pi/GLM) |
 | 2026-08-30 | R3 (codex P2 ×2 on PR #335): both run lookups now poll until the run is listed (bounded 30 × 10 s loops) instead of one instantaneous query; TAG is derived from the cd run's own time window (`createdAt` after `gh run view $CD_RUN --json createdAt`), so a non-release-worthy merge fails loudly instead of re-verifying the repo-global latest release | alfred (pi/GLM) |
-| 2026-08-30 | R4 (codex P2 ×2 on PR #335): block opens with `set -e` so a failed `gh run watch --exit-status` terminates verification instead of falling through to the PyPI check; the tag window now requires EXACTLY ONE release after the cd run started — a concurrent (e.g. manual) release in the window is an ambiguous binding and fails loudly | alfred (pi/GLM) |
+| 2026-08-30 | R4 (codex P2 ×2 on PR #335): block opens with `set -e` so a failed `gh run watch --exit-status` terminates verification instead of falling through to the PyPI check; the tag window then required EXACTLY ONE release after the cd run started | alfred (pi/GLM) |
+| 2026-08-30 | R5 (clearance on PR #335, thread 3889374151): exactly-one window still admitted a lone concurrent manual release; TAG is now parsed from the watched run's own log (`current=… next=…` from cd-release.yml's Compute-next-version step) and cross-checked only for that tag's existence + createdAt after the run started — no repository-wide window scan remains | alfred (pi/GLM) |
