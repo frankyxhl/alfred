@@ -1,9 +1,9 @@
 # CHG-2329: Enable Semantic-Release Automation: SEMANTIC_RELEASE_PAT
 
 **Applies to:** FXA project
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 **Last reviewed:** 2026-08-30
-**Status:** Approved
+**Status:** Completed
 **Date:** 2026-08-30
 **Requested by:** Frank Xu (owner request via pfc, 2026-08-30)
 **Priority:** High
@@ -18,8 +18,8 @@ An operator runbook that turns FXA-2328's automated release pipeline on:
 create a GitHub classic PAT, store it as the `frankyxhl/alfred` repository
 secret `SEMANTIC_RELEASE_PAT`, and verify the merge-to-main →
 `cd-release.yml` → `publish.yml` → PyPI chain fires end to end. No code
-changes — one secret plus this runbook. FXA-2328 is now In Progress
-(secret installed; end-to-end verification pending).
+changes — one secret plus this runbook. FXA-2328 is now Completed after
+the v1.29.1 end-to-end release and PyPI verification.
 
 
 ## Why
@@ -113,13 +113,10 @@ Executable step by step by Frank's local Codex session (or Frank himself).
    the old failed
    run (`gh run rerun 33302010976`) replays the #330 commit — prefer the
    branch→merge trigger, which exercises the chain as designed.
-5. **Close out** — once step 4 passes end to end, the owner flips
-   **FXA-2328 → Completed** (and its REF-0000 index row), noting the
-   passing run in FXA-2328's Change History. Until then FXA-2328 stays
-   **In Progress — secret installed; end-to-end verification pending**.
-   Every merge to `main` is now a real validation run; any checkout
-   failure is blocking and must not be dismissed as the former
-   missing-secret condition.
+5. **Close out** — completed. FXA-2328 and its REF-0000 index row are
+   **Completed**. FXA-2328's Change History records CD run `33317846357`,
+   publish run `33330725385`, and PyPI v1.29.1. Future merges to `main`
+   remain real validation runs; any checkout or release failure is blocking.
 
 ---
 
@@ -136,3 +133,5 @@ Executable step by step by Frank's local Codex session (or Frank himself).
 | 2026-08-30 | Installed one-year SEMANTIC_RELEASE_PAT; end-to-end branch-to-merge verification pending                                                                                                                                                                                                                                                                           | Codex           |
 | 2026-08-30 | R6 (codex P2 on PR #336, thread 3889616594): replaced stale awaiting-secret and harmless checkout-failure language with installed-secret / verification-pending state; any checkout failure is now blocking                                                                                                                                                        | Codex           |
 | 2026-08-30 | R7 (codex P2 on PR #336, thread 3889652548): synchronized FXA-2328's latest Change History entry and the Unreleased CHANGELOG with the installed-secret / verification-pending state                                                                                                                                                                               | Codex           |
+| 2026-08-31 | Completed: direct-captured classic PAT passed GitHub API 200 with repo push/admin; gh secret set updated SEMANTIC_RELEASE_PAT at 2026-08-30T19:19:14Z; CD run 33317846357 attempt #4 and publish run 33330725385 succeeded; PyPI shows 1.29.1.                                                                                                                     | Codex           |
+| 2026-08-31 | R8 (codex P2 on PR #337, thread 3890329830): synchronized the What and Close out sections with Completed metadata and index state after v1.29.1, while retaining future checkout/release failures as blocking                                                                                                                                                      | Codex           |
