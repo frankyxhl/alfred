@@ -85,7 +85,10 @@ def lock_path_for(write_base: Path) -> Path:  # noqa: ARG001 - one lock for ever
     except OSError:
         pass
     ident = str(os.getuid()) if hasattr(os, "getuid") else getpass.getuser()
-    return Path(tempfile.gettempdir()) / f"af-create-{ident}.lock"
+    # Degraded location: a FIXED shared directory on POSIX (TMPDIR varies per
+    # process, which would give concurrent creates different locks).
+    shared = Path("/tmp") if os.name == "posix" else Path(tempfile.gettempdir())
+    return shared / f"af-create-{ident}.lock"
 
 
 def _pid_alive(pid: int) -> bool:
@@ -204,6 +207,18 @@ def _reject_scanner_invisible(write_base: Path, units: dict[str, Path]) -> None:
                     f"{write_base} is excluded from document scanning (logs path); "
                     "choose another --subdir"
                 )
+    if unit_root is None:
+        # A global destination must stay inside the scanned ~/.alfred tree once
+        # resolved: `~/.alfred/safe` → `/external` would hold documents the
+        # recursive USR scan never descends into.
+        try:
+            write_base.resolve().relative_to(user_root.resolve())
+        except ValueError:
+            raise click.ClickException(
+                f"{write_base} resolves outside ~/.alfred (symlink to an unscanned "
+                "location); choose a destination inside ~/.alfred or register it "
+                "in projects.json"
+            ) from None
 
 
 def _registered_units() -> dict[str, Path]:

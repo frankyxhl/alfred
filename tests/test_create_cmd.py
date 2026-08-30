@@ -2007,3 +2007,55 @@ def test_stale_marker_reclaim_is_atomic_between_two_waiters(tmp_path, monkeypatc
     monkeypatch.setattr(os, "rename", racing_rename)
     assert create_cmd._reclaim_stale_marker(marker) is True
     assert not marker.exists()
+
+
+def test_global_destination_symlinked_outside_alfred_is_rejected(tmp_path, monkeypatch):
+    """`~/.alfred/safe` → /external: the USR scan never sees documents written
+    there, so sequential numbering would repeat. Reject the escape."""
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    external = tmp_path / "external"
+    external.mkdir()
+    (alfred / "safe").symlink_to(external, target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "create",
+            "sop",
+            "--prefix",
+            "TST",
+            "--layer",
+            "user",
+            "--subdir",
+            "safe",
+            "--title",
+            "Escaped",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "resolves outside ~/.alfred" in result.output
+    assert not list(external.glob("TST-*"))
+
+
+def test_degraded_lock_location_ignores_tmpdir_on_posix(tmp_path, monkeypatch):
+    import os
+
+    if os.name != "posix":
+        pytest.skip("POSIX shared /tmp only")
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
+    from fx_alfred.commands.create_cmd import lock_path_for
+
+    alfred = Path.home() / ".alfred"
+    alfred.mkdir(parents=True, exist_ok=True)
+    alfred.chmod(0o500)
+    try:
+        monkeypatch.setenv("TMPDIR", str(tmp_path / "private-a"))
+        a = lock_path_for(tmp_path)
+        monkeypatch.setenv("TMPDIR", str(tmp_path / "private-b"))
+        b = lock_path_for(tmp_path)
+    finally:
+        alfred.chmod(0o700)
+    assert a == b and a.parent == Path("/tmp")
