@@ -240,7 +240,7 @@
 | 2327 | CHG | COR 1615 Agent Execution Ladder | Completed |
 | 2328 | CHG | Semantic Release Automation | Completed |
 | 2329 | CHG | Enable Semantic Release Automation SEMANTIC_RELEASE_PAT | Completed |
-| 2330 | CHG | Project SOP Registry | Proposed |
+| 2330 | CHG | Project SOP Registry | Approved |
 
 ---
 

@@ -152,3 +152,13 @@ def test_read_registry_doc_renders_machine_map(sample_project, monkeypatch):
     assert result.exit_code == 0
     assert "Project SOP Registry" in result.output
     assert str(sample_project.resolve()) in result.output
+
+
+def test_read_usr9000_first_invocation_bootstraps(sample_project, monkeypatch):
+    """PR #338 R1: first `af read USR-9000` must succeed even though the scan
+    ran before the trigger created the file (re-scan after write)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["read", "USR-9000"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "Project SOP Registry" in result.output

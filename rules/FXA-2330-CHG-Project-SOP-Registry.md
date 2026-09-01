@@ -61,6 +61,14 @@ they live, how big their SOP corpus is, and when they were last touched.
    `--prune` or an upsert on the same key removes them). The document is
    regenerated from a fixed template on write, so header prose churn between
    versions cannot corrupt entries.
+7. **Slot guard (R1)** — `save_registry` refuses to touch a USR-9000 slot
+   already occupied by a non-registry document (another `USR-9000-*.md`, or
+   a foreign doc under the registry filename): read-path trigger warns and
+   skips; `af register` fails loudly. Registry reads propagate real I/O
+   errors (only a missing file is the empty state), roots with `|` are
+   Markdown-escaped symmetrically, Windows drive-letter roots parse, and
+   `--prune` only removes definitively-missing roots (transient stat errors
+   keep the row).
 
 
 ## Why
@@ -142,6 +150,7 @@ TDD per COR-1500.
 
 ## Change History
 
-| Date       | Change                                                                                                                                                             | By     |
-|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|
-| 2026-09-02 | Initial version — design pre-settled with owner (machine-wide SOP card catalog, relayed via pfc); Status straight to Approved per FXA-2100 owner-request fast path | alfred |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                                                                                                             | By     |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|
+| 2026-09-02 | Initial version — design pre-settled with owner (machine-wide SOP card catalog, relayed via pfc); Status straight to Approved per FXA-2100 owner-request fast path                                                                                                                                                                                                                                                                 | alfred |
+| 2026-09-02 | R1 review fixes (Codex PR #338, head bbc8187): Windows-drive roots parse (P1); occupied-USR-9000 slot guard before any write (P1); registry read errors propagate instead of wiping the catalog; `af read USR-9000` bootstraps on first invocation (re-scan after trigger write); `\|` escaping for roots with pipes; `--prune` keeps rows on inconclusive stat; index row regenerated to Approved. 8 new tests (1594 total green) | alfred |

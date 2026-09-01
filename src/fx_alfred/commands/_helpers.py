@@ -76,7 +76,7 @@ def scan_or_fail(ctx: click.Context) -> list[Document]:
         raise click.ClickException(str(e)) from e
 
 
-def touch_project_registry(ctx: click.Context, docs: list[Document]) -> None:
+def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:
     """FXA-2330: background Project SOP Registry upsert for read commands.
 
     Called right after ``scan_or_fail`` by guide/list/read/status. When the
@@ -85,10 +85,14 @@ def touch_project_registry(ctx: click.Context, docs: list[Document]) -> None:
     contract: any failure — including registry write failure — is a
     one-line stderr warning and NEVER blocks the primary command. Silent
     on success so ``--json`` output stays pure.
+
+    Returns True when the registry document was actually (re)written —
+    ``read_cmd`` re-scans in that case so a first-ever ``af read USR-9000``
+    finds the document the trigger itself just created (PR #338 R1).
     """
     prj_docs = [d for d in docs if d.source == "prj"]
     if not prj_docs:
-        return
+        return False
     try:
         prefix_counts: dict[str, int] = {}
         for doc in prj_docs:
@@ -103,8 +107,11 @@ def touch_project_registry(ctx: click.Context, docs: list[Document]) -> None:
         )
         if changed:
             save_registry(path, new_entries, today=today_str())
+            return True
+        return False
     except Exception as e:  # noqa: BLE001 — catalog maintenance must never kill the command
         click.echo(f"Warning: project registry update failed: {e}", err=True)
+        return False
 
 
 def find_or_fail(docs: list[Document], identifier: str) -> Document:

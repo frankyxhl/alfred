@@ -201,3 +201,84 @@ def test_prune_removes_dead_roots_keeps_live(tmp_path):
     kept, removed = prune_missing_roots([live, dead])
     assert kept == [live]
     assert removed == [dead]
+
+
+# ------------------------------------------------- PR #338 review round 1
+
+
+def test_parse_accepts_windows_roots():
+    """R1 P1 (registry.py:33): Windows drive-letter roots must round trip."""
+    entry = _entry(root="C:\\Users\\alice\\repo")
+    text = render_registry([entry], today=TODAY)
+    assert parse_registry(text) == [entry]
+
+
+def test_pipe_in_root_round_trips():
+    """R1 P2 (registry.py:99): '|' in a root must be escaped symmetrically."""
+    entry = _entry(root="/tmp/a|b")
+    text = render_registry([entry], today=TODAY)
+    assert "| /tmp/a\\|b |" in text  # rendered cell carries the escape
+    assert parse_registry(text) == [entry]
+
+
+def test_load_unreadable_file_raises_not_empty(tmp_path):
+    """R1 P2 (registry.py:123): read failure must propagate, not wipe the catalog."""
+    p = tmp_path / REGISTRY_FILENAME
+    p.write_text(render_registry([_entry()], today=TODAY), encoding="utf-8")
+    p.chmod(0o000)
+    try:
+        with pytest.raises(OSError):
+            load_registry(p)
+    finally:
+        p.chmod(0o644)
+
+
+def test_prune_keeps_roots_when_existence_inconclusive(tmp_path, monkeypatch):
+    """R1 P2 (registry.py:191): stat errors other than missing ⇒ keep the row."""
+    import fx_alfred.core.registry as reg
+
+    live = _entry(prefix="FXA", root=str(tmp_path), n=1)
+    unreachable = _entry(prefix="NFS", root="/mnt/flaky", n=1)
+    dead = _entry(prefix="OLD", root=str(tmp_path / "gone"), n=1)
+
+    real_stat = reg.os.stat
+
+    def fake_stat(path, *a, **kw):
+        if str(path) == "/mnt/flaky":
+            raise PermissionError(13, "Permission denied")
+        return real_stat(path, *a, **kw)
+
+    monkeypatch.setattr(reg.os, "stat", fake_stat)
+    kept, removed = reg.prune_missing_roots([live, unreachable, dead])
+    assert kept == [live, unreachable]  # unreachable mount is NOT pruned
+    assert removed == [dead]
+
+
+def test_save_refuses_occupied_slot_other_filename(tmp_path):
+    """R1 P1 (registry.py:135): a pre-existing different USR-9000 doc blocks the slot."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    (tmp_path / "USR-9000-SOP-Custom-Thing.md").write_text("# mine", encoding="utf-8")
+    p = tmp_path / REGISTRY_FILENAME
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+    assert not p.exists()  # nothing written
+
+
+def test_save_refuses_foreign_doc_in_registry_filename(tmp_path):
+    """R1 P1: same filename but not registry-shaped ⇒ occupied, never overwritten."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    p = tmp_path / REGISTRY_FILENAME
+    p.write_text("# someone else's USR-9000\n\nno table, no marker\n", encoding="utf-8")
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+    assert "someone else's" in p.read_text(encoding="utf-8")
+
+
+def test_save_allows_existing_registry_doc(tmp_path):
+    """Normal rewrite path: our own registry doc is never 'occupied'."""
+    p = tmp_path / REGISTRY_FILENAME
+    save_registry(p, [_entry()], today=TODAY)
+    save_registry(p, [_entry(n=7)], today=TODAY)  # must not raise
+    assert load_registry(p) == [_entry(n=7)]

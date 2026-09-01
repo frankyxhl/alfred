@@ -22,7 +22,11 @@ from fx_alfred.context import root_option
 def read_cmd(ctx: click.Context, identifier: str, json_output: bool):
     """Read a document by PREFIX-ACID (e.g., COR-1000) or ACID only (e.g., 1000)."""
     docs = scan_or_fail(ctx)
-    touch_project_registry(ctx, docs)
+    if touch_project_registry(ctx, docs):
+        # The trigger itself just (re)wrote USR-9000 — rescan so a
+        # first-ever `af read USR-9000` finds the freshly created doc
+        # instead of failing on the pre-creation scan (PR #338 R1).
+        docs = scan_or_fail(ctx)
     doc = find_or_fail(docs, identifier)
 
     try:

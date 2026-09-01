@@ -29,9 +29,27 @@ from pathlib import Path
 REGISTRY_FILENAME = "USR-9000-REF-Project-SOP-Registry.md"
 
 # | PRJ | Root | Docs | Last Seen |
+# Root: POSIX (/…) or Windows drive-letter (C:\… or C:/…). Pipes inside a
+# root are stored Markdown-escaped as \| so they cannot split the table
+# cell (render escapes, parse unescapes — symmetric, PR #338 R1). The root
+# body therefore admits any non-pipe/non-backslash char or any backslash
+# escape pair, and stops at the first BARE pipe — the cell boundary.
+_ROOT_BODY = r"(?:/|[A-Za-z]:[\\/])(?:[^|\\]|\\.)*"
 _ROW_RE = re.compile(
-    r"^\|\s*([A-Z]{2,4})\s*\|\s*(/[^|]*?)\s*\|\s*(\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|$"
+    r"^\|\s*([A-Z]{2,4})\s*\|\s*("
+    + _ROOT_BODY
+    + r")\s*\|\s*(\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|$"
 )
+
+
+class RegistrySlotConflictError(Exception):
+    """USR-9000 is occupied by a pre-existing, non-registry document.
+
+    Raised by ``save_registry`` before any write: a foreign doc with the
+    registry filename would be destroyed, and a different ``USR-9000-*``
+    filename would create a duplicate prefix+ACID that fails layer
+    validation on every later scan (PR #338 R1 P1).
+    """
 
 
 @dataclass(frozen=True)
@@ -69,7 +87,10 @@ def parse_registry(text: str) -> list[RegistryEntry]:
             prefix, root, count, seen = m.groups()
             entries.append(
                 RegistryEntry(
-                    prefix=prefix, root=root, doc_count=int(count), last_seen=seen
+                    prefix=prefix,
+                    root=root.replace("\\|", "|").rstrip(),
+                    doc_count=int(count),
+                    last_seen=seen,
                 )
             )
     return entries
@@ -96,7 +117,8 @@ def render_registry(entries: list[RegistryEntry], *, today: str) -> str:
         "|-----|------|------|-----------|",
     ]
     for e in _sorted(entries):
-        lines.append(f"| {e.prefix} | {e.root} | {e.doc_count} | {e.last_seen} |")
+        root_cell = e.root.replace("|", "\\|")
+        lines.append(f"| {e.prefix} | {root_cell} | {e.doc_count} | {e.last_seen} |")
     lines += [
         "",
         "---",
@@ -116,16 +138,51 @@ def _sorted(entries: list[RegistryEntry]) -> list[RegistryEntry]:
 
 
 def load_registry(path: Path) -> list[RegistryEntry]:
-    """Load entries from the registry file; missing file → empty list."""
+    """Load entries from the registry file.
+
+    A genuinely missing file is the normal empty state → ``[]``. Any other
+    read failure (permissions, I/O error) PROPAGATES: silently converting an
+    unreadable catalog to empty would let the next save wipe every other
+    project's rows (PR #338 R1 P2).
+    """
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError:
+    except FileNotFoundError:
         return []
     return parse_registry(text)
 
 
+def _slot_conflict(path: Path) -> Path | None:
+    """Return the occupying file if USR-9000 is taken by a non-registry doc.
+
+    Conflict cases (PR #338 R1 P1): (a) any other ``USR-9000-*.md`` beside
+    the registry path — writing ours would create a duplicate prefix+ACID
+    that fails layer validation; (b) the registry path itself holding a
+    foreign document (no table rows, no FXA-2330 marker) — writing would
+    destroy it. Our own previously-rendered registry never conflicts.
+    """
+    if path.exists():
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            return path  # unreadable occupant — never overwrite blind
+        if parse_registry(text) or "FXA-2330" in text:
+            return None
+        return path
+    for other in sorted(path.parent.glob("USR-9000-*.md")):
+        if other != path:
+            return other
+    return None
+
+
 def save_registry(path: Path, entries: list[RegistryEntry], *, today: str) -> None:
     """Atomically write the registry document (tempfile + os.replace)."""
+    conflict = _slot_conflict(path)
+    if conflict is not None:
+        raise RegistrySlotConflictError(
+            f"{conflict.name} already occupies the USR-9000 slot; "
+            "move or renumber it before af can maintain the project registry"
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     content = render_registry(entries, today=today)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".md.tmp")
@@ -181,12 +238,24 @@ def upsert(
 def prune_missing_roots(
     entries: list[RegistryEntry],
 ) -> tuple[list[RegistryEntry], list[RegistryEntry]]:
-    """Split entries into (kept, removed) by root-directory existence."""
+    """Split entries into (kept, removed) by root-directory existence.
+
+    Only a DEFINITIVE missing path is pruned (ENOENT, or a parent component
+    that is a file). Any other stat error — unavailable network mount,
+    parent without search permission — is inconclusive, and the entry is
+    KEPT: pruning on a transient condition would silently drop a live
+    project from the catalog (PR #338 R1 P2).
+    """
     kept: list[RegistryEntry] = []
     removed: list[RegistryEntry] = []
     for e in entries:
-        if Path(e.root).is_dir():
+        try:
+            os.stat(e.root)
             kept.append(e)
-        else:
+        except FileNotFoundError:
             removed.append(e)
+        except NotADirectoryError:
+            removed.append(e)  # a parent component is a file — cannot be a root
+        except OSError:
+            kept.append(e)  # inconclusive — never prune on transient errors
     return kept, removed
