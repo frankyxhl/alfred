@@ -1,6 +1,11 @@
 import click
 
-from fx_alfred.commands._helpers import emit_json, find_or_fail, scan_or_fail
+from fx_alfred.commands._helpers import (
+    emit_json,
+    find_or_fail,
+    scan_or_fail,
+    touch_project_registry,
+)
 from fx_alfred.context import root_option
 
 
@@ -17,6 +22,7 @@ from fx_alfred.context import root_option
 def read_cmd(ctx: click.Context, identifier: str, json_output: bool):
     """Read a document by PREFIX-ACID (e.g., COR-1000) or ACID only (e.g., 1000)."""
     docs = scan_or_fail(ctx)
+    touch_project_registry(ctx, docs)
     doc = find_or_fail(docs, identifier)
 
     try:

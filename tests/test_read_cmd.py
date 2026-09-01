@@ -1,6 +1,8 @@
 import pytest
 
 
+from pathlib import Path
+
 from click.testing import CliRunner
 from fx_alfred.cli import cli
 
@@ -122,3 +124,31 @@ def test_read_json(sample_project, monkeypatch):
     assert data["source"] == "prj"
     assert "content" in data
     assert "# AF CLI" in data["content"]
+
+
+# ------------------------------------------------- FXA-2330 registry trigger
+
+
+def test_read_touches_project_registry(sample_project, monkeypatch):
+    """read in a project context appends a registry row (FXA-2330)."""
+    from fx_alfred.core.registry import load_registry
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["read", "ALF-2201"], catch_exceptions=False)
+    assert result.exit_code == 0
+    entries = load_registry(
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    )
+    assert [(e.prefix, e.doc_count) for e in entries] == [("ALF", 3)]
+
+
+def test_read_registry_doc_renders_machine_map(sample_project, monkeypatch):
+    """af read USR-9000 shows the whole machine's project map."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    assert runner.invoke(cli, ["list"], catch_exceptions=False).exit_code == 0
+    result = runner.invoke(cli, ["read", "USR-9000"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "Project SOP Registry" in result.output
+    assert str(sample_project.resolve()) in result.output

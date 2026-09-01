@@ -1,6 +1,11 @@
 import click
 
-from fx_alfred.commands._helpers import emit_json, format_doc_row, scan_or_fail
+from fx_alfred.commands._helpers import (
+    emit_json,
+    format_doc_row,
+    scan_or_fail,
+    touch_project_registry,
+)
 from fx_alfred.context import root_option
 
 
@@ -47,6 +52,7 @@ def list_cmd(
 ):
     """List all documents across PKG, USR, and PRJ layers."""
     docs = scan_or_fail(ctx)
+    touch_project_registry(ctx, docs)
 
     # Apply filters (AND logic)
     if type_code is not None:

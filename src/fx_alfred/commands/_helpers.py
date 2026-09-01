@@ -12,6 +12,13 @@ import click
 from fx_alfred.context import get_root
 from fx_alfred.core.document import Document
 from fx_alfred.core.fsmode import resolve_write_mode
+from fx_alfred.core.registry import (
+    load_registry,
+    registry_path,
+    save_registry,
+    today_str,
+    upsert,
+)
 from fx_alfred.core.scanner import (
     AmbiguousDocumentError,
     DocumentNotFoundError,
@@ -67,6 +74,37 @@ def scan_or_fail(ctx: click.Context) -> list[Document]:
         return scan_documents(root)
     except LayerValidationError as e:
         raise click.ClickException(str(e)) from e
+
+
+def touch_project_registry(ctx: click.Context, docs: list[Document]) -> None:
+    """FXA-2330: background Project SOP Registry upsert for read commands.
+
+    Called right after ``scan_or_fail`` by guide/list/read/status. When the
+    PRJ layer contributed documents, upsert one row per (prefix, root) into
+    ``~/.alfred/USR-9000-REF-Project-SOP-Registry.md``. Best-effort by
+    contract: any failure — including registry write failure — is a
+    one-line stderr warning and NEVER blocks the primary command. Silent
+    on success so ``--json`` output stays pure.
+    """
+    prj_docs = [d for d in docs if d.source == "prj"]
+    if not prj_docs:
+        return
+    try:
+        prefix_counts: dict[str, int] = {}
+        for doc in prj_docs:
+            prefix_counts[doc.prefix] = prefix_counts.get(doc.prefix, 0) + 1
+        path = registry_path()
+        entries = load_registry(path)
+        new_entries, changed = upsert(
+            entries,
+            root=get_root(ctx),
+            prefix_counts=prefix_counts,
+            today=today_str(),
+        )
+        if changed:
+            save_registry(path, new_entries, today=today_str())
+    except Exception as e:  # noqa: BLE001 — catalog maintenance must never kill the command
+        click.echo(f"Warning: project registry update failed: {e}", err=True)
 
 
 def find_or_fail(docs: list[Document], identifier: str) -> Document:
