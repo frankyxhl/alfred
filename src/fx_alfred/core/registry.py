@@ -44,6 +44,15 @@ _ROW_RE = re.compile(
     + r")\s*\|\s*(\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|$"
 )
 
+# Canonical row form since R4: the root cell is backtick-quoted, so the
+# cell boundary is explicit and trailing whitespace that BELONGS to the
+# path (a legal POSIX dir name ending in a space/tab) round trips exactly
+# instead of being rstripped into a phantom duplicate row (PR #338 R4 P2).
+# _ROW_RE (bare) stays as the legacy/hand-written row grammar.
+_ROW_RE_BT = re.compile(
+    r"^\|\s*([A-Z]{2,4})\s*\|\s*`((?:[^`|\\]|\\.)*)`\s*\|\s*(\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|$"
+)
+
 
 class RegistrySlotConflictError(Exception):
     """USR-9000 is occupied by a pre-existing, non-registry document.
@@ -85,8 +94,24 @@ def parse_registry(text: str) -> list[RegistryEntry]:
     """
     entries: list[RegistryEntry] = []
     for line in text.splitlines():
+        m = _ROW_RE_BT.match(line.strip())
+        if m:
+            # Backticked (canonical) form: exact root, no stripping.
+            prefix, root, count, seen = m.groups()
+            entries.append(
+                RegistryEntry(
+                    prefix=prefix,
+                    root=root.replace("\\|", "|"),
+                    doc_count=int(count),
+                    last_seen=seen,
+                )
+            )
+            continue
         m = _ROW_RE.match(line.strip())
         if m:
+            # Legacy bare form (hand-written or pre-R4 renders): cell padding
+            # is ambiguous against genuine trailing whitespace; bare rows
+            # keep the rstrip semantics they always had.
             prefix, root, count, seen = m.groups()
             entries.append(
                 RegistryEntry(
@@ -120,7 +145,7 @@ def render_registry(entries: list[RegistryEntry], *, today: str) -> str:
         "|-----|------|------|-----------|",
     ]
     for e in _sorted(entries):
-        root_cell = e.root.replace("|", "\\|")
+        root_cell = "`" + e.root.replace("|", "\\|") + "`"
         lines.append(f"| {e.prefix} | {root_cell} | {e.doc_count} | {e.last_seen} |")
     lines += [
         "",
@@ -179,8 +204,13 @@ def _slot_conflict(path: Path) -> Path | None:
             if other == path:
                 continue
             rel = other.relative_to(path.parent)
+            # Same exclusion predicate as scanner._scan_path_dir: a top-level
+            # logs/ dir, and any rules/logs combination, are invisible to the
+            # USR scan — an occupant there can never collide (PR #338 R4 P2).
             if rel.parts and rel.parts[0] == "logs":
-                continue  # logs/ is outside the USR scan scope
+                continue
+            if "rules" in rel.parts and "logs" in rel.parts:
+                continue
             return other
     except OSError:
         return path  # cannot even inspect the slot — refuse to write

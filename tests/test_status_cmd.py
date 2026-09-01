@@ -184,3 +184,14 @@ def test_status_registry_failure_warns_but_exits_zero(sample_project, monkeypatc
         result = CliRunner().invoke(cli, ["status"])
     assert result.exit_code == 0
     assert "registry" in result.output.lower()
+
+
+def test_status_first_invocation_counts_bootstrapped_usr9000(
+    sample_project, monkeypatch
+):
+    """R4 P2: first `af status` in a project counts the registry doc it just made."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "USR: 1" in result.output

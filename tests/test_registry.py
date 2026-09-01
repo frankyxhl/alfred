@@ -217,7 +217,7 @@ def test_pipe_in_root_round_trips():
     """R1 P2 (registry.py:99): '|' in a root must be escaped symmetrically."""
     entry = _entry(root="/tmp/a|b")
     text = render_registry([entry], today=TODAY)
-    assert "| /tmp/a\\|b |" in text  # rendered cell carries the escape
+    assert "| `/tmp/a\\|b` |" in text  # canonical backticked cell carries the escape
     assert parse_registry(text) == [entry]
 
 
@@ -349,3 +349,30 @@ def test_prune_removes_roots_that_became_files(tmp_path):
     kept, removed = prune_missing_roots([live, dead])
     assert kept == [live]
     assert removed == [dead]
+
+
+# ------------------------------------------------- PR #338 round 4
+
+
+def test_trailing_whitespace_root_round_trips():
+    """R4 P2: a root ending in space/tab must not be rstripped into a phantom row."""
+    for root in ("/tmp/a ", "/tmp/a\tb"):
+        entry = _entry(root=root)
+        text = render_registry([entry], today=TODAY)
+        assert parse_registry(text) == [entry], repr(root)
+
+
+def test_legacy_bare_rows_still_parse():
+    """R4 P2 companion: hand-written bare rows (pre-backtick format) keep parsing."""
+    text = "| FXA | /Users/frank/Projects/alfred | 3 | 2026-09-02 |\n"
+    assert parse_registry(text) == [_entry()]
+
+
+def test_slot_scan_ignores_rules_logs_paths(tmp_path):
+    """R4 P2: mirror the scanner's rules+logs exclusion in the slot guard."""
+    deep = tmp_path / "team" / "rules" / "logs"
+    deep.mkdir(parents=True)
+    (deep / "USR-9000-SOP-Old.md").write_text("# old", encoding="utf-8")
+    p = tmp_path / REGISTRY_FILENAME
+    save_registry(p, [_entry()], today=TODAY)  # must not raise
+    assert p.exists()

@@ -52,7 +52,10 @@ def list_cmd(
 ):
     """List all documents across PKG, USR, and PRJ layers."""
     docs = scan_or_fail(ctx)
-    touch_project_registry(ctx, docs)
+    if touch_project_registry(ctx, docs):
+        # The trigger itself just (re)wrote USR-9000 — rescan so this very
+        # invocation's listing includes it (PR #338 R4 P2).
+        docs = scan_or_fail(ctx)
 
     # Apply filters (AND logic)
     if type_code is not None:

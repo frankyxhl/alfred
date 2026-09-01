@@ -24,10 +24,11 @@ def projects_cmd(output_json: bool, prune: bool):
     path = registry_path()
     try:
         entries = load_registry(path)
-    except OSError as e:
-        # load_registry intentionally propagates real read failures; the
+    except (OSError, UnicodeDecodeError) as e:
+        # load_registry intentionally propagates real read failures —
+        # including invalid UTF-8 (a ValueError, not an OSError) — and the
         # CLI surface converts them instead of leaking a traceback (PR #338
-        # R2 P2) — and never treats an unreadable registry as empty.
+        # R2/R4 P2); never treat an unreadable registry as empty.
         raise click.ClickException(f"Cannot read project registry {path}: {e}") from e
 
     if prune:

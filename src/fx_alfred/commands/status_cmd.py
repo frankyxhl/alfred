@@ -20,7 +20,10 @@ from fx_alfred.core.source import SOURCE_LABELS, SOURCE_ORDER
 def status_cmd(ctx: click.Context, json_output: bool):
     """Show document counts by source, type, and prefix."""
     docs = scan_or_fail(ctx)
-    touch_project_registry(ctx, docs)
+    if touch_project_registry(ctx, docs):
+        # The trigger itself just (re)wrote USR-9000 — rescan so this very
+        # invocation's counts include it (PR #338 R4 P2).
+        docs = scan_or_fail(ctx)
 
     if not docs:
         if json_output:

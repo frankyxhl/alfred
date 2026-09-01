@@ -127,3 +127,15 @@ def test_projects_unreadable_registry_is_cli_error(tmp_path, monkeypatch):
         assert "Traceback" not in result.output
     finally:
         p.chmod(0o644)
+
+
+def test_projects_invalid_utf8_registry_is_cli_error(tmp_path, monkeypatch):
+    """R4 P2: UnicodeDecodeError is a ValueError — must still be a friendly error."""
+    p = Path.home() / ".alfred" / REGISTRY_FILENAME
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(b"| FXA | /tmp/\xff\xfe | 1 | 2026-09-02 |\n")
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["projects"])
+    assert result.exit_code != 0
+    assert "registry" in result.output.lower()
+    assert "Traceback" not in result.output

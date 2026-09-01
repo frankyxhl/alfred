@@ -376,3 +376,13 @@ def test_list_json_output_unpolluted_by_registry_trigger(sample_project, monkeyp
     assert result.exit_code == 0
     data = _json.loads(result.output)
     assert isinstance(data, list)
+
+
+def test_list_first_invocation_shows_bootstrapped_usr9000(sample_project, monkeypatch):
+    """R4 P2: `af list --source usr` must show USR-9000 on the very invocation
+    that creates it (re-scan after trigger write)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--source", "usr"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "USR-9000" in result.output
