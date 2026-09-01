@@ -53,6 +53,30 @@ _ROW_RE_BT = re.compile(
     r"^\|\s*([A-Z]{2,4})\s*\|\s*`((?:[^`|\\]|\\.)*)`\s*\|\s*(\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|$"
 )
 
+# Symmetric cell encoding (PR #338 R5/R6 P2): escape backslashes FIRST,
+# then pipes, then backticks, so any path — `C:\dir\`, `/tmp/a|b`,
+# `/tmp/a\|b`, `/tmp/a`b` — survives the Markdown table round trip.
+# Unescape scans left-to-right and only maps known escape pairs; any other
+# backslash sequence stays literal (legacy hand rows keep working).
+
+
+def _encode_cell(root: str) -> str:
+    return root.replace("\\", "\\\\").replace("|", "\\|").replace("`", "\\`")
+
+
+def _decode_cell(cell: str) -> str:
+    out: list[str] = []
+    i = 0
+    while i < len(cell):
+        ch = cell[i]
+        if ch == "\\" and i + 1 < len(cell) and cell[i + 1] in ("\\", "|", "`"):
+            out.append(cell[i + 1])
+            i += 2
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
 
 class RegistrySlotConflictError(Exception):
     """USR-9000 is occupied by a pre-existing, non-registry document.
@@ -96,12 +120,12 @@ def parse_registry(text: str) -> list[RegistryEntry]:
     for line in text.splitlines():
         m = _ROW_RE_BT.match(line.strip())
         if m:
-            # Backticked (canonical) form: exact root, no stripping.
+            # Backticked (canonical) form: exact root, decoded symmetrically.
             prefix, root, count, seen = m.groups()
             entries.append(
                 RegistryEntry(
                     prefix=prefix,
-                    root=root.replace("\\|", "|"),
+                    root=_decode_cell(root),
                     doc_count=int(count),
                     last_seen=seen,
                 )
@@ -145,7 +169,7 @@ def render_registry(entries: list[RegistryEntry], *, today: str) -> str:
         "|-----|------|------|-----------|",
     ]
     for e in _sorted(entries):
-        root_cell = "`" + e.root.replace("|", "\\|") + "`"
+        root_cell = "`" + _encode_cell(e.root) + "`"
         lines.append(f"| {e.prefix} | {root_cell} | {e.doc_count} | {e.last_seen} |")
     lines += [
         "",
@@ -183,22 +207,30 @@ def load_registry(path: Path) -> list[RegistryEntry]:
 def _slot_conflict(path: Path) -> Path | None:
     """Return the occupying file if USR-9000 is taken by a non-registry doc.
 
-    Conflict cases (PR #338 R1 P1, R2 P1): (a) any other ``USR-9000-*.md``
+    Conflict cases (PR #338 R1/R2/R5 P1): (a) any other ``USR-9000-*.md``
     anywhere in the recursive USR scan scope (nested subdirectories
-    included, ``logs/`` excluded — mirroring ``scan_documents``) — writing
-    ours would create a duplicate prefix+ACID that fails layer validation;
-    (b) the registry path itself holding a foreign document (no table rows,
-    no FXA-2330 marker) — writing would destroy it. Our own
+    included, ``logs/`` and rules+logs paths excluded — mirroring
+    ``scan_documents``) — writing ours would create a duplicate prefix+ACID
+    that fails layer validation; (b) the registry path itself holding
+    anything that is not OUR registry. Ownership is the unambiguous
+    template marker (``FXA-2330``) — table-shaped rows alone are NOT
+    proof: a pre-existing custom doc with a parseable row would otherwise
+    be silently replaced and its prose destroyed. Our own
     previously-rendered registry never conflicts.
     """
+    if path.is_symlink():
+        # A symlink occupant — dangling or not — is never replaced: a
+        # dangling link defeats ``exists()`` and ``os.replace`` would destroy
+        # the link itself (PR #338 R6 P2).
+        return path
     if path.exists():
         try:
             text = path.read_text(encoding="utf-8")
         except OSError:
             return path  # unreadable occupant — never overwrite blind
-        if parse_registry(text) or "FXA-2330" in text:
-            return None
-        return path
+        if "FXA-2330" in text:
+            return None  # written by af (the template marker survives every rewrite)
+        return path  # foreign — table-bearing or not, never destroy it
     try:
         for other in sorted(path.parent.rglob("USR-9000-*.md")):
             if other == path:

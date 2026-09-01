@@ -13,6 +13,7 @@ from fx_alfred.context import get_root
 from fx_alfred.core.document import Document
 from fx_alfred.core.fsmode import resolve_write_mode
 from fx_alfred.core.registry import (
+    REGISTRY_FILENAME,
     load_registry,
     registry_path,
     save_registry,
@@ -76,6 +77,22 @@ def scan_or_fail(ctx: click.Context) -> list[Document]:
         raise click.ClickException(str(e)) from e
 
 
+def registry_id_in_use(docs: list) -> bool:
+    """True when any scanned document already carries the USR-9000 id.
+
+    A PRJ (or any non-registry) document named USR-9000-*.md makes the
+    registry write create a duplicate prefix+ACID across layers — every
+    subsequent scan would fail LayerValidationError. The registry document
+    ITSELF (usr layer, canonical filename) is excluded, or no registry
+    could ever update itself. The trigger must warn+skip and ``af register``
+    must refuse (PR #338 R5 P1).
+    """
+    return any(
+        d.prefix == "USR" and d.acid == "9000" and d.filename != REGISTRY_FILENAME
+        for d in docs
+    )
+
+
 def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:
     """FXA-2330: background Project SOP Registry upsert for read commands.
 
@@ -92,6 +109,13 @@ def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:
     """
     prj_docs = [d for d in docs if d.source == "prj"]
     if not prj_docs:
+        return False
+    if registry_id_in_use(docs):
+        click.echo(
+            "Warning: a USR-9000 document already exists outside the project "
+            "registry; skipping registry update to avoid a duplicate id.",
+            err=True,
+        )
         return False
     try:
         prefix_counts: dict[str, int] = {}

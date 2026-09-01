@@ -4,7 +4,11 @@ from collections import Counter
 
 import click
 
-from fx_alfred.commands._helpers import emit_json, scan_or_fail
+from fx_alfred.commands._helpers import (
+    emit_json,
+    registry_id_in_use,
+    scan_or_fail,
+)
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.registry import (
     load_registry,
@@ -29,6 +33,12 @@ def register_cmd(ctx: click.Context, output_json: bool):
         raise click.ClickException(
             f"No Alfred project documents found at {root}; "
             "a project registers only when its PRJ layer carries documents."
+        )
+    if registry_id_in_use(docs):
+        raise click.ClickException(
+            "A USR-9000 document already exists in the scanned layers; "
+            "registering here would create a duplicate id that fails layer "
+            "validation. Move or renumber that document first."
         )
 
     prefix_counts = Counter(d.prefix for d in prj_docs)

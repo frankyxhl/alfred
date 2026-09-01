@@ -386,3 +386,18 @@ def test_list_first_invocation_shows_bootstrapped_usr9000(sample_project, monkey
     result = runner.invoke(cli, ["list", "--source", "usr"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "USR-9000" in result.output
+
+
+def test_list_skips_registry_write_when_prj_holds_usr9000(tmp_path, monkeypatch):
+    """R5 P1: a PRJ doc already using USR-9000 must block the registry write
+    (duplicate-ID across layers), warn, and not break the command."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "USR-9000-SOP-Custom.md").write_text("# custom", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "USR-9000" in result.output  # the PRJ doc still lists fine
+    assert not (
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    ).exists()

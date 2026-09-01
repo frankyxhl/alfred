@@ -98,3 +98,17 @@ def test_register_preserves_other_rows(sample_project, monkeypatch):
         ("WUK", "/Users/frank/Projects/wukong"),
         ("ALF", str(sample_project.resolve())),
     ]
+
+
+def test_register_rejects_prj_usr9000_conflict(tmp_path, monkeypatch):
+    """R5 P1: explicit register errors loudly when PRJ already holds USR-9000."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "USR-9000-SOP-Custom.md").write_text("# custom", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["register"])
+    assert result.exit_code != 0
+    assert "USR-9000" in result.output
+    assert not (
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    ).exists()

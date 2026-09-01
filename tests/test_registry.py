@@ -376,3 +376,54 @@ def test_slot_scan_ignores_rules_logs_paths(tmp_path):
     p = tmp_path / REGISTRY_FILENAME
     save_registry(p, [_entry()], today=TODAY)  # must not raise
     assert p.exists()
+
+
+def test_save_refuses_table_bearing_foreign_doc(tmp_path):
+    """R5 P1: parseable rows alone are NOT proof of registry ownership —
+    a custom doc at the filename (even table-shaped) must never be replaced."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    p = tmp_path / REGISTRY_FILENAME
+    p.write_text(
+        "# my custom doc\n\nprecious prose\n\n"
+        "| FXA | /Users/frank/Projects/alfred | 3 | 2026-09-02 |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+    assert "precious prose" in p.read_text(encoding="utf-8")  # untouched
+
+
+# ------------------------------------------------- PR #338 rounds 5-6
+
+
+def test_backslash_pipe_root_round_trips():
+    """R5 P2: a root containing backslash-then-pipe must round trip."""
+    entry = _entry(root="/tmp/a\\|b")
+    text = render_registry([entry], today=TODAY)
+    assert parse_registry(text) == [entry]
+
+
+def test_backtick_root_round_trips():
+    """R6 P2: a root containing a backtick must not break the code span."""
+    entry = _entry(root="/tmp/a`b")
+    text = render_registry([entry], today=TODAY)
+    assert parse_registry(text) == [entry]
+
+
+def test_trailing_backslash_root_round_trips():
+    """R6 P2 companion: root ending in a backslash must not eat the closing tick."""
+    entry = _entry(root="C:\\dir\\")
+    text = render_registry([entry], today=TODAY)
+    assert parse_registry(text) == [entry]
+
+
+def test_dangling_symlink_slot_is_occupied(tmp_path):
+    """R6 P2: a dangling symlink at the registry path must never be replaced."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    p = tmp_path / REGISTRY_FILENAME
+    p.symlink_to(tmp_path / "does-not-exist")
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+    assert p.is_symlink() and not p.exists()  # link itself untouched
