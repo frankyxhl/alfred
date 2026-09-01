@@ -2,11 +2,15 @@ import click
 
 from fx_alfred.commands._helpers import (
     emit_json,
-    find_or_fail,
     scan_or_fail,
     touch_project_registry,
 )
 from fx_alfred.context import root_option
+from fx_alfred.core.scanner import (
+    AmbiguousDocumentError,
+    DocumentNotFoundError,
+    find_document,
+)
 
 
 @click.command("read")
@@ -22,12 +26,25 @@ from fx_alfred.context import root_option
 def read_cmd(ctx: click.Context, identifier: str, json_output: bool):
     """Read a document by PREFIX-ACID (e.g., COR-1000) or ACID only (e.g., 1000)."""
     docs = scan_or_fail(ctx)
-    if touch_project_registry(ctx, docs):
-        # The trigger itself just (re)wrote USR-9000 — rescan so a
-        # first-ever `af read USR-9000` finds the freshly created doc
-        # instead of failing on the pre-creation scan (PR #338 R1).
-        docs = scan_or_fail(ctx)
-    doc = find_or_fail(docs, identifier)
+    wrote = touch_project_registry(ctx, docs)
+    # Resolve against the PRE-bootstrap snapshot first, so background
+    # registry maintenance cannot change this read's semantics: an
+    # unambiguous ACID-only lookup (project has its own 9000 doc) stays
+    # unambiguous instead of turning ambiguous once USR-9000 exists (PR
+    # #338 R10). Only a not-found retry may consult the rescan — that is
+    # the fresh-machine `af read USR-9000` bootstrap path (R1).
+    try:
+        doc = find_document(docs, identifier)
+    except DocumentNotFoundError:
+        if not wrote:
+            raise click.ClickException(f"No document found: {identifier}") from None
+        try:
+            docs = scan_or_fail(ctx)
+            doc = find_document(docs, identifier)
+        except (DocumentNotFoundError, AmbiguousDocumentError) as e:
+            raise click.ClickException(str(e)) from e
+    except AmbiguousDocumentError as e:
+        raise click.ClickException(str(e)) from e
 
     try:
         content = doc.resolve_resource().read_text(encoding="utf-8")

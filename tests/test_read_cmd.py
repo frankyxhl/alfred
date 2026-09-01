@@ -162,3 +162,19 @@ def test_read_usr9000_first_invocation_bootstraps(sample_project, monkeypatch):
     result = runner.invoke(cli, ["read", "USR-9000"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "Project SOP Registry" in result.output
+
+
+def test_read_acid_only_not_ambiguated_by_bootstrap(tmp_path, monkeypatch):
+    """PR #338 R10: `af read 9000` must keep resolving against the
+    pre-bootstrap snapshot — the rescan cannot turn an unambiguous ACID-only
+    request into an ambiguity error when the project has its own 9000 doc."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "FXA-9000-SOP-Nine-Thousand.md").write_text(
+        "# nine thousand", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["read", "9000"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "nine thousand" in result.output
