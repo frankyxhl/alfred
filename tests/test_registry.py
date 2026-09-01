@@ -500,3 +500,30 @@ def test_rendered_tables_are_column_aligned():
     for block in table_blocks:
         positions = {tuple(i for i, ch in enumerate(row) if ch == "|") for row in block}
         assert len(positions) == 1, block
+
+
+# ------------------------------------------------- PR #338 round 8
+
+
+def test_newline_in_root_round_trips():
+    """R8 P2: line-breaking chars in a root must not split the table row."""
+    for root in ("/tmp/a\nb", "/tmp/a\rb", "/tmp/a\u2028b", "/tmp/a\u2029b"):
+        entry = _entry(root=root)
+        text = render_registry([entry], today=TODAY)
+        assert parse_registry(text) == [entry], repr(root)
+        assert parse_registry(text) == [entry], repr(root)
+
+
+def test_windows_newline_lookalike_round_trips():
+    """R8 P2 companion: `C:\\new` (backslash-n) must not decode to a newline."""
+    entry = _entry(root="C:\\new")
+    text = render_registry([entry], today=TODAY)
+    assert parse_registry(text) == [entry]
+
+
+def test_slot_scan_ignores_non_file_occupants(tmp_path):
+    """R8 P2: a directory named USR-9000-*.md is not a document — no conflict."""
+    (tmp_path / "USR-9000-Backup.md").mkdir()
+    p = tmp_path / REGISTRY_FILENAME
+    save_registry(p, [_entry()], today=TODAY)  # must not raise
+    assert p.exists()

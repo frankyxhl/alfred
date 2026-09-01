@@ -60,25 +60,46 @@ _ROW_RE_BT = re.compile(
     r"^\|\s*([A-Z]{2,4})\s*\|\s*`((?:[^`|\\]|\\.)*)`\s*\|\s*(\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|$"
 )
 
-# Symmetric cell encoding (PR #338 R5/R6 P2): escape backslashes FIRST,
-# then pipes, then backticks, so any path — `C:\dir\`, `/tmp/a|b`,
-# `/tmp/a\|b`, `/tmp/a`b` — survives the Markdown table round trip.
+# Symmetric cell encoding (PR #338 R5/R6/R8 P2): escape backslashes FIRST,
+# then pipes, backticks, and finally line-breaking characters (LF, CR,
+# U+2028, U+2029) as \n / \r / \u2028 / \u2029 literals, so any path —
+# `C:\dir\`, `/tmp/a|b`, `/tmp/a\|b`, `/tmp/a`b`, `/tmp/a\nb` — survives
+# the Markdown table round trip without splitting the row.
 # Unescape scans left-to-right and only maps known escape pairs; any other
 # backslash sequence stays literal (legacy hand rows keep working).
 
+_CELL_ESCAPES = [("\\", "\\\\"), ("|", "\\|"), ("`", "\\`"),
+                 ("\n", "\\n"), ("\r", "\\r"),
+                 ("\u2028", "\\u2028"), ("\u2029", "\\u2029")]
+_CELL_DECODE = {esc: ch for ch, esc in _CELL_ESCAPES}
+
 
 def _encode_cell(root: str) -> str:
-    return root.replace("\\", "\\\\").replace("|", "\\|").replace("`", "\\`")
+    for ch, esc in _CELL_ESCAPES:
+        root = root.replace(ch, esc)
+    return root
 
 
 def _decode_cell(cell: str) -> str:
     out: list[str] = []
     i = 0
-    while i < len(cell):
+    n = len(cell)
+    while i < n:
         ch = cell[i]
-        if ch == "\\" and i + 1 < len(cell) and cell[i + 1] in ("\\", "|", "`"):
-            out.append(cell[i + 1])
-            i += 2
+        if ch == "\\" and i + 1 < n:
+            pair = cell[i : i + 2]
+            if pair in ("\\\\", "\\|", "\\`"):
+                out.append(_CELL_DECODE[pair])
+                i += 2
+                continue
+            for lit in ("\\n", "\\r", "\\u2028", "\\u2029"):
+                if cell.startswith(lit, i):
+                    out.append(_CELL_DECODE[lit])
+                    i += len(lit)
+                    break
+            else:
+                out.append(ch)
+                i += 1
         else:
             out.append(ch)
             i += 1
@@ -266,8 +287,8 @@ def _slot_conflict(path: Path) -> Path | None:
         return path  # foreign — table-bearing or not, never destroy it
     try:
         for other in sorted(path.parent.rglob("USR-9000-*.md")):
-            if other == path:
-                continue
+            if other == path or not other.is_file():
+                continue  # non-file occupants (dirs, FIFOs) are not documents
             rel = other.relative_to(path.parent)
             # Same exclusion predicate as scanner._scan_path_dir: a top-level
             # logs/ dir, and any rules/logs combination, are invisible to the
