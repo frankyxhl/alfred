@@ -22,7 +22,13 @@ from fx_alfred.core.registry import (
 def projects_cmd(output_json: bool, prune: bool):
     """List the machine-wide Project SOP Registry (USR-9000)."""
     path = registry_path()
-    entries = load_registry(path)
+    try:
+        entries = load_registry(path)
+    except OSError as e:
+        # load_registry intentionally propagates real read failures; the
+        # CLI surface converts them instead of leaking a traceback (PR #338
+        # R2 P2) — and never treats an unreadable registry as empty.
+        raise click.ClickException(f"Cannot read project registry {path}: {e}") from e
 
     if prune:
         entries, removed = prune_missing_roots(entries)

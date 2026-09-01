@@ -108,3 +108,22 @@ def test_projects_prune_json_returns_survivors(tmp_path, monkeypatch):
     assert result.exit_code == 0
     payload = json.loads(result.output)
     assert [row["prefix"] for row in payload] == ["FXA"]
+
+
+def test_projects_unreadable_registry_is_cli_error(tmp_path, monkeypatch):
+    """R2 P2: read failures surface as friendly CLI errors, not tracebacks."""
+    from fx_alfred.core.registry import save_registry
+
+    p = Path.home() / ".alfred" / REGISTRY_FILENAME
+    save_registry(
+        p, [RegistryEntry("FXA", str(tmp_path), 1, "2026-09-02")], today="2026-09-02"
+    )
+    p.chmod(0o000)
+    monkeypatch.chdir(tmp_path)
+    try:
+        result = CliRunner().invoke(cli, ["projects"])
+        assert result.exit_code != 0
+        assert "registry" in result.output.lower()
+        assert "Traceback" not in result.output
+    finally:
+        p.chmod(0o644)

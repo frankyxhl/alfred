@@ -18,10 +18,13 @@ from __future__ import annotations
 
 import os
 import re
+import stat
 import tempfile
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+
+from fx_alfred.core.fsmode import resolve_write_mode
 
 # Fixed, well-known slot: the registry must be addressable without
 # discovery (`af read USR-9000`), and sequential auto-numbering never
@@ -34,7 +37,7 @@ REGISTRY_FILENAME = "USR-9000-REF-Project-SOP-Registry.md"
 # cell (render escapes, parse unescapes — symmetric, PR #338 R1). The root
 # body therefore admits any non-pipe/non-backslash char or any backslash
 # escape pair, and stops at the first BARE pipe — the cell boundary.
-_ROOT_BODY = r"(?:/|[A-Za-z]:[\\/])(?:[^|\\]|\\.)*"
+_ROOT_BODY = r"(?:/|[A-Za-z]:[\\/]|\\\\)(?:[^|\\]|\\.)*"
 _ROW_RE = re.compile(
     r"^\|\s*([A-Z]{2,4})\s*\|\s*("
     + _ROOT_BODY
@@ -155,11 +158,13 @@ def load_registry(path: Path) -> list[RegistryEntry]:
 def _slot_conflict(path: Path) -> Path | None:
     """Return the occupying file if USR-9000 is taken by a non-registry doc.
 
-    Conflict cases (PR #338 R1 P1): (a) any other ``USR-9000-*.md`` beside
-    the registry path — writing ours would create a duplicate prefix+ACID
-    that fails layer validation; (b) the registry path itself holding a
-    foreign document (no table rows, no FXA-2330 marker) — writing would
-    destroy it. Our own previously-rendered registry never conflicts.
+    Conflict cases (PR #338 R1 P1, R2 P1): (a) any other ``USR-9000-*.md``
+    anywhere in the recursive USR scan scope (nested subdirectories
+    included, ``logs/`` excluded — mirroring ``scan_documents``) — writing
+    ours would create a duplicate prefix+ACID that fails layer validation;
+    (b) the registry path itself holding a foreign document (no table rows,
+    no FXA-2330 marker) — writing would destroy it. Our own
+    previously-rendered registry never conflicts.
     """
     if path.exists():
         try:
@@ -169,9 +174,16 @@ def _slot_conflict(path: Path) -> Path | None:
         if parse_registry(text) or "FXA-2330" in text:
             return None
         return path
-    for other in sorted(path.parent.glob("USR-9000-*.md")):
-        if other != path:
+    try:
+        for other in sorted(path.parent.rglob("USR-9000-*.md")):
+            if other == path:
+                continue
+            rel = other.relative_to(path.parent)
+            if rel.parts and rel.parts[0] == "logs":
+                continue  # logs/ is outside the USR scan scope
             return other
+    except OSError:
+        return path  # cannot even inspect the slot — refuse to write
     return None
 
 
@@ -185,10 +197,16 @@ def save_registry(path: Path, entries: list[RegistryEntry], *, today: str) -> No
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     content = render_registry(entries, today=today)
+    # Resolve the mode BEFORE the replace: an existing registry keeps its
+    # permissions (no silent 0644→0600 reset from mkstemp), a fresh one gets
+    # the umask-derived mode a plain open(path, "w") would produce (PR #338
+    # R2 P2; shared core.fsmode behavior, same as _helpers.atomic_write).
+    mode = resolve_write_mode(path)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), suffix=".md.tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
+        os.chmod(tmp_name, mode)
         os.replace(tmp_name, str(path))
     except Exception:
         try:
@@ -240,18 +258,21 @@ def prune_missing_roots(
 ) -> tuple[list[RegistryEntry], list[RegistryEntry]]:
     """Split entries into (kept, removed) by root-directory existence.
 
-    Only a DEFINITIVE missing path is pruned (ENOENT, or a parent component
-    that is a file). Any other stat error — unavailable network mount,
-    parent without search permission — is inconclusive, and the entry is
-    KEPT: pruning on a transient condition would silently drop a live
-    project from the catalog (PR #338 R1 P2).
+    Only a DEFINITIVE non-directory state is pruned (ENOENT, ENOTDIR, or the
+    path now existing as a non-directory). Any other stat error —
+    unavailable network mount, parent without search permission — is
+    inconclusive, and the entry is KEPT: pruning on a transient condition
+    would silently drop a live project from the catalog (PR #338 R1/R2 P2).
     """
     kept: list[RegistryEntry] = []
     removed: list[RegistryEntry] = []
     for e in entries:
         try:
-            os.stat(e.root)
-            kept.append(e)
+            st = os.stat(e.root)
+            if stat.S_ISDIR(st.st_mode):
+                kept.append(e)
+            else:
+                removed.append(e)  # path exists but is no longer a directory
         except FileNotFoundError:
             removed.append(e)
         except NotADirectoryError:

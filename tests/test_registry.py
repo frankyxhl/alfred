@@ -282,3 +282,70 @@ def test_save_allows_existing_registry_doc(tmp_path):
     save_registry(p, [_entry()], today=TODAY)
     save_registry(p, [_entry(n=7)], today=TODAY)  # must not raise
     assert load_registry(p) == [_entry(n=7)]
+
+
+# ------------------------------------------------- PR #338 rounds 2-3
+
+
+def test_parse_accepts_unc_roots():
+    """R2 P2: UNC and extended-length Windows roots must round trip."""
+    for root in (r"\\server\share\repo", r"\\?\C:\repo"):
+        entry = _entry(root=root)
+        text = render_registry([entry], today=TODAY)
+        assert parse_registry(text) == [entry], root
+
+
+def test_save_preserves_existing_registry_mode(tmp_path):
+    """R2 P2: atomic replace must not reset an existing 0640 to mkstemp's 0600."""
+    p = tmp_path / REGISTRY_FILENAME
+    save_registry(p, [_entry()], today=TODAY)
+    p.chmod(0o640)
+    save_registry(p, [_entry(n=5)], today=TODAY)
+    assert (p.stat().st_mode & 0o777) == 0o640
+
+
+def test_save_new_registry_respects_umask(tmp_path):
+    """R2 P2: first creation honors the umask like a plain open(path,'w')."""
+    import os as _os
+
+    old = _os.umask(0o022)
+    try:
+        p = tmp_path / REGISTRY_FILENAME
+        save_registry(p, [_entry()], today=TODAY)
+        assert (p.stat().st_mode & 0o777) == 0o644
+    finally:
+        _os.umask(old)
+
+
+def test_save_refuses_occupied_slot_in_nested_usr_dir(tmp_path):
+    """R2 P1: a nested USR-9000 doc (recursive USR scan scope) blocks the slot."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    nested = tmp_path / "team"
+    nested.mkdir()
+    (nested / "USR-9000-SOP-Custom.md").write_text("# team doc", encoding="utf-8")
+    p = tmp_path / REGISTRY_FILENAME
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+    assert not p.exists()
+
+
+def test_slot_scan_ignores_logs_dir(tmp_path):
+    """logs/ is excluded from USR scans, so a USR-9000 there cannot collide."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "USR-9000-SOP-Logged.md").write_text("# log", encoding="utf-8")
+    p = tmp_path / REGISTRY_FILENAME
+    save_registry(p, [_entry()], today=TODAY)  # must not raise
+    assert p.exists()
+
+
+def test_prune_removes_roots_that_became_files(tmp_path):
+    """R2 P2: a regular file occupying the old root path is not a project root."""
+    ghost = tmp_path / "was-a-repo"
+    ghost.write_text("now a file", encoding="utf-8")
+    live = _entry(prefix="FXA", root=str(tmp_path), n=1)
+    dead = _entry(prefix="GONE", root=str(ghost), n=1)
+    kept, removed = prune_missing_roots([live, dead])
+    assert kept == [live]
+    assert removed == [dead]
