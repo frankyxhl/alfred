@@ -68,9 +68,23 @@ _ROW_RE_BT = re.compile(
 # Unescape scans left-to-right and only maps known escape pairs; any other
 # backslash sequence stays literal (legacy hand rows keep working).
 
-_CELL_ESCAPES = [("\\", "\\\\"), ("|", "\\|"), ("`", "\\`"),
-                 ("\n", "\\n"), ("\r", "\\r"),
-                 ("\u2028", "\\u2028"), ("\u2029", "\\u2029")]
+_CELL_ESCAPES = [
+    ("\\", "\\\\"),
+    ("|", "\\|"),
+    ("`", "\\`"),
+    ("\n", "\\n"),
+    ("\r", "\\r"),
+    ("\x0b", "\\v"),
+    ("\x0c", "\\f"),
+    ("\x1c", "\\x1c"),
+    ("\x1d", "\\x1d"),
+    ("\x1e", "\\x1e"),
+    ("\x85", "\\x85"),
+    ("\u2028", "\\u2028"),
+    ("\u2029", "\\u2029"),
+]
+# Decode tries longer literals first so \x1c is not misread as \\x + 1c.
+_CELL_DECODE_KEYS = sorted((esc for _, esc in _CELL_ESCAPES), key=len, reverse=True)
 _CELL_DECODE = {esc: ch for ch, esc in _CELL_ESCAPES}
 
 
@@ -86,13 +100,8 @@ def _decode_cell(cell: str) -> str:
     n = len(cell)
     while i < n:
         ch = cell[i]
-        if ch == "\\" and i + 1 < n:
-            pair = cell[i : i + 2]
-            if pair in ("\\\\", "\\|", "\\`"):
-                out.append(_CELL_DECODE[pair])
-                i += 2
-                continue
-            for lit in ("\\n", "\\r", "\\u2028", "\\u2029"):
+        if ch == "\\":
+            for lit in _CELL_DECODE_KEYS:
                 if cell.startswith(lit, i):
                     out.append(_CELL_DECODE[lit])
                     i += len(lit)
@@ -274,6 +283,11 @@ def _slot_conflict(path: Path) -> Path | None:
         # A symlink occupant — dangling or not — is never replaced: a
         # dangling link defeats ``exists()`` and ``os.replace`` would destroy
         # the link itself (PR #338 R6 P2).
+        return path
+    if path.exists() and not path.is_file():
+        # Non-regular occupant (FIFO, directory, socket): decide via stat,
+        # NEVER by opening — read_text on a FIFO blocks forever (PR #338 R9
+        # P2; this is the hang my round-9 test caught live).
         return path
     if path.exists():
         try:

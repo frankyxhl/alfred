@@ -527,3 +527,33 @@ def test_slot_scan_ignores_non_file_occupants(tmp_path):
     p = tmp_path / REGISTRY_FILENAME
     save_registry(p, [_entry()], today=TODAY)  # must not raise
     assert p.exists()
+
+
+# ------------------------------------------------- PR #338 round 9
+
+
+def test_all_splitlines_separators_round_trip():
+    """R9 P2: every separator str.splitlines() splits on must be encoded."""
+    seps = ["\x0b", "\x0c", "\x1c", "\x1d", "\x1e", "\x85"]
+    for sep in seps:
+        root = "/tmp/a" + sep + "b"
+        entry = _entry(root=root)
+        text = render_registry([entry], today=TODAY)
+        # the rendered row must survive a splitlines() pass intact
+        rows = [ln for ln in text.splitlines() if ln.startswith("| FXA")]
+        assert len(rows) == 1, repr(sep)
+        assert parse_registry(text) == [entry], repr(sep)
+
+
+def test_fifo_at_registry_slot_is_occupied(tmp_path):
+    """R9 P2: a non-regular file at the canonical path is occupied — and must
+    be detected WITHOUT opening it (a FIFO would hang read_text)."""
+    import os
+
+    from fx_alfred.core.registry import RegistrySlotConflictError, _slot_conflict
+
+    p = tmp_path / REGISTRY_FILENAME
+    os.mkfifo(p)
+    assert _slot_conflict(p) == p  # decided by lstat, never by open()
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
