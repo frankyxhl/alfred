@@ -82,15 +82,24 @@ def registry_id_in_use(docs: list) -> bool:
 
     A PRJ (or any non-registry) document named USR-9000-*.md makes the
     registry write create a duplicate prefix+ACID across layers — every
-    subsequent scan would fail LayerValidationError. The registry document
-    ITSELF (usr layer, canonical filename) is excluded, or no registry
-    could ever update itself. The trigger must warn+skip and ``af register``
-    must refuse (PR #338 R5 P1).
+    subsequent scan would fail LayerValidationError. The ONLY exemption is
+    the canonical registry document itself: usr source, canonical filename,
+    top-level ``~/.alfred`` location — a PRJ doc that merely carries the
+    canonical filename is NOT exempt (PR #338 R5/R7 P1). The trigger must
+    warn+skip and ``af register`` must refuse.
     """
-    return any(
-        d.prefix == "USR" and d.acid == "9000" and d.filename != REGISTRY_FILENAME
-        for d in docs
-    )
+    usr_home = (Path.home() / ".alfred").resolve()
+    for d in docs:
+        if d.prefix != "USR" or d.acid != "9000":
+            continue
+        if d.source == "usr" and d.filename == REGISTRY_FILENAME:
+            try:
+                if Path(d.base_path).resolve() == usr_home:
+                    continue  # the registry itself
+            except (TypeError, OSError):
+                pass
+        return True
+    return False
 
 
 def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:

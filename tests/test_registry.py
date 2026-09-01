@@ -58,7 +58,7 @@ def test_render_round_trips_and_mentions_doc_id():
     assert parse_registry(text) == entries
     # af validate contract (COR-0002): every doc carries a Change History table
     assert "## Change History" in text
-    assert "| Date | Change | By |" in text
+    assert "| Date" in text and "Change" in text and "By" in text
 
 
 def test_load_missing_file_returns_empty(tmp_path):
@@ -427,3 +427,76 @@ def test_dangling_symlink_slot_is_occupied(tmp_path):
     with pytest.raises(RegistrySlotConflictError):
         save_registry(p, [_entry()], today=TODAY)
     assert p.is_symlink() and not p.exists()  # link itself untouched
+
+
+# ------------------------------------------------- PR #338 round 7
+
+
+def test_prj_doc_with_canonical_filename_still_blocks(tmp_path, monkeypatch):
+    """R7 P1: the self-exemption must not cover a PRJ doc that merely carries
+    the canonical filename — that still duplicates USR-9000 across layers."""
+    proj = tmp_path / "proj"
+    rules = proj / "rules"
+    rules.mkdir(parents=True)
+    (rules / "USR-9000-REF-Project-SOP-Registry.md").write_text(
+        render_registry([_entry(root=str(proj))], today=TODAY), encoding="utf-8"
+    )
+    from click.testing import CliRunner
+
+    from fx_alfred.cli import cli
+
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--root", str(proj)], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert not (Path.home() / ".alfred" / REGISTRY_FILENAME).exists()
+
+
+def test_foreign_doc_mentioning_fxa2330_is_not_ours(tmp_path):
+    """R7 P1: a prose doc that merely mentions FXA-2330 is NOT the registry."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    p = tmp_path / REGISTRY_FILENAME
+    p.write_text(
+        "# notes\n\nWe follow FXA-2330 for the registry design.\n\n"
+        "| FXA | /Users/frank/Projects/alfred | 3 | 2026-09-02 |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+
+
+def test_legacy_registry_without_marker_still_ours(tmp_path):
+    """R7 P1 companion: pre-marker registries (exact template line) upgrade in
+    place instead of being rejected as foreign."""
+    p = tmp_path / REGISTRY_FILENAME
+    legacy = render_registry([_entry()], today=TODAY).replace(
+        "<!-- af:project-sop-registry v1 -->\n", ""
+    )
+    p.write_text(legacy, encoding="utf-8")
+    save_registry(p, [_entry(n=9)], today=TODAY)  # must not raise
+    assert load_registry(p) == [_entry(n=9)]
+
+
+def test_rendered_tables_are_column_aligned():
+    """R7 P2: generated tables must match canonical fmt alignment — pipes at
+    identical positions within each table block."""
+    text = render_registry(
+        [_entry(), _entry(prefix="PFC", root="/x", n=100)], today=TODAY
+    )
+    lines = text.splitlines()
+    table_blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in lines:
+        if line.startswith("|"):
+            current.append(line)
+        else:
+            if current:
+                table_blocks.append(current)
+                current = []
+    if current:
+        table_blocks.append(current)
+    assert len(table_blocks) == 2  # entries + history
+    for block in table_blocks:
+        positions = {tuple(i for i, ch in enumerate(row) if ch == "|") for row in block}
+        assert len(positions) == 1, block

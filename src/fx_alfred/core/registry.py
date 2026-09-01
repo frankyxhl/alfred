@@ -31,6 +31,13 @@ from fx_alfred.core.fsmode import resolve_write_mode
 # organically reaches the 90xx range (FXA-2330 §What-1).
 REGISTRY_FILENAME = "USR-9000-REF-Project-SOP-Registry.md"
 
+# Structured ownership marker (PR #338 R7 P1): af writes this exact HTML
+# comment into every registry it renders, and accepts a file at the slot as
+# ITS OWN only when the marker (or the pre-marker legacy template line) is
+# present — never on prose mentions of FXA-2330 or parseable rows.
+REGISTRY_MARKER = "<!-- af:project-sop-registry v1 -->"
+_LEGACY_OWNER_LINE = "Auto-maintained by `af` (FXA-2330)"
+
 # | PRJ | Root | Docs | Last Seen |
 # Root: POSIX (/…) or Windows drive-letter (C:\… or C:/…). Pipes inside a
 # root are stored Markdown-escaped as \| so they cannot split the table
@@ -148,6 +155,24 @@ def parse_registry(text: str) -> list[RegistryEntry]:
     return entries
 
 
+def _md_table(header: list[str], rows: list[list[str]]) -> list[str]:
+    """Render a column-aligned Markdown table (canonical fmt style).
+
+    Every cell is padded to its column's width so pipe positions are
+    identical across all rows — the generated document is fmt-clean as
+    written (PR #338 R7 P2).
+    """
+    widths = [
+        max(len(header[i]), *(len(row[i]) for row in rows)) if rows else len(header[i])
+        for i in range(len(header))
+    ]
+    out = ["| " + " | ".join(h.ljust(w) for h, w in zip(header, widths)) + " |"]
+    out.append("|" + "|".join("-" * (w + 2) for w in widths) + "|")
+    for row in rows:
+        out.append("| " + " | ".join(c.ljust(w) for c, w in zip(row, widths)) + " |")
+    return out
+
+
 def render_registry(entries: list[RegistryEntry], *, today: str) -> str:
     """Render the full registry document (header + table)."""
     lines = [
@@ -160,27 +185,32 @@ def render_registry(entries: list[RegistryEntry], *, today: str) -> str:
         "",
         "---",
         "",
+        REGISTRY_MARKER,
+        "",
         "Auto-maintained by `af` (FXA-2330): one row per (PRJ prefix, project",
         "root) seen by `af guide/list/read/status`. The whole machine's project",
         "SOP map. Manage with `af register` / `af projects --prune`;",
         "hand-edited table rows survive regeneration. Doc id: USR-9000",
         "",
-        "| PRJ | Root | Docs | Last Seen |",
-        "|-----|------|------|-----------|",
     ]
-    for e in _sorted(entries):
-        root_cell = "`" + _encode_cell(e.root) + "`"
-        lines.append(f"| {e.prefix} | {root_cell} | {e.doc_count} | {e.last_seen} |")
+    lines += _md_table(
+        ["PRJ", "Root", "Docs", "Last Seen"],
+        [
+            [e.prefix, "`" + _encode_cell(e.root) + "`", str(e.doc_count), e.last_seen]
+            for e in _sorted(entries)
+        ],
+    )
     lines += [
         "",
         "---",
         "",
         "## Change History",
         "",
-        "| Date | Change | By |",
-        "|------|--------|----|",
-        f"| {today} | Rows upserted in place above (auto) | af |",
     ]
+    lines += _md_table(
+        ["Date", "Change", "By"],
+        [[today, "Rows upserted in place above (auto)", "af"]],
+    )
     return "\n".join(lines) + "\n"
 
 
@@ -212,11 +242,12 @@ def _slot_conflict(path: Path) -> Path | None:
     included, ``logs/`` and rules+logs paths excluded — mirroring
     ``scan_documents``) — writing ours would create a duplicate prefix+ACID
     that fails layer validation; (b) the registry path itself holding
-    anything that is not OUR registry. Ownership is the unambiguous
-    template marker (``FXA-2330``) — table-shaped rows alone are NOT
-    proof: a pre-existing custom doc with a parseable row would otherwise
-    be silently replaced and its prose destroyed. Our own
-    previously-rendered registry never conflicts.
+    anything that is not OUR registry. Ownership is the structured template
+    marker (:data:`REGISTRY_MARKER`), with the pre-marker legacy template
+    line as the upgrade path — table-shaped rows or prose mentions of
+    FXA-2330 are NOT proof: a pre-existing custom doc with a parseable row
+    would otherwise be silently replaced and its prose destroyed. Our own
+    previously-rendered registry never conflicts (PR #338 R5/R7 P1).
     """
     if path.is_symlink():
         # A symlink occupant — dangling or not — is never replaced: a
@@ -228,8 +259,10 @@ def _slot_conflict(path: Path) -> Path | None:
             text = path.read_text(encoding="utf-8")
         except OSError:
             return path  # unreadable occupant — never overwrite blind
-        if "FXA-2330" in text:
-            return None  # written by af (the template marker survives every rewrite)
+        if REGISTRY_MARKER in text or any(
+            line.startswith(_LEGACY_OWNER_LINE) for line in text.splitlines()
+        ):
+            return None  # written by af — the marker survives every rewrite
         return path  # foreign — table-bearing or not, never destroy it
     try:
         for other in sorted(path.parent.rglob("USR-9000-*.md")):
