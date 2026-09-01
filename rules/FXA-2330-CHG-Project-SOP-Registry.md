@@ -62,6 +62,7 @@ they live, how big their SOP corpus is, and when they were last touched.
    regenerated from a fixed template on write, so header prose churn between
    versions cannot corrupt entries.
 
+
 ## Why
 
 Alfred documents are spread across per-repo `rules/` trees and FXA-2314
@@ -72,6 +73,7 @@ between citizen repos and Frank wants one `af read` to show the whole map.
 Hanging the maintenance off the four hot read commands means the catalog keeps
 itself current with zero new habits — every `af guide` at session start in any
 project refreshes that project's row.
+
 
 ## Impact Analysis
 
@@ -99,6 +101,7 @@ project refreshes that project's row.
 - **Rollback plan:** revert the commit; the registry file is inert data an
   older `af` simply lists as a normal USR REF doc (delete it at will).
 
+
 ## Implementation Plan
 
 TDD per COR-1500.
@@ -114,6 +117,7 @@ TDD per COR-1500.
 3. **Verify** — full `pytest` + `ruff check` + `ruff format`; manual smoke:
    `af register` + `af projects` + `af read USR-9000` against the real home.
 4. CLAUDE.md inventory updates; PR to `frankyxhl/alfred`.
+
 
 ## Acceptance Criteria
 
@@ -138,6 +142,6 @@ TDD per COR-1500.
 
 ## Change History
 
-| Date | Change | By |
-|------|--------|----|
+| Date       | Change                                                                                                                                                             | By     |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|
 | 2026-09-02 | Initial version — design pre-settled with owner (machine-wide SOP card catalog, relayed via pfc); Status straight to Approved per FXA-2100 owner-request fast path | alfred |
