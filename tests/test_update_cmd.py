@@ -1,7 +1,9 @@
 """Tests for af update command (PRP-2104)."""
 
+import os
 import sys
 
+import click
 import pytest
 
 
@@ -10,6 +12,7 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from fx_alfred.cli import cli
+from fx_alfred.commands.update_cmd import _rename_case_only
 
 
 pytestmark = [pytest.mark.cli, pytest.mark.integration]
@@ -411,6 +414,105 @@ A test document body.
     names = [p.name for p in rules.iterdir()]
     assert "TST-2100-SOP-FOUR-COL.md" in names
     assert "TST-2100-SOP-Four-Col.md" not in names
+
+
+def test_update_rename_case_only_simulated(tmp_path, monkeypatch):
+    """Case-only rename takes the _rename_case_only path on ANY filesystem.
+
+    The case-insensitive-FS detection (``_is_same_file``) can never return
+    True on case-sensitive filesystems (ext4 CI runners), so the guarded
+    rename path is never exercised there.  Monkeypatching ``_is_same_file``
+    to True simulates a case-insensitive filesystem and drives the
+    ``case_only`` branch deterministically on every platform.
+    """
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "TST-2100-SOP-Four-Col.md").write_text(SAMPLE_DOC)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "fx_alfred.commands.update_cmd._is_same_file", lambda a, b: True
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        ["update", "TST-2100", "--title", "FOUR COL", "-y"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, result.output
+    names = [p.name for p in rules.iterdir()]
+    assert "TST-2100-SOP-FOUR-COL.md" in names
+    assert "TST-2100-SOP-Four-Col.md" not in names
+    assert (
+        "Renamed TST-2100-SOP-Four-Col.md -> TST-2100-SOP-FOUR-COL.md" in result.output
+    )
+
+
+def test_rename_case_only_tmp_collision(tmp_path):
+    """_rename_case_only refuses when its temporary path already exists."""
+    file_path = tmp_path / "TST-2100-SOP-Four-Col.md"
+    file_path.write_text(SAMPLE_DOC)
+    new_file_path = tmp_path / "TST-2100-SOP-FOUR-COL.md"
+    tmp_guard = tmp_path / f"{new_file_path.name}.{os.getpid()}.casefix.tmp"
+    tmp_guard.write_text("leftover")
+
+    with pytest.raises(click.ClickException, match="Temporary rename path exists"):
+        _rename_case_only(file_path, new_file_path)
+
+    assert file_path.read_text() == SAMPLE_DOC
+    assert tmp_guard.read_text() == "leftover"
+
+
+def test_rename_case_only_rollback_restores_original(tmp_path, monkeypatch):
+    """A failed second rename restores the original filename."""
+    file_path = tmp_path / "TST-2100-SOP-Four-Col.md"
+    file_path.write_text(SAMPLE_DOC)
+    new_file_path = tmp_path / "TST-2100-SOP-FOUR-COL.md"
+
+    real_rename = Path.rename
+
+    def failing_rename(self, target):
+        if Path(str(target)).name == new_file_path.name:
+            raise OSError("simulated rename failure")
+        return real_rename(self, target)
+
+    monkeypatch.setattr(Path, "rename", failing_rename)
+
+    with pytest.raises(click.ClickException, match="restored original path"):
+        _rename_case_only(file_path, new_file_path)
+
+    names = [p.name for p in tmp_path.iterdir()]
+    assert "TST-2100-SOP-Four-Col.md" in names
+    assert "TST-2100-SOP-FOUR-COL.md" not in names
+    assert not any(n.endswith(".casefix.tmp") for n in names)
+    assert file_path.read_text() == SAMPLE_DOC
+
+
+def test_rename_case_only_rollback_failure_keeps_tmp(tmp_path, monkeypatch):
+    """If the rollback rename also fails, the file stays at the tmp path."""
+    file_path = tmp_path / "TST-2100-SOP-Four-Col.md"
+    file_path.write_text(SAMPLE_DOC)
+    new_file_path = tmp_path / "TST-2100-SOP-FOUR-COL.md"
+
+    real_rename = Path.rename
+
+    def failing_rename(self, target):
+        # First hop (original -> tmp) succeeds; every later rename fails.
+        if Path(str(self)).name != file_path.name:
+            raise OSError("simulated rename failure")
+        return real_rename(self, target)
+
+    monkeypatch.setattr(Path, "rename", failing_rename)
+
+    with pytest.raises(click.ClickException, match="remains at temporary path"):
+        _rename_case_only(file_path, new_file_path)
+
+    names = [p.name for p in tmp_path.iterdir()]
+    casefix = [n for n in names if n.endswith(".casefix.tmp")]
+    assert len(casefix) == 1
+    assert "TST-2100-SOP-Four-Col.md" not in names
+    assert "TST-2100-SOP-FOUR-COL.md" not in names
+    assert (tmp_path / casefix[0]).read_text() == SAMPLE_DOC
 
 
 def test_update_rename_with_yes(tmp_path, monkeypatch):
