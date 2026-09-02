@@ -496,3 +496,38 @@ def test_same_acid_different_prefix_orders_by_prefix(tmp_path):
         .output
     )
     assert out.index("═ AAB-7000 ·") < out.index("═ ZZB-7000 ·")
+
+
+def test_export_filters_exclude_by_type_and_prefix(tmp_path, monkeypatch):
+    """Docs failing the --type gate or the --prefix filter drop out of the
+    export pool (each dimension rejects independently)."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    for prefix, acid, tcode, title in [
+        ("TST", "7001", "SOP", "Type Mismatch Doc"),
+        ("TST", "7002", "REF", "Prefix Mismatch Doc"),
+        ("OTH", "7003", "REF", "Kept Doc"),
+    ]:
+        content = (
+            f"# {tcode}-{acid}: {title}\n\n"
+            "**Applies to:** All projects\n**Status:** Active\n"
+            f"**Last updated:** 2026-01-01\n\n---\n\n"
+            "## What Is It?\n\nBody.\n"
+        )
+        (rules / f"{prefix}-{acid}-{tcode}-{title.replace(' ', '-')}.md").write_text(
+            content, encoding="utf-8"
+        )
+    monkeypatch.chdir(tmp_path)
+    out = tmp_path / "runbook.md"
+
+    result = CliRunner().invoke(
+        cli,
+        ["export", "--type", "REF", "--prefix", "OTH", "--output", str(out)],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, result.output
+    text = out.read_text(encoding="utf-8")
+    assert "Kept Doc" in text
+    assert "Type Mismatch Doc" not in text
+    assert "Prefix Mismatch Doc" not in text

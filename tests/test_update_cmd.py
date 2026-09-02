@@ -1795,3 +1795,64 @@ def test_update_usr_status_does_not_reindex(tmp_path, monkeypatch):
     assert call_count == 0, (
         f"Expected 0 calls to invoke_index_update for USR doc, got {call_count}"
     )
+
+
+# ── Spec-file validation and title edge cases (coverage-completing) ──────────
+
+
+def test_update_spec_rejects_non_mapping(tmp_path, monkeypatch):
+    """A spec file whose root is not a YAML mapping is a friendly error."""
+    project = _make_project(tmp_path)
+    spec = tmp_path / "spec.yml"
+    spec.write_text("- just\n- a list\n", encoding="utf-8")
+    monkeypatch.chdir(project)
+    result = CliRunner().invoke(
+        cli, ["update", "TST-2100", "--spec", str(spec)], catch_exceptions=False
+    )
+    assert result.exit_code != 0
+    assert "YAML mapping" in result.output
+
+
+def test_update_spec_rejects_non_mapping_metadata(tmp_path, monkeypatch):
+    """Spec 'metadata' must itself be a mapping."""
+    project = _make_project(tmp_path)
+    spec = tmp_path / "spec.yml"
+    spec.write_text("metadata:\n  - a list\n", encoding="utf-8")
+    monkeypatch.chdir(project)
+    result = CliRunner().invoke(
+        cli, ["update", "TST-2100", "--spec", str(spec)], catch_exceptions=False
+    )
+    assert result.exit_code != 0
+    assert "'metadata' must be a mapping" in result.output
+
+
+def test_update_spec_rejects_non_mapping_sections(tmp_path, monkeypatch):
+    """Spec 'sections' must itself be a mapping."""
+    project = _make_project(tmp_path)
+    spec = tmp_path / "spec.yml"
+    spec.write_text("sections: just a string\n", encoding="utf-8")
+    monkeypatch.chdir(project)
+    result = CliRunner().invoke(
+        cli, ["update", "TST-2100", "--spec", str(spec)], catch_exceptions=False
+    )
+    assert result.exit_code != 0
+    assert "'sections' must be a mapping" in result.output
+
+
+def test_update_title_rejects_surrounding_whitespace(tmp_path, monkeypatch):
+    """Leading/trailing whitespace in a new title never reaches the rename."""
+    project = _make_project(tmp_path)
+    monkeypatch.chdir(project)
+    result = CliRunner().invoke(
+        cli, ["update", "TST-2100", "--title", " Padded ", "-y"]
+    )
+    assert result.exit_code != 0
+    assert "leading/trailing whitespace" in result.output
+
+
+def test_resolve_type_invalid_code_returns_none():
+    """An unknown type code resolves to None instead of raising."""
+    from fx_alfred.commands.update_cmd import _get_doc_type
+
+    assert _get_doc_type("SOP") is not None
+    assert _get_doc_type("ZZZ") is None
