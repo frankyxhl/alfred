@@ -142,7 +142,7 @@ def test_projects_invalid_utf8_registry_is_cli_error(tmp_path, monkeypatch):
 
 
 def test_projects_fifo_registry_fails_fast_not_hangs(tmp_path, monkeypatch):
-    """Jury r2: a FIFO at the registry path must produce a clean CLI error
+    """a FIFO at the registry path must produce a clean CLI error
     quickly — load_registry opens before slot_conflict, so the guard must
     live in load_registry itself."""
     import os
@@ -154,4 +154,30 @@ def test_projects_fifo_registry_fails_fast_not_hangs(tmp_path, monkeypatch):
     result = CliRunner().invoke(cli, ["projects"])
     assert result.exit_code != 0
     assert "registry" in result.output.lower()
+    assert "Traceback" not in result.output
+
+
+def test_projects_prune_save_failure_is_cli_error(tmp_path, monkeypatch):
+    """a failed prune save surfaces as a friendly CLI error, not a
+    traceback."""
+    from unittest.mock import patch
+
+    live = tmp_path / "proj"
+    (live / "rules").mkdir(parents=True)
+    dead = tmp_path / "gone"
+    _seed(
+        [
+            RegistryEntry("FXA", str(live), 12, "2026-09-01"),
+            RegistryEntry("OLD", str(dead), 3, "2026-01-01"),
+        ]
+    )
+    monkeypatch.chdir(tmp_path)
+    with patch(
+        "fx_alfred.commands.projects_cmd.save_registry",
+        side_effect=OSError("simulated disk full"),
+    ):
+        result = CliRunner().invoke(cli, ["projects", "--prune"])
+    assert result.exit_code != 0
+    assert "Project registry prune failed" in result.output
+    assert "simulated disk full" in result.output
     assert "Traceback" not in result.output

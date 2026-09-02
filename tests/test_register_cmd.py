@@ -45,9 +45,10 @@ def test_register_is_idempotent(sample_project, monkeypatch):
 
 def test_register_with_explicit_root(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    sample_project = _mk(tmp_path)
     result = CliRunner().invoke(
         cli,
-        ["register", "--root", str(sample_project := _mk(tmp_path))],
+        ["register", "--root", str(sample_project)],
         catch_exceptions=False,
     )
     assert result.exit_code == 0
@@ -112,6 +113,23 @@ def test_register_rejects_prj_usr9000_conflict(tmp_path, monkeypatch):
     assert not (
         Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
     ).exists()
+
+
+def test_register_slot_conflict_message_not_rewrapped(tmp_path, monkeypatch):
+    """the slot-conflict error reaches the user verbatim — never
+    double-prefixed as 'Project registry update failed: …'."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "ALF-2201-PRP-AF-CLI-Tool.md").write_text("# AF CLI", encoding="utf-8")
+    home = Path.home() / ".alfred"
+    home.mkdir(parents=True, exist_ok=True)
+    # foreign occupant at the slot: no ownership marker, no table needed
+    (home / REGISTRY_FILENAME).write_text("# someone else's doc\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["register"])
+    assert result.exit_code != 0
+    assert "already occupies the USR-9000 slot" in result.output
+    assert "Project registry update failed" not in result.output
 
 
 def test_register_validates_slot_even_on_noop_upsert(tmp_path, monkeypatch):

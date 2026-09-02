@@ -11,6 +11,7 @@ from fx_alfred.commands._helpers import (
 )
 from fx_alfred.context import get_root, root_option
 from fx_alfred.core.registry import (
+    RegistrySlotConflictError,
     load_registry,
     registry_path,
     save_registry,
@@ -63,7 +64,13 @@ def register_cmd(ctx: click.Context, output_json: bool):
         )
         if changed:
             save_registry(path, new_entries, today=today_str())
-    except Exception as e:
+    except click.ClickException:
+        # Deliberate CLI errors (slot conflict, occupied registry) reach the
+        # user verbatim — never re-wrapped with a second prefix.
+        raise
+    except (OSError, UnicodeDecodeError, RegistrySlotConflictError) as e:
+        # Real I/O / encoding failures (and a slot that became occupied
+        # between the preflight and the write) still get the friendly wrap.
         raise click.ClickException(f"Project registry update failed: {e}") from e
 
     resolved = str(root.resolve())
