@@ -577,3 +577,24 @@ def test_prefix_only_legacy_line_is_not_ours(tmp_path):
     with pytest.raises(RegistrySlotConflictError):
         save_registry(p, [_entry()], today=TODAY)
     assert "my own document" in p.read_text(encoding="utf-8")
+
+
+def test_single_legacy_line_is_not_ours(tmp_path):
+    """R13 P1 (data loss): quoting ONLY the first signature line must not
+    mark a foreign doc as Alfred-owned — the complete preamble block is
+    required."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    p = tmp_path / REGISTRY_FILENAME
+    p.write_text(
+        "# my doc\n\n"
+        "Auto-maintained by `af` (FXA-2330): one row per (PRJ prefix, project\n"
+        "but then I wrote my own entirely different continuation here.\n\n"
+        "| PRJ | Root | Docs | Last Seen |\n"
+        "|-----|------|------|-----------|\n"
+        "| FXA | `/Users/frank/Projects/alfred` | 3 | 2026-09-02 |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+    assert "my own entirely different continuation" in p.read_text(encoding="utf-8")
