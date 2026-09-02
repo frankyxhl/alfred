@@ -36,7 +36,13 @@ REGISTRY_FILENAME = "USR-9000-REF-Project-SOP-Registry.md"
 # ITS OWN only when the marker (or the pre-marker legacy template line) is
 # present — never on prose mentions of FXA-2330 or parseable rows.
 REGISTRY_MARKER = "<!-- af:project-sop-registry v1 -->"
-_LEGACY_OWNER_LINE = "Auto-maintained by `af` (FXA-2330)"
+# Complete legacy signature line (pre-marker template, first of two
+# wrapping lines). Ownership matching is FULL-LINE EXACT — a prose line
+# that merely starts with the prefix continues differently and must never
+# mark a foreign doc as Alfred-owned (PR #338 R12 P1, data loss).
+_LEGACY_OWNER_LINE = (
+    "Auto-maintained by `af` (FXA-2330): one row per (PRJ prefix, project"
+)
 
 # | PRJ | Root | Docs | Last Seen |
 # Root: POSIX (/…) or Windows drive-letter (C:\… or C:/…). Pipes inside a
@@ -295,7 +301,7 @@ def slot_conflict(path: Path) -> Path | None:
         except OSError:
             return path  # unreadable occupant — never overwrite blind
         if REGISTRY_MARKER in text or any(
-            line.startswith(_LEGACY_OWNER_LINE) for line in text.splitlines()
+            line.strip() == _LEGACY_OWNER_LINE for line in text.splitlines()
         ):
             return None  # written by af — the marker survives every rewrite
         return path  # foreign — table-bearing or not, never destroy it

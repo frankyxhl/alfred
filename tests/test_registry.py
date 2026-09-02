@@ -557,3 +557,23 @@ def test_fifo_at_registry_slot_is_occupied(tmp_path):
     assert slot_conflict(p) == p  # decided by lstat, never by open()
     with pytest.raises(RegistrySlotConflictError):
         save_registry(p, [_entry()], today=TODAY)
+
+
+def test_prefix_only_legacy_line_is_not_ours(tmp_path):
+    """R12 P1 (data loss): a prose line that merely STARTS with the legacy
+    signature prefix must not mark a foreign doc as Alfred-owned."""
+    from fx_alfred.core.registry import RegistrySlotConflictError
+
+    p = tmp_path / REGISTRY_FILENAME
+    p.write_text(
+        "# my doc\n\n"
+        "Auto-maintained by `af` (FXA-2330) says the registry is neat, "
+        "but this is my own document.\n\n"
+        "| PRJ | Root | Docs | Last Seen |\n"
+        "|-----|------|------|-----------|\n"
+        "| FXA | `/Users/frank/Projects/alfred` | 3 | 2026-09-02 |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RegistrySlotConflictError):
+        save_registry(p, [_entry()], today=TODAY)
+    assert "my own document" in p.read_text(encoding="utf-8")
