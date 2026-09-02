@@ -154,3 +154,44 @@ def test_status_empty_docs_text(mock_scan):
     result = runner.invoke(cli, ["status"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "No documents found" in result.output
+
+
+# ------------------------------------------------- FXA-2330 registry trigger
+
+
+def test_status_touches_project_registry(sample_project, monkeypatch):
+    """status in a project context appends a registry row (FXA-2330)."""
+    from fx_alfred.core.registry import load_registry
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status"], catch_exceptions=False)
+    assert result.exit_code == 0
+    entries = load_registry(
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    )
+    assert [(e.prefix, e.doc_count) for e in entries] == [("ALF", 3)]
+
+
+def test_status_registry_failure_warns_but_exits_zero(sample_project, monkeypatch):
+    """Registry write failure never blocks the primary command (FXA-2330)."""
+    from unittest.mock import patch
+
+    monkeypatch.chdir(sample_project)
+    with patch(
+        "fx_alfred.commands._helpers.save_registry", side_effect=OSError("disk full")
+    ):
+        result = CliRunner().invoke(cli, ["status"])
+    assert result.exit_code == 0
+    assert "registry" in result.output.lower()
+
+
+def test_status_first_invocation_counts_bootstrapped_usr9000(
+    sample_project, monkeypatch
+):
+    """first `af status` in a project counts the registry doc it just made."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "USR: 1" in result.output

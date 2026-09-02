@@ -336,3 +336,83 @@ def test_list_redirected_prj_doc_directory_in_json(tmp_path):
     assert nrv_doc["directory"] == "NRV", (
         f"Expected directory='NRV' for redirected PRJ doc, got '{nrv_doc.get('directory')}'"
     )
+
+
+# ------------------------------------------------- FXA-2330 registry trigger
+
+
+def test_list_touches_project_registry(sample_project, monkeypatch):
+    """list in a project context appends a registry row (FXA-2330)."""
+    from fx_alfred.core.registry import load_registry
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0
+    entries = load_registry(
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    )
+    assert [(e.prefix, e.doc_count) for e in entries] == [("ALF", 3)]
+
+
+def test_list_outside_project_leaves_registry_untouched(tmp_path, monkeypatch):
+    """No PRJ docs → registry must not even be created (FXA-2330)."""
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert not (
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    ).exists()
+
+
+def test_list_json_output_unpolluted_by_registry_trigger(sample_project, monkeypatch):
+    """Registry trigger is silent: --json output stays a valid bare array."""
+    import json as _json
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--json"], catch_exceptions=False)
+    assert result.exit_code == 0
+    data = _json.loads(result.output)
+    assert isinstance(data, list)
+
+
+def test_list_first_invocation_shows_bootstrapped_usr9000(sample_project, monkeypatch):
+    """`af list --source usr` must show USR-9000 on the very invocation
+    that creates it (re-scan after trigger write)."""
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["list", "--source", "usr"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "USR-9000" in result.output
+
+
+def test_list_skips_registry_write_when_prj_holds_usr9000(tmp_path, monkeypatch):
+    """a PRJ doc already using USR-9000 must block the registry write
+    (duplicate-ID across layers), warn, and not break the command."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "USR-9000-SOP-Custom.md").write_text("# custom", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "USR-9000" in result.output  # the PRJ doc still lists fine
+    assert not (
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    ).exists()
+
+
+def test_list_fifo_registry_warns_but_exits_zero(sample_project, monkeypatch):
+    """Jury r2: the trigger path must warn (not hang, not fail) on a FIFO
+    occupying the registry slot."""
+    import os
+
+    from fx_alfred.core.registry import REGISTRY_FILENAME
+
+    p = Path.home() / ".alfred" / REGISTRY_FILENAME
+    p.parent.mkdir(parents=True, exist_ok=True)
+    os.mkfifo(p)
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0

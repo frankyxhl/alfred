@@ -413,3 +413,21 @@ def test_guide_mapped_root_shows_subproject_routing_doc_under_prj(tmp_path):
     )
     # The "no active routing document found" placeholder must NOT appear for PRJ
     assert "PRJ: (no active routing document found)" not in result.output
+
+
+# ------------------------------------------------- FXA-2330 registry trigger
+
+
+def test_guide_touches_project_registry(sample_project, monkeypatch):
+    """guide in a project context appends a registry row (FXA-2330)."""
+    from fx_alfred.core.registry import load_registry
+
+    monkeypatch.chdir(sample_project)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["guide"], catch_exceptions=False)
+    assert result.exit_code == 0
+    entries = load_registry(
+        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    )
+    assert [(e.prefix, e.doc_count) for e in entries] == [("ALF", 3)]
+    assert entries[0].root == str(sample_project.resolve())

@@ -12,6 +12,15 @@ import click
 from fx_alfred.context import get_root
 from fx_alfred.core.document import Document
 from fx_alfred.core.fsmode import resolve_write_mode
+from fx_alfred.core.registry import (
+    is_global_registry,
+    load_registry,
+    registry_path,
+    save_registry,
+    slot_conflict,
+    today_str,
+    upsert,
+)
 from fx_alfred.core.scanner import (
     AmbiguousDocumentError,
     DocumentNotFoundError,
@@ -67,6 +76,78 @@ def scan_or_fail(ctx: click.Context) -> list[Document]:
         return scan_documents(root)
     except LayerValidationError as e:
         raise click.ClickException(str(e)) from e
+
+
+def registry_id_in_use(docs: list) -> bool:
+    """True when any scanned document already carries the USR-9000 id.
+
+    A PRJ (or any non-registry) document named USR-9000-*.md makes the
+    registry write create a duplicate prefix+ACID across layers — every
+    subsequent scan would fail LayerValidationError. The ONLY exemption is
+    the canonical registry document itself (``is_global_registry``); a PRJ
+    doc that merely carries the canonical filename is NOT exempt. The
+    trigger must warn+skip and ``af register`` must refuse.
+    """
+    return any(
+        d.prefix == "USR" and d.acid == "9000" and not is_global_registry(d)
+        for d in docs
+    )
+
+
+def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:
+    """FXA-2330: background Project SOP Registry upsert for read commands.
+
+    Called right after ``scan_or_fail`` by guide/list/read/status. When the
+    PRJ layer contributed documents, upsert one row per (prefix, root) into
+    ``~/.alfred/USR-9000-REF-Project-SOP-Registry.md``. Best-effort by
+    contract: any failure — including registry write failure — is a
+    one-line stderr warning and NEVER blocks the primary command. Silent
+    on success so ``--json`` output stays pure.
+
+    Returns True when the registry document was actually (re)written —
+    ``read_cmd`` re-scans in that case so a first-ever ``af read USR-9000``
+    finds the document the trigger itself just created.
+    """
+    prj_docs = [d for d in docs if d.source == "prj"]
+    if not prj_docs:
+        return False
+    if registry_id_in_use(docs):
+        click.echo(
+            "Warning: a USR-9000 document already exists outside the project "
+            "registry; skipping registry update to avoid a duplicate id.",
+            err=True,
+        )
+        return False
+    try:
+        prefix_counts: dict[str, int] = {}
+        for doc in prj_docs:
+            prefix_counts[doc.prefix] = prefix_counts.get(doc.prefix, 0) + 1
+        path = registry_path()
+        entries = load_registry(path)
+        # Ownership validation runs BEFORE the no-change short-circuit: a
+        # foreign table-bearing doc that happens to parse with matching
+        # rows must still warn+skip, not silently count as "ours".
+        conflict = slot_conflict(path)
+        if conflict is not None:
+            click.echo(
+                f"Warning: {conflict.name} already occupies the USR-9000 "
+                "slot; skipping registry update.",
+                err=True,
+            )
+            return False
+        new_entries, changed = upsert(
+            entries,
+            root=get_root(ctx),
+            prefix_counts=prefix_counts,
+            today=today_str(),
+        )
+        if changed:
+            save_registry(path, new_entries, today=today_str())
+            return True
+        return False
+    except Exception as e:  # noqa: BLE001 — catalog maintenance must never kill the command
+        click.echo(f"Warning: project registry update failed: {e}", err=True)
+        return False
 
 
 def find_or_fail(docs: list[Document], identifier: str) -> Document:

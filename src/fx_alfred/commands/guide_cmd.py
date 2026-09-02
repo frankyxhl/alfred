@@ -1,6 +1,11 @@
 import click
 
-from fx_alfred.commands._helpers import SCHEMA_VERSION, emit_json, scan_or_fail
+from fx_alfred.commands._helpers import (
+    SCHEMA_VERSION,
+    emit_json,
+    scan_or_fail,
+    touch_project_registry,
+)
 from fx_alfred.context import root_option
 from fx_alfred.core.activity_log import append_usage_event
 from fx_alfred.core.parser import MalformedDocumentError, parse_metadata
@@ -17,6 +22,7 @@ from fx_alfred.core.source import SOURCE_ORDER
 def guide_cmd(ctx: click.Context, output_json: bool):
     """Show workflow routing guide for current session."""
     docs = scan_or_fail(ctx)
+    touch_project_registry(ctx, docs)
 
     # Collect routing docs for JSON output
     routing_docs = []

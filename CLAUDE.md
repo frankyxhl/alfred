@@ -30,6 +30,8 @@ af tag show NAME [--json]                    # list docs carrying a given tag
 af tag add ID TAG...                         # add one or more tags to a document
 af tag rm ID TAG...                          # remove one or more tags from a document
 af status [--json]                          # document counts by source/type/prefix
+af register [--root] [--json]              # upsert this project into the USR-9000 Project SOP Registry
+af projects [--json] [--prune]             # list/prune the machine-wide Project SOP Registry
 af index                                    # regenerate PRJ layer index
 af changelog                                # show version changelog
 af export [IDS...] [--type/--prefix/--source/--tag/--status] [--all] [--list] [-o FILE]  # single-file runbook (zero-install hand-off)
@@ -66,7 +68,9 @@ src/fx_alfred/
 │   ├── log_archive_cmd.py  # af log-archive closed-day archival
 │   ├── log_validate_cmd.py # af log-validate schema checker
 │   ├── plan_cmd.py     # workflow checklist from SOPs (text/JSON/todo/graph modes)
-│   ├── read_cmd.py     # read + --json
+│   ├── projects_cmd.py # af projects — list/prune the Project SOP Registry (FXA-2330)
+│   ├── read_cmd.py     # read + --json (guide/list/read/status also upsert the project registry, FXA-2330)
+│   ├── register_cmd.py # af register — explicit registry upsert (FXA-2330)
 │   ├── search_cmd.py   # content search
 │   ├── setup_cmd.py    # agent configuration prompts
 │   ├── skill_cmd.py    # skill document discovery/read
@@ -92,6 +96,7 @@ src/fx_alfred/
 │   ├── phases.py          # PhaseDict/StepDict typed shapes
 │   ├── preferences.py     # ~/.alfred preferences store (star bookmarks + custom_tags)
 │   ├── projects.py        # projects.json loader + resolve_subproject() (FXA-2314)
+│   ├── registry.py        # Project SOP Registry (USR-9000) parse/upsert/prune (FXA-2330)
 │   ├── routing.py         # routing-document detection (shared by guide + export)
 │   ├── scanner.py         # scan_documents(), find_document(), layer validation
 │   ├── schema.py          # DocType/DocRole enums, ALLOWED_STATUSES, REQUIRED_METADATA/SECTIONS

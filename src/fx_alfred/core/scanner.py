@@ -9,6 +9,7 @@ import sys
 
 from fx_alfred.core.document import Document, FILENAME_PATTERN
 from fx_alfred.core.projects import load_projects, resolve_subproject
+from fx_alfred.core.registry import REGISTRY_FILENAME, is_global_registry
 from fx_alfred.core.source import source_sort_key
 
 
@@ -129,10 +130,22 @@ def _validate_layers(docs: list[Document]) -> None:
                 f"COR document found in {doc.source.upper()} layer: {doc.filename}"
             )
 
-    # Check for duplicate prefix+ACID combinations
+    # Check for duplicate prefix+ACID combinations. The canonical global
+    # registry (USR-9000, top-level ~/.alfred) is exempt ONLY against the
+    # current project's PRJ-layer doc of the same id: it exists on every
+    # machine, so a project whose PRJ layer legitimately carries its own
+    # USR-9000 document must not fail the scan as a duplicate (the
+    # write-side preflight still refuses to touch the registry
+    # in that project). Any OTHER collision — notably a nested USR-layer
+    # doc with the same id — is still a same-layer duplicate and is
+    # reported (the exemption must not hide the registry).
     doc_keys: dict[str, list[str]] = {}
+    registry_keys: set[str] = set()
     for doc in docs:
         key = f"{doc.prefix}-{doc.acid}"
+        if is_global_registry(doc):
+            registry_keys.add(key)
+            continue
         if key not in doc_keys:
             doc_keys[key] = []
         doc_keys[key].append(f"{doc.source}:{doc.filename}")
@@ -140,6 +153,13 @@ def _validate_layers(docs: list[Document]) -> None:
     for key, sources in doc_keys.items():
         if len(sources) > 1:
             errors.append(f"Duplicate {key} found in: {', '.join(sources)}")
+        elif key in registry_keys and any(s.startswith("usr:") for s in sources):
+            # registry + another USR-layer doc with the same id: same-layer
+            # duplicate — not the registry-vs-PRJ pairing the exemption covers
+            errors.append(
+                f"Duplicate {key} found in: "
+                f"usr:{REGISTRY_FILENAME}, {', '.join(sources)}"
+            )
 
     if errors:
         raise LayerValidationError(errors)
@@ -241,6 +261,14 @@ def find_document(docs: list[Document], identifier: str) -> Document:
 
     if not matches:
         raise DocumentNotFoundError(identifier)
+    if len(matches) > 1:
+        # Layer precedence for the global registry's id: when a
+        # fully-qualified lookup collides between the canonical global
+        # USR-9000 registry and the current project's own PRJ-layer doc of
+        # the same id, the PRJ doc wins — the same id is never ambiguous.
+        non_registry = [m for m in matches if not is_global_registry(m)]
+        if non_registry:
+            matches = non_registry
     if len(matches) > 1:
         raise AmbiguousDocumentError(identifier, matches)
     return matches[0]
