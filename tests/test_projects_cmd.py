@@ -139,3 +139,19 @@ def test_projects_invalid_utf8_registry_is_cli_error(tmp_path, monkeypatch):
     assert result.exit_code != 0
     assert "registry" in result.output.lower()
     assert "Traceback" not in result.output
+
+
+def test_projects_fifo_registry_fails_fast_not_hangs(tmp_path, monkeypatch):
+    """Jury r2: a FIFO at the registry path must produce a clean CLI error
+    quickly — load_registry opens before slot_conflict, so the guard must
+    live in load_registry itself."""
+    import os
+
+    p = Path.home() / ".alfred" / REGISTRY_FILENAME
+    p.parent.mkdir(parents=True, exist_ok=True)
+    os.mkfifo(p)
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["projects"])
+    assert result.exit_code != 0
+    assert "registry" in result.output.lower()
+    assert "Traceback" not in result.output

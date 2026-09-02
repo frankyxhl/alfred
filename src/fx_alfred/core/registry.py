@@ -281,11 +281,19 @@ def _sorted(entries: list[RegistryEntry]) -> list[RegistryEntry]:
 def load_registry(path: Path) -> list[RegistryEntry]:
     """Load entries from the registry file.
 
-    A genuinely missing file is the normal empty state → ``[]``. Any other
-    read failure (permissions, I/O error) PROPAGATES: silently converting an
-    unreadable catalog to empty would let the next save wipe every other
-    project's rows (PR #338 R1 P2).
+    A genuinely missing file is the normal empty state → ``[]``. A
+    non-regular occupant (FIFO, directory, socket) raises an ``OSError``
+    WITHOUT ever opening it — ``read_text`` on a FIFO blocks forever, and
+    every command path calls this before ``slot_conflict`` (jury r2 on PR
+    #338). Any other read failure (permissions, I/O error) also PROPAGATES:
+    silently converting an unreadable catalog to empty would let the next
+    save wipe every other project's rows (PR #338 R1 P2).
     """
+    if path.exists() and not path.is_file():
+        raise OSError(
+            f"{path.name} exists but is not a regular file "
+            "(FIFO/directory/socket?) — refusing to open it"
+        )
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:

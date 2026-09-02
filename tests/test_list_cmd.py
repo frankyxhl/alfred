@@ -401,3 +401,18 @@ def test_list_skips_registry_write_when_prj_holds_usr9000(tmp_path, monkeypatch)
     assert not (
         Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
     ).exists()
+
+
+def test_list_fifo_registry_warns_but_exits_zero(sample_project, monkeypatch):
+    """Jury r2: the trigger path must warn (not hang, not fail) on a FIFO
+    occupying the registry slot."""
+    import os
+
+    from fx_alfred.core.registry import REGISTRY_FILENAME
+
+    p = Path.home() / ".alfred" / REGISTRY_FILENAME
+    p.parent.mkdir(parents=True, exist_ok=True)
+    os.mkfifo(p)
+    monkeypatch.chdir(sample_project)
+    result = CliRunner().invoke(cli, ["list"], catch_exceptions=False)
+    assert result.exit_code == 0
