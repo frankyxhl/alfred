@@ -12,7 +12,14 @@ license = "MIT"
 dependencies = ["click>=8.0", "pyyaml>=6.0", "wcwidth>=0.2.13"]
 
 [project.optional-dependencies]
-dev = ["pytest>=9.0", "pytest-cov", "ruff>=0.15,<0.16", "pyright", "mkdocs-material"]
+dev = [
+    "pytest>=9.0",
+    "pytest-cov",
+    "pytest-timeout>=2.3",
+    "ruff>=0.15,<0.16",
+    "pyright",
+    "mkdocs-material",
+]
 evolve = ["pytest>=9.0", "pytest-json-report", "pytest-cov"]
 
 [project.scripts]
@@ -28,6 +35,12 @@ artifacts = ["src/fx_alfred/rules/*.md", "src/fx_alfred/templates/*.md", "src/fx
 [tool.pytest.ini_options]
 addopts = ["--strict-markers"]
 testpaths = ["tests"]
+# Repo-level hang guard (FXA: pytest-timeout PR): a blocking test (FIFO read,
+# stdin wait, infinite loop) fails after 60s instead of freezing the suite —
+# the 2026-09-01 3.5h hang class. Thread method: dumps other stacks, works
+# with Click's CliRunner.
+timeout = 60
+timeout_method = "thread"
 markers = [
     "unit: pure function or narrow module tests without project-level integration setup",
     "cli: tests that exercise the af command surface or Click command wiring",

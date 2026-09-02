@@ -128,10 +128,15 @@ Top-level (outside the package): `skills/alfred/` — cross-platform agent-skill
 uv sync --extra dev
 
 # Dev
-.venv/bin/pytest -v --tb=short        # run tests
+.venv/bin/pytest -v --tb=short        # run tests (repo timeout = 60s/test — never run pytest without it)
 .venv/bin/ruff check .                 # lint
 .venv/bin/ruff format --check .        # format check
 .venv/bin/pyright src/                 # type check
+
+# Test discipline (hang guard — the 2026-09-01 3.5h freeze class):
+# run any NEW test file in isolation with -x BEFORE the full suite
+# (`.venv/bin/pytest -x -q tests/test_new_file.py`); never run pytest
+# without the repo timeout (pyproject `timeout = 60`, thread method).
 
 # Install (editable)
 pip install -e .
