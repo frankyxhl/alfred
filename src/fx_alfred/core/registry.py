@@ -145,6 +145,23 @@ class RegistryEntry:
     last_seen: str
 
 
+def is_global_registry(doc) -> bool:
+    """True when *doc* is the canonical global registry itself.
+
+    usr source + canonical filename + top-level ``~/.alfred`` location.
+    Shared by the duplicate-id preflight and the scanner's layer validation
+    so the global registry never collides with a project's own PRJ-layer
+    USR-9000 document (PR #338 R14 P1 — a valid project must not crash the
+    scan just because the machine has a global registry).
+    """
+    if doc.source != "usr" or doc.filename != REGISTRY_FILENAME:
+        return False
+    try:
+        return Path(doc.base_path).resolve() == (Path.home() / ".alfred").resolve()
+    except (TypeError, OSError):
+        return False
+
+
 def registry_path(usr_home: Path | None = None) -> Path:
     """Return the registry document path (default: ``~/.alfred/``)."""
     base = usr_home if usr_home is not None else Path.home() / ".alfred"
@@ -224,6 +241,11 @@ def render_registry(entries: list[RegistryEntry], *, today: str) -> str:
         "**Status:** Active",
         "",
         "---",
+        "",
+        "## What Is It?",
+        "",
+        "The machine-wide project SOP map: one row per (PRJ prefix, project",
+        "root) that `af` has seen, auto-maintained on the hot read commands.",
         "",
         REGISTRY_MARKER,
         "",

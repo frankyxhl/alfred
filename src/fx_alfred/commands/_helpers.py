@@ -13,7 +13,7 @@ from fx_alfred.context import get_root
 from fx_alfred.core.document import Document
 from fx_alfred.core.fsmode import resolve_write_mode
 from fx_alfred.core.registry import (
-    REGISTRY_FILENAME,
+    is_global_registry,
     load_registry,
     registry_path,
     save_registry,
@@ -84,23 +84,14 @@ def registry_id_in_use(docs: list) -> bool:
     A PRJ (or any non-registry) document named USR-9000-*.md makes the
     registry write create a duplicate prefix+ACID across layers — every
     subsequent scan would fail LayerValidationError. The ONLY exemption is
-    the canonical registry document itself: usr source, canonical filename,
-    top-level ``~/.alfred`` location — a PRJ doc that merely carries the
-    canonical filename is NOT exempt (PR #338 R5/R7 P1). The trigger must
-    warn+skip and ``af register`` must refuse.
+    the canonical registry document itself (``is_global_registry``); a PRJ
+    doc that merely carries the canonical filename is NOT exempt (PR #338
+    R5/R7 P1). The trigger must warn+skip and ``af register`` must refuse.
     """
-    usr_home = (Path.home() / ".alfred").resolve()
-    for d in docs:
-        if d.prefix != "USR" or d.acid != "9000":
-            continue
-        if d.source == "usr" and d.filename == REGISTRY_FILENAME:
-            try:
-                if Path(d.base_path).resolve() == usr_home:
-                    continue  # the registry itself
-            except (TypeError, OSError):
-                pass
-        return True
-    return False
+    return any(
+        d.prefix == "USR" and d.acid == "9000" and not is_global_registry(d)
+        for d in docs
+    )
 
 
 def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:

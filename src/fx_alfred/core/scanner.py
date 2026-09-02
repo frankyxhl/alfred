@@ -9,6 +9,7 @@ import sys
 
 from fx_alfred.core.document import Document, FILENAME_PATTERN
 from fx_alfred.core.projects import load_projects, resolve_subproject
+from fx_alfred.core.registry import is_global_registry
 from fx_alfred.core.source import source_sort_key
 
 
@@ -129,9 +130,16 @@ def _validate_layers(docs: list[Document]) -> None:
                 f"COR document found in {doc.source.upper()} layer: {doc.filename}"
             )
 
-    # Check for duplicate prefix+ACID combinations
+    # Check for duplicate prefix+ACID combinations. The canonical global
+    # registry (USR-9000, top-level ~/.alfred) is exempt: it exists on every
+    # machine, so a project whose PRJ layer legitimately carries its own
+    # USR-9000 document must not fail the scan as a duplicate (PR #338 R14
+    # P1 — the write-side preflight still refuses to touch the registry in
+    # that project).
     doc_keys: dict[str, list[str]] = {}
     for doc in docs:
+        if is_global_registry(doc):
+            continue
         key = f"{doc.prefix}-{doc.acid}"
         if key not in doc_keys:
             doc_keys[key] = []

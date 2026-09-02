@@ -598,3 +598,43 @@ def test_single_legacy_line_is_not_ours(tmp_path):
     with pytest.raises(RegistrySlotConflictError):
         save_registry(p, [_entry()], today=TODAY)
     assert "my own entirely different continuation" in p.read_text(encoding="utf-8")
+
+
+# ------------------------------------------------- PR #338 round 14
+
+
+def test_scan_does_not_crash_when_prj_uses_acid_9000(tmp_path):
+    """R14 P1: after the global registry exists, a project whose PRJ layer
+    carries its own USR-9000 doc must still scan (no LayerValidationError)."""
+    from click.testing import CliRunner
+
+    from fx_alfred.cli import cli
+
+    proj_a = tmp_path / "a"
+    (proj_a / "rules").mkdir(parents=True)
+    (proj_a / "rules" / "ALF-2201-PRP-A.md").write_text("# a", encoding="utf-8")
+    proj_b = tmp_path / "b"
+    (proj_b / "rules").mkdir(parents=True)
+    (proj_b / "rules" / "USR-9000-SOP-B.md").write_text("# b", encoding="utf-8")
+
+    runner = CliRunner()
+    import os
+
+    old = os.getcwd()
+    os.chdir(proj_a)
+    try:
+        r1 = runner.invoke(cli, ["list"], catch_exceptions=False)
+        assert r1.exit_code == 0  # A creates the global registry
+        assert (Path.home() / ".alfred" / REGISTRY_FILENAME).exists()
+        os.chdir(proj_b)
+        r2 = runner.invoke(cli, ["list"], catch_exceptions=False)
+        assert r2.exit_code == 0, r2.output
+        assert "USR-9000-SOP-B" in r2.output or "USR-9000" in r2.output
+    finally:
+        os.chdir(old)
+
+
+def test_render_includes_what_is_it_section():
+    """R14: generated REF carries the canonical `## What Is It?` heading."""
+    text = render_registry([_entry()], today=TODAY)
+    assert "## What Is It?" in text
