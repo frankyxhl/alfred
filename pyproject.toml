@@ -49,6 +49,9 @@ markers = [
     "slow: intentionally slower tests that may be excluded from tight local loops",
 ]
 
+[tool.coverage.report]
+precision = 2
+
 [tool.ruff]
 target-version = "py310"
 

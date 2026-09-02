@@ -160,3 +160,22 @@ def test_register_validates_slot_even_on_noop_upsert(tmp_path, monkeypatch):
     result = CliRunner().invoke(cli, ["register"])
     assert result.exit_code != 0
     assert "USR-9000" in result.output
+
+
+def test_register_fifo_occupant_is_cli_error(tmp_path, monkeypatch):
+    """A FIFO at the USR-9000 slot must fail `af register` cleanly —
+    never hang on read_text, never leak a traceback."""
+    import os
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "ALF-2201-PRP-AF-CLI-Tool.md").write_text("# AF CLI", encoding="utf-8")
+    p = Path.home() / ".alfred" / REGISTRY_FILENAME
+    p.parent.mkdir(parents=True, exist_ok=True)
+    os.mkfifo(p)
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["register"])
+    assert result.exit_code != 0
+    assert "Project registry update failed" in result.output
+    assert "not a regular file" in result.output
+    assert "Traceback" not in result.output

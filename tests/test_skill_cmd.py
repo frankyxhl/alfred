@@ -370,3 +370,24 @@ def test_skill_commands_do_not_import_agent_helpers(sample_project):
     assert result.exit_code == 0
     assert "TST-5001" in result.output
     assert "imported" not in result.output
+
+
+def test_skill_read_plain_text_prints_content(sample_project):
+    """The non-JSON read path echoes the skill body verbatim."""
+    _project_doc(
+        sample_project,
+        "TST",
+        "5001",
+        "REF",
+        "Skill-Release-To-PyPI",
+        h1_title="Skill: Release To PyPI",
+        tags="skill, release, pypi",
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        ["--root", str(sample_project), "skill", "read", "TST-5001"],
+    )
+
+    assert result.exit_code == 0
+    assert "Skill: Release To PyPI" in result.output

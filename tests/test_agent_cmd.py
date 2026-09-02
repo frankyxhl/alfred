@@ -103,6 +103,19 @@ def test_agent_call_user_helper_json_success(sample_project):
     assert data["source"]["layer"] == "USR"
 
 
+def test_agent_call_text_success_prints_helper_result(sample_project):
+    _project_helper(sample_project, 'def hello():\n    return "ok"\n')
+
+    result = CliRunner().invoke(
+        cli,
+        ["--root", str(sample_project), "agent", "call", "hello"],
+        env={"ALFRED_AGENT_TOOLS": "1"},
+    )
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "ok"
+
+
 def test_agent_call_project_overrides_user_without_importing_user(sample_project):
     _project_helper(sample_project, 'def who():\n    return "project"\n')
     _user_helper('raise RuntimeError("user helper imported")\n')
