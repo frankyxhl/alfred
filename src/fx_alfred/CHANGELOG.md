@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### New
+
+- **FXA-2330: Project SOP Registry** — a machine-wide catalog of every
+  project whose PRJ layer `af` has seen, kept as one ordinary USR-layer
+  document (`USR-9000-REF-Project-SOP-Registry.md`, readable with
+  `af read USR-9000`). `af register` upserts the current project
+  explicitly; `af projects` lists the map (`--prune` drops roots whose
+  directory died); guide/list/read/status maintain it best-effort in the
+  background. Hardened slot discipline: loading stats non-regular
+  occupants (FIFO/directory/socket) before ever opening them,
+  ownership is an unambiguous HTML-comment marker (a foreign doc at the
+  filename is never replaced), cell encoding is symmetric so
+  pipes/backslashes/backticks/newlines in paths round trip exactly, a
+  cross-layer preflight refuses duplicate USR-9000 ids, and the scanner
+  gives the shared id clean layer precedence. ~90 new tests.
+
+### Improvements
+
+- **Repo-level pytest hang guard** — `pytest-timeout` at 60s/test
+  (thread method: dumps other stacks, Click CliRunner-compatible) so a
+  blocking test — FIFO read, stdin wait, infinite loop — fails the run
+  instead of freezing the suite (the 2026-09-01 3.5h hang class). A
+  nested-pytest probe test proves the guard fires (blocking test →
+  exit 1 + timeout stack dump) and pins the pyproject configuration;
+  `make install` includes the plugin.
+- **Exact two-decimal coverage gate; single-Python CI** — coverage
+  reporting precision is pinned to two decimals so the 95% gate is
+  enforced on the exact number; the CI matrix collapses to a single
+  Python 3.12 job (requires-python stays >=3.10, and pyright still
+  type-checks against the pinned 3.10). The case-only rename path in
+  `af update` is now covered by filesystem-independent tests, so the
+  Linux runner exercises it too instead of only case-insensitive macOS.
+
 ## v1.29.1 (2026-08-30)
 
 ### New
