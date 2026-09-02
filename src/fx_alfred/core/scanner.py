@@ -9,7 +9,7 @@ import sys
 
 from fx_alfred.core.document import Document, FILENAME_PATTERN
 from fx_alfred.core.projects import load_projects, resolve_subproject
-from fx_alfred.core.registry import is_global_registry
+from fx_alfred.core.registry import REGISTRY_FILENAME, is_global_registry
 from fx_alfred.core.source import source_sort_key
 
 
@@ -131,16 +131,21 @@ def _validate_layers(docs: list[Document]) -> None:
             )
 
     # Check for duplicate prefix+ACID combinations. The canonical global
-    # registry (USR-9000, top-level ~/.alfred) is exempt: it exists on every
+    # registry (USR-9000, top-level ~/.alfred) is exempt ONLY against the
+    # current project's PRJ-layer doc of the same id: it exists on every
     # machine, so a project whose PRJ layer legitimately carries its own
-    # USR-9000 document must not fail the scan as a duplicate (PR #338 R14
-    # P1 — the write-side preflight still refuses to touch the registry in
-    # that project).
+    # USR-9000 document must not fail the scan as a duplicate (PR #338
+    # R14 P1 — the write-side preflight still refuses to touch the registry
+    # in that project). Any OTHER collision — notably a nested USR-layer
+    # doc with the same id — is still a same-layer duplicate and is
+    # reported (PR #338 R16 P2: the exemption must not hide the registry).
     doc_keys: dict[str, list[str]] = {}
+    registry_keys: set[str] = set()
     for doc in docs:
-        if is_global_registry(doc):
-            continue
         key = f"{doc.prefix}-{doc.acid}"
+        if is_global_registry(doc):
+            registry_keys.add(key)
+            continue
         if key not in doc_keys:
             doc_keys[key] = []
         doc_keys[key].append(f"{doc.source}:{doc.filename}")
@@ -148,6 +153,13 @@ def _validate_layers(docs: list[Document]) -> None:
     for key, sources in doc_keys.items():
         if len(sources) > 1:
             errors.append(f"Duplicate {key} found in: {', '.join(sources)}")
+        elif key in registry_keys and any(s.startswith("usr:") for s in sources):
+            # registry + another USR-layer doc with the same id: same-layer
+            # duplicate — not the registry-vs-PRJ pairing the exemption covers
+            errors.append(
+                f"Duplicate {key} found in: "
+                f"usr:{REGISTRY_FILENAME}, {', '.join(sources)}"
+            )
 
     if errors:
         raise LayerValidationError(errors)

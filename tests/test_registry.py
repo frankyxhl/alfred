@@ -677,3 +677,34 @@ def test_prune_survives_nul_in_root():
     live = _entry(prefix="FXA", root="/definitely/not", n=1)
     kept, removed = prune_missing_roots([nul, live])
     assert nul in removed
+
+
+def test_nested_usr9000_still_duplicates(tmp_path):
+    """R16 P2: the registry exemption must be scoped to registry-vs-PRJ —
+    a NESTED USR doc with id USR-9000 next to the global registry is still
+    a same-layer duplicate and must fail layer validation."""
+    import os
+
+    from click.testing import CliRunner
+
+    from fx_alfred.cli import cli
+
+    proj_a = tmp_path / "a"
+    (proj_a / "rules").mkdir(parents=True)
+    (proj_a / "rules" / "ALF-2201-PRP-A.md").write_text("# a", encoding="utf-8")
+
+    runner = CliRunner()
+    old = os.getcwd()
+    os.chdir(proj_a)
+    try:
+        assert runner.invoke(cli, ["list"], catch_exceptions=False).exit_code == 0
+        reg = Path.home() / ".alfred" / REGISTRY_FILENAME
+        assert reg.exists()
+        nested = Path.home() / ".alfred" / "custom"
+        nested.mkdir(parents=True, exist_ok=True)
+        (nested / "USR-9000-SOP-Other.md").write_text("# other", encoding="utf-8")
+        result = runner.invoke(cli, ["list"])  # duplicate -> ClickException
+        assert result.exit_code != 0
+        assert "Duplicate USR-9000" in result.output
+    finally:
+        os.chdir(old)
