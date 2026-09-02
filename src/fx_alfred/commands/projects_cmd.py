@@ -27,8 +27,8 @@ def projects_cmd(output_json: bool, prune: bool):
     except (OSError, UnicodeDecodeError) as e:
         # load_registry intentionally propagates real read failures —
         # including invalid UTF-8 (a ValueError, not an OSError) — and the
-        # CLI surface converts them instead of leaking a traceback (PR #338
-        # R2/R4 P2); never treat an unreadable registry as empty.
+        # CLI surface converts them instead of leaking a traceback;
+        # never treat an unreadable registry as empty.
         raise click.ClickException(f"Cannot read project registry {path}: {e}") from e
 
     if prune:

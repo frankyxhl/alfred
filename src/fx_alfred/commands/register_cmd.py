@@ -47,8 +47,7 @@ def register_cmd(ctx: click.Context, output_json: bool):
     try:
         entries = load_registry(path)
         # Ownership validation runs even when the upsert would be a no-op —
-        # "already current" must never be reported for a foreign occupant
-        # (PR #338 R11).
+        # "already current" must never be reported for a foreign occupant.
         conflict = slot_conflict(path)
         if conflict is not None:
             raise click.ClickException(

@@ -134,11 +134,11 @@ def _validate_layers(docs: list[Document]) -> None:
     # registry (USR-9000, top-level ~/.alfred) is exempt ONLY against the
     # current project's PRJ-layer doc of the same id: it exists on every
     # machine, so a project whose PRJ layer legitimately carries its own
-    # USR-9000 document must not fail the scan as a duplicate (PR #338
-    # R14 P1 — the write-side preflight still refuses to touch the registry
+    # USR-9000 document must not fail the scan as a duplicate (the
+    # write-side preflight still refuses to touch the registry
     # in that project). Any OTHER collision — notably a nested USR-layer
     # doc with the same id — is still a same-layer duplicate and is
-    # reported (PR #338 R16 P2: the exemption must not hide the registry).
+    # reported (the exemption must not hide the registry).
     doc_keys: dict[str, list[str]] = {}
     registry_keys: set[str] = set()
     for doc in docs:
@@ -262,7 +262,7 @@ def find_document(docs: list[Document], identifier: str) -> Document:
     if not matches:
         raise DocumentNotFoundError(identifier)
     if len(matches) > 1:
-        # Layer precedence for the global registry's id (PR #338 R15): when a
+        # Layer precedence for the global registry's id: when a
         # fully-qualified lookup collides between the canonical global
         # USR-9000 registry and the current project's own PRJ-layer doc of
         # the same id, the PRJ doc wins — the same id is never ambiguous.

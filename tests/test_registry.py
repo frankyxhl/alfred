@@ -203,18 +203,18 @@ def test_prune_removes_dead_roots_keeps_live(tmp_path):
     assert removed == [dead]
 
 
-# ------------------------------------------------- PR #338 review round 1
+# ------------------------------- parsing, escaping, and failure propagation
 
 
 def test_parse_accepts_windows_roots():
-    """R1 P1 (registry.py:33): Windows drive-letter roots must round trip."""
+    """Windows drive-letter roots must round trip."""
     entry = _entry(root="C:\\Users\\alice\\repo")
     text = render_registry([entry], today=TODAY)
     assert parse_registry(text) == [entry]
 
 
 def test_pipe_in_root_round_trips():
-    """R1 P2 (registry.py:99): '|' in a root must be escaped symmetrically."""
+    """'|' in a root must be escaped symmetrically."""
     entry = _entry(root="/tmp/a|b")
     text = render_registry([entry], today=TODAY)
     assert "| `/tmp/a\\|b` |" in text  # canonical backticked cell carries the escape
@@ -222,7 +222,7 @@ def test_pipe_in_root_round_trips():
 
 
 def test_load_unreadable_file_raises_not_empty(tmp_path):
-    """R1 P2 (registry.py:123): read failure must propagate, not wipe the catalog."""
+    """read failure must propagate, not wipe the catalog."""
     p = tmp_path / REGISTRY_FILENAME
     p.write_text(render_registry([_entry()], today=TODAY), encoding="utf-8")
     p.chmod(0o000)
@@ -234,7 +234,7 @@ def test_load_unreadable_file_raises_not_empty(tmp_path):
 
 
 def test_prune_keeps_roots_when_existence_inconclusive(tmp_path, monkeypatch):
-    """R1 P2 (registry.py:191): stat errors other than missing ⇒ keep the row."""
+    """stat errors other than missing ⇒ keep the row."""
     import fx_alfred.core.registry as reg
 
     live = _entry(prefix="FXA", root=str(tmp_path), n=1)
@@ -255,7 +255,7 @@ def test_prune_keeps_roots_when_existence_inconclusive(tmp_path, monkeypatch):
 
 
 def test_save_refuses_occupied_slot_other_filename(tmp_path):
-    """R1 P1 (registry.py:135): a pre-existing different USR-9000 doc blocks the slot."""
+    """a pre-existing different USR-9000 doc blocks the slot."""
     from fx_alfred.core.registry import RegistrySlotConflictError
 
     (tmp_path / "USR-9000-SOP-Custom-Thing.md").write_text("# mine", encoding="utf-8")
@@ -266,7 +266,7 @@ def test_save_refuses_occupied_slot_other_filename(tmp_path):
 
 
 def test_save_refuses_foreign_doc_in_registry_filename(tmp_path):
-    """R1 P1: same filename but not registry-shaped ⇒ occupied, never overwritten."""
+    """same filename but not registry-shaped ⇒ occupied, never overwritten."""
     from fx_alfred.core.registry import RegistrySlotConflictError
 
     p = tmp_path / REGISTRY_FILENAME
@@ -284,11 +284,11 @@ def test_save_allows_existing_registry_doc(tmp_path):
     assert load_registry(p) == [_entry(n=7)]
 
 
-# ------------------------------------------------- PR #338 rounds 2-3
+# ------------------------------- slot scope, atomic write mode, and prune
 
 
 def test_parse_accepts_unc_roots():
-    """R2 P2: UNC and extended-length Windows roots must round trip."""
+    """UNC and extended-length Windows roots must round trip."""
     for root in (r"\\server\share\repo", r"\\?\C:\repo"):
         entry = _entry(root=root)
         text = render_registry([entry], today=TODAY)
@@ -296,7 +296,7 @@ def test_parse_accepts_unc_roots():
 
 
 def test_save_preserves_existing_registry_mode(tmp_path):
-    """R2 P2: atomic replace must not reset an existing 0640 to mkstemp's 0600."""
+    """atomic replace must not reset an existing 0640 to mkstemp's 0600."""
     p = tmp_path / REGISTRY_FILENAME
     save_registry(p, [_entry()], today=TODAY)
     p.chmod(0o640)
@@ -305,7 +305,7 @@ def test_save_preserves_existing_registry_mode(tmp_path):
 
 
 def test_save_new_registry_respects_umask(tmp_path):
-    """R2 P2: first creation honors the umask like a plain open(path,'w')."""
+    """first creation honors the umask like a plain open(path,'w')."""
     import os as _os
 
     old = _os.umask(0o022)
@@ -318,7 +318,7 @@ def test_save_new_registry_respects_umask(tmp_path):
 
 
 def test_save_refuses_occupied_slot_in_nested_usr_dir(tmp_path):
-    """R2 P1: a nested USR-9000 doc (recursive USR scan scope) blocks the slot."""
+    """a nested USR-9000 doc (recursive USR scan scope) blocks the slot."""
     from fx_alfred.core.registry import RegistrySlotConflictError
 
     nested = tmp_path / "team"
@@ -341,7 +341,7 @@ def test_slot_scan_ignores_logs_dir(tmp_path):
 
 
 def test_prune_removes_roots_that_became_files(tmp_path):
-    """R2 P2: a regular file occupying the old root path is not a project root."""
+    """a regular file occupying the old root path is not a project root."""
     ghost = tmp_path / "was-a-repo"
     ghost.write_text("now a file", encoding="utf-8")
     live = _entry(prefix="FXA", root=str(tmp_path), n=1)
@@ -351,11 +351,11 @@ def test_prune_removes_roots_that_became_files(tmp_path):
     assert removed == [dead]
 
 
-# ------------------------------------------------- PR #338 round 4
+# ------------------------------- canonical backticked rows and scan-scope mirror
 
 
 def test_trailing_whitespace_root_round_trips():
-    """R4 P2: a root ending in space/tab must not be rstripped into a phantom row."""
+    """a root ending in space/tab must not be rstripped into a phantom row."""
     for root in ("/tmp/a ", "/tmp/a\tb"):
         entry = _entry(root=root)
         text = render_registry([entry], today=TODAY)
@@ -363,13 +363,13 @@ def test_trailing_whitespace_root_round_trips():
 
 
 def test_legacy_bare_rows_still_parse():
-    """R4 P2 companion: hand-written bare rows (pre-backtick format) keep parsing."""
+    """Companion: hand-written bare rows (pre-backtick format) keep parsing."""
     text = "| FXA | /Users/frank/Projects/alfred | 3 | 2026-09-02 |\n"
     assert parse_registry(text) == [_entry()]
 
 
 def test_slot_scan_ignores_rules_logs_paths(tmp_path):
-    """R4 P2: mirror the scanner's rules+logs exclusion in the slot guard."""
+    """mirror the scanner's rules+logs exclusion in the slot guard."""
     deep = tmp_path / "team" / "rules" / "logs"
     deep.mkdir(parents=True)
     (deep / "USR-9000-SOP-Old.md").write_text("# old", encoding="utf-8")
@@ -379,7 +379,7 @@ def test_slot_scan_ignores_rules_logs_paths(tmp_path):
 
 
 def test_save_refuses_table_bearing_foreign_doc(tmp_path):
-    """R5 P1: parseable rows alone are NOT proof of registry ownership —
+    """parseable rows alone are NOT proof of registry ownership —
     a custom doc at the filename (even table-shaped) must never be replaced."""
     from fx_alfred.core.registry import RegistrySlotConflictError
 
@@ -394,32 +394,32 @@ def test_save_refuses_table_bearing_foreign_doc(tmp_path):
     assert "precious prose" in p.read_text(encoding="utf-8")  # untouched
 
 
-# ------------------------------------------------- PR #338 rounds 5-6
+# ------------------------------- ownership marker and cell-encoding edges
 
 
 def test_backslash_pipe_root_round_trips():
-    """R5 P2: a root containing backslash-then-pipe must round trip."""
+    """a root containing backslash-then-pipe must round trip."""
     entry = _entry(root="/tmp/a\\|b")
     text = render_registry([entry], today=TODAY)
     assert parse_registry(text) == [entry]
 
 
 def test_backtick_root_round_trips():
-    """R6 P2: a root containing a backtick must not break the code span."""
+    """a root containing a backtick must not break the code span."""
     entry = _entry(root="/tmp/a`b")
     text = render_registry([entry], today=TODAY)
     assert parse_registry(text) == [entry]
 
 
 def test_trailing_backslash_root_round_trips():
-    """R6 P2 companion: root ending in a backslash must not eat the closing tick."""
+    """Companion: root ending in a backslash must not eat the closing tick."""
     entry = _entry(root="C:\\dir\\")
     text = render_registry([entry], today=TODAY)
     assert parse_registry(text) == [entry]
 
 
 def test_dangling_symlink_slot_is_occupied(tmp_path):
-    """R6 P2: a dangling symlink at the registry path must never be replaced."""
+    """a dangling symlink at the registry path must never be replaced."""
     from fx_alfred.core.registry import RegistrySlotConflictError
 
     p = tmp_path / REGISTRY_FILENAME
@@ -429,11 +429,11 @@ def test_dangling_symlink_slot_is_occupied(tmp_path):
     assert p.is_symlink() and not p.exists()  # link itself untouched
 
 
-# ------------------------------------------------- PR #338 round 7
+# ------------------------------- ownership: self-exemption and legacy upgrade
 
 
 def test_prj_doc_with_canonical_filename_still_blocks(tmp_path, monkeypatch):
-    """R7 P1: the self-exemption must not cover a PRJ doc that merely carries
+    """the self-exemption must not cover a PRJ doc that merely carries
     the canonical filename — that still duplicates USR-9000 across layers."""
     proj = tmp_path / "proj"
     rules = proj / "rules"
@@ -453,7 +453,7 @@ def test_prj_doc_with_canonical_filename_still_blocks(tmp_path, monkeypatch):
 
 
 def test_foreign_doc_mentioning_fxa2330_is_not_ours(tmp_path):
-    """R7 P1: a prose doc that merely mentions FXA-2330 is NOT the registry."""
+    """a prose doc that merely mentions FXA-2330 is NOT the registry."""
     from fx_alfred.core.registry import RegistrySlotConflictError
 
     p = tmp_path / REGISTRY_FILENAME
@@ -467,7 +467,7 @@ def test_foreign_doc_mentioning_fxa2330_is_not_ours(tmp_path):
 
 
 def test_legacy_registry_without_marker_still_ours(tmp_path):
-    """R7 P1 companion: pre-marker registries (exact template line) upgrade in
+    """Companion: pre-marker registries (exact template line) upgrade in
     place instead of being rejected as foreign."""
     p = tmp_path / REGISTRY_FILENAME
     legacy = render_registry([_entry()], today=TODAY).replace(
@@ -479,7 +479,7 @@ def test_legacy_registry_without_marker_still_ours(tmp_path):
 
 
 def test_rendered_tables_are_column_aligned():
-    """R7 P2: generated tables must match canonical fmt alignment — pipes at
+    """generated tables must match canonical fmt alignment — pipes at
     identical positions within each table block."""
     text = render_registry(
         [_entry(), _entry(prefix="PFC", root="/x", n=100)], today=TODAY
@@ -502,11 +502,11 @@ def test_rendered_tables_are_column_aligned():
         assert len(positions) == 1, block
 
 
-# ------------------------------------------------- PR #338 round 8
+# ------------------------------- newline encoding and non-file occupants
 
 
 def test_newline_in_root_round_trips():
-    """R8 P2: line-breaking chars in a root must not split the table row."""
+    """line-breaking chars in a root must not split the table row."""
     for root in ("/tmp/a\nb", "/tmp/a\rb", "/tmp/a\u2028b", "/tmp/a\u2029b"):
         entry = _entry(root=root)
         text = render_registry([entry], today=TODAY)
@@ -515,25 +515,25 @@ def test_newline_in_root_round_trips():
 
 
 def test_windows_newline_lookalike_round_trips():
-    """R8 P2 companion: `C:\\new` (backslash-n) must not decode to a newline."""
+    """Companion: `C:\\new` (backslash-n) must not decode to a newline."""
     entry = _entry(root="C:\\new")
     text = render_registry([entry], today=TODAY)
     assert parse_registry(text) == [entry]
 
 
 def test_slot_scan_ignores_non_file_occupants(tmp_path):
-    """R8 P2: a directory named USR-9000-*.md is not a document — no conflict."""
+    """a directory named USR-9000-*.md is not a document — no conflict."""
     (tmp_path / "USR-9000-Backup.md").mkdir()
     p = tmp_path / REGISTRY_FILENAME
     save_registry(p, [_entry()], today=TODAY)  # must not raise
     assert p.exists()
 
 
-# ------------------------------------------------- PR #338 round 9
+# ------------------------------- splitlines separators and FIFO safety
 
 
 def test_all_splitlines_separators_round_trip():
-    """R9 P2: every separator str.splitlines() splits on must be encoded."""
+    """every separator str.splitlines() splits on must be encoded."""
     seps = ["\x0b", "\x0c", "\x1c", "\x1d", "\x1e", "\x85"]
     for sep in seps:
         root = "/tmp/a" + sep + "b"
@@ -546,7 +546,7 @@ def test_all_splitlines_separators_round_trip():
 
 
 def test_fifo_at_registry_slot_is_occupied(tmp_path):
-    """R9 P2: a non-regular file at the canonical path is occupied — and must
+    """a non-regular file at the canonical path is occupied — and must
     be detected WITHOUT opening it (a FIFO would hang read_text)."""
     import os
 
@@ -560,7 +560,7 @@ def test_fifo_at_registry_slot_is_occupied(tmp_path):
 
 
 def test_prefix_only_legacy_line_is_not_ours(tmp_path):
-    """R12 P1 (data loss): a prose line that merely STARTS with the legacy
+    """Data-loss guard: a prose line that merely STARTS with the legacy
     signature prefix must not mark a foreign doc as Alfred-owned."""
     from fx_alfred.core.registry import RegistrySlotConflictError
 
@@ -580,7 +580,7 @@ def test_prefix_only_legacy_line_is_not_ours(tmp_path):
 
 
 def test_single_legacy_line_is_not_ours(tmp_path):
-    """R13 P1 (data loss): quoting ONLY the first signature line must not
+    """Data-loss guard: quoting ONLY the first signature line must not
     mark a foreign doc as Alfred-owned — the complete preamble block is
     required."""
     from fx_alfred.core.registry import RegistrySlotConflictError
@@ -600,11 +600,11 @@ def test_single_legacy_line_is_not_ours(tmp_path):
     assert "my own entirely different continuation" in p.read_text(encoding="utf-8")
 
 
-# ------------------------------------------------- PR #338 round 14
+# ------------------------------- scanner integration: validation and precedence
 
 
 def test_scan_does_not_crash_when_prj_uses_acid_9000(tmp_path):
-    """R14 P1: after the global registry exists, a project whose PRJ layer
+    """after the global registry exists, a project whose PRJ layer
     carries its own USR-9000 doc must still scan (no LayerValidationError)."""
     from click.testing import CliRunner
 
@@ -635,13 +635,13 @@ def test_scan_does_not_crash_when_prj_uses_acid_9000(tmp_path):
 
 
 def test_render_includes_what_is_it_section():
-    """R14: generated REF carries the canonical `## What Is It?` heading."""
+    """generated REF carries the canonical `## What Is It?` heading."""
     text = render_registry([_entry()], today=TODAY)
     assert "## What Is It?" in text
 
 
 def test_fully_qualified_usr9000_prefers_prj_doc(tmp_path):
-    """R15: `af read USR-9000` with BOTH the global registry and a PRJ
+    """`af read USR-9000` with BOTH the global registry and a PRJ
     USR-9000 doc resolves to the PRJ doc (layer precedence), never ambiguous."""
     import os
 
@@ -671,7 +671,7 @@ def test_fully_qualified_usr9000_prefers_prj_doc(tmp_path):
 
 
 def test_prune_survives_nul_in_root():
-    """R15: os.stat raises ValueError (not OSError) for embedded NUL —
+    """os.stat raises ValueError (not OSError) for embedded NUL —
     prune must not crash; a NUL path can never exist, so it is pruned."""
     nul = _entry(prefix="NUL", root="/tmp/a\x00b", n=1)
     live = _entry(prefix="FXA", root="/definitely/not", n=1)
@@ -680,7 +680,7 @@ def test_prune_survives_nul_in_root():
 
 
 def test_nested_usr9000_still_duplicates(tmp_path):
-    """R16 P2: the registry exemption must be scoped to registry-vs-PRJ —
+    """the registry exemption must be scoped to registry-vs-PRJ —
     a NESTED USR doc with id USR-9000 next to the global registry is still
     a same-layer duplicate and must fail layer validation."""
     import os

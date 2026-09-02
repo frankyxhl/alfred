@@ -101,7 +101,7 @@ def test_register_preserves_other_rows(sample_project, monkeypatch):
 
 
 def test_register_rejects_prj_usr9000_conflict(tmp_path, monkeypatch):
-    """R5 P1: explicit register errors loudly when PRJ already holds USR-9000."""
+    """explicit register errors loudly when PRJ already holds USR-9000."""
     rules = tmp_path / "rules"
     rules.mkdir()
     (rules / "USR-9000-SOP-Custom.md").write_text("# custom", encoding="utf-8")
@@ -115,7 +115,7 @@ def test_register_rejects_prj_usr9000_conflict(tmp_path, monkeypatch):
 
 
 def test_register_validates_slot_even_on_noop_upsert(tmp_path, monkeypatch):
-    """PR #338 R11: a foreign table-bearing doc that happens to parse with
+    """a foreign table-bearing doc that happens to parse with
     matching rows must still be rejected — 'already current' must not skip
     the ownership validation."""
     from fx_alfred.core.registry import REGISTRY_MARKER

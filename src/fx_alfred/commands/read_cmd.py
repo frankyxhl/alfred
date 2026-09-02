@@ -30,9 +30,9 @@ def read_cmd(ctx: click.Context, identifier: str, json_output: bool):
     # Resolve against the PRE-bootstrap snapshot first, so background
     # registry maintenance cannot change this read's semantics: an
     # unambiguous ACID-only lookup (project has its own 9000 doc) stays
-    # unambiguous instead of turning ambiguous once USR-9000 exists (PR
-    # #338 R10). Only a not-found retry may consult the rescan — that is
-    # the fresh-machine `af read USR-9000` bootstrap path (R1).
+    # unambiguous instead of turning ambiguous once USR-9000 exists.
+    # Only a not-found retry may consult the rescan — that is
+    # the fresh-machine `af read USR-9000` bootstrap path.
     try:
         doc = find_document(docs, identifier)
     except DocumentNotFoundError:

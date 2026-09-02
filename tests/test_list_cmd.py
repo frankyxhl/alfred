@@ -379,7 +379,7 @@ def test_list_json_output_unpolluted_by_registry_trigger(sample_project, monkeyp
 
 
 def test_list_first_invocation_shows_bootstrapped_usr9000(sample_project, monkeypatch):
-    """R4 P2: `af list --source usr` must show USR-9000 on the very invocation
+    """`af list --source usr` must show USR-9000 on the very invocation
     that creates it (re-scan after trigger write)."""
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
@@ -389,7 +389,7 @@ def test_list_first_invocation_shows_bootstrapped_usr9000(sample_project, monkey
 
 
 def test_list_skips_registry_write_when_prj_holds_usr9000(tmp_path, monkeypatch):
-    """R5 P1: a PRJ doc already using USR-9000 must block the registry write
+    """a PRJ doc already using USR-9000 must block the registry write
     (duplicate-ID across layers), warn, and not break the command."""
     rules = tmp_path / "rules"
     rules.mkdir()

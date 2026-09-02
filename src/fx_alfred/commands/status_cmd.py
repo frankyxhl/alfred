@@ -22,7 +22,7 @@ def status_cmd(ctx: click.Context, json_output: bool):
     docs = scan_or_fail(ctx)
     if touch_project_registry(ctx, docs):
         # The trigger itself just (re)wrote USR-9000 — rescan so this very
-        # invocation's counts include it (PR #338 R4 P2).
+        # invocation's counts include it.
         docs = scan_or_fail(ctx)
 
     if not docs:

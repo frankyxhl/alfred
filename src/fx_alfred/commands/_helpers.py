@@ -85,8 +85,8 @@ def registry_id_in_use(docs: list) -> bool:
     registry write create a duplicate prefix+ACID across layers — every
     subsequent scan would fail LayerValidationError. The ONLY exemption is
     the canonical registry document itself (``is_global_registry``); a PRJ
-    doc that merely carries the canonical filename is NOT exempt (PR #338
-    R5/R7 P1). The trigger must warn+skip and ``af register`` must refuse.
+    doc that merely carries the canonical filename is NOT exempt. The
+    trigger must warn+skip and ``af register`` must refuse.
     """
     return any(
         d.prefix == "USR" and d.acid == "9000" and not is_global_registry(d)
@@ -106,7 +106,7 @@ def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:
 
     Returns True when the registry document was actually (re)written —
     ``read_cmd`` re-scans in that case so a first-ever ``af read USR-9000``
-    finds the document the trigger itself just created (PR #338 R1).
+    finds the document the trigger itself just created.
     """
     prj_docs = [d for d in docs if d.source == "prj"]
     if not prj_docs:
@@ -126,8 +126,7 @@ def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:
         entries = load_registry(path)
         # Ownership validation runs BEFORE the no-change short-circuit: a
         # foreign table-bearing doc that happens to parse with matching
-        # rows must still warn+skip, not silently count as "ours" (PR #338
-        # R11).
+        # rows must still warn+skip, not silently count as "ours".
         conflict = slot_conflict(path)
         if conflict is not None:
             click.echo(

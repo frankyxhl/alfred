@@ -54,7 +54,7 @@ def list_cmd(
     docs = scan_or_fail(ctx)
     if touch_project_registry(ctx, docs):
         # The trigger itself just (re)wrote USR-9000 — rescan so this very
-        # invocation's listing includes it (PR #338 R4 P2).
+        # invocation's listing includes it.
         docs = scan_or_fail(ctx)
 
     # Apply filters (AND logic)
