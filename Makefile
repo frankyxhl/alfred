@@ -15,4 +15,4 @@ check: lint typecheck test
 install:
 	uv venv
 	uv pip install -e .
-	uv pip install pytest ruff pyright build
+	uv pip install pytest pytest-timeout ruff pyright build
