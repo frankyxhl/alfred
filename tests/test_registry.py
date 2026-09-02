@@ -638,3 +638,42 @@ def test_render_includes_what_is_it_section():
     """R14: generated REF carries the canonical `## What Is It?` heading."""
     text = render_registry([_entry()], today=TODAY)
     assert "## What Is It?" in text
+
+
+def test_fully_qualified_usr9000_prefers_prj_doc(tmp_path):
+    """R15: `af read USR-9000` with BOTH the global registry and a PRJ
+    USR-9000 doc resolves to the PRJ doc (layer precedence), never ambiguous."""
+    import os
+
+    from click.testing import CliRunner
+
+    from fx_alfred.cli import cli
+
+    proj_b = tmp_path / "b"
+    (proj_b / "rules").mkdir(parents=True)
+    (proj_b / "rules" / "USR-9000-SOP-B.md").write_text("# b doc", encoding="utf-8")
+    proj_a = tmp_path / "a"
+    (proj_a / "rules").mkdir(parents=True)
+    (proj_a / "rules" / "ALF-2201-PRP-A.md").write_text("# a", encoding="utf-8")
+
+    runner = CliRunner()
+    old = os.getcwd()
+    os.chdir(proj_a)
+    try:
+        assert runner.invoke(cli, ["list"], catch_exceptions=False).exit_code == 0
+        assert (Path.home() / ".alfred" / REGISTRY_FILENAME).exists()
+        os.chdir(proj_b)
+        result = runner.invoke(cli, ["read", "USR-9000"], catch_exceptions=False)
+        assert result.exit_code == 0, result.output
+        assert "# b doc" in result.output  # PRJ doc wins over the global registry
+    finally:
+        os.chdir(old)
+
+
+def test_prune_survives_nul_in_root():
+    """R15: os.stat raises ValueError (not OSError) for embedded NUL —
+    prune must not crash; a NUL path can never exist, so it is pruned."""
+    nul = _entry(prefix="NUL", root="/tmp/a\x00b", n=1)
+    live = _entry(prefix="FXA", root="/definitely/not", n=1)
+    kept, removed = prune_missing_roots([nul, live])
+    assert nul in removed

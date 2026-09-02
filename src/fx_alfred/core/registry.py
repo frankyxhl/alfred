@@ -437,4 +437,7 @@ def prune_missing_roots(
             removed.append(e)  # a parent component is a file — cannot be a root
         except OSError:
             kept.append(e)  # inconclusive — never prune on transient errors
+        except ValueError:
+            removed.append(e)  # embedded NUL: os.stat raises ValueError, and
+            # such a path can never exist on any supported filesystem
     return kept, removed

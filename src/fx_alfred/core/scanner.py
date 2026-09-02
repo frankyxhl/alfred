@@ -250,5 +250,13 @@ def find_document(docs: list[Document], identifier: str) -> Document:
     if not matches:
         raise DocumentNotFoundError(identifier)
     if len(matches) > 1:
+        # Layer precedence for the global registry's id (PR #338 R15): when a
+        # fully-qualified lookup collides between the canonical global
+        # USR-9000 registry and the current project's own PRJ-layer doc of
+        # the same id, the PRJ doc wins — the same id is never ambiguous.
+        non_registry = [m for m in matches if not is_global_registry(m)]
+        if non_registry:
+            matches = non_registry
+    if len(matches) > 1:
         raise AmbiguousDocumentError(identifier, matches)
     return matches[0]
