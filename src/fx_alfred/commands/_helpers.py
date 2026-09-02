@@ -17,6 +17,7 @@ from fx_alfred.core.registry import (
     load_registry,
     registry_path,
     save_registry,
+    slot_conflict,
     today_str,
     upsert,
 )
@@ -132,6 +133,18 @@ def touch_project_registry(ctx: click.Context, docs: list[Document]) -> bool:
             prefix_counts[doc.prefix] = prefix_counts.get(doc.prefix, 0) + 1
         path = registry_path()
         entries = load_registry(path)
+        # Ownership validation runs BEFORE the no-change short-circuit: a
+        # foreign table-bearing doc that happens to parse with matching
+        # rows must still warn+skip, not silently count as "ours" (PR #338
+        # R11).
+        conflict = slot_conflict(path)
+        if conflict is not None:
+            click.echo(
+                f"Warning: {conflict.name} already occupies the USR-9000 "
+                "slot; skipping registry update.",
+                err=True,
+            )
+            return False
         new_entries, changed = upsert(
             entries,
             root=get_root(ctx),

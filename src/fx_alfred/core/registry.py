@@ -264,7 +264,7 @@ def load_registry(path: Path) -> list[RegistryEntry]:
     return parse_registry(text)
 
 
-def _slot_conflict(path: Path) -> Path | None:
+def slot_conflict(path: Path) -> Path | None:
     """Return the occupying file if USR-9000 is taken by a non-registry doc.
 
     Conflict cases (PR #338 R1/R2/R5 P1): (a) any other ``USR-9000-*.md``
@@ -319,7 +319,7 @@ def _slot_conflict(path: Path) -> Path | None:
 
 def save_registry(path: Path, entries: list[RegistryEntry], *, today: str) -> None:
     """Atomically write the registry document (tempfile + os.replace)."""
-    conflict = _slot_conflict(path)
+    conflict = slot_conflict(path)
     if conflict is not None:
         raise RegistrySlotConflictError(
             f"{conflict.name} already occupies the USR-9000 slot; "

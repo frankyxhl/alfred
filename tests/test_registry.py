@@ -550,10 +550,10 @@ def test_fifo_at_registry_slot_is_occupied(tmp_path):
     be detected WITHOUT opening it (a FIFO would hang read_text)."""
     import os
 
-    from fx_alfred.core.registry import RegistrySlotConflictError, _slot_conflict
+    from fx_alfred.core.registry import RegistrySlotConflictError, slot_conflict
 
     p = tmp_path / REGISTRY_FILENAME
     os.mkfifo(p)
-    assert _slot_conflict(p) == p  # decided by lstat, never by open()
+    assert slot_conflict(p) == p  # decided by lstat, never by open()
     with pytest.raises(RegistrySlotConflictError):
         save_registry(p, [_entry()], today=TODAY)

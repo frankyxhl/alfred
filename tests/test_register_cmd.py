@@ -112,3 +112,33 @@ def test_register_rejects_prj_usr9000_conflict(tmp_path, monkeypatch):
     assert not (
         Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
     ).exists()
+
+
+def test_register_validates_slot_even_on_noop_upsert(tmp_path, monkeypatch):
+    """PR #338 R11: a foreign table-bearing doc that happens to parse with
+    matching rows must still be rejected — 'already current' must not skip
+    the ownership validation."""
+    from fx_alfred.core.registry import REGISTRY_MARKER
+
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "ALF-2201-PRP-AF-CLI-Tool.md").write_text("# AF CLI", encoding="utf-8")
+    home = Path.home() / ".alfred"
+    home.mkdir(parents=True, exist_ok=True)
+    # foreign doc (no marker) whose rows coincidentally match a fresh upsert
+    (home / REGISTRY_FILENAME).write_text(
+        "# someone's table doc\n\n"
+        "| PRJ | Root | Docs | Last Seen |\n"
+        "|-----|------|------|-----------|\n"
+        f"| ALF | `{tmp_path.resolve()}` | 1 | 2026-09-02 |\n",
+        encoding="utf-8",
+    )
+    assert (
+        not (home / REGISTRY_FILENAME)
+        .read_text(encoding="utf-8")
+        .startswith(REGISTRY_MARKER)
+    )
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["register"])
+    assert result.exit_code != 0
+    assert "USR-9000" in result.output

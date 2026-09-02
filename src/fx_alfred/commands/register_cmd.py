@@ -14,6 +14,7 @@ from fx_alfred.core.registry import (
     load_registry,
     registry_path,
     save_registry,
+    slot_conflict,
     today_str,
     upsert,
 )
@@ -45,6 +46,16 @@ def register_cmd(ctx: click.Context, output_json: bool):
     path = registry_path()
     try:
         entries = load_registry(path)
+        # Ownership validation runs even when the upsert would be a no-op —
+        # "already current" must never be reported for a foreign occupant
+        # (PR #338 R11).
+        conflict = slot_conflict(path)
+        if conflict is not None:
+            raise click.ClickException(
+                f"{conflict.name} already occupies the USR-9000 slot; "
+                "move or renumber it before af can maintain the project "
+                "registry"
+            )
         new_entries, changed = upsert(
             entries,
             root=root,
