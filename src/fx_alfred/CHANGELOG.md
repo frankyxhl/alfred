@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.30.0 (2026-09-03)
+
 ### New
 
 - **FXA-2330: Project SOP Registry** — a machine-wide catalog of every
