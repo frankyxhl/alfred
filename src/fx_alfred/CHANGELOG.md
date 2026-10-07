@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+
+- `af read ID --all` now advises a qualified PREFIX-ACID when one project
+  holds two documents with the same ACID.
+
+### Changed
+
+- `af register` is what refreshes a project's document counts and last-seen
+  date; read commands no longer do. With `--all`, a broken registered project
+  is skipped with a warning, while a broken current project still fails.
+
 ## v1.31.0 (2026-10-07)
 
 ### Changed
