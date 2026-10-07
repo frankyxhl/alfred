@@ -17,7 +17,7 @@ from fx_alfred.core.registry import (
 @click.option(
     "--prune",
     is_flag=True,
-    help="Remove entries whose root directory no longer exists.",
+    help="Remove dead roots and linked-worktree rows.",
 )
 def projects_cmd(output_json: bool, prune: bool):
     """List the machine-wide Project SOP Registry (USR-9000)."""
@@ -40,7 +40,8 @@ def projects_cmd(output_json: bool, prune: bool):
                 raise click.ClickException(f"Project registry prune failed: {e}") from e
         if not output_json:
             for e in removed:
-                click.echo(f"Pruned {e.prefix} {e.root} (root no longer exists)")
+                click.echo(f"Pruned {e.prefix} {e.root}")
+            click.echo(f"Removed {len(removed)}")
 
     if output_json:
         emit_json(
@@ -59,7 +60,7 @@ def projects_cmd(output_json: bool, prune: bool):
     if not entries:
         click.echo(
             "No projects registered yet — run `af register` in a project "
-            "(or just `af list` there; the registry self-maintains)."
+            "when its PRJ layer carries documents."
         )
         return
 

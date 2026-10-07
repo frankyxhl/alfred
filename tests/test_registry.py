@@ -5,6 +5,7 @@ canonicalization, atomic save, prune of dead roots. The commands-layer
 trigger (guide/list/read/status) is covered in the per-command tests.
 """
 
+import os
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,7 @@ from fx_alfred.core.registry import (
     registry_path,
     render_registry,
     save_registry,
+    slot_conflict,
     upsert,
 )
 
@@ -26,7 +28,7 @@ pytestmark = pytest.mark.unit
 TODAY = "2026-09-02"
 
 
-def _entry(prefix="FXA", root="/Users/frank/Projects/alfred", n=3, seen=TODAY):
+def _entry(prefix="FXA", root="/fixtures/alfred", n=3, seen=TODAY):
     return RegistryEntry(prefix=prefix, root=root, doc_count=n, last_seen=seen)
 
 
@@ -35,13 +37,13 @@ def _entry(prefix="FXA", root="/Users/frank/Projects/alfred", n=3, seen=TODAY):
 
 def test_parse_extracts_table_rows():
     text = render_registry(
-        [_entry(), _entry(prefix="PFC", root="/Users/frank/Projects/marvin", n=7)],
+        [_entry(), _entry(prefix="PFC", root="/fixtures/marvin", n=7)],
         today=TODAY,
     )
     entries = parse_registry(text)
     assert entries == [
         _entry(),
-        _entry(prefix="PFC", root="/Users/frank/Projects/marvin", n=7),
+        _entry(prefix="PFC", root="/fixtures/marvin", n=7),
     ]
 
 
@@ -126,7 +128,7 @@ def test_upsert_canonicalizes_root_via_resolve(tmp_path):
 
 
 def test_upsert_preserves_other_projects(tmp_path):
-    other = _entry(prefix="WUK", root="/Users/frank/Projects/wukong", n=8)
+    other = _entry(prefix="WUK", root="/fixtures/wukong", n=8)
     entries, _ = upsert([], root=tmp_path, prefix_counts={"FXA": 1}, today=TODAY)
     entries = [other] + entries
     entries2, changed = upsert(
@@ -176,6 +178,8 @@ def test_save_replaces_atomically_no_tmp_left_behind(tmp_path):
 
 
 def test_save_failure_leaves_original_intact(tmp_path):
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
     reg_dir = tmp_path / "reg"
     reg_dir.mkdir()
     p = reg_dir / REGISTRY_FILENAME
@@ -223,6 +227,8 @@ def test_pipe_in_root_round_trips():
 
 def test_load_unreadable_file_raises_not_empty(tmp_path):
     """read failure must propagate, not wipe the catalog."""
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
     p = tmp_path / REGISTRY_FILENAME
     p.write_text(render_registry([_entry()], today=TODAY), encoding="utf-8")
     p.chmod(0o000)
@@ -364,7 +370,7 @@ def test_trailing_whitespace_root_round_trips():
 
 def test_legacy_bare_rows_still_parse():
     """Companion: hand-written bare rows (pre-backtick format) keep parsing."""
-    text = "| FXA | /Users/frank/Projects/alfred | 3 | 2026-09-02 |\n"
+    text = "| FXA | /fixtures/alfred | 3 | 2026-09-02 |\n"
     assert parse_registry(text) == [_entry()]
 
 
@@ -386,7 +392,7 @@ def test_save_refuses_table_bearing_foreign_doc(tmp_path):
     p = tmp_path / REGISTRY_FILENAME
     p.write_text(
         "# my custom doc\n\nprecious prose\n\n"
-        "| FXA | /Users/frank/Projects/alfred | 3 | 2026-09-02 |\n",
+        "| FXA | /fixtures/alfred | 3 | 2026-09-02 |\n",
         encoding="utf-8",
     )
     with pytest.raises(RegistrySlotConflictError):
@@ -459,23 +465,119 @@ def test_foreign_doc_mentioning_fxa2330_is_not_ours(tmp_path):
     p = tmp_path / REGISTRY_FILENAME
     p.write_text(
         "# notes\n\nWe follow FXA-2330 for the registry design.\n\n"
-        "| FXA | /Users/frank/Projects/alfred | 3 | 2026-09-02 |\n",
+        "| FXA | /fixtures/alfred | 3 | 2026-09-02 |\n",
         encoding="utf-8",
     )
     with pytest.raises(RegistrySlotConflictError):
         save_registry(p, [_entry()], today=TODAY)
 
 
-def test_legacy_registry_without_marker_still_ours(tmp_path):
-    """Companion: pre-marker registries (exact template line) upgrade in
-    place instead of being rejected as foreign."""
-    p = tmp_path / REGISTRY_FILENAME
-    legacy = render_registry([_entry()], today=TODAY).replace(
-        "<!-- af:project-sop-registry v1 -->\n", ""
+def _write_v130_registry(path: Path, kept_root: str) -> None:
+    """Write a markerless registry with the literal v1.30.0 preamble."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"""# REF-9000: Project SOP Registry
+
+**Applies to:** USR layer (machine-wide)
+
+---
+
+## What Is It?
+
+Auto-maintained by `af` (FXA-2330): one row per (PRJ prefix, project
+root) seen by `af guide/list/read/status`. The whole machine's project
+SOP map. Manage with `af register` / `af projects --prune`;
+hand-edited table rows survive regeneration. Doc id: USR-9000
+
+| PRJ | Root | Docs | Last Seen |
+|-----|------|------|-----------|
+| FXA | `{kept_root}` | 2 | 2026-01-01 |
+""",
+        encoding="utf-8",
     )
-    p.write_text(legacy, encoding="utf-8")
-    save_registry(p, [_entry(n=9)], today=TODAY)  # must not raise
-    assert load_registry(p) == [_entry(n=9)]
+
+
+def _write_registration_project(home: Path) -> Path:
+    """Create a one-document project that explicit registration can upsert."""
+    project = home / "project"
+    (project / "rules").mkdir(parents=True)
+    (project / "rules" / "NEW-0001-SOP-Fixture.md").write_text(
+        "# NEW fixture\n", encoding="utf-8"
+    )
+    return project
+
+
+def _row_tuples(rows: list) -> list[tuple[str, str, int]]:
+    """Reduce observed registry rows to the exact fields under assertion."""
+    return [(row.prefix, row.root, row.doc_count) for row in rows]
+
+
+def _write_current_markerless_registry(path: Path, kept_root: str) -> None:
+    """Write a markerless registry with the literal current preamble."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"""# REF-9000: Project SOP Registry
+
+**Applies to:** USR layer (machine-wide)
+
+---
+
+## What Is It?
+
+Maintained by `af` (FXA-2330): one row per (PRJ prefix, project
+root) registered explicitly with `af register`. The whole machine's project
+SOP map. Manage with `af register` / `af projects --prune`;
+hand-edited table rows survive regeneration. Doc id: USR-9000
+
+| PRJ | Root | Docs | Last Seen |
+|-----|------|------|-----------|
+| FXA | `{kept_root}` | 2 | 2026-01-01 |
+""",
+        encoding="utf-8",
+    )
+
+
+def test_current_markerless_registry_still_ours(tmp_path):
+    """The literal current preamble also identifies an af-owned registry."""
+    p = tmp_path / REGISTRY_FILENAME
+
+    _write_current_markerless_registry(p, "/kept/project")
+    conflict = slot_conflict(p)
+
+    assert conflict is None
+
+
+def test_legacy_registry_without_marker_still_ours(tmp_path):
+    """The literal v1.30.0 preamble still identifies an af-owned registry."""
+    p = tmp_path / REGISTRY_FILENAME
+
+    _write_v130_registry(p, "/kept/project")
+    conflict = slot_conflict(p)
+
+    assert conflict is None
+
+
+def test_register_upgrades_v130_registry_in_place(tmp_path, monkeypatch):
+    """Explicit registration preserves the legacy row and adds the project."""
+    from click.testing import CliRunner
+
+    from fx_alfred.cli import cli
+
+    home = Path.home()
+    project = _write_registration_project(tmp_path / "project")
+    registry = home / ".alfred" / REGISTRY_FILENAME
+    _write_v130_registry(registry, "/kept/project")
+
+    monkeypatch.chdir(project)
+    result = CliRunner().invoke(cli, ["register"], catch_exceptions=False)
+    rows = _row_tuples(parse_registry(registry.read_text(encoding="utf-8")))
+
+    assert "already occupies the USR-9000 slot" not in result.output
+    assert result.exit_code == 0, result.output
+    assert rows == [
+        ("FXA", "/kept/project", 2),
+        ("NEW", str(project.resolve()), 1),
+    ]
 
 
 def test_rendered_tables_are_column_aligned():
@@ -571,7 +673,7 @@ def test_prefix_only_legacy_line_is_not_ours(tmp_path):
         "but this is my own document.\n\n"
         "| PRJ | Root | Docs | Last Seen |\n"
         "|-----|------|------|-----------|\n"
-        "| FXA | `/Users/frank/Projects/alfred` | 3 | 2026-09-02 |\n",
+        "| FXA | `/fixtures/alfred` | 3 | 2026-09-02 |\n",
         encoding="utf-8",
     )
     with pytest.raises(RegistrySlotConflictError):
@@ -592,7 +694,7 @@ def test_single_legacy_line_is_not_ours(tmp_path):
         "but then I wrote my own entirely different continuation here.\n\n"
         "| PRJ | Root | Docs | Last Seen |\n"
         "|-----|------|------|-----------|\n"
-        "| FXA | `/Users/frank/Projects/alfred` | 3 | 2026-09-02 |\n",
+        "| FXA | `/fixtures/alfred` | 3 | 2026-09-02 |\n",
         encoding="utf-8",
     )
     with pytest.raises(RegistrySlotConflictError):
@@ -603,9 +705,9 @@ def test_single_legacy_line_is_not_ours(tmp_path):
 # ------------------------------- scanner integration: validation and precedence
 
 
-def test_scan_does_not_crash_when_prj_uses_acid_9000(tmp_path):
-    """after the global registry exists, a project whose PRJ layer
-    carries its own USR-9000 doc must still scan (no LayerValidationError)."""
+def test_scan_allows_registered_global_and_prj_acid_9000(tmp_path):
+    """After global registration, a project whose PRJ layer carries USR-9000
+    must still scan (no LayerValidationError)."""
     from click.testing import CliRunner
 
     from fx_alfred.cli import cli
@@ -623,8 +725,8 @@ def test_scan_does_not_crash_when_prj_uses_acid_9000(tmp_path):
     old = os.getcwd()
     os.chdir(proj_a)
     try:
-        r1 = runner.invoke(cli, ["list"], catch_exceptions=False)
-        assert r1.exit_code == 0  # A creates the global registry
+        r1 = runner.invoke(cli, ["register"], catch_exceptions=False)
+        assert r1.exit_code == 0, r1.output
         assert (Path.home() / ".alfred" / REGISTRY_FILENAME).exists()
         os.chdir(proj_b)
         r2 = runner.invoke(cli, ["list"], catch_exceptions=False)
@@ -640,8 +742,8 @@ def test_render_includes_what_is_it_section():
     assert "## What Is It?" in text
 
 
-def test_fully_qualified_usr9000_prefers_prj_doc(tmp_path):
-    """`af read USR-9000` with BOTH the global registry and a PRJ
+def test_registered_global_usr9000_prefers_prj_doc(tmp_path):
+    """`af read USR-9000` with BOTH the registered global registry and a PRJ
     USR-9000 doc resolves to the PRJ doc (layer precedence), never ambiguous."""
     import os
 
@@ -660,7 +762,7 @@ def test_fully_qualified_usr9000_prefers_prj_doc(tmp_path):
     old = os.getcwd()
     os.chdir(proj_a)
     try:
-        assert runner.invoke(cli, ["list"], catch_exceptions=False).exit_code == 0
+        assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
         assert (Path.home() / ".alfred" / REGISTRY_FILENAME).exists()
         os.chdir(proj_b)
         result = runner.invoke(cli, ["read", "USR-9000"], catch_exceptions=False)
@@ -679,8 +781,8 @@ def test_prune_survives_nul_in_root():
     assert nul in removed
 
 
-def test_nested_usr9000_still_duplicates(tmp_path):
-    """the registry exemption must be scoped to registry-vs-PRJ —
+def test_nested_usr9000_still_duplicates_after_registration(tmp_path):
+    """after explicit registration, the registry exemption must be scoped to registry-vs-PRJ —
     a NESTED USR doc with id USR-9000 next to the global registry is still
     a same-layer duplicate and must fail layer validation."""
     import os
@@ -697,7 +799,7 @@ def test_nested_usr9000_still_duplicates(tmp_path):
     old = os.getcwd()
     os.chdir(proj_a)
     try:
-        assert runner.invoke(cli, ["list"], catch_exceptions=False).exit_code == 0
+        assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
         reg = Path.home() / ".alfred" / REGISTRY_FILENAME
         assert reg.exists()
         nested = Path.home() / ".alfred" / "custom"

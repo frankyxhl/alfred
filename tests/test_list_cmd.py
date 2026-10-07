@@ -341,18 +341,21 @@ def test_list_redirected_prj_doc_directory_in_json(tmp_path):
 # ------------------------------------------------- FXA-2330 registry trigger
 
 
-def test_list_touches_project_registry(sample_project, monkeypatch):
-    """list in a project context appends a registry row (FXA-2330)."""
+def test_list_does_not_change_registered_project_registry(sample_project, monkeypatch):
+    """Explicit registration is the only list operation that updates the registry."""
     from fx_alfred.core.registry import load_registry
 
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
+    assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
+    registry_path = Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    before = registry_path.read_text(encoding="utf-8")
+
     result = runner.invoke(cli, ["list"], catch_exceptions=False)
     assert result.exit_code == 0
-    entries = load_registry(
-        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
-    )
+    entries = load_registry(registry_path)
     assert [(e.prefix, e.doc_count) for e in entries] == [("ALF", 3)]
+    assert registry_path.read_text(encoding="utf-8") == before
 
 
 def test_list_outside_project_leaves_registry_untouched(tmp_path, monkeypatch):
@@ -378,11 +381,11 @@ def test_list_json_output_unpolluted_by_registry_trigger(sample_project, monkeyp
     assert isinstance(data, list)
 
 
-def test_list_first_invocation_shows_bootstrapped_usr9000(sample_project, monkeypatch):
-    """`af list --source usr` must show USR-9000 on the very invocation
-    that creates it (re-scan after trigger write)."""
+def test_list_shows_registered_usr9000(sample_project, monkeypatch):
+    """`af list --source usr` shows USR-9000 after explicit registration."""
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
+    assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
     result = runner.invoke(cli, ["list", "--source", "usr"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "USR-9000" in result.output

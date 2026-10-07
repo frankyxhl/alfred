@@ -100,6 +100,8 @@ def test_search_multiple_docs(tmp_path, monkeypatch):
 
 def test_search_unreadable_doc_skipped_silently(sample_project, monkeypatch):
     """Unreadable documents are skipped silently (no error, no output)."""
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
 

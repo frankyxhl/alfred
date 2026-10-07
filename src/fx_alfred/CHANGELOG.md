@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Changed
+
+- **Explicit project registration** — the `guide`, `list`, `read`, and
+  `status` commands no longer auto-register projects. `af register` is
+  the only way to add a project, and it refuses linked git worktrees.
+  `af projects --prune` drops dead roots and worktree rows.
+
+### New
+
+- **Cross-project search** — `af search PATTERN --all` searches every
+  registered project. `--json` adds `project_root`. A broken project is
+  warned about and skipped, and search still exits 0.
+- **Cross-project list and read** — `af list --all` and
+  `af read ID --all` cover every registered project. Ambiguous IDs list
+  their candidates with roots. The current project is never counted
+  twice.
+
 ## v1.30.0 (2026-09-03)
 
 ### New

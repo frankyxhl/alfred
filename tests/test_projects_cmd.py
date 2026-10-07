@@ -1,6 +1,7 @@
 """FXA-2330: `af projects` — list/manage the Project SOP Registry."""
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -112,6 +113,8 @@ def test_projects_prune_json_returns_survivors(tmp_path, monkeypatch):
 
 def test_projects_unreadable_registry_is_cli_error(tmp_path, monkeypatch):
     """read failures surface as friendly CLI errors, not tracebacks."""
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
     from fx_alfred.core.registry import save_registry
 
     p = Path.home() / ".alfred" / REGISTRY_FILENAME

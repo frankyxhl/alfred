@@ -1,3 +1,4 @@
+import os
 import pytest
 
 
@@ -89,11 +90,11 @@ def test_read_with_root_after_subcommand(sample_project):
 
 def test_read_failure_shows_friendly_error(sample_project, monkeypatch):
     """Read failure shows friendly CLI error, not raw traceback."""
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root ignores directory permissions")
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
     # ALF-2201 exists in sample_project, temporarily break it
-    import os
-
     doc_path = sample_project / "rules" / "ALF-2201-PRP-AF-CLI-Tool.md"
     os.chmod(doc_path, 0o000)
     try:
@@ -129,39 +130,42 @@ def test_read_json(sample_project, monkeypatch):
 # ------------------------------------------------- FXA-2330 registry trigger
 
 
-def test_read_touches_project_registry(sample_project, monkeypatch):
-    """read in a project context appends a registry row (FXA-2330)."""
+def test_read_does_not_change_registered_project_registry(sample_project, monkeypatch):
+    """Explicit registration is the only read operation that updates the registry."""
     from fx_alfred.core.registry import load_registry
 
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
+    assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
+    registry_path = Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    before = registry_path.read_text(encoding="utf-8")
+
     result = runner.invoke(cli, ["read", "ALF-2201"], catch_exceptions=False)
     assert result.exit_code == 0
-    entries = load_registry(
-        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
-    )
+    entries = load_registry(registry_path)
     assert [(e.prefix, e.doc_count) for e in entries] == [("ALF", 3)]
+    assert registry_path.read_text(encoding="utf-8") == before
 
 
 def test_read_registry_doc_renders_machine_map(sample_project, monkeypatch):
-    """af read USR-9000 shows the whole machine's project map."""
+    """After explicit registration, af read USR-9000 shows the machine's project map."""
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
-    assert runner.invoke(cli, ["list"], catch_exceptions=False).exit_code == 0
+    assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
     result = runner.invoke(cli, ["read", "USR-9000"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "Project SOP Registry" in result.output
     assert str(sample_project.resolve()) in result.output
 
 
-def test_read_usr9000_first_invocation_bootstraps(sample_project, monkeypatch):
-    """first `af read USR-9000` must succeed even though the scan
-    ran before the trigger created the file (re-scan after write)."""
+def test_read_usr9000_does_not_bootstrap(sample_project, monkeypatch):
+    """Reading USR-9000 never creates the registry as a side effect."""
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
+    registry_path = Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
     result = runner.invoke(cli, ["read", "USR-9000"], catch_exceptions=False)
-    assert result.exit_code == 0
-    assert "Project SOP Registry" in result.output
+    assert result.exit_code != 0
+    assert not registry_path.exists()
 
 
 def test_read_acid_only_not_ambiguated_by_bootstrap(tmp_path, monkeypatch):

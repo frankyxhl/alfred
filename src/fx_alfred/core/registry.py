@@ -42,6 +42,12 @@ REGISTRY_MARKER = "<!-- af:project-sop-registry v1 -->"
 # treated as Alfred-owned (silent data loss). Derived from
 # the same constant the template renders, so they cannot drift.
 _TEMPLATE_PREAMBLE = [
+    "Maintained by `af` (FXA-2330): one row per (PRJ prefix, project",
+    "root) registered explicitly with `af register`. The whole machine's project",
+    "SOP map. Manage with `af register` / `af projects --prune`;",
+    "hand-edited table rows survive regeneration. Doc id: USR-9000",
+]
+_LEGACY_PREAMBLE = [
     "Auto-maintained by `af` (FXA-2330): one row per (PRJ prefix, project",
     "root) seen by `af guide/list/read/status`. The whole machine's project",
     "SOP map. Manage with `af register` / `af projects --prune`;",
@@ -245,7 +251,7 @@ def render_registry(entries: list[RegistryEntry], *, today: str) -> str:
         "## What Is It?",
         "",
         "The machine-wide project SOP map: one row per (PRJ prefix, project",
-        "root) that `af` has seen, auto-maintained on the hot read commands.",
+        "root) that has been registered explicitly with `af register`.",
         "",
         REGISTRY_MARKER,
         "",
@@ -330,7 +336,10 @@ def slot_conflict(path: Path) -> Path | None:
             text = path.read_text(encoding="utf-8")
         except OSError:
             return path  # unreadable occupant — never overwrite blind
-        if REGISTRY_MARKER in text or "\n".join(_TEMPLATE_PREAMBLE) in text:
+        owned_preambles = (_TEMPLATE_PREAMBLE, _LEGACY_PREAMBLE)
+        if REGISTRY_MARKER in text or any(
+            "\n".join(preamble) in text for preamble in owned_preambles
+        ):
             return None  # written by af — the marker (or full legacy
             # preamble block) survives every rewrite
         return path  # foreign — table-bearing or not, never destroy it
@@ -435,7 +444,10 @@ def prune_missing_roots(
         try:
             st = os.stat(e.root)
             if stat.S_ISDIR(st.st_mode):
-                kept.append(e)
+                if (Path(e.root) / ".git").is_file():
+                    removed.append(e)
+                else:
+                    kept.append(e)
             else:
                 removed.append(e)  # path exists but is no longer a directory
         except FileNotFoundError:

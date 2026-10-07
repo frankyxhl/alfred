@@ -159,39 +159,42 @@ def test_status_empty_docs_text(mock_scan):
 # ------------------------------------------------- FXA-2330 registry trigger
 
 
-def test_status_touches_project_registry(sample_project, monkeypatch):
-    """status in a project context appends a registry row (FXA-2330)."""
+def test_status_does_not_change_registered_project_registry(
+    sample_project, monkeypatch
+):
+    """Explicit registration is the only status operation that updates the registry."""
     from fx_alfred.core.registry import load_registry
 
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
+    assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
+    registry_path = Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
+    before = registry_path.read_text(encoding="utf-8")
+
     result = runner.invoke(cli, ["status"], catch_exceptions=False)
     assert result.exit_code == 0
-    entries = load_registry(
-        Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
-    )
+    entries = load_registry(registry_path)
     assert [(e.prefix, e.doc_count) for e in entries] == [("ALF", 3)]
+    assert registry_path.read_text(encoding="utf-8") == before
 
 
-def test_status_registry_failure_warns_but_exits_zero(sample_project, monkeypatch):
-    """Registry write failure never blocks the primary command (FXA-2330)."""
-    from unittest.mock import patch
-
+def test_status_does_not_write_project_registry(sample_project, monkeypatch):
+    """Status never attempts a registry write (the S1 contract)."""
     monkeypatch.chdir(sample_project)
+    registry_path = Path.home() / ".alfred" / "USR-9000-REF-Project-SOP-Registry.md"
     with patch(
-        "fx_alfred.commands._helpers.save_registry", side_effect=OSError("disk full")
+        "fx_alfred.core.registry.save_registry", side_effect=OSError("disk full")
     ):
         result = CliRunner().invoke(cli, ["status"])
     assert result.exit_code == 0
-    assert "registry" in result.output.lower()
+    assert not registry_path.exists()
 
 
-def test_status_first_invocation_counts_bootstrapped_usr9000(
-    sample_project, monkeypatch
-):
-    """first `af status` in a project counts the registry doc it just made."""
+def test_status_counts_registered_usr9000(sample_project, monkeypatch):
+    """`af status` counts USR-9000 after explicit registration."""
     monkeypatch.chdir(sample_project)
     runner = CliRunner()
+    assert runner.invoke(cli, ["register"], catch_exceptions=False).exit_code == 0
     result = runner.invoke(cli, ["status"], catch_exceptions=False)
     assert result.exit_code == 0
     assert "USR: 1" in result.output

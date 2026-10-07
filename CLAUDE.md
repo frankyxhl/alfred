@@ -69,7 +69,7 @@ src/fx_alfred/
 │   ├── log_validate_cmd.py # af log-validate schema checker
 │   ├── plan_cmd.py     # workflow checklist from SOPs (text/JSON/todo/graph modes)
 │   ├── projects_cmd.py # af projects — list/prune the Project SOP Registry (FXA-2330)
-│   ├── read_cmd.py     # read + --json (guide/list/read/status also upsert the project registry, FXA-2330)
+│   ├── read_cmd.py     # read + --json
 │   ├── register_cmd.py # af register — explicit registry upsert (FXA-2330)
 │   ├── search_cmd.py   # content search
 │   ├── setup_cmd.py    # agent configuration prompts

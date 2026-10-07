@@ -27,9 +27,13 @@ from fx_alfred.core.registry import (
 @click.pass_context
 def register_cmd(ctx: click.Context, output_json: bool):
     """Register this project in the user-level Project SOP Registry (USR-9000)."""
-    docs = scan_or_fail(ctx)
     root = get_root(ctx)
-
+    if (root / ".git").is_file():
+        raise click.ClickException(
+            "This project is a linked git worktree. Register the main repo "
+            "instead so all worktrees share one registry entry."
+        )
+    docs = scan_or_fail(ctx)
     prj_docs = [d for d in docs if d.source == "prj"]
     if not prj_docs:
         raise click.ClickException(
