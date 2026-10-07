@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.31.1 (2026-10-07)
+
 ### Fixed
 
 - `af read ID --all` now advises a qualified PREFIX-ACID when one project
