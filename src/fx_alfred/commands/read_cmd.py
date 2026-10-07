@@ -65,8 +65,17 @@ def read_cmd(
             + (f" at {document_roots[id(item)]}" if id(item) in document_roots else "")
             for item in e.matches
         )
+        advice_parts = []
+        if len({item.prefix for item in e.matches}) > 1:
+            advice_parts.append("Use PREFIX-ACID to be precise")
+        roots = {
+            document_roots[id(item)] for item in e.matches if id(item) in document_roots
+        }
+        if len(roots) > 1:
+            advice_parts.append("use --root <project> to choose a project")
+        advice = "; ".join(advice_parts)
         raise click.ClickException(
-            f"Ambiguous document {identifier}. Use --root <project>:\n{candidate_lines}"
+            f"Ambiguous document {identifier}. {advice}:\n{candidate_lines}"
         ) from e
 
     try:
