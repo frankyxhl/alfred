@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.31.0 (2026-10-07)
+
 ### Changed
 
 - **Explicit project registration** — the `guide`, `list`, `read`, and
