@@ -310,6 +310,28 @@ def test_s5_read_all_reports_ambiguous_candidates(
     assert "# STW-0001" not in result.stdout
 
 
+def test_read_all_local_acid_ambiguity_advises_prefix_acid(
+    tmp_path: Path,
+) -> None:
+    base = tmp_path.resolve()
+    project = _write_local_ambiguity_project(base / "local-project")
+    outside = base / "outside"
+    outside.mkdir()
+    registered = _run_af("register", cwd=project, home=base)
+    assert registered.returncode == 0, registered.stderr + registered.stdout
+
+    result = _run_af("read", "3411", "--all", cwd=outside, home=base)
+
+    assert result.returncode != 0
+    assert result.stderr.splitlines()[1:3] == [
+        f"  ABC-3411 at {project.resolve()}",
+        f"  STW-3411 at {project.resolve()}",
+    ]
+    assert "Use PREFIX-ACID to be precise" in result.stderr
+    assert result.stderr.count("ABC-3411") == 1
+    assert result.stderr.count("STW-3411") == 1
+
+
 def test_local_acid_ambiguity_advises_prefix_acid(tmp_path: Path) -> None:
     project = _write_local_ambiguity_project(tmp_path / "local-project")
 

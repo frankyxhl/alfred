@@ -574,10 +574,11 @@ def test_register_upgrades_v130_registry_in_place(tmp_path, monkeypatch):
 
     assert "already occupies the USR-9000 slot" not in result.output
     assert result.exit_code == 0, result.output
-    assert rows == [
+    expected_rows = [
         ("FXA", "/kept/project", 2),
         ("NEW", str(project.resolve()), 1),
     ]
+    assert rows == sorted(expected_rows, key=lambda row: (row[1], row[0]))
 
 
 def test_rendered_tables_are_column_aligned():

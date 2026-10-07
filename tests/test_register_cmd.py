@@ -88,17 +88,20 @@ def test_register_preserves_other_rows(sample_project, monkeypatch):
 
     save_registry(
         _registry_file(),
-        [RegistryEntry("WUK", "/Users/frank/Projects/wukong", 8, "2026-01-01")],
+        [RegistryEntry("WUK", "/fixtures/wukong", 8, "2026-01-01")],
         today="2026-01-01",
     )
     monkeypatch.chdir(sample_project)
     result = CliRunner().invoke(cli, ["register"], catch_exceptions=False)
     assert result.exit_code == 0
     entries = load_registry(_registry_file())
-    assert [(e.prefix, e.root) for e in entries] == [
-        ("WUK", "/Users/frank/Projects/wukong"),
+    expected_rows = [
+        ("WUK", "/fixtures/wukong"),
         ("ALF", str(sample_project.resolve())),
     ]
+    assert [(e.prefix, e.root) for e in entries] == sorted(
+        expected_rows, key=lambda row: (row[1], row[0])
+    )
 
 
 def test_register_rejects_prj_usr9000_conflict(tmp_path, monkeypatch):
